@@ -1,6 +1,6 @@
 {
 	"name": "Brickley",
-	"_comment": "The all-rounder. Nothing special, nothing wrong.",
+	"_comment": "The all-rounder. Nothing special, nothing wrong. Carries a turbo and a brick cannon.",
 	"parts": [
 		{ "id": "plate_6x10", "at": [7, 2, 7], "rot": 0 },
 		{ "id": "wheel_small", "at": [6, 0, 8], "rot": 0 },
@@ -14,6 +14,8 @@
 		{ "id": "engine_small", "at": [9, 3, 14], "rot": 0 },
 		{ "id": "brick_2x2", "at": [7, 3, 14], "rot": 0, "color": "#c4281c" },
 		{ "id": "brick_2x2", "at": [11, 3, 14], "rot": 0, "color": "#c4281c" },
-		{ "id": "spoiler_6", "at": [7, 6, 15], "rot": 0, "color": "#c4281c" }
+		{ "id": "spoiler_6", "at": [7, 6, 15], "rot": 0, "color": "#c4281c" },
+		{ "id": "turbo", "at": [7, 3, 10], "rot": 0 },
+		{ "id": "brick_cannon", "at": [11, 3, 10], "rot": 0 }
 	]
 }

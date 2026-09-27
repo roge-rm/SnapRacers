@@ -8,3 +8,5 @@ var throttle := 0.0 # 0 to 1
 var brake := 0.0 # 0 to 1, and it reverses once the kart has stopped
 var steer := 0.0 # -1 is full left, 1 is full right
 var reset := false
+## The two gadget buttons, held or not.
+var gadget: Array[bool] = [false, false]

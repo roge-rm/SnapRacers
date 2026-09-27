@@ -40,6 +40,9 @@ func _ready() -> void:
 	host = Node.new()
 	add_child(host)
 	Game.start(host, false)
+	# Start from the starter kart, not whatever an earlier run left as the
+	# kart being worked on.
+	Game.design = KartDesign.load_file(Game.STARTER)
 	Game.show_garage()
 
 
@@ -50,7 +53,7 @@ func _process(_delta: float) -> void:
 			garage = host.get_child(host.get_child_count() - 1)
 			check(garage is Garage, "the game opens in the garage")
 			garage.finger_lift = 0.0
-			check(garage.design.parts.size() == 13, "with the starter kart in it")
+			check(garage.design.parts.size() == 14, "with the starter kart in it")
 			garage.ui.part_chosen.emit("brick_2x2")
 			check(garage._holding == "brick_2x2", "picking a part in the bank puts it in your hand")
 			# The top of the chassis, in the free spot beside the seat. (A little
@@ -60,12 +63,12 @@ func _process(_delta: float) -> void:
 			touch(spot, true)
 			touch(spot, false)
 		5:
-			check(garage.design.parts.size() == 14, "touching the chassis puts the brick down")
-			var placed: Dictionary = garage.design.parts[13]
+			check(garage.design.parts.size() == 15, "touching the chassis puts the brick down")
+			var placed: Dictionary = garage.design.parts[14]
 			check(placed.at.y == 3, "on top of the chassis (%s)" % placed.at)
 			check(garage.design.problems().is_empty(), "and the kart is still fine %s" % [garage.design.problems()])
 			garage.ui.undo_pressed.emit()
-			check(garage.design.parts.size() == 13, "undo takes it back off")
+			check(garage.design.parts.size() == 14, "undo takes it back off")
 			garage.ui.done_pressed.emit()
 			check(garage._holding == "", "done empties your hand")
 			var engine := screen_of(Vector3(10.0, 6.0, 14.5))
@@ -76,7 +79,7 @@ func _process(_delta: float) -> void:
 			var id: String = garage.design.parts[garage._selected].id if garage._selected != -1 else ""
 			check(id == "engine_small" or id == "spoiler_6", "the part I touched (%s)" % id)
 			garage.ui.remove_pressed.emit()
-			check(garage.design.parts.size() == 12, "remove takes it off")
+			check(garage.design.parts.size() == 13, "remove takes it off")
 			check(not garage.design.problems().is_empty(), "and then the kart has a problem %s" % [garage.design.problems()])
 			garage.ui.undo_pressed.emit()
 			check(garage.design.problems().is_empty(), "undo fixes it again")

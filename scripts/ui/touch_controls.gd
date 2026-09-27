@@ -17,7 +17,14 @@ var reset := false
 ## left alone for the button.
 var blockers: Array[Control] = []
 
+## What's on the gadget buttons above GO, set by the HUD: a name, or an
+## empty string for no button there.
+var gadget_names: Array[String] = ["", ""]
+## Whether each gadget can be used right now (enough studs).
+var gadget_ready: Array[bool] = [false, false]
+
 var _reset_tapped := false
+var _gadget_tapped: Array[bool] = [false, false]
 var _stick_finger := -1
 var _stick_origin := Vector2.ZERO
 var _stick_at := Vector2.ZERO
@@ -38,11 +45,16 @@ func _notification(what: int) -> void:
 func _buttons() -> Dictionary:
 	var s := size
 	var r := minf(s.y * 0.13, 110.0)
-	return {
+	var out := {
 		"gas": [Vector2(s.x - r * 1.5, s.y - r * 1.5), r],
 		"brake": [Vector2(s.x - r * 3.9, s.y - r * 1.1), r * 0.75],
 		"reset": [Vector2(s.x - r * 0.9, r * 0.9), r * 0.5],
 	}
+	if gadget_names[0] != "":
+		out["gadget0"] = [Vector2(s.x - r * 1.3, s.y - r * 3.7), r * 0.62]
+	if gadget_names[1] != "":
+		out["gadget1"] = [Vector2(s.x - r * 3.1, s.y - r * 3.3), r * 0.62]
+	return out
 
 
 func _button_at(pos: Vector2) -> String:
@@ -65,6 +77,8 @@ func _input(event: InputEvent) -> void:
 			var name := _button_at(event.position)
 			if name == "reset":
 				_reset_tapped = true
+			elif name.begins_with("gadget"):
+				_gadget_tapped[int(name.substr(6))] = true
 			if name != "":
 				_fingers[event.index] = name
 				_finger_at[event.index] = event.position
@@ -96,6 +110,13 @@ func take_reset_tap() -> bool:
 	return tapped
 
 
+## True once for every tap on a gadget button, like take_reset_tap().
+func take_gadget_tap(slot: int) -> bool:
+	var tapped := _gadget_tapped[slot]
+	_gadget_tapped[slot] = false
+	return tapped
+
+
 func _update() -> void:
 	steer = 0.0
 	if _stick_finger != -1:
@@ -112,17 +133,25 @@ func _draw() -> void:
 		return # not laid out yet
 	var buttons := _buttons()
 	var held := _fingers.values()
-	var labels := { "gas": "GO", "brake": "BRAKE", "reset": "RESET" }
+	var labels := { "gas": "GO", "brake": "BRAKE", "reset": "RESET", "gadget0": gadget_names[0], "gadget1": gadget_names[1] }
 	var font := get_theme_default_font()
 	for name in buttons:
 		var centre: Vector2 = buttons[name][0]
 		var radius: float = buttons[name][1]
 		var alpha := 0.55 if held.has(name) else 0.28
+		var ring := Color(1, 1, 1, 0.8)
+		if name.begins_with("gadget"):
+			# Gold when it can be used, faded when it can't.
+			var ready: bool = gadget_ready[int(name.substr(6))]
+			alpha = 0.45 if ready else 0.12
+			ring = Color("#f2cd37") if ready else Color(1, 1, 1, 0.3)
 		draw_circle(centre, radius, Color(1, 1, 1, alpha))
-		draw_arc(centre, radius, 0.0, TAU, 48, Color(1, 1, 1, 0.8), 3.0, true)
-		var font_size := int(radius * 0.4)
-		var text_size := font.get_string_size(labels[name], HORIZONTAL_ALIGNMENT_CENTER, -1, font_size)
-		draw_string(font, centre + Vector2(-text_size.x * 0.5, font_size * 0.35), labels[name], HORIZONTAL_ALIGNMENT_CENTER, -1, font_size, Color(0, 0, 0, 0.75))
+		draw_arc(centre, radius, 0.0, TAU, 48, ring, 3.0, true)
+		var font_size := int(radius * (0.3 if name.begins_with("gadget") else 0.4))
+		var text: String = labels[name]
+		var text_size := font.get_multiline_string_size(text, HORIZONTAL_ALIGNMENT_CENTER, -1, font_size)
+		var top_left := centre - text_size * 0.5 + Vector2(0.0, font_size * 0.8)
+		draw_multiline_string(font, top_left, text, HORIZONTAL_ALIGNMENT_CENTER, text_size.x, font_size, -1, Color(0, 0, 0, 0.75))
 	if _stick_finger != -1:
 		draw_arc(_stick_origin, STICK_RANGE, 0.0, TAU, 48, Color(1, 1, 1, 0.5), 3.0, true)
 		var knob := _stick_origin + Vector2(steer * STICK_RANGE, 0.0)

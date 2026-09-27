@@ -15,6 +15,8 @@ const COUNTDOWN := 3.0
 const FALLEN := 4.0
 ## Further from the middle of the road than this and you're lost.
 const LOST := 45.0
+## How far before a loop or wall ride a reset puts you, to build speed.
+const RUN_UP := 35.0
 const AI_NAMES_SKILL := [0.97, 0.94, 0.92, 0.9, 0.87]
 
 
@@ -34,6 +36,7 @@ var player: Racer
 var time := -COUNTDOWN
 var started := false
 
+var studs: StudField
 var hud: RaceHud
 var camera: ChaseCamera
 var _player_input: LocalPlayerInput
@@ -47,6 +50,8 @@ var _frames_drawn := 0
 func _ready() -> void:
 	track = TrackPath.load_file(Game.track_path)
 	add_child(TrackBuilder.new(track))
+	studs = StudField.new(track)
+	add_child(studs)
 
 	var files := Array(DirAccess.get_files_at(AI_KARTS)).filter(func(f): return f.ends_with(".json"))
 	files.sort()
@@ -78,6 +83,7 @@ func _ready() -> void:
 	add_child(_player_input)
 	player.kart.controls = _player_input.controls
 
+	studs.viewer = player.kart
 	camera = ChaseCamera.new()
 	camera.target = player.kart
 	add_child(camera)
@@ -148,6 +154,7 @@ func _physics_process(delta: float) -> void:
 		if racer.ai != null:
 			racer.ai.offset = racer.offset
 		if started:
+			kart.add_studs(studs.collect(kart))
 			var was_done := racer.progress.finished
 			racer.progress.update(racer.offset, time)
 			if racer.player and racer.progress.finished and not was_done:
@@ -169,12 +176,17 @@ func _clear_spot(racer: Racer) -> Transform3D:
 	var room := 3.5
 	var across := [0.0, -3.0, 3.0, -4.5, 4.5]
 	# Never back onto a loop or a wall ride: go back to where the road lies
-	# flat before it.
+	# flat before it, and then a run-up further, since they need speed and a
+	# kart put back right at the foot of a loop just falls off it again.
 	var start := racer.offset
+	var backed := false
 	for step in 80:
 		if track.up_at(start).y > 0.95:
 			break
 		start -= 2.0
+		backed = true
+	if backed:
+		start -= RUN_UP
 	for back in [0.0, 5.0, 10.0, 15.0, 20.0]:
 		for side in across:
 			var spot := track.place_at(start - back)
@@ -185,8 +197,12 @@ func _clear_spot(racer: Racer) -> Transform3D:
 					clear = false
 					break
 			if clear:
+				# The kart's been moved, so the race has to know where it is now,
+				# or it goes looking for it where it was and resets it again.
+				racer.offset = fposmod(start - back, track.length)
 				return spot
-	return track.place_at(racer.offset)
+	racer.offset = fposmod(start, track.length)
+	return track.place_at(start)
 
 
 ## Once you're over the line the AI takes your kart home, so it doesn't just

@@ -13,6 +13,7 @@ var race: Race
 
 var _place: Label
 var _lap: Label
+var _studs: Label
 var _clock: Label
 var _big: Label
 var _message: Label
@@ -34,6 +35,9 @@ func _ready() -> void:
 	_place.position = Vector2(24, 8)
 	_lap = _label(28)
 	_lap.position = Vector2(26, 80)
+	_studs = _label(28)
+	_studs.position = Vector2(26, 118)
+	_studs.add_theme_color_override("font_color", Color("#f2cd37"))
 
 	_clock = _label(28)
 	_clock.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -112,6 +116,17 @@ func _process(delta: float) -> void:
 	_lap.text = "Lap %d / %d" % [me.progress.current_lap(), race.track.laps]
 	if me.progress.finished:
 		_lap.text = "Finished"
+	_studs.text = "%d stud%s" % [me.kart.studs, "" if me.kart.studs == 1 else "s"]
+	if touch != null:
+		var buttons := me.kart.buttons()
+		for slot in 2:
+			if slot < buttons.size():
+				var def: Dictionary = buttons[slot][1]
+				touch.gadget_names[slot] = "%s\n%d" % [def.get("name", ""), def.get("cost", 0)]
+				touch.gadget_ready[slot] = me.kart.can_use(slot)
+			else:
+				touch.gadget_names[slot] = ""
+		touch.queue_redraw()
 	var shown := me.progress.finish_time if me.progress.finished else race.time
 	var text := clock(shown)
 	if not me.progress.lap_times.is_empty():

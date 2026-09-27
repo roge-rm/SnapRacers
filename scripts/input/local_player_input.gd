@@ -25,6 +25,7 @@ func _physics_process(_delta: float) -> void:
 	var brake := 0.0
 	var steer := 0.0
 	var reset := false
+	var gadget: Array[bool] = [false, false]
 
 	if use_keyboard:
 		if Input.is_physical_key_pressed(KEY_W) or Input.is_physical_key_pressed(KEY_UP):
@@ -36,6 +37,8 @@ func _physics_process(_delta: float) -> void:
 		if Input.is_physical_key_pressed(KEY_D) or Input.is_physical_key_pressed(KEY_RIGHT):
 			steer += 1.0
 		reset = reset or Input.is_physical_key_pressed(KEY_R)
+		gadget[0] = gadget[0] or Input.is_physical_key_pressed(KEY_Q)
+		gadget[1] = gadget[1] or Input.is_physical_key_pressed(KEY_E)
 
 	if any_joypad and not Input.get_connected_joypads().has(joypad):
 		var pads := Input.get_connected_joypads()
@@ -56,14 +59,19 @@ func _physics_process(_delta: float) -> void:
 		if Input.is_joy_button_pressed(joypad, JOY_BUTTON_DPAD_RIGHT):
 			steer += 1.0
 		reset = reset or Input.is_joy_button_pressed(joypad, JOY_BUTTON_Y)
+		gadget[0] = gadget[0] or Input.is_joy_button_pressed(joypad, JOY_BUTTON_X)
+		gadget[1] = gadget[1] or Input.is_joy_button_pressed(joypad, JOY_BUTTON_RIGHT_SHOULDER)
 
 	if touch != null and touch.visible:
 		throttle = maxf(throttle, touch.throttle)
 		brake = maxf(brake, touch.brake)
 		steer += touch.steer
 		reset = reset or touch.reset or touch.take_reset_tap()
+		for slot in 2:
+			gadget[slot] = gadget[slot] or touch.take_gadget_tap(slot)
 
 	controls.throttle = throttle
 	controls.brake = brake
 	controls.steer = clampf(steer, -1.0, 1.0)
 	controls.reset = reset
+	controls.gadget = gadget

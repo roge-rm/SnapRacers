@@ -95,7 +95,7 @@ class Runner:
 			check(fast_stuck_frames > 60, "sticking to the road on the way round (%d frames)" % fast_stuck_frames)
 			check(fast.lost.is_empty(), "without losing any parts (%d lost)" % fast.lost.size())
 			check(slow_top < 12.0, "the slow kart doesn't make it round (%.1f m up at most)" % slow_top)
-			check(not slow.sticking, "and isn't stuck to the road")
+			check(slow.global_position.y < 3.0, "and ends up back at the bottom (%.1f m up)" % slow.global_position.y)
 			print("All loop checks passed." if failures == 0 else "%d loop checks failed." % failures)
 			get_tree().quit(1 if failures > 0 else 0)
 

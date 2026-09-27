@@ -1,6 +1,6 @@
 {
 	"name": "Rivet",
-	"_comment": "Wide tires all round for grip, at the cost of a little top speed.",
+	"_comment": "Wide tires all round for grip, at the cost of a little top speed. Carries a magnet and a repair kit.",
 	"parts": [
 		{ "id": "plate_6x10", "at": [7, 2, 7], "rot": 0 },
 		{ "id": "wheel_small_wide", "at": [5, 0, 8], "rot": 0 },
@@ -14,6 +14,8 @@
 		{ "id": "engine_small", "at": [9, 3, 14], "rot": 0 },
 		{ "id": "brick_2x2", "at": [7, 3, 14], "rot": 0, "color": "#0d69ab" },
 		{ "id": "brick_2x2", "at": [11, 3, 14], "rot": 0, "color": "#0d69ab" },
-		{ "id": "spoiler_6", "at": [7, 6, 15], "rot": 0, "color": "#0d69ab" }
+		{ "id": "spoiler_6", "at": [7, 6, 15], "rot": 0, "color": "#0d69ab" },
+		{ "id": "magnet", "at": [7, 3, 10], "rot": 0 },
+		{ "id": "repair_kit", "at": [11, 3, 10], "rot": 0 }
 	]
 }

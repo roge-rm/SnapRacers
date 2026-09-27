@@ -26,6 +26,7 @@ const CATEGORIES := [
 	["Bricks", ["brick"]],
 	["Wheels", ["wheel"]],
 	["Engines", ["engine"]],
+	["Gadgets", ["gadget"]],
 	["Extras", ["seat", "wing"]],
 ]
 const WARNING := Color("#ffb347")
@@ -220,6 +221,9 @@ func _part_summary(part: Dictionary) -> String:
 			bits.append("%s kW" % _num(part.power / 1000.0))
 		"wing":
 			bits.append("downforce")
+		"gadget":
+			var cost: int = part.get("cost", 0)
+			bits.append("always on" if cost == 0 else "%d studs" % cost)
 		_:
 			bits.append("%d x %d" % [size.x, size.z])
 	return ", ".join(bits)

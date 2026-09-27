@@ -16,6 +16,7 @@ var race: Race
 var failures := 0
 var resets := {}
 var first_lap := {}
+var used := {}
 
 
 func check(ok: bool, what: String) -> void:
@@ -47,6 +48,7 @@ func _ready() -> void:
 	race.player.kart.controls = driver.controls
 	for racer in race.racers:
 		resets[racer.name] = 0
+		racer.kart.gadget_used.connect(func(kind: String) -> void: used[kind] = used.get(kind, 0) + 1)
 		racer.kart.was_reset.connect(func() -> void:
 			resets[racer.name] += 1
 			if OS.has_environment("RACE_DEBUG"):
@@ -66,7 +68,16 @@ func _physics_process(_delta: float) -> void:
 			print("  %s: %s, laps %s, %d resets" % [racer.name, RaceHud.clock(racer.progress.finish_time) if racer.progress.finished else "didn't finish", racer.progress.lap_times.map(func(t): return snappedf(t, 0.1)), resets[racer.name]])
 		for racer in race.racers:
 			check(racer.progress.finished, "%s finishes" % racer.name)
-			check(resets[racer.name] <= 3, "%s rarely needs a reset (%d)" % [racer.name, resets[racer.name]])
+			# With cannon bricks, dropped piles and a pack going round a loop, the
+			# odd reset is part of racing. A kart that keeps needing them isn't.
+			check(resets[racer.name] <= 6, "%s doesn't keep needing resets (%d)" % [racer.name, resets[racer.name]])
+		var fewest: int = race.racers.map(func(r): return r.kart.studs_picked).min()
+		check(fewest >= 15, "every kart gets a fair share of studs (fewest %d)" % fewest)
+		var all_resets: int = resets.values().reduce(func(a, b): return a + b, 0)
+		check(all_resets <= 12, "not many resets across the whole field (%d)" % all_resets)
+		print("  gadgets used: %s" % [used])
+		print("  studs picked up: %s" % [race.racers.map(func(r): return "%s %d" % [r.name, r.kart.studs_picked])])
+		check(used.size() >= 2, "the AI uses more than one kind of gadget (%d kinds)" % used.size())
 		var fastest := INF
 		for racer in race.racers:
 			if racer.progress.finished:

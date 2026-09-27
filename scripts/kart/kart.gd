@@ -16,6 +16,7 @@ extends RigidBody3D
 
 signal was_reset
 signal parts_lost(indices: Array[int])
+signal gadget_used(kind: String)
 
 const SUSPENSION_TRAVEL := 0.12 # metres either side of where the wheel was built
 const SUSPENSION_DAMPING := 0.55 # fraction of critical damping
@@ -23,7 +24,10 @@ const SUSPENSION_DAMPING := 0.55 # fraction of critical damping
 ## so hard landings and loops (where the kart is pressed down at three times
 ## its weight) don't bottom it out onto its chassis.
 const BUMP_START := 1.5
-const BUMP_STIFFNESS := 8.0
+const BUMP_STIFFNESS := 14.0
+## The bump stop is damped too, or the kart bounces off it: round a loop the
+## wheels went from full load to none and back, driving only half the time.
+const BUMP_DAMPING := 3.0
 const MAX_STEER := deg_to_rad(30.0)
 const HIGH_SPEED_STEER := 0.35 # steering left at full speed, as a fraction
 const STEER_RATE := 4.0 # how fast the wheels turn, in full locks per second
@@ -38,6 +42,25 @@ const RESET_SLOWDOWN := 0.5
 const LAYER_WORLD := 1
 const LAYER_KARTS := 2
 const LAYER_DEBRIS := 4
+## Things karts crash into that aren't the track: fired bricks and dropped
+## piles. Wheels don't ride on them.
+const LAYER_HAZARD := 8
+
+# Gadgets and studs.
+const MOST_STUDS := 10
+const TURBO_TIME := 1.6
+const TURBO_FORCE := 1500.0
+const TURBO_TOP_SPEED := 1.3 # how much further past its usual top speed a turbo can push
+const SPRING_SPEED := 5.5 # upward kick from a spring, in m/s
+const SHIELD_TIME := 4.0
+## How much harder a ram plate hits: a knock from one counts this many times
+## over on the kart it hits, and a solid one (more than RAM_HIT) knocks a part
+## straight off, since the chassis a ram usually lands on is far too strong to
+## break.
+const RAM_KNOCK := 2.5
+const RAM_HIT := 250.0
+const RAM_EVERY := 0.5
+const GADGET_COOLDOWN := 0.6
 
 ## A part's knocks add up over a few frames, since one crash lands over
 ## several physics steps, and fade after that.
@@ -48,16 +71,19 @@ const IMPACT_FADE := 0.5
 const WHEEL_BODY := 0.55
 ## Round loops and up wall rides the road is sticky: with two wheels on it and
 ## going at least this fast, gravity pulls toward the road instead of down.
-## Any slower and you drop off.
-const STICK_SPEED := 7.0
+## Any slower and you drop off. Hanging upside down (past the wall and on
+## toward the top of a loop) takes more speed than riding a wall.
+const STICK_SPEED := 5.0
+const STICK_SPEED_OVERHEAD := 9.0
 ## A moment's grace, so a bump that lifts a wheel doesn't drop you.
 const STICK_HOLD := 0.4
 ## While sticking, the kart is steadied to lie flat on the road, the way
 ## anti-gravity racers do it. Without this a kart up a wall ride would roll a
 ## little further than the road, lift its wheels and slide off. These are how
 ## hard it's turned back, and how much its roll is damped.
-const STICK_ALIGN := 40.0
-const STICK_ALIGN_DAMP := 8.0
+const STICK_ALIGN := 90.0
+const STICK_ALIGN_DAMP := 13.0
+const STICK_PITCH_DAMP := 4.0
 ## A little extra pull onto sticky road, to keep all four wheels planted over
 ## bumps. Round a loop the kart's own speed presses it on far harder.
 const STICK_PULL := 0.1
@@ -109,6 +135,19 @@ var sticking := false
 ## Which way is up off the road while it's sticking.
 var stick_up := Vector3.UP
 var _stick_left := 0.0
+
+## Studs picked up on the track, to spend on gadgets.
+var studs := 0
+## Every stud picked up this race, spent or not.
+var studs_picked := 0
+var boost_left := 0.0
+var shield_left := 0.0
+var _spring_asked := false
+var _repair_asked := false
+var _gadget_held: Array[bool] = [false, false]
+var _gadget_wait: Array[float] = [0.0, 0.0]
+var _bubble: MeshInstance3D
+var _rammed_wait := 0.0
 var slowdown_left := 0.0
 
 var _reset_held := false
@@ -125,7 +164,7 @@ var _last_applied := Vector3.ZERO
 
 func _init() -> void:
 	collision_layer = LAYER_KARTS
-	collision_mask = LAYER_WORLD | LAYER_KARTS
+	collision_mask = LAYER_WORLD | LAYER_KARTS | LAYER_HAZARD
 	center_of_mass_mode = CENTER_OF_MASS_MODE_CUSTOM
 	continuous_cd = true
 	can_sleep = false
@@ -217,6 +256,8 @@ static func _weight_shares(full: KartStats) -> Array[float]:
 ## Puts together whatever parts are still on.
 func _assemble() -> void:
 	for child in get_children():
+		if child == _bubble:
+			continue
 		remove_child(child)
 		child.queue_free()
 	wheels.clear()
@@ -331,8 +372,28 @@ func lose_parts(indices: Array[int]) -> void:
 	parts_lost.emit(newly)
 
 
-func _physics_process(_delta: float) -> void:
-	if _repair_pending:
+func _physics_process(delta: float) -> void:
+	boost_left = maxf(boost_left - delta, 0.0)
+	_rammed_wait = maxf(_rammed_wait - delta, 0.0)
+	shield_left = maxf(shield_left - delta, 0.0)
+	for slot in 2:
+		_gadget_wait[slot] = maxf(_gadget_wait[slot] - delta, 0.0)
+	for slot in 2:
+		var pressed: bool = controls.gadget[slot] if slot < controls.gadget.size() else false
+		if pressed and not _gadget_held[slot]:
+			use_gadget(slot)
+		_gadget_held[slot] = pressed
+	if _bubble != null:
+		_bubble.visible = shield_left > 0.0
+
+	if _repair_asked:
+		# A repair kit: everything back on, and no slowdown.
+		_repair_asked = false
+		lost.clear()
+		_impact.clear()
+		_breaking.clear()
+		_assemble()
+	elif _repair_pending:
 		_repair_pending = false
 		lost.clear()
 		_impact.clear()
@@ -352,6 +413,9 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 		_reset(state)
 	_reset_held = controls.reset
 	slowdown_left = maxf(slowdown_left - dt, 0.0)
+	if _spring_asked:
+		_spring_asked = false
+		state.linear_velocity += state.transform.basis.y * SPRING_SPEED
 
 	var basis := state.transform.basis
 	var up := basis.y
@@ -377,6 +441,8 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 			drive -= controls.brake * max_force * REVERSE_FRACTION
 	if slowdown_left > 0.0:
 		drive *= RESET_SLOWDOWN
+	elif boost_left > 0.0 and forward_speed < stats.top_speed() * TURBO_TOP_SPEED:
+		drive += TURBO_FORCE
 	var drive_per_wheel := drive / maxf(_driven_count, 1)
 
 	var space := state.get_space_state()
@@ -402,7 +468,8 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 		w.grounded = true
 		var squash := SUSPENSION_TRAVEL * 2.0 - length
 		var bump := maxf(squash - SUSPENSION_TRAVEL * BUMP_START, 0.0) * w.spring * BUMP_STIFFNESS
-		var load := maxf(w.spring * squash + bump - w.damper * stretch_rate, 0.0)
+		var damping := w.damper * (BUMP_DAMPING if bump > 0.0 else 1.0)
+		var load := maxf(w.spring * squash + bump - damping * stretch_rate, 0.0)
 		w.load = load
 
 		var normal: Vector3 = hit.normal
@@ -454,7 +521,8 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 	# Air: drag from everything facing forward, and downforce from any wings.
 	# Sticky road. The world pulls everything down already, so this cancels
 	# that and pulls toward the road instead.
-	if sticky_wheels >= 2 and speed > STICK_SPEED:
+	var needed := STICK_SPEED if up.y > -0.1 else STICK_SPEED_OVERHEAD
+	if sticky_wheels >= 2 and speed > needed:
 		stick_up = sticky_up.normalized()
 		_stick_left = STICK_HOLD
 	else:
@@ -465,11 +533,15 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 		var pull := mass * g * (Vector3.UP - stick_up * (1.0 + STICK_PULL))
 		state.apply_central_force(pull)
 		applied += pull
-		# Turn the kart to lie flat on the road, damping any roll or pitch
-		# (but not its steering, which is round the road's up).
+		# Turn the kart to lie flat on the road, and damp its roll firmly and
+		# its pitch lightly. Round a loop the kart has to keep pitching over,
+		# and damping that as hard as roll held it back from the curve; up a
+		# wall ride it needs a little, or it bounces off as the road rises.
 		var tilt := up.cross(stick_up)
-		var spin := state.angular_velocity - stick_up * state.angular_velocity.dot(stick_up)
-		var want := tilt * STICK_ALIGN - spin * STICK_ALIGN_DAMP
+		var forward := -basis.z
+		var roll := forward * state.angular_velocity.dot(forward)
+		var pitch := basis.x * state.angular_velocity.dot(basis.x)
+		var want := tilt * STICK_ALIGN - roll * STICK_ALIGN_DAMP - pitch * STICK_PITCH_DAMP
 		state.apply_torque(state.inverse_inertia_tensor.inverse() * want)
 
 	var air := 0.5 * KartStats.AIR_DENSITY
@@ -506,6 +578,7 @@ func _feel_knocks(state: PhysicsDirectBodyState3D) -> void:
 
 	var shares := {}
 	var total := 0.0
+	var rammed := false
 	var to_kart := state.transform.affine_inverse()
 	for i in count:
 		var part := part_at(to_kart * state.get_contact_local_position(i))
@@ -514,13 +587,138 @@ func _feel_knocks(state: PhysicsDirectBodyState3D) -> void:
 		# Contacts that report nothing still count for a little, so a part
 		# can't dodge a crash just because the engine missed it.
 		var weight := state.get_contact_impulse(i).length() + 0.01
+		# Hit by another kart's ram plate: that counts for a lot more.
+		var other: Object = state.get_contact_collider_object(i)
+		if other is Kart and other.rammed_with(state.get_contact_collider_position(i)):
+			weight *= RAM_KNOCK
+			rammed = true
 		shares[part] = shares.get(part, 0.0) + weight
 		total += weight
+	if rammed:
+		knock *= RAM_KNOCK
+		if knock > RAM_HIT * RAM_KNOCK and _rammed_wait <= 0.0 and shield_left <= 0.0:
+			_rammed_wait = RAM_EVERY
+			knock_off_a_part.call_deferred()
+	# A shield holds everything on, however hard the knock.
+	if shield_left > 0.0:
+		return
 	for part in shares:
 		_impact[part] = _impact.get(part, 0.0) + knock * shares[part] / total
 		var strength: float = PartCatalog.get_part(design.parts[part].id).get("strength", 0.0)
 		if strength > 0.0 and _impact[part] > strength and not _breaking.has(part):
 			_breaking.append(part)
+
+
+# Gadgets.
+
+## The gadgets still on the kart, in the order they were built on, as
+## [part index, part].
+func gadgets() -> Array:
+	var out := []
+	if stats == null:
+		return out
+	for info in stats.parts:
+		if info.def.kind == "gadget":
+			out.append([info.index, info.def])
+	return out
+
+
+## The gadgets that need a button (the ones that cost studs), at most two.
+func buttons() -> Array:
+	return gadgets().filter(func(g): return int(g[1].get("cost", 0)) > 0).slice(0, 2)
+
+
+func has_gadget(kind: String) -> bool:
+	return gadgets().any(func(g): return g[1].get("gadget", "") == kind)
+
+
+func can_use(slot: int) -> bool:
+	var list := buttons()
+	if slot >= list.size() or _gadget_wait[slot] > 0.0 or locked:
+		return false
+	return studs >= int(list[slot][1].get("cost", 0))
+
+
+## Uses the gadget on this button, if there are studs enough. It's its own
+## step so that in a network game the server can decide and tell everyone.
+func use_gadget(slot: int) -> bool:
+	if not can_use(slot):
+		return false
+	var def: Dictionary = buttons()[slot][1]
+	studs -= int(def.get("cost", 0))
+	_gadget_wait[slot] = GADGET_COOLDOWN
+	match def.get("gadget", ""):
+		"turbo":
+			boost_left = TURBO_TIME
+		"spring":
+			_spring_asked = true
+		"dropper":
+			for brick in BrickPile.drop_behind(self):
+				get_parent().add_child(brick)
+		"cannon":
+			get_parent().add_child(BrickShot.fire(self))
+		"repair":
+			_repair_asked = true
+		"shield":
+			shield_left = SHIELD_TIME
+			_show_bubble()
+	gadget_used.emit(def.get("gadget", ""))
+	return true
+
+
+func add_studs(count: int) -> void:
+	studs_picked += maxi(count, 0)
+	studs = clampi(studs + count, 0, MOST_STUDS)
+
+
+## Did this point, in the world, hit the front of this kart where its ram
+## plate is? Anything level with the plate or ahead of it counts, since the
+## chassis under it is flush with it and takes the hit just as often.
+func rammed_with(point: Vector3) -> bool:
+	if stats == null:
+		return false
+	for info in stats.parts:
+		if info.def.get("gadget", "") == "ram":
+			var local := global_transform.affine_inverse() * point
+			return local.z <= info.centre.z + info.extent.z * 0.5 + 0.05
+	return false
+
+
+## Knocked by a fired brick: one part comes off, from the outside in, unless
+## a shield is up.
+func knock_off_a_part() -> void:
+	if shield_left > 0.0 or stats == null:
+		return
+	var outermost := -1
+	var furthest := -1.0
+	for info in stats.parts:
+		if info.def.kind in ["seat", "plate"]:
+			continue
+		var reach := (info.centre - center_of_mass).length()
+		if reach > furthest:
+			furthest = reach
+			outermost = info.index
+	if outermost != -1:
+		var one: Array[int] = [outermost]
+		lose_parts(one)
+
+
+func _show_bubble() -> void:
+	if _bubble == null:
+		_bubble = MeshInstance3D.new()
+		var sphere := SphereMesh.new()
+		sphere.radius = 1.9
+		sphere.height = 3.0
+		_bubble.mesh = sphere
+		var material := StandardMaterial3D.new()
+		material.albedo_color = Color(0.35, 0.65, 1.0, 0.25)
+		material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		material.cull_mode = BaseMaterial3D.CULL_DISABLED
+		_bubble.material_override = material
+		_bubble.position = Vector3(0.0, 0.8, 0.0)
+	if _bubble.get_parent() == null:
+		add_child(_bubble)
 
 
 ## Which part is at this point on the kart, in kart space. It's the part

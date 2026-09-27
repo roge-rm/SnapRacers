@@ -1,19 +1,20 @@
 {
 	"name": "Tread",
-	"_comment": "Heavy, with big back wheels. Slow to get going and hard to knock about.",
+	"_comment": "Heavy, with big back wheels. Slow to get going and hard to knock about. Carries a ram plate and a brick dropper.",
 	"parts": [
 		{ "id": "plate_6x10", "at": [7, 2, 7], "rot": 0 },
 		{ "id": "wheel_small", "at": [6, 0, 8], "rot": 0 },
 		{ "id": "wheel_small", "at": [13, 0, 8], "rot": 0 },
 		{ "id": "wheel_big_wide", "at": [5, 0, 13], "rot": 0 },
 		{ "id": "wheel_big_wide", "at": [13, 0, 13], "rot": 0 },
-		{ "id": "brick_1x6", "at": [7, 3, 7], "rot": 1, "color": "#237841" },
 		{ "id": "brick_1x2", "at": [7, 3, 8], "rot": 0, "color": "#237841" },
 		{ "id": "brick_1x2", "at": [12, 3, 8], "rot": 0, "color": "#237841" },
 		{ "id": "seat", "at": [9, 3, 11], "rot": 0 },
 		{ "id": "engine_big", "at": [9, 3, 14], "rot": 0 },
 		{ "id": "brick_2x2", "at": [7, 3, 14], "rot": 0, "color": "#237841" },
 		{ "id": "brick_2x2", "at": [11, 3, 14], "rot": 0, "color": "#237841" },
-		{ "id": "spoiler_6", "at": [7, 6, 15], "rot": 0, "color": "#237841" }
+		{ "id": "spoiler_6", "at": [7, 6, 15], "rot": 0, "color": "#237841" },
+		{ "id": "ram_plate", "at": [7, 3, 7], "rot": 0 },
+		{ "id": "brick_dropper", "at": [11, 3, 10], "rot": 0 }
 	]
 }

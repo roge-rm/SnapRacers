@@ -12,6 +12,7 @@ extends RefCounted
 
 ## How big a kart can be, in studs across, plates high and studs long.
 const BUILD_SIZE := Vector3i(20, 30, 24)
+const MOST_GADGETS := 2
 const SAVE_DIR := "user://karts"
 
 var name := "Kart"
@@ -224,6 +225,7 @@ func problems() -> Array[String]:
 	var seats := 0
 	var engines := 0
 	var wheels := 0
+	var gadgets := 0
 	var lowest_wheel := 1 << 20
 	var lowest_other := 1 << 20
 	for i in parts.size():
@@ -233,6 +235,8 @@ func problems() -> Array[String]:
 				seats += 1
 			"engine":
 				engines += 1
+			"gadget":
+				gadgets += 1
 			"wheel":
 				wheels += 1
 				lowest_wheel = mini(lowest_wheel, parts[i].at.y)
@@ -247,6 +251,8 @@ func problems() -> Array[String]:
 		out.append("It needs an engine.")
 	if wheels < 3:
 		out.append("It needs at least three wheels.")
+	if gadgets > MOST_GADGETS:
+		out.append("Only two gadgets fit on a kart.")
 	if groups().size() > 1:
 		out.append("Some parts aren't attached to the rest.")
 	for i in parts.size():

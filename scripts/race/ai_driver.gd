@@ -30,13 +30,18 @@ var offset := 0.0
 var controls := KartControls.new()
 
 var _stuck := 0.0
+var _think := 0.0
+
+const THINK_EVERY := 0.3 # seconds between looking at its gadgets
 
 
 func _physics_process(delta: float) -> void:
 	if kart == null or track == null:
 		return
 	controls.reset = false
+	controls.gadget = [false, false]
 	var speed := kart.linear_velocity.length()
+	_use_gadgets(delta, speed)
 
 	# Steering.
 	var look := clampf(5.0 + speed * 0.55, LOOK_NEAR, LOOK_FAR)
@@ -99,6 +104,69 @@ func _dodge() -> float:
 				go_right = true
 			return (KART_ROOM if go_right else -KART_ROOM) * (1.0 - ahead / SEE_AHEAD * 0.5)
 	return 0.0
+
+
+## Every so often, looks at each gadget it can afford and uses it if the
+## moment's right: a turbo on a straight, the cannon at a kart dead ahead,
+## bricks for a kart right behind, a repair once it's lost a couple of parts,
+## a shield when someone's close, a spring to hop free when it's stuck.
+func _use_gadgets(delta: float, speed: float) -> void:
+	_think -= delta
+	if _think > 0.0:
+		return
+	_think = THINK_EVERY
+	# The ones that depend on the moment come first, so a kart with a turbo
+	# doesn't spend every stud on it and have none left when the moment
+	# comes.
+	var buttons := kart.buttons()
+	var order := range(buttons.size())
+	order.sort_custom(func(a, b): return buttons[a][1].get("gadget", "") != "turbo" and buttons[b][1].get("gadget", "") == "turbo")
+	for slot in order:
+		var kind: String = buttons[slot][1].get("gadget", "")
+		if _worth_using(kind, speed):
+			if kart.can_use(slot):
+				controls.gadget[slot] = true
+			return
+
+
+func _worth_using(kind: String, speed: float) -> bool:
+	match kind:
+		"turbo":
+			if speed < 8.0:
+				return false
+			var ahead := 4.0
+			while ahead <= 40.0:
+				if track.bend_at(offset + ahead) > 0.008:
+					return false
+				ahead += 4.0
+			return true
+		"cannon":
+			return _nearest(3.0, 28.0, 2.2) != null
+		"dropper":
+			return _nearest(-14.0, -2.0, 4.0) != null
+		"shield":
+			return _nearest(-5.0, 5.0, 4.0) != null
+		"repair":
+			return kart.lost.size() >= 2
+		"spring":
+			# A hop gets it free when something's holding it up.
+			return speed < 2.0 and not kart.locked
+	return false
+
+
+## The closest other kart between these distances ahead (negative is behind)
+## and within this far to either side, or null.
+func _nearest(from: float, to: float, side_room: float) -> Kart:
+	var facing := -kart.global_basis.z
+	var right := kart.global_basis.x
+	for other in others:
+		if other == kart:
+			continue
+		var gap := other.global_position - kart.global_position
+		var ahead := gap.dot(facing)
+		if ahead > from and ahead < to and absf(gap.dot(right)) < side_room:
+			return other
+	return null
 
 
 func _stuck_check(delta: float, speed: float, up: Vector3) -> void:

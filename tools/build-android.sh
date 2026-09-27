@@ -3,8 +3,12 @@
 # on my build machine, because /home is on a slow hard drive. /tmp is emptied
 # on a reboot, so this puts the Android build template back when it's missing.
 #
-#   tools/build-android.sh            build it
-#   tools/build-android.sh --install  build it and install it on the SnapRacers_Pixel_5 emulator
+# Phones and the emulator get separate APKs, each with only the engine they
+# need, since Godot's engine library is almost all of the size (about 76 MB
+# for phones, 81 MB for the emulator; the game itself is well under 1 MB).
+#
+#   tools/build-android.sh            the phone build (arm64), copied to the drop folder
+#   tools/build-android.sh --install  the emulator build (x86_64), installed on SnapRacers_Pixel_5
 set -euo pipefail
 
 cd "$(dirname "$0")/.."
@@ -12,7 +16,12 @@ VERSION=4.7.2
 GODOT="tools/godot/Godot_v${VERSION}-stable_linux.x86_64"
 TEMPLATES="tools/godot/editor_data/export_templates/${VERSION}.stable"
 BUILD=/tmp/snapracers-build
+PRESET="Android"
 APK="$BUILD/snapracers-debug.apk"
+if [ "${1:-}" = "--install" ]; then
+	PRESET="Android emulator"
+	APK="$BUILD/snapracers-emulator-debug.apk"
+fi
 DROP=/srv/downloads/temp/debug/snapracers-debug.apk
 ADB="${ANDROID_HOME:-$HOME/Android/Sdk}/platform-tools/adb"
 
@@ -31,10 +40,10 @@ if [ ! -f "$BUILD/android/.build_version" ]; then
 fi
 
 "$GODOT" --headless --path . --import > /dev/null 2>&1 || true
-"$GODOT" --headless --path . --export-debug Android "$APK"
+"$GODOT" --headless --path . --export-debug "$PRESET" "$APK"
 ls -l "$APK"
 
-if [ -d "$(dirname "$DROP")" ]; then
+if [ "$PRESET" = "Android" ] && [ -d "$(dirname "$DROP")" ]; then
 	cp "$APK" "$DROP"
 	echo "Copied to $DROP"
 fi
