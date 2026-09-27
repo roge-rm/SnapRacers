@@ -10,6 +10,9 @@ const RADIUS := 30.0
 const ROAD_WIDTH := 12.0
 const LOT := 130.0
 
+## Made once and kept, so the test track doesn't recompile it every visit.
+static var _ground_shader: Shader
+
 var spawn := Transform3D(Basis.IDENTITY, Vector3(RADIUS, 0.05, 20.0))
 
 const GROUND_SHADER := """
@@ -72,10 +75,10 @@ func _add_ground() -> void:
 	plane.subdivide_width = 32
 	plane.subdivide_depth = 32
 	mesh.mesh = plane
+	if _ground_shader == null:
+		_ground_shader = TrackBuilder.shader_for(GROUND_SHADER)
 	var material := ShaderMaterial.new()
-	var shader := Shader.new()
-	shader.code = GROUND_SHADER
-	material.shader = shader
+	material.shader = _ground_shader
 	material.set_shader_parameter("half_straight", HALF_STRAIGHT)
 	material.set_shader_parameter("radius", RADIUS)
 	material.set_shader_parameter("road_width", ROAD_WIDTH)

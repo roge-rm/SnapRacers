@@ -59,9 +59,8 @@ func _ready() -> void:
 	hud_root.add_child(touch)
 	player.touch = touch
 
-func _unhandled_input(event: InputEvent) -> void:
-	if event is InputEventKey and event.pressed and event.physical_keycode == KEY_ESCAPE:
-		Game.show_garage()
+func go_back() -> void:
+	Game.show_garage()
 
 
 func _process(_delta: float) -> void:
@@ -72,4 +71,6 @@ func _process(_delta: float) -> void:
 	if not kart.lost.is_empty():
 		var n := kart.lost.size()
 		text += "   %d part%s lost, reset to fix" % [n, "" if n == 1 else "s"]
-	speed_label.text = text + "\n%d fps" % Engine.get_frames_per_second()
+	if Game.show_fps():
+		text += "\n%d fps" % Engine.get_frames_per_second()
+	speed_label.text = text

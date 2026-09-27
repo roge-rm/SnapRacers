@@ -91,6 +91,8 @@ func _ready() -> void:
 	ui.save_pressed.connect(_save)
 	ui.load_chosen.connect(_load)
 	ui.drive_pressed.connect(_drive)
+	ui.race_pressed.connect(_race)
+	ui.menu_pressed.connect(_to_menu)
 	ui.name_changed.connect(func(text: String) -> void: design.name = text)
 
 	_rebuild()
@@ -211,8 +213,28 @@ func _load(path: String) -> void:
 func _drive() -> void:
 	if not design.problems().is_empty():
 		return
-	Game.design = design.duplicate_design()
+	Game.keep_design(design)
 	Game.show_drive()
+
+
+func _race() -> void:
+	if not design.problems().is_empty():
+		return
+	Game.keep_design(design)
+	Game.show_race()
+
+
+func _to_menu() -> void:
+	Game.keep_design(design)
+	Game.show_menu()
+
+
+## Back puts down whatever you're holding first, then goes to the menu.
+func go_back() -> void:
+	if _holding != "":
+		_stop_holding()
+	else:
+		_to_menu()
 
 
 # Showing the kart.
@@ -365,8 +387,6 @@ func _unhandled_input(event: InputEvent) -> void:
 				_turn()
 			KEY_DELETE, KEY_BACKSPACE:
 				_remove_selected()
-			KEY_ESCAPE:
-				_stop_holding()
 			KEY_Z:
 				if event.ctrl_pressed:
 					_undo_last()

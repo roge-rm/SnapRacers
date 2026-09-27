@@ -16,6 +16,8 @@ signal new_pressed
 signal save_pressed
 signal load_chosen(path: String)
 signal drive_pressed
+signal race_pressed
+signal menu_pressed
 signal name_changed(text: String)
 
 const SIDE_WIDTH := 330.0
@@ -39,6 +41,7 @@ var _name_edit: LineEdit
 var _stats_label: Label
 var _problems_label: Label
 var _drive: Button
+var _race: Button
 var _turn: Button
 var _remove: Button
 var _pick_up: Button
@@ -137,6 +140,7 @@ func show_stats(stats: KartStats, problems: Array[String]) -> void:
 	_problems_label.text = "\n\n".join(problems)
 	_problems_label.visible = not problems.is_empty()
 	_drive.disabled = not problems.is_empty()
+	_race.disabled = not problems.is_empty()
 
 
 func toast(text: String) -> void:
@@ -252,12 +256,19 @@ func _build_right() -> void:
 	box.add_child(spacer)
 
 	_drive = Button.new()
-	_drive.text = "Drive"
-	_drive.custom_minimum_size = Vector2(0, 80)
-	_drive.add_theme_font_size_override("font_size", 30)
+	_drive.text = "Test drive"
+	_drive.custom_minimum_size = Vector2(0, 60)
 	_drive.focus_mode = FOCUS_NONE
 	_drive.pressed.connect(func() -> void: drive_pressed.emit())
 	box.add_child(_drive)
+
+	_race = Button.new()
+	_race.text = "Race"
+	_race.custom_minimum_size = Vector2(0, 80)
+	_race.add_theme_font_size_override("font_size", 30)
+	_race.focus_mode = FOCUS_NONE
+	_race.pressed.connect(func() -> void: race_pressed.emit())
+	box.add_child(_race)
 
 
 func _build_top() -> void:
@@ -268,6 +279,8 @@ func _build_top() -> void:
 	_top.offset_right = -SIDE_WIDTH + 28.0
 	_top.offset_top = 8.0
 	_top.offset_bottom = 64.0
+
+	_top.add_child(_small_button("Menu", func() -> void: menu_pressed.emit()))
 
 	_name_edit = LineEdit.new()
 	_name_edit.size_flags_horizontal = SIZE_EXPAND_FILL

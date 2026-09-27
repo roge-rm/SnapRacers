@@ -39,7 +39,8 @@ var host: Node
 func _ready() -> void:
 	host = Node.new()
 	add_child(host)
-	Game.start(host)
+	Game.start(host, false)
+	Game.show_garage()
 
 
 func _process(_delta: float) -> void:

@@ -65,6 +65,13 @@ class Wheel:
 var design: KartDesign
 var stats: KartStats
 var controls := KartControls.new()
+## While locked (before a race starts) the kart holds its brakes on and
+## ignores the throttle.
+var locked := false
+## Where a reset puts the kart, given where it is now. A race points this at
+## the nearest bit of track. Left empty, the kart just rights itself where it
+## is.
+var reset_to: Callable
 var wheels: Array[Wheel] = []
 ## Parts that have broken off, by their index in the design.
 var lost := {}
@@ -80,6 +87,7 @@ var forward_speed := 0.0
 var slowdown_left := 0.0
 
 var _reset_held := false
+var _reset_asked := false
 var _repair_pending := false
 var _driven_count := 0
 var _full: KartStats # the kart as built, before anything broke
@@ -248,6 +256,12 @@ func _assemble() -> void:
 			_driven_count += 1
 
 
+## Resets the kart on the next physics step, just as if the driver had
+## pressed reset. The race uses this when a kart falls off the track.
+func request_reset() -> void:
+	_reset_asked = true
+
+
 ## Knocks these parts off, along with anything that was only held on through
 ## them. It's its own step so that in a network game the server can decide
 ## what broke and tell everyone.
@@ -304,7 +318,8 @@ func _physics_process(_delta: float) -> void:
 func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 	var dt := state.step
 	var applied := Vector3.ZERO
-	if controls.reset and not _reset_held:
+	if (controls.reset and not _reset_held) or _reset_asked:
+		_reset_asked = false
 		_reset(state)
 	_reset_held = controls.reset
 	slowdown_left = maxf(slowdown_left - dt, 0.0)
@@ -322,9 +337,11 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 	# Engine and brakes. Holding the brake once the kart has stopped reverses.
 	var drive := 0.0
 	var braking := false
-	if controls.throttle > 0.0:
+	if locked:
+		braking = forward_speed > 0.05
+	elif controls.throttle > 0.0:
 		drive = controls.throttle * minf(max_force, power / maxf(absf(forward_speed), 1.0))
-	if controls.brake > 0.0:
+	if controls.brake > 0.0 and not locked:
 		if forward_speed > 0.5:
 			braking = true
 		elif forward_speed > -REVERSE_TOP_SPEED:
@@ -338,7 +355,9 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 	for w in wheels:
 		var anchor := state.transform * (w.rest + Vector3.UP * SUSPENSION_TRAVEL)
 		var reach := SUSPENSION_TRAVEL * 2.0 + w.radius
-		var query := PhysicsRayQueryParameters3D.create(anchor, anchor - up * reach, collision_mask, [get_rid()])
+		# Wheels only look for the track, never other karts, or a kart in
+		# traffic would climb up onto the one beside it.
+		var query := PhysicsRayQueryParameters3D.create(anchor, anchor - up * reach, LAYER_WORLD, [get_rid()])
 		var hit := space.intersect_ray(query)
 		if hit.is_empty():
 			w.grounded = false
@@ -375,11 +394,16 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 		var stop_force := share / dt
 		var f_lat := -v_lat * stop_force * 0.5
 		var f_long := drive_per_wheel if w.driven else 0.0
-		var resist := w.rolling * load
+		# Grass and the like grip less and drag more than the road. The
+		# ground says how, through its "grip" and "drag" metadata.
+		var ground: Object = hit.get("collider")
+		var grip_here: float = ground.get_meta("grip", 1.0) if ground != null else 1.0
+		var drag_here: float = ground.get_meta("drag", 1.0) if ground != null else 1.0
+		var resist := w.rolling * load * drag_here
 		if braking:
-			resist += BRAKE_FORCE * controls.brake / wheels.size()
+			resist += BRAKE_FORCE * (1.0 if locked else controls.brake) / wheels.size()
 		f_long -= signf(v_long) * minf(resist, absf(v_long) * stop_force)
-		var tire := Vector2(f_long, f_lat).limit_length(KartStats.TIRE_FRICTION * w.grip * load)
+		var tire := Vector2(f_long, f_lat).limit_length(KartStats.TIRE_FRICTION * w.grip * grip_here * load)
 
 		state.apply_force(normal * load, contact - origin)
 		# Cornering forces act a little below the centre of mass, so it leans
@@ -469,6 +493,8 @@ func _reset(state: PhysicsDirectBodyState3D) -> void:
 	if facing.length() < 0.1:
 		facing = Vector3.FORWARD
 	var place := Transform3D(Basis.looking_at(facing.normalized(), Vector3.UP), state.transform.origin + Vector3.UP * RESET_LIFT)
+	if reset_to.is_valid():
+		place = reset_to.call(state.transform.origin)
 	state.transform = place
 	state.linear_velocity = Vector3.ZERO
 	state.angular_velocity = Vector3.ZERO

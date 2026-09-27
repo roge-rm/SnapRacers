@@ -15,7 +15,9 @@ const BUILD_SIZE := Vector3i(20, 30, 24)
 const SAVE_DIR := "user://karts"
 
 var name := "Kart"
-## Each entry is { "id": String, "at": Vector3i, "rot": int }.
+## Each entry is { "id": String, "at": Vector3i, "rot": int }, plus "color"
+## (a Color) when the part has been painted something other than its own
+## colour.
 var parts: Array[Dictionary] = []
 
 
@@ -24,11 +26,14 @@ static func from_dict(data: Dictionary) -> KartDesign:
 	design.name = str(data.get("name", "Kart"))
 	for entry in data.get("parts", []):
 		var at: Array = entry.get("at", [0, 0, 0])
-		design.parts.append({
+		var part := {
 			"id": str(entry.get("id", "")),
 			"at": Vector3i(int(at[0]), int(at[1]), int(at[2])),
 			"rot": posmod(int(entry.get("rot", 0)), 4),
-		})
+		}
+		if entry.has("color"):
+			part["color"] = Color(str(entry.color))
+		design.parts.append(part)
 	return design
 
 
@@ -43,7 +48,10 @@ static func load_file(path: String) -> KartDesign:
 func to_dict() -> Dictionary:
 	var out := []
 	for p in parts:
-		out.append({ "id": p.id, "at": [p.at.x, p.at.y, p.at.z], "rot": p.rot })
+		var entry := { "id": p.id, "at": [p.at.x, p.at.y, p.at.z], "rot": p.rot }
+		if p.has("color"):
+			entry["color"] = "#" + p.color.to_html(false)
+		out.append(entry)
 	return { "name": name, "parts": out }
 
 

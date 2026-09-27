@@ -91,6 +91,18 @@ func _initialize() -> void:
 	check(starter.fits("brick_2x2", near, 0) and starter.attaches("brick_2x2", near, 0), "a spot inside the engine moves to one that works (%s)" % near)
 	check(BuildMath.nearest_spot(starter, "brick_2x2", Vector3i(7, 3, 11), 0) == Vector3i(7, 3, 11), "a spot that already works stays put")
 
+	# Every kart that comes with the game has to be driveable.
+	for file in DirAccess.get_files_at("res://data/karts/ai"):
+		if file.ends_with(".json"):
+			var kart := KartDesign.load_file("res://data/karts/ai/" + file)
+			var stats_here := KartStats.compute(kart)
+			check(kart.problems().is_empty(), "%s is driveable %s (%d kg, %d km/h)" % [kart.name, kart.problems(), stats_here.mass, stats_here.top_speed() * 3.6])
+
+	# A painted part keeps its paint through saving and loading.
+	var painted := KartDesign.load_file("res://data/karts/ai/rivet.json")
+	var again := KartDesign.from_dict(painted.to_dict())
+	check(again.parts[5].get("color", Color.BLACK).is_equal_approx(Color("#0d69ab")), "paint survives a save and load")
+
 	check(KartDesign.file_name_for("  My Kart!! 2 ") == "my_kart_2", "kart names make tidy file names")
 
 	print("All design checks passed." if failures == 0 else "%d design checks failed." % failures)

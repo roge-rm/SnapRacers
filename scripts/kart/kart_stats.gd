@@ -52,6 +52,9 @@ static func compute(design: KartDesign, skip := {}, fixed_origin: Variant = null
 		var def := PartCatalog.get_part(p.id)
 		if def.is_empty():
 			continue
+		if p.has("color"):
+			def = def.duplicate()
+			def["color"] = p.color
 		var info := PartInfo.new()
 		info.index = i
 		info.def = def
