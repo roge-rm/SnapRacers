@@ -38,11 +38,16 @@ var seat_top := Vector3.ZERO
 var origin_cell := Vector3.ZERO
 
 
-static func compute(design: KartDesign) -> KartStats:
+## Works out the stats for a design. Parts whose index is in `skip` are left
+## out, which is how a damaged kart is worked out. Pass the origin of the
+## undamaged kart as `fixed_origin` so the parts that are left don't shift.
+static func compute(design: KartDesign, skip := {}, fixed_origin: Variant = null) -> KartStats:
 	var stats := KartStats.new()
 	var lo := Vector3i(1 << 20, 1 << 20, 1 << 20)
 	var hi := -lo
 	for i in design.parts.size():
+		if skip.has(i):
+			continue
 		var p: Dictionary = design.parts[i]
 		var def := PartCatalog.get_part(p.id)
 		if def.is_empty():
@@ -58,6 +63,8 @@ static func compute(design: KartDesign) -> KartStats:
 	if stats.parts.is_empty():
 		return stats
 	stats.origin_cell = Vector3((lo.x + hi.x) * 0.5, lo.y, (lo.z + hi.z) * 0.5)
+	if fixed_origin != null:
+		stats.origin_cell = fixed_origin
 
 	var weighted := Vector3.ZERO
 	var frontal_cells := {}

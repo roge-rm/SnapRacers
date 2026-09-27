@@ -182,6 +182,33 @@ func groups() -> Array:
 	return out
 
 
+## Which parts would fall off once the parts in `lost` are gone, because
+## nothing joins them to `anchor` (the seat) any more. The lost parts
+## themselves aren't in the list.
+func detached_after(lost: Dictionary, anchor: int) -> Array[int]:
+	var link := links()
+	var reached := { anchor: true }
+	var todo := [anchor]
+	while not todo.is_empty():
+		var i: int = todo.pop_back()
+		for j in link[i]:
+			if not reached.has(j) and not lost.has(j):
+				reached[j] = true
+				todo.append(j)
+	var out: Array[int] = []
+	for i in parts.size():
+		if not reached.has(i) and not lost.has(i):
+			out.append(i)
+	return out
+
+
+func seat_index() -> int:
+	for i in parts.size():
+		if PartCatalog.get_part(parts[i].id).get("kind", "") == "seat":
+			return i
+	return -1
+
+
 ## Everything stopping this kart from being driven, in words for the player.
 ## An empty list means it's good to go.
 func problems() -> Array[String]:

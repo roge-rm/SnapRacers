@@ -35,6 +35,25 @@ func _initialize() -> void:
 	check(floating.groups().size() == 2, "a floating brick is its own group")
 	check(floating.problems().has("Some parts aren't attached to the rest."), "a floating brick is reported")
 
+	# The spoiler sits on the engine and on the two 2x2 bricks either side of
+	# it. Losing the engine alone leaves it held by the bricks, but losing all
+	# three drops it.
+	var engine := -1
+	var spoiler := -1
+	var side_bricks := []
+	for i in starter.parts.size():
+		match starter.parts[i].id:
+			"engine_small":
+				engine = i
+			"spoiler_6":
+				spoiler = i
+			"brick_2x2":
+				side_bricks.append(i)
+	var seat := starter.seat_index()
+	check(starter.detached_after({ engine: true }, seat).is_empty(), "losing just the engine drops nothing else")
+	var all_under := { engine: true, side_bricks[0]: true, side_bricks[1]: true }
+	check(Array(starter.detached_after(all_under, seat)) == [spoiler], "losing everything under the spoiler drops it too")
+
 	# Fitting parts in. The chassis plate is at (7, 2, 7), 6 x 1 x 10.
 	check(not starter.fits("brick_2x2", Vector3i(8, 2, 9), 0), "a brick can't go inside the chassis")
 	check(starter.fits("brick_2x2", Vector3i(7, 3, 11), 0), "a brick fits in a free spot on the chassis")

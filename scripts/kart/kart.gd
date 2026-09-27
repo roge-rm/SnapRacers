@@ -5,11 +5,17 @@ extends RigidBody3D
 ##
 ## The whole kart is one rigid body. Every part adds its own collision box,
 ## mass and drag, so how it handles comes straight from what it's made of.
-## The wheels don't collide at all. Each one casts a ray down to find the
-## ground, pushes up like a spring and grips like a tire, which is far steadier
-## than real wheel bodies on joints and much easier to keep in sync online.
+## Each wheel casts a ray down to find the ground, pushes up like a spring and
+## grips like a tire, which is far steadier than real wheel bodies on joints
+## and much easier to keep in sync online.
+##
+## Crashes knock parts off. Every hit is traced to the part that took it, and
+## a part hit harder than its strength breaks away as a loose piece, along
+## with anything that was only held on through it. The kart then drives with
+## what's left. Resetting puts it all back together.
 
 signal was_reset
+signal parts_lost(indices: Array[int])
 
 const SUSPENSION_TRAVEL := 0.12 # metres either side of where the wheel was built
 const SUSPENSION_DAMPING := 0.55 # fraction of critical damping
@@ -19,16 +25,26 @@ const STEER_RATE := 4.0 # how fast the wheels turn, in full locks per second
 const BRAKE_FORCE := 2800.0
 const REVERSE_FRACTION := 0.45
 const REVERSE_TOP_SPEED := 6.0
-const ROLL_HELP := 0.6 # lifts the tire forces toward the centre of mass so it doesn't flip in every corner
+const ROLL_HELP := 0.6 # lifts the cornering forces toward the centre of mass so it doesn't flip in every corner
 const RESET_LIFT := 1.0
 const RESET_SLOWDOWN_TIME := 2.5
 const RESET_SLOWDOWN := 0.5
 
 const LAYER_WORLD := 1
 const LAYER_KARTS := 2
+const LAYER_DEBRIS := 4
+
+## A part's knocks add up over a few frames, since one crash lands over
+## several physics steps, and fade after that.
+const IMPACT_FADE := 0.5
+## Wheels collide through a cylinder a bit smaller than the tire, so it only
+## touches the ground when the suspension is squashed hard, like a bump stop,
+## but still catches walls side on.
+const WHEEL_BODY := 0.7
 
 
 class Wheel:
+	var index := 0 # which part of the design this is
 	var part: Dictionary
 	var rest := Vector3.ZERO # wheel centre as built, in kart space
 	var radius := 0.3
@@ -50,6 +66,8 @@ var design: KartDesign
 var stats: KartStats
 var controls := KartControls.new()
 var wheels: Array[Wheel] = []
+## Parts that have broken off, by their index in the design.
+var lost := {}
 
 # What the parts add up to, worked out in build().
 var power := 0.0
@@ -62,7 +80,14 @@ var forward_speed := 0.0
 var slowdown_left := 0.0
 
 var _reset_held := false
+var _repair_pending := false
 var _driven_count := 0
+var _full: KartStats # the kart as built, before anything broke
+var _wheel_setup := {} # part index -> [steered, driven, spring, damper]
+var _impact := {} # part index -> recent knocks, in newton seconds
+var _breaking: Array[int] = []
+var _last_velocity := Vector3.ZERO
+var _last_applied := Vector3.ZERO
 
 
 func _init() -> void:
@@ -72,16 +97,94 @@ func _init() -> void:
 	continuous_cd = true
 	can_sleep = false
 	angular_damp = 0.5
+	contact_monitor = true
+	max_contacts_reported = 16
 
 
+## Builds the kart whole. The wheels' jobs and springs are settled here, from
+## the complete kart, and stay the same when parts break off. That's why a kart
+## that loses a wheel sags onto that corner instead of balancing on the rest.
 func build(new_design: KartDesign) -> void:
 	design = new_design
+	lost.clear()
+	_impact.clear()
+	_breaking.clear()
+	_full = KartStats.compute(design)
+	_wheel_setup.clear()
+
+	var com := _full.center_of_mass
+	var steered := []
+	var driven := []
+	for info in _full.wheels:
+		if info.centre.z < com.z - 0.05:
+			steered.append(info.index)
+		elif info.centre.z > com.z + 0.05:
+			driven.append(info.index)
+	# Each spring is tuned for the weight its own wheel carries, so the kart
+	# sits level with every wheel where it was built, halfway through its
+	# travel, however the weight is spread.
+	var shares := _weight_shares(_full)
+	for n in _full.wheels.size():
+		var info: KartStats.PartInfo = _full.wheels[n]
+		var share: float = shares[n] * _full.mass
+		var spring := share * KartStats.gravity() / SUSPENSION_TRAVEL
+		# A kart with only one axle steers and drives with it.
+		var steers := steered.is_empty() or steered.has(info.index)
+		var drives := driven.is_empty() or driven.has(info.index)
+		_wheel_setup[info.index] = [steers, drives, spring, 2.0 * SUSPENSION_DAMPING * sqrt(spring * share)]
+	_assemble()
+
+
+## How much of the kart's weight each wheel carries standing still, as
+## fractions that add up to one. The loads have to hold the kart up and
+## balance around its centre of mass both ways, and of all the ways to do that
+## this is the most even one. Wheels are never left carrying nothing.
+static func _weight_shares(full: KartStats) -> Array[float]:
+	var n := full.wheels.size()
+	var out: Array[float] = []
+	if n == 0:
+		return out
+	var com := full.center_of_mass
+	# Rows of the balance: total, then moments along z and along x.
+	var rows := [[], [], []]
+	for info in full.wheels:
+		rows[0].append(1.0)
+		rows[1].append(info.centre.z - com.z)
+		rows[2].append(info.centre.x - com.x)
+	var target := Vector3(1.0, 0.0, 0.0)
+	# Minimum-norm answer: loads = Aᵀ (A Aᵀ)⁻¹ b.
+	var m := Basis()
+	for r in 3:
+		for c in 3:
+			var dot := 0.0
+			for k in n:
+				dot += rows[r][k] * rows[c][k]
+			m[c][r] = dot
+	# Fewer than three wheels (or all in a line) leaves this unsolvable, so
+	# fall back to an even split.
+	if absf(m.determinant()) < 1e-6:
+		for k in n:
+			out.append(1.0 / n)
+		return out
+	var y := m.inverse() * target
+	var total := 0.0
+	for k in n:
+		var share := maxf(rows[0][k] * y.x + rows[1][k] * y.y + rows[2][k] * y.z, 0.05 / n)
+		out.append(share)
+		total += share
+	for k in n:
+		out[k] /= total
+	return out
+
+
+## Puts together whatever parts are still on.
+func _assemble() -> void:
 	for child in get_children():
 		remove_child(child)
 		child.queue_free()
 	wheels.clear()
 
-	stats = KartStats.compute(design)
+	stats = KartStats.compute(design, lost, _full.origin_cell)
 	power = stats.power
 	max_force = stats.max_force
 	drag_area = stats.drag_area
@@ -90,16 +193,30 @@ func build(new_design: KartDesign) -> void:
 	for info in stats.parts:
 		if info.def.kind == "wheel":
 			var w := Wheel.new()
+			w.index = info.index
 			w.part = info.def
 			w.rest = info.centre
 			w.radius = info.def.get("radius", 0.3)
 			w.width = info.def.get("width", 0.25)
 			w.grip = info.def.get("grip", 1.0)
 			w.rolling = info.def.get("rolling", 0.015)
+			var setup: Array = _wheel_setup[info.index]
+			w.steered = setup[0]
+			w.driven = setup[1]
+			w.spring = setup[2]
+			w.damper = setup[3]
 			w.visual = PartVisuals.make_wheel(info.def)
 			w.visual.position = info.centre
 			add_child(w.visual)
 			wheels.append(w)
+			var body := CollisionShape3D.new()
+			var cylinder := CylinderShape3D.new()
+			cylinder.radius = w.radius * WHEEL_BODY
+			cylinder.height = w.width
+			body.shape = cylinder
+			body.position = info.centre
+			body.rotation.z = PI * 0.5
+			add_child(body)
 			continue
 		var shape := CollisionShape3D.new()
 		var box := BoxShape3D.new()
@@ -125,37 +242,68 @@ func build(new_design: KartDesign) -> void:
 
 	mass = maxf(stats.mass, 1.0)
 	center_of_mass = stats.center_of_mass
-
-	# The wheels ahead of the centre of mass steer and the ones behind it
-	# drive. A kart with only one axle does both with it.
 	_driven_count = 0
-	var any_steered := false
 	for w in wheels:
-		w.steered = w.rest.z < center_of_mass.z - 0.05
-		w.driven = w.rest.z > center_of_mass.z + 0.05
-		any_steered = any_steered or w.steered
 		if w.driven:
 			_driven_count += 1
-	for w in wheels:
-		if not any_steered:
-			w.steered = true
-		if _driven_count == 0:
-			w.driven = true
-	if _driven_count == 0:
-		_driven_count = wheels.size()
 
-	# Springs are tuned so that the kart sits with every wheel exactly where
-	# it was built, halfway through its travel.
-	if not wheels.is_empty():
-		var share := mass / wheels.size()
-		for w in wheels:
-			w.spring = share * KartStats.gravity() / SUSPENSION_TRAVEL
-			w.damper = 2.0 * SUSPENSION_DAMPING * sqrt(w.spring * share)
-			w.length = SUSPENSION_TRAVEL
+
+## Knocks these parts off, along with anything that was only held on through
+## them. It's its own step so that in a network game the server can decide
+## what broke and tell everyone.
+func lose_parts(indices: Array[int]) -> void:
+	var newly: Array[int] = []
+	for i in indices:
+		if i < 0 or i >= design.parts.size() or lost.has(i):
+			continue
+		if PartCatalog.get_part(design.parts[i].id).get("kind", "") == "seat":
+			continue
+		lost[i] = true
+		newly.append(i)
+	if newly.is_empty():
+		return
+	var seat := design.seat_index()
+	if seat != -1:
+		for i in design.detached_after(lost, seat):
+			lost[i] = true
+			newly.append(i)
+
+	# Throw the pieces off from where they were, moving the way that bit of
+	# the kart was moving.
+	var com := global_transform * center_of_mass
+	for info in stats.parts:
+		if not newly.has(info.index):
+			continue
+		var at := global_transform * info.centre
+		var piece := Debris.make(info.def, info.extent, Transform3D(global_basis, at))
+		piece.linear_velocity = linear_velocity + angular_velocity.cross(at - com)
+		piece.angular_velocity = angular_velocity
+		get_parent().add_child(piece)
+
+	var keep_linear := linear_velocity
+	var keep_angular := angular_velocity
+	_assemble()
+	linear_velocity = keep_linear
+	angular_velocity = keep_angular
+	parts_lost.emit(newly)
+
+
+func _physics_process(_delta: float) -> void:
+	if _repair_pending:
+		_repair_pending = false
+		lost.clear()
+		_impact.clear()
+		_breaking.clear()
+		_assemble()
+	elif not _breaking.is_empty():
+		var breaking := _breaking.duplicate()
+		_breaking.clear()
+		lose_parts(breaking)
 
 
 func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 	var dt := state.step
+	var applied := Vector3.ZERO
 	if controls.reset and not _reset_held:
 		_reset(state)
 	_reset_held = controls.reset
@@ -234,17 +382,84 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 		var tire := Vector2(f_long, f_lat).limit_length(KartStats.TIRE_FRICTION * w.grip * load)
 
 		state.apply_force(normal * load, contact - origin)
-		var lifted := contact + up * (com - contact).dot(up) * ROLL_HELP
-		state.apply_force(heading * tire.x + side * tire.y, lifted - origin)
+		# Cornering forces act a little below the centre of mass, so it leans
+		# but doesn't flip. Driving and braking act right at its height, so it
+		# doesn't squat onto its tail pulling away or dive when it brakes.
+		var height := (com - contact).dot(up)
+		state.apply_force(side * tire.y, contact + up * height * ROLL_HELP - origin)
+		state.apply_force(heading * tire.x, contact + up * height - origin)
+		applied += normal * load + side * tire.y + heading * tire.x
 
 	# Air: drag from everything facing forward, and downforce from any wings.
 	var air := 0.5 * KartStats.AIR_DENSITY
-	state.apply_central_force(-state.linear_velocity * speed * air * drag_area)
-	state.apply_central_force(-up * air * lift_area * forward_speed * forward_speed)
+	var drag := -state.linear_velocity * speed * air * drag_area
+	var downforce := -up * air * lift_area * forward_speed * forward_speed
+	state.apply_central_force(drag)
+	state.apply_central_force(downforce)
+	applied += drag + downforce
+
+	_feel_knocks(state)
+	_last_velocity = state.linear_velocity
+	_last_applied = applied
 
 
-## Puts the kart back on its wheels facing the way it was going, then holds
-## it back for a moment so resetting is never a shortcut.
+## Works out how hard the kart was just knocked and which parts took it.
+## Any part hit harder than it can take comes off in the next
+## _physics_process, since shapes can't change in the middle of a step.
+##
+## How hard comes from the kart's change of speed since last step, less what
+## its own engine, tires, air and gravity did. The physics engine's own
+## contact impulses came out at well under half the real knock, so they're
+## only used to share it out between the parts that were touching something.
+func _feel_knocks(state: PhysicsDirectBodyState3D) -> void:
+	var count := state.get_contact_count()
+	for part in _impact.keys():
+		_impact[part] *= IMPACT_FADE
+		if _impact[part] < 1.0:
+			_impact.erase(part)
+	if count == 0:
+		return
+	var gravity := Vector3.DOWN * KartStats.gravity()
+	var expected := (_last_applied / mass + gravity) * state.step
+	var knock := ((state.linear_velocity - _last_velocity) - expected).length() * mass
+
+	var shares := {}
+	var total := 0.0
+	var to_kart := state.transform.affine_inverse()
+	for i in count:
+		var part := part_at(to_kart * state.get_contact_local_position(i))
+		if part == -1:
+			continue
+		# Contacts that report nothing still count for a little, so a part
+		# can't dodge a crash just because the engine missed it.
+		var weight := state.get_contact_impulse(i).length() + 0.01
+		shares[part] = shares.get(part, 0.0) + weight
+		total += weight
+	for part in shares:
+		_impact[part] = _impact.get(part, 0.0) + knock * shares[part] / total
+		var strength: float = PartCatalog.get_part(design.parts[part].id).get("strength", 0.0)
+		if strength > 0.0 and _impact[part] > strength and not _breaking.has(part):
+			_breaking.append(part)
+
+
+## Which part is at this point on the kart, in kart space. It's the part
+## whose box is nearest, so a hit on the edge of a brick counts for that brick.
+func part_at(point: Vector3) -> int:
+	var best := -1
+	var best_distance := INF
+	for info in stats.parts:
+		var box := AABB(info.centre - info.extent * 0.5, info.extent)
+		var nearest := point.clamp(box.position, box.end)
+		var d := nearest.distance_squared_to(point)
+		if d < best_distance:
+			best_distance = d
+			best = info.index
+	return best
+
+
+## Puts the kart back on its wheels facing the way it was going, with any
+## lost parts back on, then holds it back for a moment so resetting is never
+## a shortcut.
 func _reset(state: PhysicsDirectBodyState3D) -> void:
 	var facing := -state.transform.basis.z
 	facing.y = 0.0
@@ -259,6 +474,7 @@ func _reset(state: PhysicsDirectBodyState3D) -> void:
 	state.angular_velocity = Vector3.ZERO
 	steer_angle = 0.0
 	slowdown_left = RESET_SLOWDOWN_TIME
+	_repair_pending = true
 	was_reset.emit.call_deferred()
 
 

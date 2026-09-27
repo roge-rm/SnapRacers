@@ -61,7 +61,7 @@ func _physics_process(_delta: float) -> void:
 		throttle = maxf(throttle, touch.throttle)
 		brake = maxf(brake, touch.brake)
 		steer += touch.steer
-		reset = reset or touch.reset
+		reset = reset or touch.reset or touch.take_reset_tap()
 
 	controls.throttle = throttle
 	controls.brake = brake

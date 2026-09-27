@@ -69,4 +69,7 @@ func _process(_delta: float) -> void:
 	var text := "%d km/h" % roundi(kmh)
 	if kart.slowdown_left > 0.0:
 		text += "   reset slowdown"
+	if not kart.lost.is_empty():
+		var n := kart.lost.size()
+		text += "   %d part%s lost, reset to fix" % [n, "" if n == 1 else "s"]
 	speed_label.text = text + "\n%d fps" % Engine.get_frames_per_second()

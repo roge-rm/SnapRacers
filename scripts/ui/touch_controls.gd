@@ -17,6 +17,7 @@ var reset := false
 ## left alone for the button.
 var blockers: Array[Control] = []
 
+var _reset_tapped := false
 var _stick_finger := -1
 var _stick_origin := Vector2.ZERO
 var _stick_at := Vector2.ZERO
@@ -62,6 +63,8 @@ func _input(event: InputEvent) -> void:
 				if blocker.is_visible_in_tree() and blocker.get_global_rect().has_point(event.position):
 					return
 			var name := _button_at(event.position)
+			if name == "reset":
+				_reset_tapped = true
 			if name != "":
 				_fingers[event.index] = name
 				_finger_at[event.index] = event.position
@@ -83,6 +86,14 @@ func _input(event: InputEvent) -> void:
 			if name == "gas" or name == "brake":
 				_fingers[event.index] = name
 	_update()
+
+
+## True once for every tap on reset, however short. A quick tap can start and
+## end between two physics steps, and then `reset` alone would never be seen.
+func take_reset_tap() -> bool:
+	var tapped := _reset_tapped
+	_reset_tapped = false
+	return tapped
 
 
 func _update() -> void:
