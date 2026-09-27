@@ -1,0 +1,13 @@
+# Godot
+.godot/
+/android/
+*.import.tmp
+
+# Tools downloaded locally (Godot editor and export templates)
+/tools/godot/
+
+# Builds
+/build/
+*.apk
+*.aab
+*.idsig

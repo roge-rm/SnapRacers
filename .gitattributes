@@ -1,0 +1,5 @@
+# Normalize line endings, and keep Godot's text formats diffable.
+* text=auto eol=lf
+*.png binary
+*.jpg binary
+*.apk binary
