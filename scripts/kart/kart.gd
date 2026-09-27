@@ -19,6 +19,11 @@ signal parts_lost(indices: Array[int])
 
 const SUSPENSION_TRAVEL := 0.12 # metres either side of where the wheel was built
 const SUSPENSION_DAMPING := 0.55 # fraction of critical damping
+## Past this much of its travel a spring gets much stiffer, like a bump stop,
+## so hard landings and loops (where the kart is pressed down at three times
+## its weight) don't bottom it out onto its chassis.
+const BUMP_START := 1.5
+const BUMP_STIFFNESS := 8.0
 const MAX_STEER := deg_to_rad(30.0)
 const HIGH_SPEED_STEER := 0.35 # steering left at full speed, as a fraction
 const STEER_RATE := 4.0 # how fast the wheels turn, in full locks per second
@@ -40,7 +45,22 @@ const IMPACT_FADE := 0.5
 ## Wheels collide through a cylinder a bit smaller than the tire, so it only
 ## touches the ground when the suspension is squashed hard, like a bump stop,
 ## but still catches walls side on.
-const WHEEL_BODY := 0.7
+const WHEEL_BODY := 0.55
+## Round loops and up wall rides the road is sticky: with two wheels on it and
+## going at least this fast, gravity pulls toward the road instead of down.
+## Any slower and you drop off.
+const STICK_SPEED := 7.0
+## A moment's grace, so a bump that lifts a wheel doesn't drop you.
+const STICK_HOLD := 0.4
+## While sticking, the kart is steadied to lie flat on the road, the way
+## anti-gravity racers do it. Without this a kart up a wall ride would roll a
+## little further than the road, lift its wheels and slide off. These are how
+## hard it's turned back, and how much its roll is damped.
+const STICK_ALIGN := 40.0
+const STICK_ALIGN_DAMP := 8.0
+## A little extra pull onto sticky road, to keep all four wheels planted over
+## bumps. Round a loop the kart's own speed presses it on far harder.
+const STICK_PULL := 0.1
 
 
 class Wheel:
@@ -84,6 +104,11 @@ var lift_area := 0.0
 
 var steer_angle := 0.0
 var forward_speed := 0.0
+## Whether the kart is stuck to the road round a loop or up a wall right now.
+var sticking := false
+## Which way is up off the road while it's sticking.
+var stick_up := Vector3.UP
+var _stick_left := 0.0
 var slowdown_left := 0.0
 
 var _reset_held := false
@@ -107,6 +132,10 @@ func _init() -> void:
 	angular_damp = 0.5
 	contact_monitor = true
 	max_contacts_reported = 16
+	# Slippery plastic: when the body does scrape the road or a wall it slides
+	# rather than grinding to a halt.
+	physics_material_override = PhysicsMaterial.new()
+	physics_material_override.friction = 0.3
 
 
 ## Builds the kart whole. The wheels' jobs and springs are settled here, from
@@ -351,6 +380,8 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 	var drive_per_wheel := drive / maxf(_driven_count, 1)
 
 	var space := state.get_space_state()
+	var sticky_up := Vector3.ZERO
+	var sticky_wheels := 0
 	var share := mass / maxf(wheels.size(), 1)
 	for w in wheels:
 		var anchor := state.transform * (w.rest + Vector3.UP * SUSPENSION_TRAVEL)
@@ -369,10 +400,16 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 		var stretch_rate := (length - w.length) / dt
 		w.length = length
 		w.grounded = true
-		var load := maxf(w.spring * (SUSPENSION_TRAVEL * 2.0 - length) - w.damper * stretch_rate, 0.0)
+		var squash := SUSPENSION_TRAVEL * 2.0 - length
+		var bump := maxf(squash - SUSPENSION_TRAVEL * BUMP_START, 0.0) * w.spring * BUMP_STIFFNESS
+		var load := maxf(w.spring * squash + bump - w.damper * stretch_rate, 0.0)
 		w.load = load
 
 		var normal: Vector3 = hit.normal
+		var ground_body: Object = hit.get("collider")
+		if ground_body != null and ground_body.get_meta("sticky", false):
+			sticky_up += normal
+			sticky_wheels += 1
 		var contact: Vector3 = hit.position
 		var heading := -basis.z
 		var side := basis.x
@@ -415,6 +452,26 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 		applied += normal * load + side * tire.y + heading * tire.x
 
 	# Air: drag from everything facing forward, and downforce from any wings.
+	# Sticky road. The world pulls everything down already, so this cancels
+	# that and pulls toward the road instead.
+	if sticky_wheels >= 2 and speed > STICK_SPEED:
+		stick_up = sticky_up.normalized()
+		_stick_left = STICK_HOLD
+	else:
+		_stick_left = maxf(_stick_left - dt, 0.0)
+	sticking = _stick_left > 0.0
+	if sticking:
+		var g := KartStats.gravity()
+		var pull := mass * g * (Vector3.UP - stick_up * (1.0 + STICK_PULL))
+		state.apply_central_force(pull)
+		applied += pull
+		# Turn the kart to lie flat on the road, damping any roll or pitch
+		# (but not its steering, which is round the road's up).
+		var tilt := up.cross(stick_up)
+		var spin := state.angular_velocity - stick_up * state.angular_velocity.dot(stick_up)
+		var want := tilt * STICK_ALIGN - spin * STICK_ALIGN_DAMP
+		state.apply_torque(state.inverse_inertia_tensor.inverse() * want)
+
 	var air := 0.5 * KartStats.AIR_DENSITY
 	var drag := -state.linear_velocity * speed * air * drag_area
 	var downforce := -up * air * lift_area * forward_speed * forward_speed

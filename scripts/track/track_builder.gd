@@ -161,8 +161,12 @@ func _add_piece(index: int) -> void:
 			samples.append(k)
 	if samples.is_empty():
 		return
-	# Run on into the next piece's first sample so there's no seam.
-	samples.append((samples[-1] + 1) % track.points.size())
+	# Run on into the next piece's first sample so there's no seam. The last
+	# piece of a track that doesn't come round to the start has nothing to
+	# run on into (joining it to the start drew road right across the map).
+	var last_piece := index == track.pieces.size() - 1
+	if not last_piece or track.closes:
+		samples.append((samples[-1] + 1) % track.points.size())
 
 	var tool := SurfaceTool.new()
 	tool.begin(Mesh.PRIMITIVE_TRIANGLES)
@@ -198,6 +202,7 @@ func _add_piece(index: int) -> void:
 	var feel: Array = track.grip_and_drag(piece.surface)
 	body.set_meta("grip", feel[0])
 	body.set_meta("drag", feel[1])
+	body.set_meta("sticky", piece.sticky)
 	var mesh := tool.commit()
 	var look := MeshInstance3D.new()
 	look.mesh = mesh
@@ -291,7 +296,8 @@ func _add_pillars() -> void:
 	var clear := track.width * 0.5 + TrackPath.KERB + 2.0
 	var next := 0.0
 	for k in track.points.size():
-		if track.distances[k] < next or not track.solids[k]:
+		# Nothing under loops and wall rides: the road isn't lying flat there.
+		if track.distances[k] < next or not track.solids[k] or track.ups[k].y < 0.9:
 			continue
 		var p := track.points[k]
 		var bottom := p.y - DECK

@@ -7,7 +7,8 @@ extends Node
 ## lets it run flat out instead of in real time, with the physics still
 ## stepping 1/60 s at a time (speeding up Engine.time_scale makes the steps
 ## longer instead, and the suspension can't cope with that):
-##   tools/godot/Godot_v4.7.2-stable_linux.x86_64 --headless --fixed-fps 60 --path . res://tests/race_test.tscn
+## Pass a track's file name after -- to race there instead of the Brickyard:
+##   tools/godot/Godot_v4.7.2-stable_linux.x86_64 --headless --fixed-fps 60 --path . res://tests/race_test.tscn -- loopworks
 
 const GIVE_UP := 260.0 # seconds of race time
 
@@ -27,7 +28,10 @@ func _ready() -> void:
 	var host := Node.new()
 	add_child(host)
 	Game.start(host, false)
-	Game.show_race()
+	var which := "brickyard"
+	if not OS.get_cmdline_user_args().is_empty():
+		which = OS.get_cmdline_user_args()[0]
+	Game.show_race(Game.TRACKS + "/" + which + ".json")
 	while race == null:
 		await get_tree().process_frame
 		for child in host.get_children():
@@ -43,7 +47,10 @@ func _ready() -> void:
 	race.player.kart.controls = driver.controls
 	for racer in race.racers:
 		resets[racer.name] = 0
-		racer.kart.was_reset.connect(func() -> void: resets[racer.name] += 1)
+		racer.kart.was_reset.connect(func() -> void:
+			resets[racer.name] += 1
+			if OS.has_environment("RACE_DEBUG"):
+				print("RESET %s at %.0f m (piece %d %s) speed %.1f" % [racer.name, racer.offset, race.track.piece_of[race.track._index_before(racer.offset)], race.track.pieces[race.track.piece_of[race.track._index_before(racer.offset)]].type, racer.kart.linear_velocity.length()]))
 	print("%s, %.0f m a lap, %d karts" % [race.track.name, race.track.length, race.racers.size()])
 
 

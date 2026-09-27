@@ -28,6 +28,28 @@ var wall_left := true
 var wall_right := true
 ## A bend with a dirt patch inside it that you can cut across.
 var cut := false
+## Which way a loop steps across as it goes round: 1 right, -1 left.
+var side := 1
+## Road you stick to at speed, like the inside of a loop or a steep wall.
+var sticky := false
+
+# The loop: a run-in, the loop and a run-out. The loop tightens gradually on
+# the way in and eases off on the way out, like a real one, instead of
+# snapping from straight to a circle (which slammed karts into the road). It
+# steps one tile across as it goes round, so the road coming out never runs
+# into the road going in.
+const LOOP_ARC := 80.0 # length of road round the loop itself, in metres
+const LOOP_EASE := 0.2 # fraction of it spent tightening up, and easing off
+const LOOP_IN := 16.0
+const LOOP_STEP := TILE
+const LOOP_SAMPLES := 400
+
+## The loop's shape in its own plane, worked out once: for every step round
+## it, (height, distance along, how far it has turned).
+static var _loop_shape := PackedVector3Array()
+
+## Bends banked steeper than this are wall rides, and stick.
+const STICKY_BANK := deg_to_rad(40.0)
 
 # The jump: a kicker, a gap and a landing ramp, in metres along the piece.
 # The landing starts with a short run-up from the ground, so a kart that
@@ -59,6 +81,10 @@ static func from_spec(spec: Dictionary) -> TrackPiece:
 			piece.crest_height = float(spec.get("height", 1.5))
 		"jump":
 			piece.tiles = 3
+		"loop":
+			piece.tiles = 3
+			piece.side = -1 if str(spec.get("side", "right")) == "left" else 1
+			piece.sticky = true
 		_:
 			piece.type = "straight"
 			piece.tiles = int(spec.get("length", 1))
@@ -70,6 +96,9 @@ static func from_spec(spec: Dictionary) -> TrackPiece:
 			piece.wall_left = false
 		"right_open":
 			piece.wall_right = false
+	if piece.type == "curve" and absf(piece.bank) >= STICKY_BANK:
+		piece.sticky = true
+	piece.sticky = bool(spec.get("sticky", piece.sticky))
 	# The inside of a cut bend is open, or there'd be nothing to cut across.
 	if piece.cut:
 		if piece.turn > 0:
@@ -97,6 +126,8 @@ func to_spec() -> Dictionary:
 			spec["height"] = crest_height
 		"straight":
 			spec["length"] = tiles
+		"loop":
+			spec["side"] = "left" if side < 0 else "right"
 	if surface != "asphalt":
 		spec["surface"] = surface
 	if not wall_left and not wall_right:
@@ -112,6 +143,8 @@ func to_spec() -> Dictionary:
 func path_length() -> float:
 	if type == "curve":
 		return radius * PI * 0.5
+	if type == "loop":
+		return LOOP_IN + LOOP_ARC + _loop_out()
 	var run := tiles * TILE
 	return sqrt(run * run + rise * rise)
 
@@ -129,7 +162,76 @@ func point(t: float) -> Vector3:
 			return Vector3(0.0, crest_height * pow(sin(PI * t), 2.0), -run * t)
 		"jump":
 			return Vector3(0.0, _jump_height(run * t), -run * t)
+		"loop":
+			return _loop_point(t)
 	return Vector3(0.0, 0.0, -run * t)
+
+
+static func _loop_profile() -> PackedVector3Array:
+	if not _loop_shape.is_empty():
+		return _loop_shape
+	var step := LOOP_ARC / LOOP_SAMPLES
+	var ease := func(u: float) -> float:
+		return smoothstep(0.0, LOOP_EASE, u) * smoothstep(0.0, LOOP_EASE, 1.0 - u)
+	# Scale the bend so the loop turns exactly once all the way round.
+	var total := 0.0
+	for i in LOOP_SAMPLES:
+		total += ease.call((i + 0.5) / LOOP_SAMPLES) * step
+	var scale := TAU / total
+	var height := 0.0
+	var along := 0.0
+	var turned := 0.0
+	_loop_shape.append(Vector3.ZERO)
+	for i in LOOP_SAMPLES:
+		var bend: float = ease.call((i + 0.5) / LOOP_SAMPLES) * scale
+		var mid := turned + bend * step * 0.5
+		height += sin(mid) * step
+		along += cos(mid) * step
+		turned += bend * step
+		_loop_shape.append(Vector3(height, along, turned))
+	return _loop_shape
+
+
+## How far the road runs on after the loop, so the piece still ends on the
+## grid three tiles on.
+static func _loop_out() -> float:
+	var shape := _loop_profile()
+	return 3.0 * TILE - LOOP_IN - shape[shape.size() - 1].y
+
+
+func _loop_at(along: float) -> Vector3:
+	var shape := _loop_profile()
+	var f := clampf(along / LOOP_ARC, 0.0, 1.0) * LOOP_SAMPLES
+	var i := mini(int(f), LOOP_SAMPLES - 1)
+	return shape[i].lerp(shape[i + 1], f - i)
+
+
+func _loop_point(t: float) -> Vector3:
+	var along := t * path_length()
+	var shape := _loop_profile()
+	if along <= LOOP_IN:
+		return Vector3(0.0, 0.0, -along)
+	if along < LOOP_IN + LOOP_ARC:
+		var at := _loop_at(along - LOOP_IN)
+		# It steps across up in the air, in the middle of the loop, so that
+		# near the ground the way in and the way out are a whole tile apart.
+		var across := side * LOOP_STEP * smoothstep(LOOP_EASE, 1.0 - LOOP_EASE, (along - LOOP_IN) / LOOP_ARC)
+		return Vector3(across, at.x, -LOOP_IN - at.y)
+	var end := shape[shape.size() - 1]
+	return Vector3(side * LOOP_STEP, 0.0, -LOOP_IN - end.y - (along - LOOP_IN - LOOP_ARC))
+
+
+## Which way is up off the road here, before any banking, in the piece's
+## space. It's straight up everywhere except round a loop, where it points
+## in toward the middle.
+func up(t: float) -> Vector3:
+	if type != "loop":
+		return Vector3.UP
+	var along := t * path_length()
+	if along <= LOOP_IN or along >= LOOP_IN + LOOP_ARC:
+		return Vector3.UP
+	var turned := _loop_at(along - LOOP_IN).z
+	return Vector3(0.0, cos(turned), sin(turned))
 
 
 func _jump_height(x: float) -> float:
@@ -150,7 +252,10 @@ func _jump_height(x: float) -> float:
 func bank_at(t: float) -> float:
 	if type != "curve":
 		return 0.0
-	return bank * sin(PI * t) * turn
+	# Eases in and out, so the road never starts rolling (or, since banked
+	# road leans up from its low edge, climbing) all at once. A sudden start
+	# threw karts into the air on the way onto a wall ride.
+	return bank * pow(sin(PI * t), 2.0) * turn
 
 
 ## Whether there's road here. Only the jump has a gap.
@@ -164,6 +269,8 @@ func solid(t: float) -> bool:
 ## Where the next piece starts, in this piece's space.
 func exit() -> Transform3D:
 	var end := point(1.0)
+	if type == "loop":
+		return Transform3D(Basis.IDENTITY, Vector3(side * LOOP_STEP, 0.0, -3.0 * TILE))
 	if type == "curve":
 		return Transform3D(Basis(Vector3.UP, -turn * PI * 0.5), end)
 	return Transform3D(Basis.IDENTITY, end)

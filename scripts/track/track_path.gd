@@ -37,6 +37,7 @@ var ups := PackedVector3Array()
 var rights := PackedVector3Array()
 var distances := PackedFloat32Array()
 var solids: Array[bool] = []
+var stickies: Array[bool] = []
 var piece_of := PackedInt32Array()
 var length := 0.0
 
@@ -75,6 +76,7 @@ func build() -> void:
 	rights.clear()
 	distances.clear()
 	solids.clear()
+	stickies.clear()
 	piece_of.clear()
 	piece_starts.clear()
 	var pose := start
@@ -87,15 +89,21 @@ func build() -> void:
 			var ahead := piece.point(minf(t + 0.001, 1.0))
 			var behind := piece.point(maxf(t - 0.001, 0.0))
 			var forward := (pose.basis * (ahead - behind)).normalized()
-			var flat_right := forward.cross(Vector3.UP).normalized()
+			var base_up := (pose.basis * piece.up(t)).normalized()
+			var flat_right := forward.cross(base_up).normalized()
 			var flat_up := flat_right.cross(forward)
 			var lean := piece.bank_at(t)
 			var up := flat_up * cos(lean) + flat_right * sin(lean)
-			points.append(pose * piece.point(t))
+			# Banked road leans up from its low edge rather than round its
+			# middle, so the inside edge stays at road height instead of
+			# sinking into the ground.
+			var rise := (width * 0.5 + KERB) * absf(sin(lean))
+			points.append(pose * piece.point(t) + flat_up * rise)
 			forwards.append(forward)
 			ups.append(up)
 			rights.append(forward.cross(up))
 			solids.append(piece.solid(t))
+			stickies.append(piece.sticky)
 			piece_of.append(i)
 		pose = pose * piece.exit()
 	closes = not pieces.is_empty() and pose.origin.distance_to(start.origin) < 0.5 \
@@ -204,15 +212,18 @@ func curvature_at(offset: float, span := 6.0) -> float:
 	return a.angle_to(b) / span
 
 
-## How sharply the track turns left or right here, ignoring hills, as one
-## over the corner's radius. This is what limits how fast a kart can go
+## How sharply the track turns left or right here, ignoring hills and
+## loops, as one over the corner's radius. This is what limits how fast a kart can go
 ## round.
 func bend_at(offset: float, span := 6.0) -> float:
 	var a := forward_at(offset - span * 0.5)
 	var b := forward_at(offset + span * 0.5)
-	var flat_a := Vector2(a.x, a.z).normalized()
-	var flat_b := Vector2(b.x, b.z).normalized()
-	return absf(flat_a.angle_to(flat_b)) / span
+	# Measured across the road itself, so the way a loop curls over the top
+	# doesn't count as a bend but a wall ride does.
+	var up := up_at(offset)
+	a = (a - up * a.dot(up)).normalized()
+	b = (b - up * b.dot(up)).normalized()
+	return absf(a.signed_angle_to(b, up)) / span
 
 
 ## The road here, lifted a little, facing along the track. Resets put karts
@@ -242,7 +253,10 @@ func grip_and_drag(surface: String) -> Array:
 func clashes(clearance := 5.0) -> Array:
 	var out := []
 	var step := 4
-	var reach := width + 2.0 * KERB + 2.0
+	# Road, kerbs and a half-metre wall each side. Anything closer than that
+	# and the walls would overlap. (A loop's way in and way out sit 1 m apart
+	# wall to wall, which is fine.)
+	var reach := width + 2.0 * KERB + 1.0
 	var skip := int(ceil(reach * 2.0 / SAMPLE))
 	var count := points.size()
 	for i in range(0, count, step):

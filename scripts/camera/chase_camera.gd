@@ -10,6 +10,9 @@ extends Camera3D
 @export var follow := 6.0
 
 var target: Node3D
+## Which way is up for the camera. It follows the kart round loops and up
+## walls, and settles back to straight up afterwards.
+var _up := Vector3.UP
 
 
 func _ready() -> void:
@@ -20,16 +23,20 @@ func _ready() -> void:
 func _physics_process(delta: float) -> void:
 	if target == null:
 		return
+	var wanted_up := Vector3.UP
+	if target is Kart and target.sticking:
+		wanted_up = target.global_basis.y
+	_up = _up.slerp(wanted_up, 1.0 - exp(-4.0 * delta)).normalized()
 	var facing := -target.global_basis.z
 	if target is RigidBody3D and target.linear_velocity.length() > 3.0:
 		facing = facing.lerp(target.linear_velocity.normalized(), 0.5)
-	facing.y = 0.0
+	facing -= _up * facing.dot(_up)
 	if facing.length() < 0.01:
 		facing = Vector3.FORWARD
 	facing = facing.normalized()
-	var wanted := target.global_position - facing * distance + Vector3.UP * height
+	var wanted := target.global_position - facing * distance + _up * height
 	global_position = global_position.lerp(wanted, 1.0 - exp(-follow * delta))
-	look_at(target.global_position + Vector3.UP * look_height, Vector3.UP)
+	look_at(target.global_position + _up * look_height, _up)
 
 
 func snap() -> void:

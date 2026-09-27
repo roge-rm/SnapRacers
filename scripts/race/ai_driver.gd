@@ -103,7 +103,9 @@ func _dodge() -> float:
 
 func _stuck_check(delta: float, speed: float, up: Vector3) -> void:
 	# Stuck against something, or on its back.
-	if not kart.locked and (speed < 1.5 or up.y < 0.3):
+	# Upside down only counts when it isn't meant to be, like at the top of a
+	# loop.
+	if not kart.locked and (speed < 1.5 or (up.y < 0.3 and not kart.sticking)):
 		_stuck += delta
 	else:
 		_stuck = 0.0

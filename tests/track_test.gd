@@ -29,6 +29,8 @@ func _initialize() -> void:
 		for p in track.points:
 			highest = maxf(highest, p.y)
 		check(highest > 5.0, "%s climbs (highest point %.1f m)" % [track.name, highest])
+		var stuck := track.stickies.count(true)
+		print("    %d m of it sticky" % stuck)
 
 		# Round trip through the file format.
 		var again := TrackPath.from_dict(track.to_dict())
@@ -54,6 +56,18 @@ func _initialize() -> void:
 			if Vector2(a.x - b.x, a.z - b.z).length() < 4.0 and absf(a.y - b.y) > 5.0:
 				over += 1
 	check(over > 0, "the Brickyard bridge really does cross over the road below")
+
+	# The loop piece ends on the grid, one tile across and three along.
+	var loop := TrackPiece.from_spec({ "type": "loop", "side": "right" })
+	var out := loop.exit().origin
+	check(out.distance_to(Vector3(16.0, 0.0, -48.0)) < 0.01, "a loop ends on the grid (%s)" % out)
+	check(absf(loop.point(0.999).y) < 0.05, "and back down at road level (%.3f m)" % loop.point(0.999).y)
+	var top := 0.0
+	for i in 101:
+		top = maxf(top, loop.point(i / 100.0).y)
+	check(top > 15.0 and top < 30.0, "a loop is a sensible height (%.1f m)" % top)
+	check(TrackPiece.from_spec({ "type": "curve", "bank": 80 }).sticky, "a bend banked 80 degrees is a wall ride you stick to")
+	check(not TrackPiece.from_spec({ "type": "curve", "bank": 22 }).sticky, "a gently banked bend isn't")
 
 	# Lap counting.
 	var length := 100.0

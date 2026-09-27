@@ -9,7 +9,6 @@ extends Node3D
 ## back on it with the reset slowdown. Once you finish, the AI drives your
 ## kart for you while the rest come home.
 
-const TRACK := "res://data/tracks/brickyard.json"
 const AI_KARTS := "res://data/karts/ai"
 const COUNTDOWN := 3.0
 ## Further below the road than this and you've fallen off.
@@ -46,7 +45,7 @@ var _frames_drawn := 0
 
 
 func _ready() -> void:
-	track = TrackPath.load_file(TRACK)
+	track = TrackPath.load_file(Game.track_path)
 	add_child(TrackBuilder.new(track))
 
 	var files := Array(DirAccess.get_files_at(AI_KARTS)).filter(func(f): return f.ends_with(".json"))
@@ -106,7 +105,7 @@ func _ready() -> void:
 		add_child(driver)
 		player.ai = driver
 		player.kart.controls = driver.controls
-	hud.again_pressed.connect(Game.show_race)
+	hud.again_pressed.connect(func() -> void: Game.show_race())
 	hud.garage_pressed.connect(Game.show_garage)
 	hud.menu_pressed.connect(Game.show_menu)
 
@@ -169,9 +168,16 @@ func _physics_process(delta: float) -> void:
 func _clear_spot(racer: Racer) -> Transform3D:
 	var room := 3.5
 	var across := [0.0, -3.0, 3.0, -4.5, 4.5]
+	# Never back onto a loop or a wall ride: go back to where the road lies
+	# flat before it.
+	var start := racer.offset
+	for step in 80:
+		if track.up_at(start).y > 0.95:
+			break
+		start -= 2.0
 	for back in [0.0, 5.0, 10.0, 15.0, 20.0]:
 		for side in across:
-			var spot := track.place_at(racer.offset - back)
+			var spot := track.place_at(start - back)
 			spot.origin += spot.basis.x * side
 			var clear := true
 			for other in racers:

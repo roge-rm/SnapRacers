@@ -11,11 +11,14 @@ const STARTER := "res://data/karts/starter.json"
 ## The kart you were last working on, kept between launches.
 const CURRENT_KART := "user://current_kart.json"
 const SETTINGS := "user://settings.cfg"
+const TRACKS := "res://data/tracks"
 
 var design: KartDesign
 ## The theme for in-game panels (the garage and the race HUD).
 var theme: Theme
 var settings := ConfigFile.new()
+## The track the next race is on. Race again keeps it.
+var track_path := TRACKS + "/brickyard.json"
 
 var _host: Node
 var _screen: Node
@@ -54,6 +57,10 @@ func show_drive() -> void:
 	_swap(TestDrive.new())
 
 
+func show_tracks() -> void:
+	_swap(TrackPicker.new())
+
+
 func show_settings() -> void:
 	_swap(SettingsScreen.new())
 
@@ -65,7 +72,9 @@ func show_about() -> void:
 ## The race can take a moment to appear (longer the first time, while shaders
 ## compile), so "Loading" goes up first and the race takes it down once it's
 ## on screen.
-func show_race() -> void:
+func show_race(path := "") -> void:
+	if path != "":
+		track_path = path
 	show_loading(true)
 	await get_tree().process_frame
 	await get_tree().process_frame
