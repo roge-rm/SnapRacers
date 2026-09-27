@@ -49,36 +49,11 @@ void fragment() {
 
 
 func _ready() -> void:
-	_add_environment()
+	SkyAndSun.add_to(self)
 	_add_ground()
 	_add_walls()
 	_add_ramp(Vector3(-RADIUS, 0.0, 0.0), 0.0)
 	_add_brick_pile(Vector3(0.0, 0.0, 0.0))
-
-
-func _add_environment() -> void:
-	var sky_material := ProceduralSkyMaterial.new()
-	sky_material.sky_top_color = Color("#3d7fd6")
-	sky_material.sky_horizon_color = Color("#b9d6f2")
-	sky_material.ground_horizon_color = Color("#b9d6f2")
-	var sky := Sky.new()
-	sky.sky_material = sky_material
-	var env := Environment.new()
-	env.background_mode = Environment.BG_SKY
-	env.sky = sky
-	env.ambient_light_source = Environment.AMBIENT_SOURCE_SKY
-	env.ambient_light_energy = 0.6
-	env.tonemap_mode = Environment.TONE_MAPPER_FILMIC
-	var world_env := WorldEnvironment.new()
-	world_env.environment = env
-	add_child(world_env)
-
-	var sun := DirectionalLight3D.new()
-	sun.rotation_degrees = Vector3(-55.0, 35.0, 0.0)
-	sun.light_energy = 1.1
-	sun.shadow_enabled = true
-	sun.directional_shadow_max_distance = 60.0
-	add_child(sun)
 
 
 func _add_ground() -> void:

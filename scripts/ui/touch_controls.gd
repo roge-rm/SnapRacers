@@ -13,6 +13,10 @@ var throttle := 0.0
 var brake := 0.0
 var reset := false
 
+## Buttons drawn over the controls. A touch that starts on one of these is
+## left alone for the button.
+var blockers: Array[Control] = []
+
 var _stick_finger := -1
 var _stick_origin := Vector2.ZERO
 var _stick_at := Vector2.ZERO
@@ -54,6 +58,9 @@ func _input(event: InputEvent) -> void:
 		return
 	if event is InputEventScreenTouch:
 		if event.pressed:
+			for blocker in blockers:
+				if blocker.is_visible_in_tree() and blocker.get_global_rect().has_point(event.position):
+					return
 			var name := _button_at(event.position)
 			if name != "":
 				_fingers[event.index] = name

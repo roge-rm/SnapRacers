@@ -1,19 +1,19 @@
 {
 	"name": "Starter",
-	"_comment": "Positions are [stud, plate, stud] of the part's corner nearest the origin. The front of the kart is at stud 0 and it drives toward negative Z. Rot is quarter turns around the vertical axis.",
+	"_comment": "Positions are [stud, plate, stud] of the part's corner nearest the origin, on a build area 20 studs across, 30 plates high and 24 studs long. The kart faces toward negative Z. Rot is quarter turns around the vertical axis.",
 	"parts": [
-		{ "id": "plate_6x10", "at": [0, 2, 0], "rot": 0 },
-		{ "id": "wheel_small", "at": [-1, 0, 1], "rot": 0 },
-		{ "id": "wheel_small", "at": [6, 0, 1], "rot": 0 },
-		{ "id": "wheel_small_wide", "at": [-2, 0, 6], "rot": 0 },
-		{ "id": "wheel_small_wide", "at": [6, 0, 6], "rot": 0 },
-		{ "id": "brick_1x6", "at": [0, 3, 0], "rot": 1 },
-		{ "id": "brick_1x2", "at": [0, 3, 1], "rot": 0 },
-		{ "id": "brick_1x2", "at": [5, 3, 1], "rot": 0 },
-		{ "id": "seat", "at": [2, 3, 4], "rot": 0 },
-		{ "id": "engine_small", "at": [2, 3, 7], "rot": 0 },
-		{ "id": "brick_2x2", "at": [0, 3, 7], "rot": 0 },
-		{ "id": "brick_2x2", "at": [4, 3, 7], "rot": 0 },
-		{ "id": "spoiler_6", "at": [0, 6, 8], "rot": 0 }
+		{ "id": "plate_6x10", "at": [7, 2, 7], "rot": 0 },
+		{ "id": "wheel_small", "at": [6, 0, 8], "rot": 0 },
+		{ "id": "wheel_small", "at": [13, 0, 8], "rot": 0 },
+		{ "id": "wheel_small_wide", "at": [5, 0, 13], "rot": 0 },
+		{ "id": "wheel_small_wide", "at": [13, 0, 13], "rot": 0 },
+		{ "id": "brick_1x6", "at": [7, 3, 7], "rot": 1 },
+		{ "id": "brick_1x2", "at": [7, 3, 8], "rot": 0 },
+		{ "id": "brick_1x2", "at": [12, 3, 8], "rot": 0 },
+		{ "id": "seat", "at": [9, 3, 11], "rot": 0 },
+		{ "id": "engine_small", "at": [9, 3, 14], "rot": 0 },
+		{ "id": "brick_2x2", "at": [7, 3, 14], "rot": 0 },
+		{ "id": "brick_2x2", "at": [11, 3, 14], "rot": 0 },
+		{ "id": "spoiler_6", "at": [7, 6, 15], "rot": 0 }
 	]
 }

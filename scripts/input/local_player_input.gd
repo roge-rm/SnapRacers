@@ -10,6 +10,9 @@ extends Node
 
 @export var use_keyboard := false
 @export var joypad := -1 # device id, or -1 for none
+## With only one local player, whichever controller is connected is theirs,
+## including one plugged in partway through.
+@export var any_joypad := false
 var touch: TouchControls
 
 var controls := KartControls.new()
@@ -33,6 +36,10 @@ func _physics_process(_delta: float) -> void:
 		if Input.is_physical_key_pressed(KEY_D) or Input.is_physical_key_pressed(KEY_RIGHT):
 			steer += 1.0
 		reset = reset or Input.is_physical_key_pressed(KEY_R)
+
+	if any_joypad and not Input.get_connected_joypads().has(joypad):
+		var pads := Input.get_connected_joypads()
+		joypad = pads[0] if not pads.is_empty() else -1
 
 	if joypad >= 0:
 		throttle = maxf(throttle, Input.get_joy_axis(joypad, JOY_AXIS_TRIGGER_RIGHT))

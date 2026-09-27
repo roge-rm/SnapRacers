@@ -11,3 +11,6 @@
 *.apk
 *.aab
 *.idsig
+
+# Crash dumps. Named core.<pid>, so a plain "core" pattern would also hide real folders.
+core.[0-9]*
