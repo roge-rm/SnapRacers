@@ -4,7 +4,7 @@ extends Control
 ## Settings, split into tabs the way ScorchDroid does it. Everything saves as
 ## soon as you change it.
 
-const TABS := ["Player", "Sound", "Display"]
+const TABS := ["Player", "Controls", "Sound", "Display"]
 
 var _tab_buttons: Array[Button] = []
 var _underlines: Array[ColorRect] = []
@@ -36,6 +36,7 @@ func _ready() -> void:
 		_underlines.append(line)
 
 	_pages.append(_player_page())
+	_pages.append(_controls_page())
 	_pages.append(_sound_page())
 	_pages.append(_display_page())
 	for page in _pages:
@@ -64,6 +65,33 @@ func _player_page() -> Control:
 	name_edit.text = Game.settings.get_value("player", "name", "")
 	name_edit.text_changed.connect(func(text: String) -> void: Game.set_setting("player", "name", text.strip_edges()))
 	page.add_child(name_edit)
+	return page
+
+
+func _controls_page() -> Control:
+	var page := VBoxContainer.new()
+	page.add_theme_constant_override("separation", 10)
+	page.add_child(MenuStyle.heading("Steering", "On a touch screen, steer with the stick, or with a left and a right button that steer all the way while you hold them"))
+	for person in 2:
+		var row := HBoxContainer.new()
+		row.add_theme_constant_override("separation", 10)
+		page.add_child(row)
+		var who := Label.new()
+		who.text = "Player %d" % (person + 1)
+		who.custom_minimum_size = Vector2(120.0, 0.0)
+		who.add_theme_font_size_override("font_size", 22)
+		row.add_child(who)
+		var choices := {}
+		for how in TouchControls.STEERING:
+			var button := MenuStyle.button(TouchControls.STEERING[how], func() -> void:
+				Game.set_steering(person, how)
+				for other in choices:
+					MenuStyle.mark(choices[other], other == how))
+			button.custom_minimum_size = Vector2(160.0, 48.0)
+			choices[how] = button
+			row.add_child(button)
+		for how in choices:
+			MenuStyle.mark(choices[how], how == Game.steering(person))
 	return page
 
 

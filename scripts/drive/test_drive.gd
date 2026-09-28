@@ -69,6 +69,7 @@ func _ready() -> void:
 
 	var touch := TouchControls.new()
 	touch.visible = DisplayServer.is_touchscreen_available()
+	touch.steering = Game.steering(0)
 	touch.blockers.append(garage)
 	touch.blockers.append(view)
 	hud_root.add_child(touch)

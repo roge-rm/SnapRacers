@@ -31,6 +31,10 @@ var _toolbar: HBoxContainer
 var _undo: IconButton
 var _redo: IconButton
 var _drawer: PanelContainer
+## The drawer's row (the rail, then the tiles) and the rail itself, which
+## make way for a camera hole partway down the side (see SafeArea).
+var _drawer_row: HBoxContainer
+var _rail_box: VBoxContainer
 var _rail: Array[IconButton] = []
 var _heading: Label
 var _tiles: GridContainer
@@ -58,6 +62,14 @@ func _ready() -> void:
 	_build_card()
 	_build_colours()
 	_build_bottom()
+	# Nothing hides under a camera hole.
+	var safe := SafeArea.new()
+	add_child(safe)
+	for panel in [_toolbar, _chip, _card, _colours, _bottom]:
+		safe.watch(panel)
+	safe.watch(_drawer, true)
+	safe.flow(_rail_box)
+	safe.flow(_drawer_row, 1)
 
 
 ## Whether this screen position is on one of the panels instead of the scene.
@@ -160,6 +172,8 @@ func _build_drawer() -> void:
 	var rail := VBoxContainer.new()
 	rail.add_theme_constant_override("separation", 4)
 	row.add_child(rail)
+	_rail_box = rail
+	_drawer_row = row
 	for pair in SLOTS:
 		var tab := IconButton.new(pair[0], pair[1])
 		tab.pressed.connect(func() -> void: show_slot(pair[0]))

@@ -306,6 +306,16 @@ func set_difficulty(level: String) -> void:
 	set_setting("race", "difficulty", level)
 
 
+## How each person steers on a touch screen, "stick" or "buttons" (see
+## TouchControls.STEERING), 0 for player 1.
+func steering(person: int) -> String:
+	return settings.get_value("controls", "player_%d" % (person + 1), "stick")
+
+
+func set_steering(person: int, how: String) -> void:
+	set_setting("controls", "player_%d" % (person + 1), how)
+
+
 ## The camera view each person last used (see RaceCamera), 0 for player 1.
 func camera_view(person: int) -> String:
 	return settings.get_value("camera", "player_%d" % (person + 1), "chase")

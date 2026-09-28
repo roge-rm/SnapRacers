@@ -83,6 +83,10 @@ var _views_menu: PopupMenu
 var _file_menu: PopupMenu
 
 var _drawer: PanelContainer
+## The drawer's row (the rail, then the tiles) and the rail itself, which
+## make way for a camera hole partway down the side (see SafeArea).
+var _drawer_row: HBoxContainer
+var _rail_box: VBoxContainer
 var _drawer_handle: Button
 var _drawer_open := true
 ## The drawer was pulled back out while a part is in hand, so it stays out.
@@ -146,6 +150,14 @@ func _ready() -> void:
 	_build_dialogs()
 	_show_category(0)
 	set_mode(Mode.IDLE, "")
+	# Nothing hides under a camera hole.
+	var safe := SafeArea.new()
+	add_child(safe)
+	for panel in [_toolbar, _drawer_handle, _stats_chip, _stats_card, _held_chip, _placing, _actions, _painting, _bottom]:
+		safe.watch(panel)
+	safe.watch(_drawer, true)
+	safe.flow(_rail_box)
+	safe.flow(_drawer_row, 1)
 
 
 ## Whether this screen position is on one of the panels instead of the kart.
@@ -350,6 +362,8 @@ func _build_drawer() -> void:
 	var rail := VBoxContainer.new()
 	rail.add_theme_constant_override("separation", 4)
 	row.add_child(rail)
+	_rail_box = rail
+	_drawer_row = row
 	for i in CATEGORIES.size():
 		var tab := IconButton.new(CATEGORIES[i][2], CATEGORIES[i][0])
 		tab.pressed.connect(_show_category.bind(i))

@@ -234,6 +234,7 @@ func _add_view(racer: Racer, world_parent: Node, layer: CanvasLayer) -> void:
 	layer.add_child(racer_hud)
 	var touch := TouchControls.new()
 	touch.visible = DisplayServer.is_touchscreen_available()
+	touch.steering = Game.steering(index)
 	touch.blockers.append_array(racer_hud.buttons())
 	racer_hud.add_child(touch)
 	racer_hud.touch = touch

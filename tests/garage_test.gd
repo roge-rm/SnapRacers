@@ -49,6 +49,45 @@ func count(id: String, at: Vector3i) -> int:
 	return garage.design.parts.filter(func(p): return p.id == id and p.at == at).size()
 
 
+## Nothing sits under a camera hole, wherever it is: the panels step out of
+## the way or wrap around it, and go back when it's gone.
+func _camera_hole() -> void:
+	var ui: GarageUI = garage.ui
+	var safe: SafeArea = ui.find_children("SafeArea", "SafeArea", false, false)[0]
+	var drawer_height: float = ui._drawer.size.y
+	var window := SafeArea.screen_size(get_viewport())
+	# Holes like a phone's, in the corners and partway down the left side, a
+	# tenth of the screen's height across.
+	var across := window.y * 0.1
+	var spots := {
+		"top left": Vector2(0.0, 0.0), "bottom left": Vector2(0.0, window.y - across),
+		"top right": Vector2(window.x - across, 0.0), "partway down the left": Vector2(across * 0.3, window.y * 0.3),
+	}
+	for spot in spots:
+		SafeArea.pretend = [Rect2(spots[spot], Vector2(across, across))]
+		safe.refit()
+		await frames(8)
+		var hole: Rect2 = safe.holes()[0]
+		var drawer: Rect2 = ui._drawer.get_global_rect()
+		var under := []
+		for button in ui.find_children("*", "BaseButton", true, false):
+			if not button.is_visible_in_tree():
+				continue
+			var rect: Rect2 = button.get_global_rect()
+			# Tiles scrolled out of the drawer can't be seen anyway.
+			if ui._drawer.is_ancestor_of(button):
+				rect = rect.intersection(drawer)
+			if rect.has_area() and rect.intersects(hole):
+				under.append(button.tooltip_text if button.tooltip_text != "" else button.name)
+		check(under.is_empty(), "with a camera hole %s, no button's under it %s" % [spot, under])
+		if spot == "partway down the left":
+			check(ui._drawer.size.y > drawer_height * 0.95, "and the drawer wraps around it instead of getting shorter")
+	SafeArea.pretend = []
+	safe.refit()
+	await frames(8)
+	check(is_equal_approx(ui._drawer.size.y, drawer_height), "with no hole the drawer's back to full height")
+
+
 func _ready() -> void:
 	host = Node.new()
 	add_child(host)
@@ -68,6 +107,7 @@ func _ready() -> void:
 	await _mirror_and_paint(parts)
 	await _moving(parts)
 	await _camera()
+	await _camera_hole()
 	garage.ui.drive_pressed.emit()
 	await frames(6)
 	check(host.get_child(host.get_child_count() - 1) is TestDrive, "drive takes the kart out to the track")

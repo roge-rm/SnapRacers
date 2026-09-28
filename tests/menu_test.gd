@@ -53,6 +53,29 @@ func _ready() -> void:
 	check(screen() is SettingsScreen, "settings opens")
 	var back := screen().find_children("*", "Button", true, false).filter(func(b): return b.text == "Back")
 	check(back.size() == 2, "settings has a Back button at the top and the bottom")
+	# Steering with buttons instead of the stick, picked in Settings.
+	var saved_steering := Game.steering(0)
+	var buttons_pill := screen().find_children("*", "Button", true, false).filter(func(b): return b.text == "Buttons")
+	check(buttons_pill.size() == 2, "settings has a steering choice for each player")
+	buttons_pill[0].pressed.emit()
+	check(Game.steering(0) == "buttons", "picking Buttons for player 1 keeps it")
+	var touch := TouchControls.new()
+	touch.steering = Game.steering(0)
+	add_child(touch)
+	touch.size = Vector2(2340, 1080)
+	var spots := touch._buttons()
+	check(spots.has("left") and spots.has("right"), "then there are left and right buttons")
+	touch._input(_touch(0, spots.left[0], true))
+	check(touch.steer == -1.0, "holding left steers all the way left")
+	touch._input(_drag(0, spots.right[0]))
+	check(touch.steer == 1.0, "sliding across to right steers all the way right")
+	touch._input(_touch(0, spots.right[0], false))
+	check(touch.steer == 0.0, "and letting go straightens up")
+	touch.steering = "stick"
+	check(not touch._buttons().has("left"), "with the stick there are no steering buttons")
+	touch.queue_free()
+	Game.set_steering(0, saved_steering)
+
 	Game.set_setting("player", "name", "Tester")
 	Game._go_back()
 	await frames(2)
@@ -155,6 +178,21 @@ func _ready() -> void:
 	Game.set_setting("race", "player_two", saved_second)
 	print("All menu checks passed." if failures == 0 else "%d menu checks failed." % failures)
 	get_tree().quit(1 if failures > 0 else 0)
+
+
+func _touch(finger: int, at: Vector2, down: bool) -> InputEventScreenTouch:
+	var event := InputEventScreenTouch.new()
+	event.index = finger
+	event.position = at
+	event.pressed = down
+	return event
+
+
+func _drag(finger: int, at: Vector2) -> InputEventScreenDrag:
+	var event := InputEventScreenDrag.new()
+	event.index = finger
+	event.position = at
+	return event
 
 
 ## The driver screen: picking styles and colours, undo and redo, and leaving.

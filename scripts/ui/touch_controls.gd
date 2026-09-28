@@ -1,13 +1,21 @@
 class_name TouchControls
 extends Control
 
-## On-screen controls for a phone or tablet. The steering stick sits in the
-## bottom left corner and never moves. Put your thumb anywhere on it and the
+## On-screen controls for a phone or tablet. There are two ways to steer
+## (see STEERING), picked in Settings. The steering stick sits in the bottom
+## left corner and never moves. Put your thumb anywhere on it and the
 ## knob goes where your thumb is, so you can see how far you're steering. It
 ## springs back to the middle when you let go. On the right there's a big GO
 ## button with the brake beside it, the gadget buttons above them, a small
 ## reset button up top, and a look back button under it that you hold. You can slide a finger from GO to brake without
 ## lifting it.
+##
+## Instead of the stick there can be a left and a right button in that
+## corner, which steer all the way while you hold them. You can slide your
+## thumb from one to the other without lifting it, the same as GO and brake.
+
+## The ways to steer, and what Settings calls them.
+const STEERING := {"stick": "Stick", "buttons": "Buttons"}
 
 ## How much of the stick's travel is a small steer. I made the middle gentle
 ## so small corrections are easy, and it still reaches full lock at the edge.
@@ -15,6 +23,12 @@ const STICK_CURVE := 0.6
 ## A thumb resting near the middle doesn't steer at all.
 const STICK_DEADZONE := 0.06
 
+## "stick" or "buttons" (see STEERING).
+var steering := "stick":
+	set(value):
+		steering = value if STEERING.has(value) else "stick"
+		_stick_finger = -1
+		queue_redraw()
 var steer := 0.0
 var throttle := 0.0
 var brake := 0.0
@@ -69,6 +83,12 @@ func _buttons() -> Dictionary:
 		"reset": [Vector2(s.x - r * 0.9, r * 0.9), r * 0.5],
 		"look": [Vector2(s.x - r * 0.9, r * 2.2), r * 0.5],
 	}
+	if steering == "buttons":
+		# The left and right buttons sit where the stick would be, big enough
+		# to find without looking.
+		var arrow := minf(minf(s.y * 0.13, s.x * 0.1), 105.0)
+		out["left"] = [Vector2(arrow * 1.3, s.y - arrow * 1.3), arrow]
+		out["right"] = [Vector2(arrow * 3.75, s.y - arrow * 1.3), arrow]
 	if gadget_names[0] != "":
 		out["gadget0"] = [Vector2(s.x - r * 1.3, s.y - r * 3.7), r * 0.62]
 	if gadget_names[1] != "":
@@ -102,7 +122,7 @@ func _input(event: InputEvent) -> void:
 			if name != "":
 				_fingers[event.index] = name
 				_finger_at[event.index] = event.position
-			elif _stick_finger == -1 and event.position.distance_to(stick[0]) <= stick[1] * 1.5:
+			elif steering == "stick" and _stick_finger == -1 and event.position.distance_to(stick[0]) <= stick[1] * 1.5:
 				# The whole stick is the target, plus some room around it, not
 				# just the knob. Chasing a small knob with your thumb is what
 				# makes touch controls feel broken.
@@ -119,7 +139,11 @@ func _input(event: InputEvent) -> void:
 		elif _fingers.has(event.index):
 			_finger_at[event.index] = event.position
 			var name := _button_at(event.position)
+			var was: String = _fingers[event.index]
+			# A thumb can slide onto GO or brake, and between left and right.
 			if name == "gas" or name == "brake":
+				_fingers[event.index] = name
+			elif (name == "left" or name == "right") and was in ["left", "right"]:
 				_fingers[event.index] = name
 	_update()
 
@@ -149,13 +173,21 @@ func take_gadget_tap(slot: int) -> bool:
 func _update() -> void:
 	if _stick_finger == -1:
 		_knob = 0.0
-	steer = stick_to_steer(_knob)
 	var held := _fingers.values()
+	if steering == "buttons":
+		steer = buttons_to_steer(held.has("left"), held.has("right"))
+	else:
+		steer = stick_to_steer(_knob)
 	throttle = 1.0 if held.has("gas") else 0.0
 	brake = 1.0 if held.has("brake") else 0.0
 	reset = held.has("reset")
 	look_back = held.has("look")
 	queue_redraw()
+
+
+## How much to steer with the buttons held. Both at once cancel out.
+static func buttons_to_steer(left: bool, right: bool) -> float:
+	return (1.0 if right else 0.0) - (1.0 if left else 0.0)
 
 
 ## How much to steer for the knob this far across. It's gentle in the middle
@@ -173,7 +205,7 @@ func _draw() -> void:
 		return # not laid out yet
 	var buttons := _buttons()
 	var held := _fingers.values()
-	var labels := { "gas": "GO", "brake": "BRAKE", "reset": "RESET", "look": "LOOK\nBACK", "gadget0": gadget_names[0], "gadget1": gadget_names[1] }
+	var labels := { "gas": "GO", "brake": "BRAKE", "reset": "RESET", "look": "LOOK\nBACK", "gadget0": gadget_names[0], "gadget1": gadget_names[1], "left": "", "right": "" }
 	var font := get_theme_default_font()
 	for name in buttons:
 		var centre: Vector2 = buttons[name][0]
@@ -192,6 +224,15 @@ func _draw() -> void:
 		var text_size := font.get_multiline_string_size(text, HORIZONTAL_ALIGNMENT_CENTER, -1, font_size)
 		var top_left := centre - text_size * 0.5 + Vector2(0.0, font_size * 0.8)
 		draw_multiline_string(font, top_left, text, HORIZONTAL_ALIGNMENT_CENTER, text_size.x, font_size, -1, Color(0, 0, 0, 0.75))
+		if name == "left" or name == "right":
+			# An arrow pointing the way it steers.
+			var way := -1.0 if name == "left" else 1.0
+			var tip := centre + Vector2(radius * 0.45 * way, 0.0)
+			var back := centre - Vector2(radius * 0.3 * way, 0.0)
+			var arrow_colour := Color(MenuStyle.ACCENT, 0.95) if held.has(name) else Color(0, 0, 0, 0.6)
+			draw_colored_polygon(PackedVector2Array([tip, back + Vector2(0.0, -radius * 0.45), back + Vector2(0.0, radius * 0.45)]), arrow_colour)
+	if steering == "buttons":
+		return
 	# The stick is a faint round pad with a groove across it, a dot in the
 	# middle so you can find it, and the knob, which lights up while you're
 	# holding it.
