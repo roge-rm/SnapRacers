@@ -14,6 +14,20 @@ extends Node
 @export var skill := 0.92
 ## How far right of the middle of the road it likes to drive, in metres.
 @export var line := 0.0
+## How hard it pushes its engine, as a fraction (see Difficulty).
+var pace := 1.0
+## The chance of misjudging a bend, going in too fast or too slow (see
+## Difficulty).
+var mistakes := 0.0
+## How often it uses a gadget when the moment's right, from 0 to 1.
+var gadget_sense := 1.0
+## How much extra push it gets a long way behind the people racing, and how
+## much it lifts off a long way ahead of them.
+var catch_up := 0.0
+var ease_off := 0.0
+## How far behind the leading person in the race it is, in metres. It's
+## negative when it's ahead. The race keeps this up to date.
+var behind := 0.0
 
 const BRAKING := 8.0 # m/s² it counts on when planning to slow down
 const LOOK_NEAR := 7.0
@@ -38,6 +52,11 @@ var controls := KartControls.new()
 
 var _stuck := 0.0
 var _think := 0.0
+var _rng := RandomNumberGenerator.new()
+## Whether there's a bend coming up, and how it's misjudging it: 1 is right,
+## more is too fast and less is too slow.
+var _bend_coming := false
+var _misjudge := 1.0
 ## Time left backing away from something it's stuck against.
 var _backing := 0.0
 ## Whether it's backed off already this time it got stuck.
@@ -46,6 +65,10 @@ var _backed := false
 var _stuck_at := 0.0
 
 const THINK_EVERY := 0.3 # seconds between looking at its gadgets
+
+
+func _ready() -> void:
+	_rng.randomize()
 
 
 func _physics_process(delta: float) -> void:
@@ -70,7 +93,8 @@ func _physics_process(delta: float) -> void:
 	# room to brake.
 	# A driver who can't steer quickly (see KartStats.control) is late into
 	# every bend, so takes them a little slower.
-	var grip := kart.stats.cornering() * KartStats.gravity() * skill * minf(1.0, 0.6 + 0.4 * kart.stats.control)
+	_judge_bends()
+	var grip := kart.stats.cornering() * KartStats.gravity() * skill * minf(1.0, 0.6 + 0.4 * kart.stats.control) * _misjudge
 	var allowed := INF
 	var ahead := 4.0
 	while ahead <= 64.0:
@@ -104,6 +128,20 @@ func _physics_process(delta: float) -> void:
 		controls.brake = 0.0
 
 	_stuck_check(delta, speed, up)
+	kart.push = pace * Difficulty.push_for(behind, catch_up, ease_off)
+
+
+## As each bend comes up, it might get it wrong (see `mistakes`). Going in
+## too fast it runs wide, and too slow it just loses time.
+func _judge_bends() -> void:
+	var coming := track.bend_at(offset + 20.0) > 0.05
+	if coming and not _bend_coming:
+		_misjudge = 1.0
+		if _rng.randf() < mistakes:
+			_misjudge = 1.18 if _rng.randf() < 0.5 else 0.8
+	elif not coming and track.bend_at(offset) < 0.02:
+		_misjudge = 1.0
+	_bend_coming = coming
 
 
 ## How far to move over to get around a kart close ahead, in metres to the
@@ -149,7 +187,10 @@ func _use_gadgets(delta: float, speed: float) -> void:
 	for slot in order:
 		var kind: String = buttons[slot][1].get("gadget", "")
 		if _worth_using(kind, speed):
-			if kart.can_use(slot):
+			# A less canny driver lets the moment pass more often.
+			if _rng.randf() > gadget_sense:
+				_think = THINK_EVERY * 4.0
+			elif kart.can_use(slot):
 				controls.gadget[slot] = true
 			return
 

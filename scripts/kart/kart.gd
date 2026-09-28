@@ -172,6 +172,9 @@ var _steering: SteeringVisual
 var _rig: CharacterRig
 var _rammed_wait := 0.0
 var slowdown_left := 0.0
+## How hard the engine pushes compared with usual. The AI's difficulty uses it
+## to catch up or ease off (see Difficulty).
+var push := 1.0
 ## Set by the race when a reset is putting the kart back at the run up to a
 ## loop or a wall ride, so it doesn't get the reset slowdown.
 var run_up_reset := false
@@ -512,7 +515,7 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 	if locked:
 		braking = forward_speed > 0.05
 	elif controls.throttle > 0.0:
-		drive = controls.throttle * minf(max_force, power / maxf(absf(forward_speed), 1.0))
+		drive = controls.throttle * minf(max_force, power / maxf(absf(forward_speed), 1.0)) * push
 	if controls.brake > 0.0 and not locked:
 		if forward_speed > 0.5:
 			braking = true
@@ -638,7 +641,7 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 	var on_ground := wheels.any(func(w: Wheel) -> bool: return w.grounded)
 	# A jet pushes the same way, whatever the tires are on.
 	if thrust > 0.0 and controls.throttle > 0.0 and not locked and on_ground:
-		var jet := -basis.z * thrust * controls.throttle * (RESET_SLOWDOWN if slowdown_left > 0.0 else 1.0)
+		var jet := -basis.z * thrust * controls.throttle * push * (RESET_SLOWDOWN if slowdown_left > 0.0 else 1.0)
 		state.apply_central_force(jet)
 		applied += jet
 	# It cuts out while you brake, so it can't carry you off at a corner.

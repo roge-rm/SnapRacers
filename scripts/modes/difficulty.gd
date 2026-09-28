@@ -1,0 +1,101 @@
+class_name Difficulty
+extends RefCounted
+
+## How good the AI drivers are. You pick a level before a Grand Prix or a race
+## against the AI, and a Grand Prix keeps it for all four races.
+##
+## Each level sets:
+## - skill: how close to their kart's grip limit the AI dare corner, from the
+##   slowest driver to the quickest. The seven drivers are always in the same
+##   order, so Brickley's quickest at every level and the field stays spread
+##   out.
+## - pace: how hard they push their engines, as a fraction. Lower levels take
+##   it easier on the straights too, not just in the bends.
+## - mistakes: the chance of going into a bend too fast or too slow.
+## - gadgets: how often they use a gadget when the moment's right, from 0 to 1.
+## - catch_up: how much extra push they get when they're a long way behind
+##   you, as a fraction.
+## - ease_off: how much they lift off when they're a long way ahead of you.
+
+const LEVELS := ["easy", "normal", "hard", "expert"]
+const DEFAULT := "normal"
+
+const SETTINGS := {
+	"easy": {
+		"name": "Easy",
+		"about": "Relaxed drivers who make mistakes and wait for you.",
+		"skill": [0.7, 0.78],
+		"pace": 0.86,
+		"mistakes": 0.25,
+		"gadgets": 0.3,
+		"catch_up": 0.0,
+		"ease_off": 0.3,
+	},
+	"normal": {
+		"name": "Normal",
+		"about": "A fair race, with the odd slip.",
+		"skill": [0.84, 0.92],
+		"pace": 0.95,
+		"mistakes": 0.08,
+		"gadgets": 0.7,
+		"catch_up": 0.04,
+		"ease_off": 0.1,
+	},
+	"hard": {
+		"name": "Hard",
+		"about": "Quick drivers who rarely slip and make the most of their gadgets.",
+		"skill": [0.9, 0.96],
+		"pace": 0.98,
+		"mistakes": 0.02,
+		"gadgets": 1.0,
+		"catch_up": 0.06,
+		"ease_off": 0.0,
+	},
+	"expert": {
+		"name": "Expert",
+		"about": "Drivers right on the limit who never let up.",
+		"skill": [0.95, 0.99],
+		"pace": 1.0,
+		"mistakes": 0.0,
+		"gadgets": 1.0,
+		"catch_up": 0.0,
+		"ease_off": 0.0,
+	},
+}
+## How far behind you (or ahead) the AI have to be, in metres, before catch
+## up (or easing off) starts, and how much further before it's at its most.
+const CATCH_UP_FROM := 60.0
+const CATCH_UP_OVER := 150.0
+const EASE_OFF_FROM := 40.0
+const EASE_OFF_OVER := 100.0
+
+
+static func name_of(level: String) -> String:
+	return SETTINGS.get(level, SETTINGS[DEFAULT]).name
+
+
+static func about(level: String) -> String:
+	return SETTINGS.get(level, SETTINGS[DEFAULT]).about
+
+
+## Sets an AI driver up for this level. `rank` is where the driver comes in
+## the field's pecking order, 0 for the quickest, out of `field` drivers.
+static func apply(ai: AIDriver, level: String, rank: int, field: int) -> void:
+	var s: Dictionary = SETTINGS.get(level, SETTINGS[DEFAULT])
+	var skill: Array = s.skill
+	ai.skill = lerpf(skill[1], skill[0], float(rank) / maxf(field - 1, 1))
+	ai.pace = s.pace
+	ai.mistakes = s.mistakes
+	ai.gadget_sense = s.gadgets
+	ai.catch_up = s.catch_up
+	ai.ease_off = s.ease_off
+
+
+## How hard to push compared with usual, for an AI driver this far behind the
+## nearest person racing (negative is ahead of them).
+static func push_for(behind: float, catch_up: float, ease_off: float) -> float:
+	if behind > CATCH_UP_FROM:
+		return 1.0 + catch_up * clampf((behind - CATCH_UP_FROM) / CATCH_UP_OVER, 0.0, 1.0)
+	if -behind > EASE_OFF_FROM:
+		return 1.0 - ease_off * clampf((-behind - EASE_OFF_FROM) / EASE_OFF_OVER, 0.0, 1.0)
+	return 1.0

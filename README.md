@@ -93,6 +93,7 @@ Build your driver from a head, headgear, torso, arms and legs, each in its own c
 - **Time trial:** race the clock on any of the sixteen courses, with your best times kept.
 - **Practice:** drive any course on your own for as long as you like.
 - **Two players on one phone:** side by side in landscape, or face to face in portrait with the phone flat between you and the far half turned around.
+- **Four difficulty levels** for the AI drivers, picked before a race or a cup. Easy drivers take it gently, slip up now and then and wait for you. Expert drivers are right on the limit and never let up. Trophies are kept for each level.
 
 Every course is made of track pieces snapped together on a grid, with hills, crests, jumps, bridges, a loop and plenty of scenery. Each one is based on a real kart circuit.
 

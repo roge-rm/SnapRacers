@@ -2,7 +2,7 @@ class_name KartPicker
 extends Control
 
 ## Pick a kart before a race: the one you built in the garage, or any of the
-## stock karts. Each card has a picture of the kart, what it's like, and bars
+## stock karts. In a race against the AI you pick how good they are here too. Each card has a picture of the kart, what it's like, and bars
 ## for how it compares with the rest. Tap one to pick it, then Race. It
 ## remembers what you picked last time.
 
@@ -20,11 +20,15 @@ var _chosen := ""
 var _chosen_label: Label
 var _race: Button
 var _pictures: KartThumbnails
+var _ai := false
+var _levels := {}
+var _level_about: Label
 
 
-func _init(go: Callable, back: Callable) -> void:
+func _init(go: Callable, back: Callable, ai := false) -> void:
 	_go = go
 	_back = back
+	_ai = ai
 
 
 func _ready() -> void:
@@ -49,6 +53,10 @@ func _ready() -> void:
 	_race.custom_minimum_size.x = 220.0
 	MenuStyle.mark(_race, true)
 	top.add_child(_race)
+	if _ai:
+		outer.add_child(_difficulty_row())
+		outer.move_child(outer.get_child(outer.get_child_count() - 1), 2)
+		_show_level(Game.difficulty())
 
 	var grid := GridContainer.new()
 	grid.columns = COLUMNS
@@ -71,6 +79,36 @@ func _ready() -> void:
 
 func go_back() -> void:
 	_back.call()
+
+
+## A button for each difficulty, and a line about the one that's picked.
+func _difficulty_row() -> HBoxContainer:
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 10)
+	var label := Label.new()
+	label.text = "AI drivers"
+	label.add_theme_font_size_override("font_size", 22)
+	row.add_child(label)
+	for level in Difficulty.LEVELS:
+		var button := MenuStyle.button(Difficulty.name_of(level), _show_level.bind(level))
+		button.custom_minimum_size = Vector2(130, 48)
+		button.set_meta("level", level)
+		row.add_child(button)
+		_levels[level] = button
+	_level_about = Label.new()
+	_level_about.add_theme_font_size_override("font_size", 17)
+	_level_about.add_theme_color_override("font_color", Color(1, 1, 1, 0.65))
+	_level_about.size_flags_horizontal = SIZE_EXPAND_FILL
+	_level_about.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	row.add_child(_level_about)
+	return row
+
+
+func _show_level(level: String) -> void:
+	Game.set_difficulty(level)
+	for other in _levels:
+		MenuStyle.mark(_levels[other], other == level)
+	_level_about.text = Difficulty.about(level)
 
 
 func _choose(key: String) -> void:

@@ -27,7 +27,7 @@ func _ready() -> void:
 			var line := describe(track)
 			if mode == Game.MODE_TIME_TRIAL and Records.best_time(id) > 0.0:
 				line += "\nRecord %s, best lap %s" % [RaceHud.clock(Records.best_time(id)), RaceHud.clock(Records.best_lap(id))]
-			var button := MenuStyle.button(track.name, Game.show_kart_picker.bind(Game.start_course.bind(mode, path), Game.show_tracks.bind(mode)), line)
+			var button := MenuStyle.button(track.name, Game.show_kart_picker.bind(Game.start_course.bind(mode, path), Game.show_tracks.bind(mode), mode == Game.MODE_RACE), line)
 			button.custom_minimum_size.y = 84.0
 			button.set_meta("track", path)
 			column.add_child(button)

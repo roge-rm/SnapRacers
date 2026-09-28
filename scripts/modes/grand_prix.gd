@@ -23,6 +23,8 @@ var results: Array = []
 var karts := {}
 ## The kart you started the cup in (see Game.kart_choice()).
 var player_kart := ""
+## How good the AI drivers are, for the whole cup (see Difficulty).
+var difficulty := Difficulty.DEFAULT
 
 static var _cups: Array = []
 

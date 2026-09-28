@@ -24,7 +24,6 @@ const LOST := 45.0
 ## How far before a loop or wall ride a reset puts you, so you can build up
 ## speed.
 const RUN_UP := 35.0
-const AI_NAMES_SKILL := [0.97, 0.95, 0.93, 0.91, 0.9, 0.88, 0.86]
 ## Karts in a race, you included.
 const KARTS := 8
 
@@ -56,6 +55,8 @@ var _split_set := false
 var mode := Game.MODE_RACE
 ## Laps to finish. Practice goes on for as long as you like.
 var laps := 3
+## How good the AI drivers are (see Difficulty).
+var difficulty := Difficulty.DEFAULT
 ## The course's id, for records.
 var track_id := ""
 ## After a time trial, whether you set a new best time and a new best lap.
@@ -89,6 +90,7 @@ func _ready() -> void:
 	track = TrackPath.load_file(Game.track_path)
 	track_id = Tracks.id_of(Game.track_path)
 	laps = 1000000 if mode == Game.MODE_PRACTICE else track.laps
+	difficulty = Game.grand_prix.difficulty if mode == Game.MODE_GRAND_PRIX and Game.grand_prix != null else Game.difficulty()
 	add_child(TrackBuilder.new(track))
 
 	# Everyone who's racing, front of the grid first. The AI starts at the
@@ -109,7 +111,7 @@ func _ready() -> void:
 		for i in drivers.size():
 			var who := Game.roster_driver(drivers[i])
 			var design := Game.stock_kart(karts.get(drivers[i], "starter"))
-			entries.append({ "name": who.name, "design": design, "who": who, "skill": AI_NAMES_SKILL[i % AI_NAMES_SKILL.size()], "line": (i % 3 - 1) * 1.5 })
+			entries.append({ "name": who.name, "design": design, "who": who, "rank": i, "line": (i % 3 - 1) * 1.5 })
 		if people > 1:
 			entries.append({ "name": "Player 2", "design": Game.stock_kart(Game.player_two_kart()), "who": Game.roster_driver(two_driver), "human": 1 })
 	entries.append({ "name": Game.player_name(), "design": Game.chosen_design(), "who": Game.character, "human": 0 })
@@ -132,7 +134,7 @@ func _ready() -> void:
 		racer.ai = AIDriver.new()
 		racer.ai.kart = racer.kart
 		racer.ai.track = track
-		racer.ai.skill = entry.skill
+		Difficulty.apply(racer.ai, difficulty, entry.rank, Game.ai_driver_keys().size())
 		racer.ai.line = entry.line
 		racer.kart.controls = racer.ai.controls
 		add_child(racer.ai)
@@ -319,6 +321,14 @@ func _physics_process(delta: float) -> void:
 			kart.request_reset()
 			if racer.hud != null:
 				racer.hud.flash("Back on the track")
+
+	# How far each AI driver is behind the leading person, for catching up
+	# and easing off.
+	if started and not humans.is_empty():
+		var lead: float = humans.map(func(h): return h.progress.distance()).max()
+		for racer in racers:
+			if racer.ai != null and not racer.player:
+				racer.ai.behind = lead - racer.progress.distance()
 
 
 ## Somewhere on the track near this racer with no other kart in the way, so

@@ -13,7 +13,8 @@ func _init(gp: GrandPrix) -> void:
 func _ready() -> void:
 	var done := grand_prix.finished()
 	var races := grand_prix.track_ids().size()
-	var title: String = grand_prix.cup.name if done else "%s, after race %d of %d" % [grand_prix.cup.name, grand_prix.round, races]
+	var level := Difficulty.name_of(grand_prix.difficulty)
+	var title: String = "%s, %s" % [grand_prix.cup.name, level] if done else "%s, %s, after race %d of %d" % [grand_prix.cup.name, level, grand_prix.round, races]
 	var column := MenuStyle.page(self, title, go_back, 620.0)
 	var standings := grand_prix.standings()
 	var me := Game.player_name()
@@ -29,7 +30,7 @@ func _ready() -> void:
 		banner.add_theme_font_size_override("font_size", 30)
 		banner.add_theme_color_override("font_color", MenuStyle.ACCENT)
 		column.add_child(banner)
-		Records.add_cup_place(grand_prix.cup.id, place)
+		Records.add_cup_place(grand_prix.cup.id, place, grand_prix.difficulty)
 	var table := GridContainer.new()
 	table.columns = 3
 	table.add_theme_constant_override("h_separation", 40)

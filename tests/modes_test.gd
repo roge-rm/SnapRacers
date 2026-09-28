@@ -3,7 +3,7 @@ extends Node
 ## The single player modes. It runs a whole Grand Prix with the races cut
 ## short (each one "finishes" straight away in a set order), and checks the
 ## points, the grid order and the trophy at the end. Then a time trial and its
-## records, and practice, which never finishes.
+## records, practice, which never finishes, and the difficulty levels.
 ##
 ##   tools/godot/Godot_v4.7.2-stable_linux.x86_64 --headless --fixed-fps 60 --path . res://tests/modes_test.tscn
 
@@ -48,7 +48,10 @@ func _ready() -> void:
 	host = Node.new()
 	add_child(host)
 	Game.start(host, false)
+	# Normal difficulty, whatever was last picked, without saving over it.
+	Game.settings.set_value("race", "difficulty", Difficulty.DEFAULT)
 	await _grand_prix()
+	await _difficulty()
 	await _time_trial()
 	await _practice()
 	Records.use_file(Records.FILE)
@@ -116,6 +119,34 @@ func _grand_prix() -> void:
 	check(Records.best_cup_place("baseplate") == place, "which is kept as your best in the cup")
 	var labels := screen().find_children("*", "Label", true, false).map(func(l): return l.text)
 	check(labels.any(func(t): return t.contains("trophy")), "and the last screen gives you a trophy")
+
+
+func _difficulty() -> void:
+	print("-- Difficulty")
+	var ai := AIDriver.new()
+	var ranges := []
+	for level in Difficulty.LEVELS:
+		Difficulty.apply(ai, level, 0, 7)
+		var quickest := ai.skill
+		Difficulty.apply(ai, level, 6, 7)
+		ranges.append([quickest, ai.skill, ai.mistakes])
+	ai.free()
+	var climbs := true
+	for i in range(1, ranges.size()):
+		climbs = climbs and ranges[i][0] > ranges[i - 1][0] and ranges[i][1] > ranges[i - 1][1] and ranges[i][2] <= ranges[i - 1][2]
+	check(climbs and ranges.all(func(r): return r[0] > r[1]), "each level's drivers are quicker and slip less than the last's, and the field is spread out %s" % [ranges])
+	check(Difficulty.push_for(300.0, 0.04, 0.1) > 1.0 and is_equal_approx(Difficulty.push_for(10.0, 0.04, 0.1), 1.0), "far behind, the AI gets a little extra push, but not when it's close")
+	check(Difficulty.push_for(-200.0, 0.0, 0.3) < 0.8, "and on Easy it lifts off when it's well ahead of you")
+	check(is_equal_approx(Difficulty.push_for(300.0, 0.0, 0.0), 1.0) and is_equal_approx(Difficulty.push_for(-300.0, 0.0, 0.0), 1.0), "while Expert never helps anyone")
+	Records.add_cup_place("axle", 2, "hard")
+	check(Records.best_cup_place("axle", "hard") == 2 and Records.best_cup_place("axle") == 0, "a cup's trophies are kept for each level")
+
+	Game.settings.set_value("race", "difficulty", "expert")
+	Game.start_race(Tracks.path_of("peach_pit"))
+	var race: Race = await wait_for(Race)
+	var skills: Array = race.racers.filter(func(r): return not r.player).map(func(r): return r.ai.skill)
+	check(race.difficulty == "expert" and skills.all(func(k): return k >= 0.94), "a race uses the level you picked %s" % [skills])
+	Game.settings.set_value("race", "difficulty", Difficulty.DEFAULT)
 
 
 func _time_trial() -> void:

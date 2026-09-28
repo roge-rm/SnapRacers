@@ -101,9 +101,10 @@ func show_tracks(for_mode := MODE_RACE) -> void:
 	_swap(TrackPicker.new(for_mode))
 
 
-## Pick a kart, then `go` starts the race. Back goes to `back`.
-func show_kart_picker(go: Callable, back: Callable) -> void:
-	_swap(KartPicker.new(go, back))
+## Pick a kart, then `go` starts the race. Back goes to `back`. With `ai`,
+## it's a race against the AI and you pick how good they are too.
+func show_kart_picker(go: Callable, back: Callable, ai := false) -> void:
+	_swap(KartPicker.new(go, back, ai))
 
 
 func start_grand_prix(cup_id: String) -> void:
@@ -112,6 +113,7 @@ func start_grand_prix(cup_id: String) -> void:
 	# Everyone keeps the same kart for the whole cup.
 	grand_prix.karts = draw_karts(ai_driver_keys())
 	grand_prix.player_kart = kart_choice()
+	grand_prix.difficulty = difficulty()
 	show_race(grand_prix.track_path())
 
 
@@ -278,6 +280,16 @@ func kart_choice() -> String:
 
 func set_kart_choice(key: String) -> void:
 	set_setting("race", "kart", key)
+
+
+## How good the AI drivers are in races and Grand Prix cups (see Difficulty).
+func difficulty() -> String:
+	var level: String = settings.get_value("race", "difficulty", Difficulty.DEFAULT)
+	return level if Difficulty.LEVELS.has(level) else Difficulty.DEFAULT
+
+
+func set_difficulty(level: String) -> void:
+	set_setting("race", "difficulty", level)
 
 
 ## The kart you race in, from your choice. In a Grand Prix it's the one you

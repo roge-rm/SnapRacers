@@ -4,7 +4,8 @@ extends RefCounted
 ## Your best times and trophies, kept on the phone between launches.
 ##
 ## Time trials keep the best race time and the best single lap on each course.
-## Grand Prix cups keep the best place you've finished them in.
+## Grand Prix cups keep the best place you've finished them in, at each
+## difficulty.
 
 const FILE := "user://records.cfg"
 
@@ -45,19 +46,25 @@ static func add_time(track_id: String, time: float, lap: float) -> Array:
 	return [better_time, better_lap]
 
 
-## The best place you've finished this cup in (1 is a win), or 0 if you
-## haven't finished it yet.
-static func best_cup_place(cup_id: String) -> int:
-	return _load().get_value("cup", cup_id, 0)
+## The best place you've finished this cup in (1 is a win) at this
+## difficulty, or 0 if you haven't finished it yet.
+static func best_cup_place(cup_id: String, level := Difficulty.DEFAULT) -> int:
+	return _load().get_value("cup", _cup_key(cup_id, level), 0)
 
 
-static func add_cup_place(cup_id: String, place: int) -> bool:
-	var best := best_cup_place(cup_id)
+static func add_cup_place(cup_id: String, place: int, level := Difficulty.DEFAULT) -> bool:
+	var best := best_cup_place(cup_id, level)
 	if best == 0 or place < best:
-		_load().set_value("cup", cup_id, place)
+		_load().set_value("cup", _cup_key(cup_id, level), place)
 		_save()
 		return true
 	return false
+
+
+## Cups finished before there were difficulty levels were on Normal, so
+## Normal keeps using the plain cup id.
+static func _cup_key(cup_id: String, level: String) -> String:
+	return cup_id if level == Difficulty.DEFAULT else "%s %s" % [cup_id, level]
 
 
 ## Keeps records in another file instead, so tests don't touch the real ones.
