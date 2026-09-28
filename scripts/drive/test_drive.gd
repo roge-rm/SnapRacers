@@ -74,6 +74,11 @@ func _ready() -> void:
 	touch.blockers.append(view)
 	hud_root.add_child(touch)
 	player.touch = touch
+	# Nothing hides under a camera hole.
+	var safe := SafeArea.new()
+	hud_root.add_child(safe)
+	for control in [speed_label, garage, view]:
+		safe.watch(control)
 
 func go_back() -> void:
 	Game.show_garage()

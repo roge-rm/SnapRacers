@@ -14,6 +14,11 @@ extends Control
 ## corner, which steer all the way while you hold them. You can slide your
 ## thumb from one to the other without lifting it, the same as GO and brake.
 
+## They all keep clear of a camera hole. They move in groups (the steering,
+## the pedals and gadgets, and reset with look back), each group sliding
+## together by as little as clears the hole, so nothing ends up on top of
+## anything else.
+
 ## The ways to steer, and what Settings calls them.
 const STEERING := {"stick": "Stick", "buttons": "Buttons"}
 
@@ -51,6 +56,9 @@ var _stick_finger := -1
 ## Where the knob is, from -1 (full left) to 1 (full right).
 var _knob := 0.0
 var _fingers := {} # finger index -> button name
+## Any camera holes, in this view's own units, checked now and then.
+var _holes: Array[Rect2] = []
+var _hole_check := 0.0
 var _finger_at := {} # finger index -> position
 
 
@@ -64,15 +72,69 @@ func _notification(what: int) -> void:
 		queue_redraw()
 
 
+func _process(delta: float) -> void:
+	_hole_check -= delta
+	if _hole_check > 0.0:
+		return
+	_hole_check = SafeArea.CHECK_EVERY
+	var now := SafeArea.holes_in(get_viewport())
+	if now != _holes:
+		_holes = now
+		queue_redraw()
+
+
 ## The stick's middle and radius. It's the same size as Apogee's, and it
 ## sits in the corner where your left thumb rests.
 func _stick() -> Array:
 	# In a split screen half it shrinks to fit next to the buttons.
 	var r := minf(minf(size.y * 0.17, size.x * 0.16), 125.0)
-	return [Vector2(r * 1.35, size.y - r * 1.35), r]
+	var stick := {"stick": [Vector2(r * 1.35, size.y - r * 1.35), r]}
+	_clear_of_holes(stick, ["stick"])
+	return stick.stick
 
 
 func _buttons() -> Dictionary:
+	var out := _placed_buttons()
+	_clear_of_holes(out, ["left", "right"])
+	_clear_of_holes(out, ["gas", "brake", "gadget0", "gadget1"])
+	_clear_of_holes(out, ["reset", "look"])
+	return out
+
+
+## Slides this group of circles together by the least that clears every
+## hole and keeps them all on the screen.
+func _clear_of_holes(circles: Dictionary, group: Array) -> void:
+	if _holes.is_empty():
+		return
+	var names := group.filter(func(n): return circles.has(n))
+	var tries := [Vector2.ZERO]
+	for n in names:
+		var c: Vector2 = circles[n][0]
+		var r: float = circles[n][1]
+		for h in _holes:
+			var hole := h.grow(SafeArea.CLEAR)
+			tries.append(Vector2(hole.end.x + r - c.x, 0.0))
+			tries.append(Vector2(hole.position.x - r - c.x, 0.0))
+			tries.append(Vector2(0.0, hole.end.y + r - c.y))
+			tries.append(Vector2(0.0, hole.position.y - r - c.y))
+	tries.sort_custom(func(a: Vector2, b: Vector2) -> bool: return a.length() < b.length())
+	for move in tries:
+		var fits := true
+		for n in names:
+			var c: Vector2 = circles[n][0] + move
+			var r: float = circles[n][1]
+			if c.x - r < 0.0 or c.x + r > size.x or c.y - r < 0.0 or c.y + r > size.y:
+				fits = false
+			for h in _holes:
+				if c.distance_to(c.clamp(h.position, h.end)) < r:
+					fits = false
+		if fits:
+			for n in names:
+				circles[n][0] += move
+			return
+
+
+func _placed_buttons() -> Dictionary:
 	var s := size
 	# These shrink in a narrow split screen half too, so the brake stays clear
 	# of the stick.

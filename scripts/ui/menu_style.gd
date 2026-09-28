@@ -250,6 +250,10 @@ static func page(root: Control, heading_text: String, back: Callable, width := 7
 	margin.add_theme_constant_override("margin_bottom", 16)
 	root.add_child(margin)
 	margin.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	# The title and Back stay clear of a camera hole.
+	var safe := SafeArea.new()
+	root.add_child(safe)
+	safe.pad(margin)
 	var outer := VBoxContainer.new()
 	outer.add_theme_constant_override("separation", 12)
 	margin.add_child(outer)

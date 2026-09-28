@@ -29,6 +29,9 @@ const CHECK_EVERY := 0.5
 static var pretend: Array[Rect2] = []
 
 var _watched: Array[Control] = []
+## Margin containers that widen their margin on the side a hole's on, and
+## their margins as they were set, [left, top, right, bottom].
+var _pads := {}
 ## The panels that wrap around a hole partway down instead of getting shorter.
 var _wraps := {}
 ## The boxes that leave a gap for the hole, and which child to start from.
@@ -64,6 +67,17 @@ func watch(control: Control, wraps := false) -> void:
 	_wait = 0.0
 
 
+## Makes this margin container widen its margin on the side a hole's on,
+## so everything in it stays clear. Next to a hole in a corner the top or
+## bottom margin grows, and next to one partway down a side that side's does.
+func pad(margin: MarginContainer) -> void:
+	var sides := []
+	for side in ["margin_left", "margin_top", "margin_right", "margin_bottom"]:
+		sides.append(margin.get_theme_constant(side))
+	_pads[margin] = sides
+	_wait = 0.0
+
+
 ## Makes this box leave a gap where a hole is, before the first of its
 ## children (from `from` on) that would be under it.
 func flow(box: BoxContainer, from := 0) -> void:
@@ -83,9 +97,23 @@ static func screen_size(viewport: Viewport) -> Vector2:
 
 ## The holes, in the UI's own units.
 func holes() -> Array[Rect2]:
+	return holes_in(get_viewport())
+
+
+## The holes in this viewport's own units. A split screen half is a viewport
+## of its own, maybe turned around, so the holes are carried into it through
+## the container it's shown in.
+static func holes_in(viewport: Viewport) -> Array[Rect2]:
 	var out: Array[Rect2] = []
-	var viewport := get_viewport()
 	if viewport == null:
+		return out
+	var holder := viewport.get_parent() as SubViewportContainer
+	if holder != null:
+		var into := holder.get_global_transform_with_canvas().affine_inverse()
+		for hole in holes_in(holder.get_viewport()):
+			var inside := into * hole
+			if inside.intersects(Rect2(Vector2.ZERO, holder.size)):
+				out.append(inside)
 		return out
 	var shown := viewport.get_visible_rect()
 	var window := screen_size(viewport)
@@ -130,6 +158,11 @@ func refit() -> void:
 		for box in _gaps:
 			if is_instance_valid(_gaps[box]):
 				_gaps[box].custom_minimum_size = Vector2.ZERO
+		for margin in _pads:
+			if is_instance_valid(margin):
+				var sides: Array = _pads[margin]
+				for i in 4:
+					margin.add_theme_constant_override(["margin_left", "margin_top", "margin_right", "margin_bottom"][i], sides[i])
 		for control in _watched:
 			if is_instance_valid(control):
 				var at: Array = _placed[control]
@@ -144,12 +177,35 @@ func refit() -> void:
 			if is_instance_valid(control):
 				for hole in now:
 					_step_aside(control, hole.grow(CLEAR), screen)
+		for margin in _pads:
+			if is_instance_valid(margin):
+				for hole in now:
+					_widen(margin, hole.grow(CLEAR))
 		for box in _flows:
 			await get_tree().process_frame
 			if is_instance_valid(box):
 				for hole in now:
 					_make_room(box, hole.grow(CLEAR))
 	_fitting = false
+
+
+## Widens a margin to clear a hole.
+func _widen(margin: MarginContainer, hole: Rect2) -> void:
+	var rect := margin.get_global_rect()
+	if not rect.intersects(hole):
+		return
+	var corner := hole.end.y < rect.position.y + rect.size.y * 0.35 or hole.position.y > rect.end.y - rect.size.y * 0.35
+	var side: String
+	var need: float
+	if corner:
+		var at_top := hole.get_center().y < rect.get_center().y
+		side = "margin_top" if at_top else "margin_bottom"
+		need = hole.end.y - rect.position.y if at_top else rect.end.y - hole.position.y
+	else:
+		var at_left := hole.get_center().x < rect.get_center().x
+		side = "margin_left" if at_left else "margin_right"
+		need = hole.end.x - rect.position.x if at_left else rect.end.x - hole.position.x
+	margin.add_theme_constant_override(side, maxi(margin.get_theme_constant(side), ceili(need)))
 
 
 ## Opens a gap in a box where the hole is.

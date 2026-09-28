@@ -75,6 +75,7 @@ func _ready() -> void:
 	check(not touch._buttons().has("left"), "with the stick there are no steering buttons")
 	touch.queue_free()
 	Game.set_steering(0, saved_steering)
+	await _camera_holes()
 
 	Game.set_setting("player", "name", "Tester")
 	Game._go_back()
@@ -178,6 +179,55 @@ func _ready() -> void:
 	Game.set_setting("race", "player_two", saved_second)
 	print("All menu checks passed." if failures == 0 else "%d menu checks failed." % failures)
 	get_tree().quit(1 if failures > 0 else 0)
+
+
+## Nothing on a menu page or the driving controls sits under a camera hole,
+## wherever it is, and the driving controls don't end up on top of each other
+## getting out of its way.
+func _camera_holes() -> void:
+	var window := SafeArea.screen_size(get_viewport())
+	var across := window.y * 0.1
+	var spots := {
+		"top left": Vector2(0.0, 0.0), "bottom left": Vector2(0.0, window.y - across),
+		"top right": Vector2(window.x - across, 0.0), "bottom right": Vector2(window.x - across, window.y - across),
+		"partway down the left": Vector2(0.0, window.y * 0.45), "partway down the right": Vector2(window.x - across, window.y * 0.45),
+	}
+	var page: Control = screen()
+	var safe: SafeArea = page.find_children("SafeArea", "SafeArea", false, false)[0]
+	var title: Label = page.find_children("*", "Label", true, false).filter(func(l): return l.text == "Settings")[0]
+	var back: Button = page.find_children("*", "Button", true, false).filter(func(b): return b.text == "Back")[0]
+	var touch := TouchControls.new()
+	add_child(touch)
+	touch.gadget_names = ["Turbo", "Shield"]
+	await frames(2)
+	for spot in spots:
+		SafeArea.pretend = [Rect2(spots[spot], Vector2(across, across))]
+		safe.refit()
+		await frames(4)
+		var hole: Rect2 = SafeArea.holes_in(get_viewport())[0]
+		check(not title.get_global_rect().intersects(hole) and not back.get_global_rect().intersects(hole), "with a camera hole %s, a menu page's title and Back are clear of it" % spot)
+		touch._holes = SafeArea.holes_in(get_viewport())
+		for how in TouchControls.STEERING:
+			touch.steering = how
+			var circles := touch._buttons()
+			if how == "stick":
+				circles["stick"] = touch._stick()
+			var trouble := []
+			for n in circles:
+				var c: Vector2 = circles[n][0]
+				var r: float = circles[n][1]
+				if c.distance_to(c.clamp(hole.position, hole.end)) < r - 0.5:
+					trouble.append("%s under it" % n)
+				if c.x - r < -0.5 or c.y - r < -0.5 or c.x + r > touch.size.x + 0.5 or c.y + r > touch.size.y + 0.5:
+					trouble.append("%s off the screen" % n)
+				for m in circles:
+					if m > n and c.distance_to(circles[m][0]) < r + circles[m][1] - 0.5:
+						trouble.append("%s on %s" % [n, m])
+			check(trouble.is_empty(), "and steering with the %s, the driving controls are clear of it too %s" % [how, trouble])
+	SafeArea.pretend = []
+	safe.refit()
+	touch.queue_free()
+	await frames(4)
 
 
 func _touch(finger: int, at: Vector2, down: bool) -> InputEventScreenTouch:

@@ -46,13 +46,19 @@ func _ready() -> void:
 	mouse_filter = MOUSE_FILTER_IGNORE
 	set_anchors_and_offsets_preset(PRESET_FULL_RECT)
 
+	# Your place, lap and studs, together in the top left corner so they can
+	# move out of a camera hole's way as one.
+	var corner := VBoxContainer.new()
+	corner.mouse_filter = MOUSE_FILTER_IGNORE
+	corner.add_theme_constant_override("separation", -4)
+	add_child(corner)
+	corner.position = Vector2(24, 8)
 	_place = _label(56)
-	_place.position = Vector2(24, 8)
 	_lap = _label(28)
-	_lap.position = Vector2(26, 80)
 	_studs = _label(28)
-	_studs.position = Vector2(26, 118)
 	_studs.add_theme_color_override("font_color", Color("#f2cd37"))
+	for label in [_place, _lap, _studs]:
+		label.reparent(corner)
 
 	_clock = _label(28)
 	_clock.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -92,6 +98,11 @@ func _ready() -> void:
 	_fps.offset_left = 12.0
 
 	_build_results()
+	# Nothing hides under a camera hole.
+	var safe := SafeArea.new()
+	add_child(safe)
+	for control in [corner, _clock, _quit, _camera, _fps]:
+		safe.watch(control)
 
 
 func buttons() -> Array[Control]:
