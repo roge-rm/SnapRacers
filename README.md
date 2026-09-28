@@ -1,15 +1,20 @@
 # SnapRacers
 
-SnapRacers is a kart racing game for Android 8.1 and up, where you build your kart out of snap-together bricks and then race it.
+SnapRacers is a physics based kart racing game I put together for my son. It requires Android 8.1 or higher.
 
-Put your kart together in the garage from plates, bricks, slopes, wheels, engines, wings and gadgets. Every part you add changes how it drives. Wide tires grip more but drag more, a bigger engine is faster but heavier, sloped and rounded parts let the air slide past, and how your driver sits decides how much of them is in the wind and how quickly they can steer. Then take it out on sixteen courses based on real kart tracks from around the world, against seven AI drivers or a friend on the same phone.
+Build your kart from blocks and race it, customizing and optimizing in your quest to make the ultimate racing machine.
+The parts you use matter, adding drag and weight and power, every piece trading one thing to gain another. Crashes knock off parts, 
+at least until you hit the reset button (which punishes you lightly).
 
-Crashes knock parts off, and the kart drives with whatever's left. If it gets too bad, reset and you're back on the track in one piece, just a little slower for a moment.
+Race in grand prix cups against a range of AI skills or take it to the streets and race your friends with split screen or network 
+multiplayer. Race on the built in tracks or use the track editor to build your own - even asssemble your own tournaments!
 
-I wanted a kart racer where building the kart is half the fun and what you build really matters on the track. It's still early, and there's more to come (racing online and a track builder are next), but it's very playable now.
+The game is in a playable state now but there will be plenty of rough edges until they are tested out.
 
-Enjoy,<br>
-Dan (rm)
+Disclaimer: I am not a programmer and this was made using Claude Opus 5.0/5.5
+
+Cheers,<br>
+Dan
 
 ---
 
