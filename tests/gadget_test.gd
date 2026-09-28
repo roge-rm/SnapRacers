@@ -77,12 +77,22 @@ class Runner:
 		karts.turbo.add_studs(5)
 		check(karts.turbo.use_gadget(0), "and can with enough")
 		check(karts.turbo.studs == 2, "which costs its three studs (%d left)" % karts.turbo.studs)
+		# Both steer a little while the turbo's on. The turbo used to push
+		# through the back wheels and use up all their grip, so this spun it.
+		for kart in [karts.turbo, karts.plain]:
+			kart.controls.steer = 0.15
+			kart.set_meta("heading", kart.global_basis.z)
 		return 90
 
 	func _turbo_check() -> int:
 		var boosted: float = karts.turbo.forward_speed
 		var plain: float = karts.plain.forward_speed
 		check(boosted > plain + 1.5, "the turbo kart pulls ahead (%.1f against %.1f m/s)" % [boosted, plain])
+		var turned := []
+		for kart in [karts.turbo, karts.plain]:
+			turned.append(rad_to_deg(absf(kart.get_meta("heading").signed_angle_to(kart.global_basis.z, Vector3.UP))))
+			kart.controls.steer = 0.0
+		check(turned[0] < turned[1] * 1.5 + 5.0, "a light steer with the turbo on turns it about as much as without (%.0f against %.0f degrees)" % turned)
 		for kart in [karts.turbo, karts.plain]:
 			kart.controls.throttle = 0.0
 			kart.controls.brake = 1.0

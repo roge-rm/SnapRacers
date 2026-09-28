@@ -31,6 +31,12 @@ const BUMP_STIFFNESS := 14.0
 const BUMP_DAMPING := 3.0
 const MAX_STEER := deg_to_rad(30.0)
 const HIGH_SPEED_STEER := 0.35 # how much of the steering is left at full speed
+## Full lock turns the front wheels this much past the point where the tires
+## run out of grip. Any further and the kart only slides more, so the stick
+## would have a dead zone at both ends.
+const SLIDE_MARGIN := 0.95
+## A slide smaller than this is just a kart cornering hard (see steer_limit()).
+const SMALL_SLIDE := deg_to_rad(3.0)
 const STEER_RATE := 4.0 # how fast the wheels turn, in full locks per second
 const BRAKE_FORCE := 2800.0
 const REVERSE_FRACTION := 0.45
@@ -50,7 +56,7 @@ const LAYER_HAZARD := 8
 # Gadgets and studs.
 const MOST_STUDS := 10
 const TURBO_TIME := 1.6
-const TURBO_FORCE := 1500.0
+const TURBO_FORCE := 1000.0
 const TURBO_TOP_SPEED := 1.3 # how much further past its usual top speed a turbo can push
 const SPRING_SPEED := 5.5 # upward kick from a spring, in m/s
 const SHIELD_TIME := 4.0
@@ -134,6 +140,10 @@ var lift_area := 0.0
 
 var steer_angle := 0.0
 var forward_speed := 0.0
+## From the front wheels to the back ones, in metres.
+var wheelbase := 1.2
+## How far the front wheels turn at full lock right now (see steer_limit()).
+var full_lock := MAX_STEER
 ## Whether the kart is stuck to the road on a loop or a wall ride right now.
 var sticking := false
 ## Which way is up off the road while it's sticking.
@@ -215,7 +225,41 @@ func build(new_design: KartDesign, who: CharacterDesign = null) -> void:
 		var steers := steered.is_empty() or steered.has(info.index)
 		var drives := driven.is_empty() or driven.has(info.index)
 		_wheel_setup[info.index] = [steers, drives, spring, 2.0 * SUSPENSION_DAMPING * sqrt(spring * share)]
+	var front := _average_z(_full.wheels, steered)
+	var back := _average_z(_full.wheels, driven)
+	if not steered.is_empty() and not driven.is_empty() and back - front > 0.2:
+		wheelbase = back - front
 	_assemble()
+
+
+static func _average_z(infos: Array, indices: Array) -> float:
+	var total := 0.0
+	for info in infos:
+		if indices.has(info.index):
+			total += info.centre.z
+	return total / maxf(indices.size(), 1)
+
+
+## How far the front wheels turn at full lock at this speed, in radians. At
+## low speed it's the full MAX_STEER. As the kart goes faster the tires run
+## out of grip at a smaller and smaller angle, and turning the wheels past
+## that only makes it slide. I stop full lock just past that point, so the
+## whole stick means something at any speed. Halfway across turns about half
+## as hard as full lock, instead of all of the turning being packed into the
+## first bit of the stick.
+##
+## When the kart is sliding, `slide` is how far it's going sideways from where
+## it's pointing, in radians. Full lock gets extra for a real slide (like after
+## a crooked landing) so you can steer into it and catch it. The small slide
+## that comes with any hard corner doesn't count, or full lock would creep
+## back out past the grip limit.
+func steer_limit(speed: float, slide := 0.0) -> float:
+	var limit := MAX_STEER * lerpf(1.0, HIGH_SPEED_STEER, clampf(speed / 28.0, 0.0, 1.0))
+	if speed > 1.0 and stats != null:
+		var grip := stats.cornering() * KartStats.gravity() * SLIDE_MARGIN
+		var catch_slide := maxf(absf(slide) - SMALL_SLIDE, 0.0)
+		limit = minf(limit, atan(wheelbase * grip / (speed * speed)) + catch_slide)
+	return limit
 
 
 ## How much of the kart's weight each wheel carries standing still, as
@@ -435,10 +479,17 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 	var speed := state.linear_velocity.length()
 	forward_speed = state.linear_velocity.dot(-basis.z)
 
-	var steer_limit := MAX_STEER * lerpf(1.0, HIGH_SPEED_STEER, clampf(speed / 28.0, 0.0, 1.0))
 	# If the steering wheel has been knocked off there's no steering. The
 	# front wheels just follow along until a reset puts it back.
-	var wanted_steer := controls.steer * steer_limit if stats.steering != null else 0.0
+	var slide := 0.0
+	var flat_velocity := state.linear_velocity - up * state.linear_velocity.dot(up)
+	if flat_velocity.length() > 2.0:
+		slide = (-basis.z).angle_to(flat_velocity)
+		# Going backwards isn't a slide.
+		if slide > PI * 0.5:
+			slide = 0.0
+	full_lock = steer_limit(speed, slide)
+	var wanted_steer := controls.steer * full_lock if stats.steering != null else 0.0
 	steer_angle = move_toward(steer_angle, wanted_steer, STEER_RATE * MAX_STEER * dt)
 
 	# Engine and brakes. Holding the brake once the kart has stopped reverses.
@@ -455,8 +506,6 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 			drive -= controls.brake * max_force * REVERSE_FRACTION
 	if slowdown_left > 0.0:
 		drive *= RESET_SLOWDOWN
-	elif boost_left > 0.0 and forward_speed < stats.top_speed() * TURBO_TOP_SPEED:
-		drive += TURBO_FORCE
 	var drive_per_wheel := drive / maxf(_driven_count, 1)
 
 	var space := state.get_space_state()
@@ -566,6 +615,16 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 	state.apply_central_force(downforce)
 	applied += drag + downforce
 
+	# The turbo pushes straight through the middle of the kart, like a rocket,
+	# instead of through the back wheels. Through the wheels it took all of
+	# their grip to push that hard, so they had none left to hold the back of
+	# the kart in line, and the slightest steer spun it around.
+	var on_ground := wheels.any(func(w: Wheel) -> bool: return w.grounded)
+	if boost_left > 0.0 and slowdown_left <= 0.0 and on_ground and forward_speed < stats.top_speed() * TURBO_TOP_SPEED:
+		var push := -basis.z * TURBO_FORCE
+		state.apply_central_force(push)
+		applied += push
+
 	_feel_knocks(state)
 	_last_velocity = state.linear_velocity
 	_last_applied = applied
@@ -640,12 +699,15 @@ static func default_driver() -> CharacterDesign:
 
 
 ## Turns the steering wheel to match the front wheels and puts the driver's
-## hands on it. It works from steer_angle, which is part of the kart's own
-## state, so anyone watching the kart (in a network game too) sees the same.
+## hands on it. It works from steer_angle and the kart's speed, which are part
+## of the kart's own state, so anyone watching the kart (in a network game
+## too) sees the same. The wheel shows how much of the steering there is to
+## use at this speed, so at full lock it's turned all the way even when the
+## front wheels have only turned a few degrees.
 func _pose_driver() -> void:
 	if _rig == null:
 		return
-	var amount := steer_angle / MAX_STEER
+	var amount := clampf(steer_angle / full_lock, -1.0, 1.0)
 	_rig.look(amount)
 	if _steering == null:
 		_rig.rest_hands()

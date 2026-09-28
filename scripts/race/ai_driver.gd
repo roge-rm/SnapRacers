@@ -51,8 +51,7 @@ func _physics_process(delta: float) -> void:
 	to_target -= up * to_target.dot(up)
 	var facing := -kart.global_basis.z
 	var angle := facing.signed_angle_to(to_target, up)
-	var limit := Kart.MAX_STEER * lerpf(1.0, Kart.HIGH_SPEED_STEER, clampf(speed / 28.0, 0.0, 1.0))
-	controls.steer = clampf(-angle / limit * 1.2, -1.0, 1.0)
+	controls.steer = clampf(-angle / kart.full_lock * 1.2, -1.0, 1.0)
 
 	# For speed, find the slowest it needs to be for anything coming up, with
 	# room to brake.
