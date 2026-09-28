@@ -2,7 +2,9 @@
 	"name": "Nova",
 	"_comment": "From somewhere a long way off. Very cool, very fast.",
 	"head": { "style": "shades", "color": "#8fd3f4" },
-	"headgear": { "style": "spiky_hair", "color": "#6c3fb5" },
+	"hair": { "style": "spiky", "color": "#6c3fb5" },
+	"headgear": { "style": "none", "color": "#6c3fb5" },
+	"neck": { "style": "gold_chain", "color": "#c9a227" },
 	"torso": { "style": "jacket", "color": "#6c3fb5" },
 	"arms": { "style": "long_sleeves", "color": "#6c3fb5" },
 	"legs": { "style": "trousers", "color": "#1b1b1b" }

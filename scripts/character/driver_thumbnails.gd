@@ -16,9 +16,13 @@ const SIZE := Vector2i(160, 120)
 ## For each piece, how high the middle of its picture is on the driver and
 ## how tall a slice of them the picture shows, in metres.
 const FRAMES := {
-	"head": [0.55, 0.34],
-	"headgear": [0.6, 0.44],
+	"head": [0.58, 0.38],
+	"hair": [0.61, 0.52],
+	"facial_hair": [0.53, 0.34],
+	"headgear": [0.66, 0.6],
+	"neck": [0.42, 0.32],
 	"torso": [0.26, 0.5],
+	"back": [0.28, 0.62],
 	"arms": [0.22, 0.56],
 	"legs": [-0.07, 0.52],
 }
@@ -83,6 +87,7 @@ func _ready() -> void:
 	sun.rotation_degrees = Vector3(-35.0, 200.0, 0.0)
 	sun.light_energy = 0.9
 	_view.add_child(sun)
+	CharacterRig.add_toy_lights(_view)
 	_camera = Camera3D.new()
 	_camera.projection = Camera3D.PROJECTION_ORTHOGONAL
 	_view.add_child(_camera)
@@ -115,7 +120,12 @@ func _process(_delta: float) -> void:
 	var frame: Array = FRAMES.get(job[2], [0.2, 1.1])
 	var middle := Vector3(0.0, frame[0], 0.0)
 	# They face -Z, so the camera's out that way, a little to their right.
+	# What's on their back is seen from behind, and for that I turn them
+	# around instead of moving the camera, so the light still falls on what
+	# the picture shows.
 	_camera.size = frame[1]
-	_camera.position = middle + Vector3(-0.45, 0.12, -1.0).normalized() * 3.0
+	_stand.rotation.y = PI if job[2] == "back" else 0.0
+	var from := Vector3(-0.45, 0.2 if job[2] == "back" else 0.12, -1.0)
+	_camera.position = middle + from.normalized() * 3.0
 	_camera.look_at(middle, Vector3.UP)
 	_view.render_target_update_mode = SubViewport.UPDATE_ONCE

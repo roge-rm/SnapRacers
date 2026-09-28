@@ -6,7 +6,7 @@ extends Control
 ## see-through backing.
 ##
 ## Across the top are round tool buttons: leave, undo, redo and a random
-## driver. Down the left is the drawer, with a rail of tabs for the five
+## driver. Down the left is the drawer, with a rail of tabs for the nine
 ## pieces and a picture of your driver wearing each style of the piece. The
 ## colours for the piece are in the bottom right. In the top right is their
 ## name and weight, which opens into a card where you can rename them. Along
@@ -21,7 +21,7 @@ signal pose_toggled(driving: bool)
 signal done_pressed
 signal name_changed(text: String)
 
-const SLOTS := [["head", "Head"], ["headgear", "Headgear"], ["torso", "Torso"], ["arms", "Arms"], ["legs", "Legs"]]
+const SLOTS := [["head", "Face"], ["hair", "Hair"], ["facial_hair", "Facial hair"], ["headgear", "Headgear"], ["neck", "Neck"], ["torso", "Torso"], ["back", "Back"], ["arms", "Arms"], ["legs", "Legs"]]
 const SWATCH := 42.0
 
 var slot := "head"
@@ -112,9 +112,9 @@ func _show_picture(key: String, picture: Texture2D) -> void:
 func _show_swatches() -> void:
 	for child in _swatches.get_children():
 		child.queue_free()
-	var colours := CharacterDesign.palette(slot == "head")
-	# Nothing on their head has no colour to pick.
-	_colours.visible = not (slot == "headgear" and design.style_of("headgear") == "none")
+	var colours := CharacterDesign.colours_for(slot)
+	# Nothing has no colour to pick.
+	_colours.visible = design.style_of(slot) != "none"
 	_swatches.columns = mini(colours.size(), 10)
 	for colour in colours:
 		var swatch := Button.new()

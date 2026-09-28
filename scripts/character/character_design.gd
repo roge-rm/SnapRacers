@@ -2,7 +2,8 @@ class_name CharacterDesign
 extends RefCounted
 
 ## A driver the way the player built them. They have a name, and a style and
-## colour for each of their five pieces. Like a kart design it's plain data,
+## colour for each of their pieces: face, hair, facial hair, headgear, neck,
+## torso, back, arms and legs. Like a kart design it's plain data,
 ## so it saves as a small file and travels to other players in a network game.
 ##
 ## The weight of all their pieces decides the driver's class, and it goes into
@@ -10,7 +11,17 @@ extends RefCounted
 ## and a light one makes a quicker, twitchier one.
 
 const PIECES_PATH := "res://data/characters/pieces.json"
-const SLOTS := ["head", "headgear", "torso", "arms", "legs"]
+## "head" is the face and the skin colour.
+const SLOTS := ["head", "hair", "facial_hair", "headgear", "neck", "torso", "back", "arms", "legs"]
+## What a driver saved before a slot existed gets for it.
+const DEFAULTS := {
+	"hair": ["none", "#6b4430"],
+	"facial_hair": ["none", "#6b4430"],
+	"neck": ["none", "#c4281c"],
+	"back": ["none", "#3c3f44"],
+}
+## Hair that used to be headgear, before hair had a slot of its own.
+const HAIR_THAT_WAS_HEADGEAR := { "spiky_hair": "spiky", "ponytail": "ponytail" }
 const LIGHT_BELOW := 36.0
 const HEAVY_FROM := 44.0
 const SAVE_DIR := "user://drivers"
@@ -39,8 +50,23 @@ static func piece(slot: String, style: String) -> Dictionary:
 
 
 static func palette(for_skin := false) -> Array[Color]:
+	return _colours("skin" if for_skin else "palette")
+
+
+## The colours a slot can be: skin tones for the face, hair colours for hair
+## and facial hair, and the usual palette for everything else.
+static func colours_for(slot: String) -> Array[Color]:
+	match slot:
+		"head":
+			return _colours("skin")
+		"hair", "facial_hair":
+			return _colours("hair_colours")
+	return _colours("palette")
+
+
+static func _colours(list: String) -> Array[Color]:
 	var out: Array[Color] = []
-	for hex in catalog().get("skin" if for_skin else "palette", []):
+	for hex in catalog().get(list, []):
 		out.append(Color(hex))
 	return out
 
@@ -49,11 +75,17 @@ static func from_dict(data: Dictionary) -> CharacterDesign:
 	var design := CharacterDesign.new()
 	design.name = str(data.get("name", "Driver"))
 	for slot in SLOTS:
+		var fallback: Array = DEFAULTS.get(slot, [styles(slot)[0] if not styles(slot).is_empty() else "", "#f2cd37"])
 		var entry: Dictionary = data.get(slot, {})
-		var style := str(entry.get("style", styles(slot)[0] if not styles(slot).is_empty() else ""))
+		var style := str(entry.get("style", fallback[0]))
 		if piece(slot, style).is_empty() and not styles(slot).is_empty():
-			style = styles(slot)[0]
-		design.pieces[slot] = { "style": style, "color": Color(str(entry.get("color", "#f2cd37"))) }
+			style = fallback[0] if not piece(slot, fallback[0]).is_empty() else styles(slot)[0]
+		design.pieces[slot] = { "style": style, "color": Color(str(entry.get("color", fallback[1]))) }
+	# Spiky hair and the ponytail were headgear once.
+	var old_gear := str(data.get("headgear", {}).get("style", ""))
+	if HAIR_THAT_WAS_HEADGEAR.has(old_gear) and not data.has("hair"):
+		design.pieces["hair"] = { "style": HAIR_THAT_WAS_HEADGEAR[old_gear], "color": Color(str(data.headgear.get("color", "#6b4430"))) }
+		design.pieces["headgear"] = { "style": "none", "color": design.color_of("headgear") }
 	return design
 
 
@@ -98,6 +130,11 @@ func has(slot: String, flag: String) -> bool:
 	return bool(piece(slot, style_of(slot)).get(flag, false))
 
 
+## A setting of this piece in the catalogue, like how long the sleeves are.
+func setting(slot: String, key: String, fallback: Variant = "") -> Variant:
+	return piece(slot, style_of(slot)).get(key, fallback)
+
+
 ## Skin shows on the head, and on bare arms and legs.
 func skin() -> Color:
 	return color_of("head")
@@ -133,10 +170,12 @@ func save() -> String:
 static func random(rng: RandomNumberGenerator) -> CharacterDesign:
 	var design := CharacterDesign.new()
 	design.name = "Driver"
-	var skins := palette(true)
-	var colours := palette()
 	for slot in SLOTS:
 		var options := styles(slot)
-		var colour: Color = skins[rng.randi() % skins.size()] if slot == "head" else colours[rng.randi() % colours.size()]
-		design.pieces[slot] = { "style": options[rng.randi() % options.size()], "color": colour }
+		var colours := colours_for(slot)
+		var style: String = options[rng.randi() % options.size()]
+		# Plenty of drivers have nothing on their neck or back, or no beard.
+		if slot in ["facial_hair", "neck", "back"] and rng.randf() < 0.5:
+			style = "none"
+		design.pieces[slot] = { "style": style, "color": colours[rng.randi() % colours.size()] }
 	return design

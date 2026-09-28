@@ -85,7 +85,9 @@ If you'd rather not build, there are sixteen stock karts to pick from before any
 
 ### Drivers
 
-Build your driver from a head, headgear, torso, arms and legs, each in its own colours, with a picture of your driver wearing every choice. What they wear decides how heavy they are, and a heavier driver makes a steadier kart that's harder to knock around. The seven AI drivers are built the same way.
+Build your driver from a face, hair, facial hair, headgear, something around the neck, a torso, something on the back, arms and legs, each in its own colours, with a picture of your driver wearing every choice. There are at least twenty of each, from caps, crowns and space helmets to moustaches, capes, shells and wings, so if you want a driver that reminds you of someone from another kart game, you can probably get close. What they wear decides how heavy they are, and a heavier driver makes a steadier kart that's harder to knock around. The seven AI drivers are built the same way.
+
+They're brick minifigs, just a bit cuter, with bigger heads, big shiny eyes and rosy cheeks, all in shiny toy plastic. They blink, look over at karts that pull up beside them, look surprised when they get hit, grin when they pass someone and look cross when they get passed. The winner throws their fists in the air and bounces in the seat. Standing on the driver screen they fidget, look around and wave now and then, and they give a little hop every time you try something new on them.
 
 ### Racing
 
@@ -154,7 +156,7 @@ They check things like:
 - every course closes into a loop without running into itself (`track_test`)
 - a fast kart sticks to the loop all the way around and a slow one drops off (`loop_test`)
 - every gadget does what it says (`gadget_test`)
-- drivers really do hold the steering wheel and follow it around (`character_test`)
+- drivers really do hold the steering wheel and follow it around, and every hat, hairdo, beard and back piece is joined on without poking through anything (`character_test`)
 - the garage, the menus and every mode, including a whole Grand Prix and two players on one phone (`garage_test`, `menu_test`, `modes_test`, `split_test`)
 - every stock kart gets around a lap with the AI driving (`stock_test`)
 - whole races with eight karts, around the loop too (`race_test`)

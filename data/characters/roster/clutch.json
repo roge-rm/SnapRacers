@@ -2,7 +2,10 @@
 	"name": "Clutch",
 	"_comment": "An old showman who drives like it's the last race of his life.",
 	"head": { "style": "grin", "color": "#6b4430" },
+	"hair": { "style": "side_part", "color": "#1b1b1b" },
+	"facial_hair": { "style": "handlebar", "color": "#1b1b1b" },
 	"headgear": { "style": "top_hat", "color": "#1b1b1b" },
+	"neck": { "style": "bow_tie", "color": "#c4281c" },
 	"torso": { "style": "jacket", "color": "#3c3f44" },
 	"arms": { "style": "gloves", "color": "#f2f2f2" },
 	"legs": { "style": "boots", "color": "#1b1b1b" }

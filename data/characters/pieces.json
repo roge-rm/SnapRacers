@@ -1,50 +1,875 @@
 {
-	"_comment": "Every piece a driver can be built from. Mass is in kg and adds up to the driver's weight, which sets their class and how the kart handles with them in it. The shapes themselves are made in scripts/character/character_rig.gd, by style name.",
+	"_comment": "Every piece a driver can be built from. Mass is in kg and adds up to the driver's weight, which sets their class and how the kart handles with them in it. The shapes are made in scripts/character/looks, one file for each kind of piece, by style name. Faces and facial hair are printed on the head in scripts/character/face_print.gd. Hair has its own colours. A hat that covers the top of the head hides the top of the hair and leaves what hangs below it.",
 	"palette": [
-		"#f2cd37", "#f5c8a8", "#d9a37e", "#a86f4c", "#6b4430", "#8fd3f4",
-		"#c4281c", "#e36a1a", "#237841", "#4fb35f", "#0d69ab",
-		"#3a8dde", "#6c3fb5", "#d86cb0", "#f2f2f2", "#9aa0a6", "#3c3f44",
-		"#1b1b1b", "#8a5a2b"
+		"#f2cd37",
+		"#f5c8a8",
+		"#d9a37e",
+		"#a86f4c",
+		"#6b4430",
+		"#8fd3f4",
+		"#c4281c",
+		"#e36a1a",
+		"#237841",
+		"#4fb35f",
+		"#0d69ab",
+		"#3a8dde",
+		"#6c3fb5",
+		"#d86cb0",
+		"#f2f2f2",
+		"#9aa0a6",
+		"#3c3f44",
+		"#1b1b1b",
+		"#8a5a2b"
 	],
-	"skin": ["#f2cd37", "#f5c8a8", "#d9a37e", "#a86f4c", "#6b4430", "#8fd3f4", "#4fb35f"],
+	"skin": [
+		"#f2cd37",
+		"#f5c8a8",
+		"#d9a37e",
+		"#a86f4c",
+		"#6b4430",
+		"#8fd3f4",
+		"#4fb35f"
+	],
+	"hair_colours": [
+		"#1b1b1b",
+		"#3b2a1e",
+		"#6b4430",
+		"#8a5a2b",
+		"#c47a3a",
+		"#e8c170",
+		"#f2cd37",
+		"#d9d9d9",
+		"#f2f2f2",
+		"#c4281c",
+		"#e36a1a",
+		"#0d69ab",
+		"#4fb35f",
+		"#d86cb0",
+		"#6c3fb5"
+	],
 	"head": {
-		"smile": { "name": "Smile", "mass": 3.0 },
-		"grin": { "name": "Big grin", "mass": 3.0 },
-		"determined": { "name": "Determined", "mass": 3.0 },
-		"cheeky": { "name": "Cheeky", "mass": 3.0 },
-		"freckles": { "name": "Freckles", "mass": 3.0 },
-		"shades": { "name": "Shades", "mass": 3.2 }
+		"smile": {
+			"name": "Smile",
+			"mass": 3.0
+		},
+		"grin": {
+			"name": "Big grin",
+			"mass": 3.0
+		},
+		"determined": {
+			"name": "Determined",
+			"mass": 3.0
+		},
+		"cheeky": {
+			"name": "Cheeky",
+			"mass": 3.0
+		},
+		"freckles": {
+			"name": "Freckles",
+			"mass": 3.0
+		},
+		"shades": {
+			"name": "Shades",
+			"mass": 3.2
+		},
+		"excited": {
+			"name": "Excited",
+			"mass": 3.0
+		},
+		"frown": {
+			"name": "Frown",
+			"mass": 3.0
+		},
+		"smirk": {
+			"name": "Smirk",
+			"mass": 3.0
+		},
+		"sleepy": {
+			"name": "Sleepy",
+			"mass": 3.0
+		},
+		"surprised": {
+			"name": "Surprised",
+			"mass": 3.0
+		},
+		"angry": {
+			"name": "Angry",
+			"mass": 3.0
+		},
+		"lashes": {
+			"name": "Lashes",
+			"mass": 3.0
+		},
+		"blush": {
+			"name": "Rosy cheeks",
+			"mass": 3.0
+		},
+		"glasses": {
+			"name": "Round glasses",
+			"mass": 3.1
+		},
+		"tongue": {
+			"name": "Tongue out",
+			"mass": 3.0
+		},
+		"fangs": {
+			"name": "Toothy grin",
+			"mass": 3.0
+		},
+		"scar": {
+			"name": "Scarred",
+			"mass": 3.0
+		},
+		"big_eyes": {
+			"name": "Big eyes",
+			"mass": 3.0
+		},
+		"laughing": {
+			"name": "Laughing",
+			"mass": 3.0
+		},
+		"nervous": {
+			"name": "Nervous",
+			"mass": 3.0
+		},
+		"monocle": {
+			"name": "Monocle",
+			"mass": 3.1
+		}
+	},
+	"hair": {
+		"none": {
+			"name": "Bald",
+			"mass": 0.0
+		},
+		"short": {
+			"name": "Short",
+			"mass": 0.3
+		},
+		"spiky": {
+			"name": "Spiky",
+			"mass": 0.3
+		},
+		"flat_top": {
+			"name": "Flat top",
+			"mass": 0.35
+		},
+		"mohawk": {
+			"name": "Mohawk",
+			"mass": 0.3
+		},
+		"quiff": {
+			"name": "Quiff",
+			"mass": 0.35
+		},
+		"side_part": {
+			"name": "Side parting",
+			"mass": 0.3
+		},
+		"bob": {
+			"name": "Bob",
+			"mass": 0.4
+		},
+		"long": {
+			"name": "Long",
+			"mass": 0.5
+		},
+		"wavy": {
+			"name": "Long and wavy",
+			"mass": 0.5
+		},
+		"ponytail": {
+			"name": "Ponytail",
+			"mass": 0.4
+		},
+		"pigtails": {
+			"name": "Pigtails",
+			"mass": 0.45
+		},
+		"bun": {
+			"name": "Bun",
+			"mass": 0.35
+		},
+		"afro": {
+			"name": "Afro",
+			"mass": 0.5
+		},
+		"curly": {
+			"name": "Curly",
+			"mass": 0.4
+		},
+		"bowl": {
+			"name": "Bowl cut",
+			"mass": 0.35
+		},
+		"princess": {
+			"name": "Long curls",
+			"mass": 0.55
+		},
+		"messy": {
+			"name": "Messy",
+			"mass": 0.35
+		},
+		"braids": {
+			"name": "Braids",
+			"mass": 0.5
+		},
+		"fringe": {
+			"name": "Swept fringe",
+			"mass": 0.35
+		}
+	},
+	"facial_hair": {
+		"none": {
+			"name": "None",
+			"mass": 0.0
+		},
+		"stubble": {
+			"name": "Stubble",
+			"mass": 0.0
+		},
+		"pencil": {
+			"name": "Pencil moustache",
+			"mass": 0.02
+		},
+		"big": {
+			"name": "Big moustache",
+			"mass": 0.05
+		},
+		"handlebar": {
+			"name": "Handlebar",
+			"mass": 0.05
+		},
+		"walrus": {
+			"name": "Walrus",
+			"mass": 0.06
+		},
+		"zigzag": {
+			"name": "Zigzag moustache",
+			"mass": 0.05
+		},
+		"goatee": {
+			"name": "Goatee",
+			"mass": 0.04
+		},
+		"chinstrap": {
+			"name": "Chinstrap",
+			"mass": 0.05
+		},
+		"full": {
+			"name": "Full beard",
+			"mass": 0.1
+		},
+		"long": {
+			"name": "Long beard",
+			"mass": 0.15
+		},
+		"sideburns": {
+			"name": "Sideburns",
+			"mass": 0.04
+		},
+		"mutton": {
+			"name": "Mutton chops",
+			"mass": 0.06
+		},
+		"fu_manchu": {
+			"name": "Droopy moustache",
+			"mass": 0.05
+		},
+		"horseshoe": {
+			"name": "Horseshoe",
+			"mass": 0.05
+		},
+		"short_beard": {
+			"name": "Short beard",
+			"mass": 0.08
+		},
+		"soul_patch": {
+			"name": "Soul patch",
+			"mass": 0.01
+		},
+		"pointy": {
+			"name": "Pointy beard",
+			"mass": 0.06
+		},
+		"braided": {
+			"name": "Braided beard",
+			"mass": 0.12
+		},
+		"moustache_beard": {
+			"name": "Moustache and beard",
+			"mass": 0.1
+		}
 	},
 	"headgear": {
-		"none": { "name": "Nothing", "mass": 0.0 },
-		"racing_helmet": { "name": "Racing helmet", "mass": 3.0 },
-		"open_helmet": { "name": "Open helmet and goggles", "mass": 2.5 },
-		"cap": { "name": "Cap", "mass": 0.4 },
-		"beanie": { "name": "Bobble hat", "mass": 0.4 },
-		"hard_hat": { "name": "Hard hat", "mass": 1.5 },
-		"spiky_hair": { "name": "Spiky hair", "mass": 0.3 },
-		"ponytail": { "name": "Ponytail", "mass": 0.3 },
-		"headband": { "name": "Headband and goggles", "mass": 0.5 },
-		"top_hat": { "name": "Top hat", "mass": 1.0 }
+		"none": {
+			"name": "Nothing",
+			"mass": 0.0,
+			"covers": false
+		},
+		"racing_helmet": {
+			"name": "Racing helmet",
+			"mass": 3.0
+		},
+		"open_helmet": {
+			"name": "Open helmet and goggles",
+			"mass": 2.5
+		},
+		"cap": {
+			"name": "Cap",
+			"mass": 0.4
+		},
+		"beanie": {
+			"name": "Bobble hat",
+			"mass": 0.4
+		},
+		"hard_hat": {
+			"name": "Hard hat",
+			"mass": 1.5
+		},
+		"headband": {
+			"name": "Headband and goggles",
+			"mass": 0.5,
+			"covers": false
+		},
+		"top_hat": {
+			"name": "Top hat",
+			"mass": 1.0
+		},
+		"crown": {
+			"name": "Crown",
+			"mass": 1.2,
+			"covers": false
+		},
+		"tiara": {
+			"name": "Tiara",
+			"mass": 0.4,
+			"covers": false
+		},
+		"mushroom": {
+			"name": "Spotted mushroom hat",
+			"mass": 0.8
+		},
+		"dino_hood": {
+			"name": "Dinosaur hood",
+			"mass": 1.0
+		},
+		"cowboy": {
+			"name": "Cowboy hat",
+			"mass": 0.8
+		},
+		"viking": {
+			"name": "Horned helmet",
+			"mass": 2.0
+		},
+		"pirate": {
+			"name": "Pirate hat",
+			"mass": 0.7
+		},
+		"wizard": {
+			"name": "Wizard hat",
+			"mass": 0.6
+		},
+		"bandana": {
+			"name": "Bandana",
+			"mass": 0.2
+		},
+		"aviator": {
+			"name": "Flying cap",
+			"mass": 0.6
+		},
+		"propeller": {
+			"name": "Propeller cap",
+			"mass": 0.5
+		},
+		"party": {
+			"name": "Party hat",
+			"mass": 0.2,
+			"covers": false
+		},
+		"beret": {
+			"name": "Beret",
+			"mass": 0.3
+		},
+		"horns": {
+			"name": "Horns",
+			"mass": 0.6,
+			"covers": false
+		}
+	},
+	"neck": {
+		"none": {
+			"name": "Nothing",
+			"mass": 0.0
+		},
+		"scarf": {
+			"name": "Scarf",
+			"mass": 0.4
+		},
+		"long_scarf": {
+			"name": "Long scarf",
+			"mass": 0.6
+		},
+		"tie": {
+			"name": "Tie",
+			"mass": 0.2
+		},
+		"bow_tie": {
+			"name": "Bow tie",
+			"mass": 0.1
+		},
+		"neckerchief": {
+			"name": "Neckerchief",
+			"mass": 0.2
+		},
+		"medal": {
+			"name": "Medal",
+			"mass": 0.3
+		},
+		"beads": {
+			"name": "Beads",
+			"mass": 0.2
+		},
+		"pearls": {
+			"name": "Pearls",
+			"mass": 0.2
+		},
+		"spiked_collar": {
+			"name": "Spiked collar",
+			"mass": 0.5
+		},
+		"ruff": {
+			"name": "Ruff",
+			"mass": 0.4
+		},
+		"whistle": {
+			"name": "Whistle",
+			"mass": 0.1
+		},
+		"pass": {
+			"name": "Race pass",
+			"mass": 0.1
+		},
+		"gold_chain": {
+			"name": "Gold chain",
+			"mass": 0.4
+		},
+		"brooch": {
+			"name": "Jewel brooch",
+			"mass": 0.2
+		},
+		"lei": {
+			"name": "Flower garland",
+			"mass": 0.3
+		},
+		"headphones": {
+			"name": "Headphones",
+			"mass": 0.4
+		},
+		"choker": {
+			"name": "Choker",
+			"mass": 0.1
+		},
+		"bell": {
+			"name": "Bell collar",
+			"mass": 0.3
+		},
+		"big_bow": {
+			"name": "Big bow",
+			"mass": 0.2
+		}
+	},
+	"back": {
+		"none": {
+			"name": "Nothing",
+			"mass": 0.0
+		},
+		"spiky_shell": {
+			"name": "Spiky shell",
+			"mass": 5.0
+		},
+		"shell": {
+			"name": "Shell",
+			"mass": 4.0
+		},
+		"cape": {
+			"name": "Cape",
+			"mass": 0.8
+		},
+		"short_cape": {
+			"name": "Short cape",
+			"mass": 0.5
+		},
+		"backpack": {
+			"name": "Backpack",
+			"mass": 2.0
+		},
+		"jet_pack": {
+			"name": "Jet pack",
+			"mass": 4.5
+		},
+		"angel_wings": {
+			"name": "Feathered wings",
+			"mass": 1.0
+		},
+		"bat_wings": {
+			"name": "Bat wings",
+			"mass": 1.0
+		},
+		"fairy_wings": {
+			"name": "Fairy wings",
+			"mass": 0.4
+		},
+		"dino_tail": {
+			"name": "Dinosaur tail",
+			"mass": 2.0
+		},
+		"flag": {
+			"name": "Racing flag",
+			"mass": 0.8
+		},
+		"sword": {
+			"name": "Sword",
+			"mass": 1.5
+		},
+		"guitar": {
+			"name": "Guitar",
+			"mass": 2.5
+		},
+		"air_tanks": {
+			"name": "Air tanks",
+			"mass": 4.0
+		},
+		"parachute": {
+			"name": "Parachute pack",
+			"mass": 2.5
+		},
+		"quiver": {
+			"name": "Quiver",
+			"mass": 1.2
+		},
+		"radio": {
+			"name": "Radio pack",
+			"mass": 2.5
+		},
+		"fox_tail": {
+			"name": "Fluffy tail",
+			"mass": 0.6
+		},
+		"shield": {
+			"name": "Round shield",
+			"mass": 2.0
+		}
 	},
 	"torso": {
-		"racing_suit": { "name": "Racing suit", "mass": 14.0 },
-		"jacket": { "name": "Jacket", "mass": 15.0 },
-		"overalls": { "name": "Work overalls", "mass": 15.0 },
-		"hoodie": { "name": "Hoodie", "mass": 14.0 },
-		"armour": { "name": "Armour", "mass": 22.0 },
-		"tee": { "name": "T-shirt", "mass": 12.0 }
+		"racing_suit": {
+			"name": "Racing suit",
+			"mass": 14.0
+		},
+		"jacket": {
+			"name": "Jacket",
+			"mass": 15.0
+		},
+		"overalls": {
+			"name": "Work overalls",
+			"mass": 15.0
+		},
+		"hoodie": {
+			"name": "Hoodie",
+			"mass": 14.0
+		},
+		"armour": {
+			"name": "Armour",
+			"mass": 22.0
+		},
+		"tee": {
+			"name": "T-shirt",
+			"mass": 12.0
+		},
+		"tuxedo": {
+			"name": "Tuxedo",
+			"mass": 14.0
+		},
+		"gown": {
+			"name": "Gown bodice",
+			"mass": 13.0
+		},
+		"vest": {
+			"name": "Waistcoat",
+			"mass": 13.0
+		},
+		"tank_top": {
+			"name": "Vest top",
+			"mass": 11.0
+		},
+		"flowery": {
+			"name": "Flowery shirt",
+			"mass": 12.0
+		},
+		"stripes": {
+			"name": "Striped shirt",
+			"mass": 12.0
+		},
+		"plaid": {
+			"name": "Check shirt",
+			"mass": 12.5
+		},
+		"lab_coat": {
+			"name": "Lab coat",
+			"mass": 13.0
+		},
+		"tunic": {
+			"name": "Knight's tunic",
+			"mass": 16.0
+		},
+		"pirate_coat": {
+			"name": "Pirate coat",
+			"mass": 15.0
+		},
+		"leather": {
+			"name": "Leather jacket",
+			"mass": 16.0
+		},
+		"space_suit": {
+			"name": "Space suit",
+			"mass": 18.0
+		},
+		"gi": {
+			"name": "Karate top",
+			"mass": 12.5
+		},
+		"robot": {
+			"name": "Robot chest",
+			"mass": 20.0
+		},
+		"jersey": {
+			"name": "Sports jersey",
+			"mass": 12.0
+		},
+		"dino_belly": {
+			"name": "Dinosaur belly",
+			"mass": 14.0
+		}
 	},
 	"arms": {
-		"long_sleeves": { "name": "Long sleeves", "mass": 5.0 },
-		"short_sleeves": { "name": "Short sleeves", "mass": 4.0, "bare": true },
-		"gloves": { "name": "Driving gloves", "mass": 5.5, "gloves": true },
-		"mechanical": { "name": "Robot arms", "mass": 8.0, "metal": true }
+		"long_sleeves": {
+			"name": "Long sleeves",
+			"mass": 5.0
+		},
+		"short_sleeves": {
+			"name": "Short sleeves",
+			"mass": 4.0,
+			"sleeve": "short"
+		},
+		"gloves": {
+			"name": "Driving gloves",
+			"mass": 5.5,
+			"hands": "dark"
+		},
+		"mechanical": {
+			"name": "Robot arms",
+			"mass": 8.0,
+			"metal": true
+		},
+		"bare": {
+			"name": "Bare arms",
+			"mass": 3.5,
+			"sleeve": "none"
+		},
+		"rolled": {
+			"name": "Rolled up sleeves",
+			"mass": 4.5,
+			"sleeve": "rolled"
+		},
+		"white_gloves": {
+			"name": "White gloves",
+			"mass": 5.2,
+			"hands": "white"
+		},
+		"long_gloves": {
+			"name": "Long gloves",
+			"mass": 5.0,
+			"sleeve": "none",
+			"hands": "white",
+			"gauntlet": "white"
+		},
+		"wristbands": {
+			"name": "Wristbands",
+			"mass": 4.2,
+			"sleeve": "short",
+			"cuff": "colour"
+		},
+		"spiked_bracers": {
+			"name": "Spiked bracers",
+			"mass": 6.5,
+			"sleeve": "none",
+			"bracer": "spikes"
+		},
+		"armoured": {
+			"name": "Armoured arms",
+			"mass": 8.5,
+			"metal": true,
+			"hands": "metal",
+			"pads": true
+		},
+		"striped": {
+			"name": "Striped sleeves",
+			"mass": 5.0,
+			"stripes": true
+		},
+		"puffed": {
+			"name": "Puffed sleeves",
+			"mass": 4.8,
+			"sleeve": "short",
+			"puff": true
+		},
+		"furry": {
+			"name": "Furry arms",
+			"mass": 5.5,
+			"fur": true
+		},
+		"scaly": {
+			"name": "Scaly arms",
+			"mass": 5.5,
+			"scales": true,
+			"hands": "colour"
+		},
+		"bandaged": {
+			"name": "Bandaged",
+			"mass": 4.5,
+			"sleeve": "none",
+			"wraps": true
+		},
+		"watch": {
+			"name": "Sleeves and a watch",
+			"mass": 5.1,
+			"watch": true
+		},
+		"racing_gloves": {
+			"name": "Racing gloves",
+			"mass": 5.6,
+			"hands": "dark",
+			"cuff": "dark"
+		},
+		"tattoo": {
+			"name": "Tattooed",
+			"mass": 3.6,
+			"sleeve": "none",
+			"tattoo": true
+		},
+		"two_tone": {
+			"name": "Two-tone sleeves",
+			"mass": 5.0,
+			"two_tone": true
+		}
 	},
 	"legs": {
-		"trousers": { "name": "Trousers", "mass": 12.0 },
-		"shorts": { "name": "Shorts", "mass": 10.0, "bare": true },
-		"boots": { "name": "Big boots", "mass": 15.0, "boots": true },
-		"skinny": { "name": "Skinny legs", "mass": 9.0, "thin": true }
+		"trousers": {
+			"name": "Trousers",
+			"mass": 12.0
+		},
+		"shorts": {
+			"name": "Shorts",
+			"mass": 10.0,
+			"bare": true
+		},
+		"boots": {
+			"name": "Big boots",
+			"mass": 15.0,
+			"boots": true
+		},
+		"skinny": {
+			"name": "Skinny legs",
+			"mass": 9.0,
+			"thin": true
+		},
+		"jeans": {
+			"name": "Jeans",
+			"mass": 12.0,
+			"print": "jeans"
+		},
+		"gown": {
+			"name": "Long gown",
+			"mass": 11.0,
+			"skirt": "long"
+		},
+		"skirt": {
+			"name": "Skirt",
+			"mass": 9.5,
+			"skirt": "short",
+			"bare": true
+		},
+		"kilt": {
+			"name": "Kilt",
+			"mass": 10.5,
+			"skirt": "kilt",
+			"bare": true
+		},
+		"dino_feet": {
+			"name": "Dinosaur feet",
+			"mass": 14.0,
+			"claws": true
+		},
+		"robot_legs": {
+			"name": "Robot legs",
+			"mass": 16.0,
+			"metal": true
+		},
+		"armoured": {
+			"name": "Armoured legs",
+			"mass": 17.0,
+			"pads": true,
+			"boots": true
+		},
+		"stripy": {
+			"name": "Stripy trousers",
+			"mass": 12.0,
+			"print": "stripes"
+		},
+		"flares": {
+			"name": "Flares",
+			"mass": 12.0,
+			"flares": true
+		},
+		"cowboy": {
+			"name": "Chaps and boots",
+			"mass": 13.5,
+			"boots": true,
+			"print": "chaps"
+		},
+		"sneakers": {
+			"name": "Trainers",
+			"mass": 11.0,
+			"shoes": "white"
+		},
+		"barefoot": {
+			"name": "Bare feet",
+			"mass": 10.0,
+			"bare": true,
+			"feet": "skin"
+		},
+		"racing_boots": {
+			"name": "Racing boots",
+			"mass": 13.0,
+			"boots": true,
+			"print": "stripe"
+		},
+		"socks": {
+			"name": "Shorts and long socks",
+			"mass": 10.5,
+			"bare": true,
+			"socks": true
+		},
+		"overalls": {
+			"name": "Overall legs",
+			"mass": 12.5,
+			"print": "turnups"
+		},
+		"leggings": {
+			"name": "Leggings",
+			"mass": 9.5,
+			"thin": true,
+			"print": "stripes"
+		}
 	}
 }

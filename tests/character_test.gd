@@ -61,6 +61,29 @@ class Runner:
 					todo.append(j)
 		return boxes.size() - joined.size()
 
+	## The same for what's on the torso (the torso's prints, and what's on the
+	## neck and back), joined to the torso's block.
+	func loose_on_torso(rig: CharacterRig) -> int:
+		var R := CharacterRig
+		var torso := AABB(Vector3(-R.TORSO_BOTTOM_WIDTH * 0.5, R.HIPS_TOP, -R.TORSO_DEPTH * 0.5), Vector3(R.TORSO_BOTTOM_WIDTH, R.TORSO_HEIGHT + 0.03, R.TORSO_DEPTH)).grow(0.004)
+		var boxes := []
+		for node in rig.upper().get_children():
+			if node is MeshInstance3D:
+				boxes.append((node.transform * node.mesh.get_aabb()).grow(0.002))
+		var joined := {}
+		var todo := []
+		for i in boxes.size():
+			if boxes[i].intersects(torso):
+				joined[i] = true
+				todo.append(i)
+		while not todo.is_empty():
+			var i: int = todo.pop_back()
+			for j in boxes.size():
+				if not joined.has(j) and boxes[i].intersects(boxes[j]):
+					joined[j] = true
+					todo.append(j)
+		return boxes.size() - joined.size()
+
 	func hand_at(rig: CharacterRig, side: int) -> Vector3:
 		return rig._hand[side].global_position
 
@@ -83,18 +106,23 @@ class Runner:
 			styles += CharacterDesign.styles(slot).size()
 		check(built == styles * 2, "every piece builds, sitting and standing (%d of %d)" % [built, styles * 2])
 
-		# Every piece of headgear is joined on, to the head or to another
-		# piece that is. Nothing floats.
-		for style in CharacterDesign.styles("headgear"):
-			if style == "none":
-				continue
-			var who := CharacterDesign.load_file("res://data/characters/roster/racer.json")
-			who.set_piece("headgear", style)
-			var rig := CharacterRig.new(who, false)
-			add_child(rig)
-			var loose := loose_headgear(rig)
-			check(loose == 0, "the %s is all joined on (%d pieces loose)" % [CharacterDesign.piece("headgear", style).name.to_lower(), loose])
-			rig.queue_free()
+		# Every piece of headgear, hair, neckwear and backwear is joined on, to
+		# the head or the torso or to another piece that is. Nothing floats.
+		var floating := []
+		for slot in ["headgear", "hair", "neck", "back"]:
+			for style in CharacterDesign.styles(slot):
+				if style == "none":
+					continue
+				var who := CharacterDesign.load_file("res://data/characters/roster/racer.json")
+				who.set_piece("headgear", "none")
+				who.set_piece(slot, style)
+				var rig := CharacterRig.new(who, false)
+				add_child(rig)
+				var loose := loose_headgear(rig) if slot in ["headgear", "hair"] else loose_on_torso(rig)
+				if loose > 0:
+					floating.append("%s %s (%d)" % [slot, style, loose])
+				rig.queue_free()
+		check(floating.is_empty(), "every hat, hairdo, neck and back piece is joined on %s" % [floating])
 
 		# Resting hands never go into the body. Brick toys don't pass through
 		# themselves.

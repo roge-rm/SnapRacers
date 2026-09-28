@@ -170,6 +170,8 @@ var _gadget_wait: Array[float] = [0.0, 0.0]
 var _bubble: MeshInstance3D
 var _steering: SteeringVisual
 var _rig: CharacterRig
+## A kart the race says is close by, which the driver turns to look at.
+var alongside: Kart
 var _rammed_wait := 0.0
 var slowdown_left := 0.0
 ## The render layer the driver's head is drawn on (see RaceCamera), or 0.
@@ -386,6 +388,7 @@ func _assemble() -> void:
 		_rig = CharacterRig.new(driver if driver != null else default_driver(), true)
 		_rig.recline = stats.recline
 		_rig.head_layer = head_layer
+		_rig.lively = true
 		_rig.position = stats.seat_top
 		add_child(_rig)
 		# The driver takes hits too, so a rollover lands on something.
@@ -464,6 +467,7 @@ func lose_parts(indices: Array[int]) -> void:
 	_assemble()
 	linear_velocity = keep_linear
 	angular_velocity = keep_angular
+	react("surprised", 1.2)
 	parts_lost.emit(newly)
 
 
@@ -770,6 +774,14 @@ func _pose_driver() -> void:
 		return
 	var amount := clampf(steer_angle / full_lock, -1.0, 1.0)
 	_rig.look(amount)
+	if alongside != null and is_instance_valid(alongside):
+		_rig.glance(_rig.global_transform.affine_inverse() * alongside.global_position)
+	else:
+		_rig.glance(Vector3.ZERO)
+	if _rig.busy_hands():
+		if _steering != null:
+			_steering.steer(amount)
+		return
 	if _steering == null:
 		_rig.rest_hands()
 		return
@@ -778,6 +790,19 @@ func _pose_driver() -> void:
 	# From the steering wheel's space into the driver's.
 	var to_rig := _rig.transform.affine_inverse() * _steering.transform
 	_rig.grip(to_rig * grips[0], to_rig * grips[1], to_rig.basis * grips[2], to_rig.basis * grips[3])
+
+
+## The driver pulls a face for a while (one of FacePrint.MOODS). It's only
+## for show.
+func react(mood: String, seconds := 1.5) -> void:
+	if _rig != null:
+		_rig.feel(mood, seconds)
+
+
+## The driver throws their arms up and bounces in the seat.
+func cheer() -> void:
+	if _rig != null:
+		_rig.cheer()
 
 
 # Gadgets.

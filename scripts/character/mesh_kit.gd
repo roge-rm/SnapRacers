@@ -3,7 +3,8 @@ extends RefCounted
 
 ## Shapes for character models that Godot's primitives don't cover. There are
 ## boxes with rounded edges (which can be narrower at the top, for a torso),
-## tubes bent around an arc (for a mouth or a visor band), and C shaped hands.
+## tubes bent around an arc (for a mouth or a visor band), one piece arms and
+## C shaped hands.
 ## Each one is made once for each set of numbers and then shared.
 
 static var _cache: Dictionary = {}
@@ -93,6 +94,150 @@ static func fix_winding(mesh: ArrayMesh) -> void:
 	arrays[Mesh.ARRAY_INDEX] = indices
 	mesh.clear_surfaces()
 	mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
+
+
+## A minifig arm as one piece: from a rounded shoulder at `top` straight down
+## to the elbow at `elbow`, around a smooth bend, and along `dir` to a flat
+## end at `end`, all in the arm's own space. It's a tube with a rounded
+## square cross section, and only the stretch from `from` to `to` metres
+## along it is made, so an arm printed in two colours (a sleeve, say) is two
+## meshes that meet exactly. arm_length says how long the whole arm is, and
+## arm_elbow how far along the middle of the bend is.
+static func arm(top: Vector3, elbow: Vector3, end: Vector3, from := 0.0, to := INF) -> ArrayMesh:
+	var key := "arm %s %s %s %s %s" % [top, elbow, end, from, to]
+	if _cache.has(key):
+		return _cache[key]
+	var path := _arm_path(top, elbow, end)
+	var points: PackedVector3Array = path[0]
+	var along: PackedFloat32Array = path[1]
+	var length: float = along[along.size() - 1]
+	to = minf(to, length)
+	# The frame around the tube, carried along the path without twisting.
+	var tangents: Array[Vector3] = []
+	for i in points.size():
+		var ahead := points[mini(i + 1, points.size() - 1)] - points[maxi(i - 1, 0)]
+		tangents.append(ahead.normalized())
+	var sideways: Array[Vector3] = [Vector3.RIGHT]
+	for i in range(1, points.size()):
+		var turn := Quaternion(tangents[i - 1], tangents[i]) if tangents[i - 1].dot(tangents[i]) < 0.99999 else Quaternion.IDENTITY
+		sideways.append((turn * sideways[i - 1]).normalized())
+	# The rings to make, from `from` to `to`.
+	var picks: Array[float] = [from]
+	for i in points.size():
+		if along[i] > from + 0.0005 and along[i] < to - 0.0005:
+			picks.append(along[i])
+	picks.append(to)
+	var section := _arm_section()
+	var tool := SurfaceTool.new()
+	tool.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var rings := []
+	for at in picks:
+		var i := along.bsearch(at)
+		i = clampi(i, 1, points.size() - 1)
+		var t := clampf((at - along[i - 1]) / maxf(along[i] - along[i - 1], 0.00001), 0.0, 1.0)
+		var centre := points[i - 1].lerp(points[i], t)
+		var forward := tangents[i - 1].slerp(tangents[i], t).normalized()
+		var u := sideways[i - 1].slerp(sideways[i], t)
+		u = (u - forward * u.dot(forward)).normalized()
+		var v := forward.cross(u)
+		# The shoulder end is rounded over like a dome, and the wrist end a
+		# little, before its flat end.
+		var scale := 1.0
+		var tilt := 0.0
+		if at < ARM_DOME:
+			tilt = 1.0 - at / ARM_DOME
+			scale = sqrt(maxf(1.0 - tilt * tilt, 0.0))
+			tilt = -tilt
+		var ring := []
+		for corner in section:
+			var flat: Vector2 = corner[0]
+			var out: Vector2 = corner[1]
+			var normal := (u * out.x + v * out.y) * scale + forward * tilt
+			ring.append([centre + (u * flat.x + v * flat.y) * scale, normal.normalized()])
+		rings.append(ring)
+	var sides := section.size()
+	for i in rings.size() - 1:
+		for k in sides:
+			var a: Array = rings[i][k]
+			var b: Array = rings[i + 1][k]
+			var c: Array = rings[i + 1][(k + 1) % sides]
+			var d: Array = rings[i][(k + 1) % sides]
+			for vertex in [a, b, c, a, c, d]:
+				tool.set_normal(vertex[1])
+				tool.add_vertex(vertex[0])
+	# The flat end at the wrist.
+	if to >= length - 0.0005:
+		var last: Array = rings[rings.size() - 1]
+		var middle := Vector3.ZERO
+		for vertex in last:
+			middle += vertex[0]
+		middle /= sides
+		var out_end := tangents[tangents.size() - 1]
+		for k in sides:
+			for vertex in [[middle, out_end], [last[k][0], out_end], [last[(k + 1) % sides][0], out_end]]:
+				tool.set_normal(vertex[1])
+				tool.add_vertex(vertex[0])
+	tool.index()
+	var mesh := tool.commit()
+	fix_winding(mesh)
+	_cache[key] = mesh
+	return mesh
+
+
+## How far along the arm the rounded shoulder goes.
+const ARM_DOME := 0.04
+## How far before and after the elbow the bend starts and ends.
+const ARM_BEND := 0.04
+
+
+static func arm_length(top: Vector3, elbow: Vector3, end: Vector3) -> float:
+	var along: PackedFloat32Array = _arm_path(top, elbow, end)[1]
+	return along[along.size() - 1]
+
+
+static func arm_elbow(top: Vector3, elbow: Vector3, _end: Vector3) -> float:
+	return top.distance_to(elbow) - ARM_BEND * 0.3
+
+
+## The points down the middle of an arm, and how far along each one is.
+static func _arm_path(top: Vector3, elbow: Vector3, end: Vector3) -> Array:
+	var down := (elbow - top).normalized()
+	var out := (end - elbow).normalized()
+	var bend_from := elbow - down * ARM_BEND
+	var bend_to := elbow + out * ARM_BEND
+	var points := PackedVector3Array()
+	var dome_steps := 6
+	for i in dome_steps:
+		points.append(top.lerp(top + down * ARM_DOME, float(i) / dome_steps))
+	for i in 4:
+		points.append((top + down * ARM_DOME).lerp(bend_from, float(i) / 4.0))
+	for i in 11:
+		var t := float(i) / 10.0
+		# A curve from the start of the bend to its end, pulled toward the
+		# elbow, so the arm bends smoothly.
+		points.append(bend_from.lerp(elbow, t).lerp(elbow.lerp(bend_to, t), t))
+	for i in range(1, 5):
+		points.append(bend_to.lerp(end, float(i) / 4.0))
+	var along := PackedFloat32Array([0.0])
+	for i in range(1, points.size()):
+		along.append(along[i - 1] + points[i].distance_to(points[i - 1]))
+	return [points, along]
+
+
+## Around a rounded square, as [point, outward direction] pairs.
+static func _arm_section() -> Array:
+	var half := Vector2(0.042, 0.044)
+	var r := 0.034
+	var out := []
+	var corners := [Vector2(1, 1), Vector2(-1, 1), Vector2(-1, -1), Vector2(1, -1)]
+	for q in 4:
+		var c: Vector2 = corners[q]
+		var middle := (half - Vector2(r, r)) * c
+		for k in 5:
+			var angle := (q + k / 4.0) * PI * 0.5
+			var dir := Vector2(cos(angle), sin(angle))
+			out.append([middle + dir * r, dir])
+	return out
 
 
 ## A round tube bent along an arc in the XY plane, from `from` to `to`

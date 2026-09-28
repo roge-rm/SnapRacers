@@ -26,6 +26,10 @@ const LOST := 45.0
 const RUN_UP := 35.0
 ## Karts in a race, you included.
 const KARTS := 8
+## How often drivers check who they've passed and who's beside them.
+const WATCH_EVERY := 0.25
+## How close another kart has to be for a driver to look at it.
+const ALONGSIDE := 4.0
 
 
 class Racer:
@@ -74,6 +78,9 @@ var camera: RaceCamera
 ## to run out during that and start the race before you could see it.
 const FRAMES_BEFORE_COUNTDOWN := 10
 var _frames_drawn := 0
+var _watch_in := 0.0
+## Where each racer was in the order the last time the drivers looked.
+var _places := {}
 
 
 func _init(split_override: Variant = null) -> void:
@@ -323,8 +330,14 @@ func _physics_process(delta: float) -> void:
 				kart.add_studs(studs.collect(kart))
 			var was_done := racer.progress.finished
 			racer.progress.update(racer.offset, time)
-			if racer.player and racer.progress.finished and not was_done:
-				_player_finished(racer)
+			if racer.progress.finished and not was_done:
+				# The winner cheers and everyone else is happy to be done.
+				if place_of(racer) == 1:
+					racer.kart.cheer()
+				else:
+					racer.kart.react("happy", 3.0)
+				if racer.player:
+					_player_finished(racer)
 
 		# If it's fallen off or wandered far away, put it back.
 		var middle := track.point_at(racer.offset)
@@ -335,6 +348,9 @@ func _physics_process(delta: float) -> void:
 			kart.request_reset()
 			if racer.hud != null:
 				racer.hud.flash("Back on the track")
+
+	if started:
+		_watch_the_drivers(delta)
 
 	# How far each AI driver is behind the leading person, for catching up
 	# and easing off.
@@ -403,6 +419,37 @@ func _player_finished(racer: Racer) -> void:
 	add_child(driver)
 	racer.ai = driver
 	racer.kart.controls = driver.controls
+
+
+## Every so often, drivers who've just passed someone look happy about it
+## and the ones passed look cross, and everyone looks at any kart close
+## beside them. It's all just for show.
+func _watch_the_drivers(delta: float) -> void:
+	_watch_in -= delta
+	if _watch_in > 0.0:
+		return
+	_watch_in = WATCH_EVERY
+	var order := standings()
+	for i in order.size():
+		var racer: Racer = order[i]
+		var was: int = _places.get(racer, i)
+		_places[racer] = i
+		if time > 3.0 and not racer.progress.finished:
+			if i < was:
+				racer.kart.react("happy", 1.5)
+			elif i > was:
+				racer.kart.react("cross", 1.2)
+	for racer in racers:
+		var nearest: Kart = null
+		var best := ALONGSIDE
+		for other in racers:
+			if other == racer:
+				continue
+			var gap: float = racer.kart.global_position.distance_to(other.kart.global_position)
+			if gap < best:
+				best = gap
+				nearest = other.kart
+		racer.kart.alongside = nearest
 
 
 ## Everyone in order, with finishers by time and then the rest by how far

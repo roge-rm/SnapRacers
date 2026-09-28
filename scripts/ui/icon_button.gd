@@ -103,6 +103,23 @@ func _draw() -> void:
 			draw_rect(Rect2(c + Vector2(-4, -12), Vector2(8, 4)), ink)
 			draw_circle(c + Vector2(-4, 0), 2.0, ink)
 			draw_circle(c + Vector2(4, 0), 2.0, ink)
+		"hair":
+			draw_arc(c + Vector2(0, 6), 11.0, PI, TAU, 16, ink, w, true)
+			for x in [-6.0, 0.0, 6.0]:
+				draw_line(c + Vector2(x, -4), c + Vector2(x + 3, -11), ink, 2.5, true)
+			draw_line(c + Vector2(-11, 6), c + Vector2(-11, 12), ink, w, true)
+			draw_line(c + Vector2(11, 6), c + Vector2(11, 12), ink, w, true)
+		"facial_hair":
+			# A moustache.
+			draw_colored_polygon(PackedVector2Array([c + Vector2(0, -2), c + Vector2(-6, -5), c + Vector2(-13, -1), c + Vector2(-9, 3), c + Vector2(0, 1), c + Vector2(9, 3), c + Vector2(13, -1), c + Vector2(6, -5)]), ink)
+		"neck":
+			# A tie.
+			draw_colored_polygon(PackedVector2Array([c + Vector2(-4, -11), c + Vector2(4, -11), c + Vector2(2, -6), c + Vector2(5, 8), c + Vector2(0, 13), c + Vector2(-5, 8), c + Vector2(-2, -6)]), ink)
+		"back":
+			# A backpack.
+			draw_rect(Rect2(c + Vector2(-9, -8), Vector2(18, 20)), ink, false, w)
+			draw_arc(c + Vector2(0, -8), 5.0, PI, TAU, 10, ink, w, true)
+			draw_line(c + Vector2(-9, 2), c + Vector2(9, 2), ink, 2.0)
 		"headgear":
 			# A cap with its peak.
 			draw_arc(c + Vector2(0, 4), 10.0, PI, TAU, 16, ink, w, true)

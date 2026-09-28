@@ -28,18 +28,23 @@ var _time := 0.0
 func _ready() -> void:
 	design = Game.character.duplicate_design()
 	SkyAndSun.add_to(self, 20.0, BuilderStyle.BACKGROUND)
-	# Lit like the garage, softly and with plain white fill light.
+	# Lit like a toy on a shelf: softly, with light, soft shadows, a cool
+	# light from the other side and a warm one from behind that picks out the
+	# edges of the shiny plastic.
 	for child in get_children():
 		if child is WorldEnvironment:
 			child.environment.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
 			child.environment.ambient_light_color = Color("#e8e8e8")
-			child.environment.ambient_light_energy = 0.45
+			child.environment.ambient_light_energy = 0.38
 			child.environment.reflected_light_source = Environment.REFLECTION_SOURCE_DISABLED
 		elif child is DirectionalLight3D:
-			child.light_energy = 0.85
+			child.light_energy = 0.75
+			child.shadow_opacity = 0.55
+			child.shadow_blur = 2.5
 			# Close up, the shadow of the hips on the legs came out as a sawtooth.
 			child.shadow_bias = 0.08
 			child.shadow_normal_bias = 2.5
+	CharacterRig.add_toy_lights(self)
 
 	_turntable = Node3D.new()
 	# Drivers face -Z, so turn them around to face the camera to start with.
@@ -138,7 +143,9 @@ func _rebuild() -> void:
 		if node != null:
 			node.queue_free()
 	_wheel = null
+	var first := _rig == null
 	_rig = CharacterRig.new(design, _driving)
+	_rig.lively = true
 	if _driving:
 		# A seat and a steering wheel, spaced just as they are in a kart.
 		var seat_def := PartCatalog.get_part("seat")
@@ -158,6 +165,9 @@ func _rebuild() -> void:
 	else:
 		_rig.position = Vector3(0.0, CharacterRig.FEET_BELOW, 0.0)
 	_turntable.add_child(_rig)
+	# A happy little hop for each new piece they try on.
+	if not first:
+		_rig.hop()
 	_show()
 
 

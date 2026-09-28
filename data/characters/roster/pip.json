@@ -2,7 +2,9 @@
 	"name": "Pip",
 	"_comment": "Small, quick and fearless. Light as anything.",
 	"head": { "style": "freckles", "color": "#f5c8a8" },
+	"hair": { "style": "short", "color": "#c47a3a" },
 	"headgear": { "style": "beanie", "color": "#4fb35f" },
+	"neck": { "style": "whistle", "color": "#e36a1a" },
 	"torso": { "style": "hoodie", "color": "#237841" },
 	"arms": { "style": "short_sleeves", "color": "#237841" },
 	"legs": { "style": "skinny", "color": "#0d69ab" }

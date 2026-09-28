@@ -481,6 +481,7 @@ func _rebuild() -> void:
 		# back onto the grid to find the seat.
 		var rig := CharacterRig.new(Game.character, true)
 		rig.recline = stats.recline
+		rig.lively = true
 		rig.position = stats.seat_top + Grid.to_metres(stats.origin_cell)
 		_parts_root.add_child(rig)
 		# Hands on the steering wheel if there is one.
