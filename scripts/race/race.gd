@@ -37,7 +37,7 @@ class Racer:
 	var player := false
 	## A person's view of the race, which is theirs alone in split screen.
 	var hud: RaceHud
-	var camera: ChaseCamera
+	var camera: RaceCamera
 	var input: LocalPlayerInput
 
 
@@ -68,7 +68,7 @@ var started := false
 var studs: StudField
 ## Player 1's.
 var hud: RaceHud
-var camera: ChaseCamera
+var camera: RaceCamera
 ## The countdown waits until this many frames have been drawn. The first
 ## frames can stall for seconds while shaders compile, and the countdown used
 ## to run out during that and start the race before you could see it.
@@ -103,15 +103,18 @@ func _ready() -> void:
 		# for the whole cup in a Grand Prix.
 		var drivers := Game.ai_driver_keys()
 		var karts := Game.draw_karts(drivers, [Game.player_two_kart()] if people > 1 else [])
+		# And a pecking order, so a different driver's the quickest each time.
+		var ranks := Game.draw_ranks(drivers)
 		if mode == Game.MODE_GRAND_PRIX and Game.grand_prix != null and not Game.grand_prix.karts.is_empty():
 			karts = Game.grand_prix.karts
+			ranks = Game.grand_prix.ranks
 		# Player 2 takes the last driver's place, in the kart they picked.
 		var two_driver: String = drivers.pop_back() if people > 1 else ""
 		drivers.resize(mini(drivers.size(), KARTS - people))
 		for i in drivers.size():
 			var who := Game.roster_driver(drivers[i])
 			var design := Game.stock_kart(karts.get(drivers[i], "starter"))
-			entries.append({ "name": who.name, "design": design, "who": who, "rank": i, "line": (i % 3 - 1) * 1.5 })
+			entries.append({ "name": who.name, "design": design, "who": who, "rank": ranks.get(drivers[i], i), "line": (i % 3 - 1) * 1.5 })
 		if people > 1:
 			entries.append({ "name": "Player 2", "design": Game.stock_kart(Game.player_two_kart()), "who": Game.roster_driver(two_driver), "human": 1 })
 	entries.append({ "name": Game.player_name(), "design": Game.chosen_design(), "who": Game.character, "human": 0 })
@@ -192,8 +195,18 @@ func _add_view(racer: Racer, world_parent: Node, layer: CanvasLayer) -> void:
 	racer.input = input
 	racer.kart.controls = input.controls
 
-	var view := ChaseCamera.new()
+	var view := RaceCamera.new()
 	view.target = racer.kart
+	view.track = track
+	view.input = input
+	# Your own head is on a layer of its own, so your first person view can
+	# leave it out while everyone else still sees it.
+	view.head_layer = RaceCamera.head_layer_of(index)
+	racer.kart.head_layer = view.head_layer
+	view.view = Game.camera_view(index)
+	view.view_changed.connect(func(which: String) -> void:
+		Game.set_camera_view(index, which)
+		racer.hud.flash(RaceCamera.NAMES[which]))
 	if humans.size() > 1:
 		# Leave out the other players' studs.
 		for other in humans.size():
@@ -221,6 +234,7 @@ func _add_view(racer: Racer, world_parent: Node, layer: CanvasLayer) -> void:
 	racer_hud.next_pressed.connect(func() -> void:
 		Game.finish_grand_prix_race(standings().map(func(r): return r.name)))
 	racer_hud.courses_pressed.connect(func() -> void: Game.show_tracks(mode))
+	racer_hud.camera_pressed.connect(input.press_view)
 
 
 ## Two halves of the screen, each with its own SubViewport looking at this
@@ -377,6 +391,8 @@ func _player_finished(racer: Racer) -> void:
 		new_records = Records.add_time(track_id, racer.progress.finish_time, best_lap)
 	if racer.hud != null:
 		racer.hud.show_results()
+	if racer.camera != null:
+		racer.camera.finish()
 	if racer.ai != null:
 		return
 	var driver := AIDriver.new()

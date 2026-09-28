@@ -112,6 +112,7 @@ func start_grand_prix(cup_id: String) -> void:
 	grand_prix = GrandPrix.new(cup_id)
 	# Everyone keeps the same kart for the whole cup.
 	grand_prix.karts = draw_karts(ai_driver_keys())
+	grand_prix.ranks = draw_ranks(ai_driver_keys())
 	grand_prix.player_kart = kart_choice()
 	grand_prix.difficulty = difficulty()
 	show_race(grand_prix.track_path())
@@ -271,6 +272,18 @@ func draw_karts(drivers: Array, leave_out: Array = []) -> Dictionary:
 	return out
 
 
+## Shuffles the AI drivers' pecking order, as { driver: rank }, with 0 the
+## quickest (see Difficulty). It's drawn fresh for every race, or once for a
+## Grand Prix, so it isn't always the same driver making life hard.
+func draw_ranks(drivers: Array) -> Dictionary:
+	var order := drivers.duplicate()
+	order.shuffle()
+	var out := {}
+	for i in order.size():
+		out[order[i]] = i
+	return out
+
+
 ## Which kart you race in: OWN_KART for the one from the garage, or a stock
 ## kart's key.
 func kart_choice() -> String:
@@ -290,6 +303,15 @@ func difficulty() -> String:
 
 func set_difficulty(level: String) -> void:
 	set_setting("race", "difficulty", level)
+
+
+## The camera view each person last used (see RaceCamera), 0 for player 1.
+func camera_view(person: int) -> String:
+	return settings.get_value("camera", "player_%d" % (person + 1), "chase")
+
+
+func set_camera_view(person: int, view: String) -> void:
+	set_setting("camera", "player_%d" % (person + 1), view)
 
 
 ## The kart you race in, from your choice. In a Grand Prix it's the one you

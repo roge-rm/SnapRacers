@@ -6,9 +6,9 @@ extends RefCounted
 ##
 ## Each level sets:
 ## - skill: how close to their kart's grip limit the AI dare corner, from the
-##   slowest driver to the quickest. The seven drivers are always in the same
-##   order, so Brickley's quickest at every level and the field stays spread
-##   out.
+##   slowest driver to the quickest. The field stays spread out, and which
+##   driver's quickest is drawn at random for each race, or once for a Grand
+##   Prix (see Game.draw_ranks()).
 ## - pace: how hard they push their engines, as a fraction. Lower levels take
 ##   it easier on the straights too, not just in the bends.
 ## - mistakes: the chance of going into a bend too fast or too slow.

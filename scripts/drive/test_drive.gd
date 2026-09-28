@@ -4,7 +4,7 @@ extends Node3D
 ## Takes the kart from the garage out onto the test track.
 
 var kart: Kart
-var camera: ChaseCamera
+var camera: RaceCamera
 var speed_label: Label
 
 
@@ -23,8 +23,13 @@ func _ready() -> void:
 	kart.transform = track.spawn
 	add_child(kart)
 
-	camera = ChaseCamera.new()
+	camera = RaceCamera.new()
 	camera.target = kart
+	camera.input = player
+	camera.head_layer = RaceCamera.head_layer_of(0)
+	kart.head_layer = camera.head_layer
+	camera.view = Game.camera_view(0)
+	camera.view_changed.connect(func(which: String) -> void: Game.set_camera_view(0, which))
 	add_child(camera)
 	camera.make_current()
 	camera.snap()
@@ -53,9 +58,19 @@ func _ready() -> void:
 	garage.position.y = 12
 	garage.pressed.connect(Game.show_garage)
 
+	var view := IconButton.new("camera", "Change the view")
+	hud_root.add_child(view)
+	view.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)
+	view.offset_left = -190.0
+	view.offset_right = -190.0 + IconButton.SIZE
+	view.offset_top = 16.0
+	view.offset_bottom = 16.0 + IconButton.SIZE
+	view.pressed.connect(player.press_view)
+
 	var touch := TouchControls.new()
 	touch.visible = DisplayServer.is_touchscreen_available()
 	touch.blockers.append(garage)
+	touch.blockers.append(view)
 	hud_root.add_child(touch)
 	player.touch = touch
 

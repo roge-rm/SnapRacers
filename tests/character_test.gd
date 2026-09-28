@@ -19,6 +19,48 @@ class Runner:
 		if not ok:
 			failures += 1
 
+	## How far a hand's middle is from the body's blocks (hips, torso and
+	## legs), in the rig's own space.
+	func clearance(hand: Vector3, sitting: bool) -> float:
+		var R := CharacterRig
+		var boxes := [
+			AABB(Vector3(-0.19, 0.0, -R.TORSO_DEPTH * 0.5), Vector3(0.38, R.HIPS_TOP, R.TORSO_DEPTH)),
+			AABB(Vector3(-R.TORSO_BOTTOM_WIDTH * 0.5, R.HIPS_TOP, -R.TORSO_DEPTH * 0.5), Vector3(R.TORSO_BOTTOM_WIDTH, R.TORSO_HEIGHT, R.TORSO_DEPTH)),
+		]
+		for sign in [-1.0, 1.0]:
+			if sitting:
+				boxes.append(AABB(Vector3(sign * R.LEG_X - 0.085, 0.0, -R.LEG_LENGTH), Vector3(0.17, 0.13, R.LEG_LENGTH)))
+			else:
+				boxes.append(AABB(Vector3(sign * R.LEG_X - 0.085, -R.LEG_LENGTH, -0.065), Vector3(0.17, R.LEG_LENGTH, 0.13)))
+		var nearest := INF
+		for box in boxes:
+			var inside: Vector3 = hand.clamp(box.position, box.end)
+			nearest = minf(nearest, hand.distance_to(inside))
+		return nearest
+
+	## How many pieces of headgear aren't touching the head or anything that
+	## is, by their boxes in the head's space.
+	func loose_headgear(rig: CharacterRig) -> int:
+		var R := CharacterRig
+		var head := AABB(Vector3(-R.HEAD_RADIUS, -R.HEAD_HEIGHT * 0.5, -R.HEAD_RADIUS), Vector3(R.HEAD_RADIUS * 2.0, R.HEAD_HEIGHT, R.HEAD_RADIUS * 2.0)).grow(0.004)
+		var boxes := []
+		for node in rig._head.find_children("*", "MeshInstance3D", true, false):
+			var box: AABB = rig._head.global_transform.affine_inverse() * node.global_transform * node.mesh.get_aabb()
+			boxes.append(box.grow(0.002))
+		var joined := {}
+		var todo := []
+		for i in boxes.size():
+			if boxes[i].intersects(head):
+				joined[i] = true
+				todo.append(i)
+		while not todo.is_empty():
+			var i: int = todo.pop_back()
+			for j in boxes.size():
+				if not joined.has(j) and boxes[i].intersects(boxes[j]):
+					joined[j] = true
+					todo.append(j)
+		return boxes.size() - joined.size()
+
 	func hand_at(rig: CharacterRig, side: int) -> Vector3:
 		return rig._hand[side].global_position
 
@@ -40,6 +82,31 @@ class Runner:
 		for slot in CharacterDesign.SLOTS:
 			styles += CharacterDesign.styles(slot).size()
 		check(built == styles * 2, "every piece builds, sitting and standing (%d of %d)" % [built, styles * 2])
+
+		# Every piece of headgear is joined on, to the head or to another
+		# piece that is. Nothing floats.
+		for style in CharacterDesign.styles("headgear"):
+			if style == "none":
+				continue
+			var who := CharacterDesign.load_file("res://data/characters/roster/racer.json")
+			who.set_piece("headgear", style)
+			var rig := CharacterRig.new(who, false)
+			add_child(rig)
+			var loose := loose_headgear(rig)
+			check(loose == 0, "the %s is all joined on (%d pieces loose)" % [CharacterDesign.piece("headgear", style).name.to_lower(), loose])
+			rig.queue_free()
+
+		# Resting hands never go into the body. Brick toys don't pass through
+		# themselves.
+		for sitting in [false, true]:
+			var who := CharacterDesign.load_file("res://data/characters/roster/racer.json")
+			var rig := CharacterRig.new(who, sitting)
+			add_child(rig)
+			var worst := INF
+			for side in 2:
+				worst = minf(worst, clearance(rig.hand_position(side), sitting))
+			check(worst >= 0.035, "%s, the hands rest clear of the body (%.3f m from it)" % ["sitting" if sitting else "standing", worst])
+			rig.queue_free()
 
 		# The roster.
 		var classes := {}

@@ -5,8 +5,8 @@ extends Control
 ## bottom left corner and never moves. Put your thumb anywhere on it and the
 ## knob goes where your thumb is, so you can see how far you're steering. It
 ## springs back to the middle when you let go. On the right there's a big GO
-## button with the brake beside it, the gadget buttons above them, and a
-## small reset button up top. You can slide a finger from GO to brake without
+## button with the brake beside it, the gadget buttons above them, a small
+## reset button up top, and a look back button under it that you hold. You can slide a finger from GO to brake without
 ## lifting it.
 
 ## How much of the stick's travel is a small steer. I made the middle gentle
@@ -19,6 +19,7 @@ var steer := 0.0
 var throttle := 0.0
 var brake := 0.0
 var reset := false
+var look_back := false
 
 ## Buttons drawn over the controls. A touch that starts on one of these is
 ## left alone for the button.
@@ -66,6 +67,7 @@ func _buttons() -> Dictionary:
 		"gas": [Vector2(s.x - r * 1.5, s.y - r * 1.5), r],
 		"brake": [Vector2(s.x - r * 3.9, s.y - r * 1.1), r * 0.75],
 		"reset": [Vector2(s.x - r * 0.9, r * 0.9), r * 0.5],
+		"look": [Vector2(s.x - r * 0.9, r * 2.2), r * 0.5],
 	}
 	if gadget_names[0] != "":
 		out["gadget0"] = [Vector2(s.x - r * 1.3, s.y - r * 3.7), r * 0.62]
@@ -152,6 +154,7 @@ func _update() -> void:
 	throttle = 1.0 if held.has("gas") else 0.0
 	brake = 1.0 if held.has("brake") else 0.0
 	reset = held.has("reset")
+	look_back = held.has("look")
 	queue_redraw()
 
 
@@ -170,7 +173,7 @@ func _draw() -> void:
 		return # not laid out yet
 	var buttons := _buttons()
 	var held := _fingers.values()
-	var labels := { "gas": "GO", "brake": "BRAKE", "reset": "RESET", "gadget0": gadget_names[0], "gadget1": gadget_names[1] }
+	var labels := { "gas": "GO", "brake": "BRAKE", "reset": "RESET", "look": "LOOK\nBACK", "gadget0": gadget_names[0], "gadget1": gadget_names[1] }
 	var font := get_theme_default_font()
 	for name in buttons:
 		var centre: Vector2 = buttons[name][0]
@@ -184,7 +187,7 @@ func _draw() -> void:
 			ring = Color("#f2cd37") if ready else Color(1, 1, 1, 0.3)
 		draw_circle(centre, radius, Color(1, 1, 1, alpha))
 		draw_arc(centre, radius, 0.0, TAU, 48, ring, 3.0, true)
-		var font_size := int(radius * (0.3 if name.begins_with("gadget") else 0.4))
+		var font_size := int(radius * (0.3 if name.begins_with("gadget") or name == "look" else 0.4))
 		var text: String = labels[name]
 		var text_size := font.get_multiline_string_size(text, HORIZONTAL_ALIGNMENT_CENTER, -1, font_size)
 		var top_left := centre - text_size * 0.5 + Vector2(0.0, font_size * 0.8)

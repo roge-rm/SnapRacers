@@ -172,6 +172,12 @@ var _steering: SteeringVisual
 var _rig: CharacterRig
 var _rammed_wait := 0.0
 var slowdown_left := 0.0
+## The render layer the driver's head is drawn on (see RaceCamera), or 0.
+var head_layer := 0:
+	set(value):
+		head_layer = value
+		if _rig != null:
+			_rig.head_layer = value
 ## How hard the engine pushes compared with usual. The AI's difficulty uses it
 ## to catch up or ease off (see Difficulty).
 var push := 1.0
@@ -379,6 +385,7 @@ func _assemble() -> void:
 	if stats.has_seat:
 		_rig = CharacterRig.new(driver if driver != null else default_driver(), true)
 		_rig.recline = stats.recline
+		_rig.head_layer = head_layer
 		_rig.position = stats.seat_top
 		add_child(_rig)
 		# The driver takes hits too, so a rollover lands on something.
@@ -395,6 +402,23 @@ func _assemble() -> void:
 	for w in wheels:
 		if w.driven:
 			_driven_count += 1
+
+
+## Where the driver's eyes are, in world space, for a first person camera.
+func eye_point() -> Vector3:
+	if _rig != null and _rig.is_inside_tree():
+		return _rig.eye_point()
+	return to_global(stats.seat_top + Vector3.UP * 0.6 if stats != null else Vector3.UP)
+
+
+## Just in front of the nose of the kart and low down, in the kart's space,
+## for a bumper camera.
+func bumper_point() -> Vector3:
+	var front := 0.0
+	if stats != null:
+		for info in stats.parts:
+			front = minf(front, info.centre.z - info.extent.z * 0.5)
+	return Vector3(0.0, 0.3, front - 0.05)
 
 
 ## Resets the kart on the next physics step, just as if the driver had

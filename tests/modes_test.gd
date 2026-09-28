@@ -72,6 +72,7 @@ func _grand_prix() -> void:
 	Game.start_grand_prix("baseplate")
 	var me := Game.player_name()
 	var karts := {}
+	var skill_order := {}
 	# Finish every race with you coming second, behind Brickley.
 	for round in 4:
 		var race: Race = await wait_for(Race)
@@ -83,6 +84,14 @@ func _grand_prix() -> void:
 		var now := {}
 		for r in race.racers:
 			now[r.name] = r.kart.design.name
+		var skills := {}
+		for r in race.racers:
+			if not r.player:
+				skills[r.name] = snappedf(r.ai.skill, 0.0001)
+		if round == 0:
+			skill_order = skills
+		else:
+			check(skills == skill_order, "and the same pecking order")
 		if round == 0:
 			karts = now
 			var ai: Array = race.racers.filter(func(r): return not r.player)
@@ -121,6 +130,9 @@ func _grand_prix() -> void:
 	check(labels.any(func(t): return t.contains("trophy")), "and the last screen gives you a trophy")
 
 
+var check_ranks := []
+
+
 func _difficulty() -> void:
 	print("-- Difficulty")
 	var ai := AIDriver.new()
@@ -138,6 +150,16 @@ func _difficulty() -> void:
 	check(Difficulty.push_for(300.0, 0.04, 0.1) > 1.0 and is_equal_approx(Difficulty.push_for(10.0, 0.04, 0.1), 1.0), "far behind, the AI gets a little extra push, but not when it's close")
 	check(Difficulty.push_for(-200.0, 0.0, 0.3) < 0.8, "and on Easy it lifts off when it's well ahead of you")
 	check(is_equal_approx(Difficulty.push_for(300.0, 0.0, 0.0), 1.0) and is_equal_approx(Difficulty.push_for(-300.0, 0.0, 0.0), 1.0), "while Expert never helps anyone")
+	# A different driver's the quickest from race to race.
+	var quickest := {}
+	for i in 30:
+		var ranks := Game.draw_ranks(Game.ai_driver_keys())
+		check_ranks = ranks.values()
+		for driver in ranks:
+			if ranks[driver] == 0:
+				quickest[driver] = true
+	check_ranks.sort()
+	check(check_ranks == range(7) and quickest.size() > 2, "the pecking order is shuffled every time (%d different drivers were quickest in 30 draws)" % quickest.size())
 	Records.add_cup_place("axle", 2, "hard")
 	check(Records.best_cup_place("axle", "hard") == 2 and Records.best_cup_place("axle") == 0, "a cup's trophies are kept for each level")
 

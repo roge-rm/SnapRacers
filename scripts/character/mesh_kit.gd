@@ -209,5 +209,60 @@ static func rounded_cylinder(radius: float, height: float, round := 0.02, sides 
 
 
 ## A minifig hand. It's a thick C shape, open toward -Y, sized to grip a rim.
-static func hand(size := 0.05) -> ArrayMesh:
-	return arc_tube(size, size * 0.45, deg_to_rad(-40.0), deg_to_rad(220.0), 14, 8)
+## A minifig's C shaped hand: a thick ring with flat faces front and back,
+## softly rounded edges and a gap to grip through. The hole runs along Z, and
+## the ring goes around from `from` to `to` in the XY plane like arc_tube(),
+## so the gap is centred on -Y.
+static func hand(size := 0.05, from := deg_to_rad(-50.0), to := deg_to_rad(230.0)) -> ArrayMesh:
+	var key := "hand %s %s %s" % [size, from, to]
+	if _cache.has(key):
+		return _cache[key]
+	var outer := size
+	var inner := size * 0.45
+	var half := size * 0.48
+	var bevel := size * 0.14
+	# The cross section, as (distance from the middle, z) with its normal,
+	# going around a rectangle with rounded corners.
+	var section: Array = []
+	var corners := [
+		[Vector2(outer - bevel, half - bevel), 0.0],
+		[Vector2(inner + bevel, half - bevel), PI * 0.5],
+		[Vector2(inner + bevel, -half + bevel), PI],
+		[Vector2(outer - bevel, -half + bevel), PI * 1.5],
+	]
+	for corner in corners:
+		for i in 4:
+			var a: float = corner[1] + PI * 0.5 * i / 3.0
+			var n := Vector2(cos(a), sin(a))
+			section.append([corner[0] + n * bevel, n])
+	var tool := SurfaceTool.new()
+	tool.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var steps := 18
+	var ring := func(angle: float, point: Vector2) -> Vector3:
+		return Vector3(cos(angle) * point.x, sin(angle) * point.x, point.y)
+	for i in steps:
+		var a0 := lerpf(from, to, float(i) / steps)
+		var a1 := lerpf(from, to, float(i + 1) / steps)
+		for k in section.size():
+			var p: Array = section[k]
+			var q: Array = section[(k + 1) % section.size()]
+			var corners3 := [ring.call(a0, p[0]), ring.call(a1, p[0]), ring.call(a1, q[0]), ring.call(a0, q[0])]
+			var normals := [ring.call(a0, p[1]).normalized(), ring.call(a1, p[1]).normalized(), ring.call(a1, q[1]).normalized(), ring.call(a0, q[1]).normalized()]
+			for v in [0, 1, 2, 0, 2, 3]:
+				tool.set_normal(normals[v])
+				tool.add_vertex(corners3[v])
+	# Flat ends where the gap is.
+	var outline := PackedVector2Array(section.map(func(p): return p[0]))
+	var triangles := Geometry2D.triangulate_polygon(outline)
+	for end in [[from, -1.0], [to, 1.0]]:
+		var angle: float = end[0]
+		var along: Vector3 = Vector3(-sin(angle), cos(angle), 0.0) * float(end[1])
+		for t in range(0, triangles.size(), 3):
+			for v in 3:
+				tool.set_normal(along)
+				tool.add_vertex(ring.call(angle, outline[triangles[t + v]]))
+	tool.index()
+	var mesh := tool.commit()
+	fix_winding(mesh)
+	_cache[key] = mesh
+	return mesh

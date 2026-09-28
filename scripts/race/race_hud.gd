@@ -17,6 +17,8 @@ signal menu_pressed
 signal next_pressed
 ## Back to the course list, to pick another.
 signal courses_pressed
+## The camera button, to change the view.
+signal camera_pressed
 
 var race: Race
 ## Whose race this shows.
@@ -30,6 +32,7 @@ var _big: Label
 var _message: Label
 var _message_left := 0.0
 var _quit: Button
+var _camera: IconButton
 var _fps: Label
 var _results: PanelContainer
 var _results_title: Label
@@ -73,6 +76,16 @@ func _ready() -> void:
 	_quit.position.y = 12
 	_quit.pressed.connect(func() -> void: menu_pressed.emit())
 
+	# The camera button, left of where the touch controls put reset.
+	_camera = IconButton.new("camera", "Change the view")
+	add_child(_camera)
+	_camera.set_anchors_and_offsets_preset(PRESET_TOP_RIGHT)
+	_camera.offset_left = -190.0
+	_camera.offset_right = -190.0 + IconButton.SIZE
+	_camera.offset_top = 16.0
+	_camera.offset_bottom = 16.0 + IconButton.SIZE
+	_camera.pressed.connect(func() -> void: camera_pressed.emit())
+
 	_fps = _label(18)
 	_fps.set_anchors_and_offsets_preset(PRESET_BOTTOM_LEFT)
 	_fps.offset_top = -30.0
@@ -82,7 +95,7 @@ func _ready() -> void:
 
 
 func buttons() -> Array[Control]:
-	return [_quit, _results]
+	return [_quit, _camera, _results]
 
 
 func _label(size: int) -> Label:

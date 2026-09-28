@@ -51,6 +51,12 @@ var _head: Node3D
 var _upper: Node3D
 ## A grip asked for before the rig was built, to do once it is.
 var _early_grip := []
+## The render layer (counting from 1) the head and headgear are drawn on, so
+## one camera can leave them out. 0 leaves them on the usual layer.
+var head_layer := 0:
+	set(value):
+		head_layer = value
+		_apply_head_layer()
 var _arm: Array[Node3D] = []
 var _hand: Array[Node3D] = []
 ## Where each hand's grip sits, in its arm's own unswung space.
@@ -77,6 +83,7 @@ func _ready() -> void:
 	_build_torso()
 	_build_head()
 	_build_arms()
+	_apply_head_layer()
 	if _early_grip.is_empty():
 		rest_hands()
 	else:
@@ -100,10 +107,26 @@ func grip(left: Vector3, right: Vector3, left_along := Vector3.BACK, right_along
 ## Rests the hands on the thighs when sitting, or down by the sides when
 ## standing.
 func rest_hands() -> void:
+	# Standing, the arms swing a little forward so the hands hang just in
+	# front of the hips instead of going into them.
 	if seated:
-		grip(Vector3(-0.15, 0.16, -0.2), Vector3(0.15, 0.16, -0.2), Vector3.FORWARD, Vector3.FORWARD)
+		grip(Vector3(-0.15, 0.19, -0.2), Vector3(0.15, 0.19, -0.2), Vector3.FORWARD, Vector3.FORWARD)
 	else:
-		grip(Vector3(-0.2, -0.2, 0.0), Vector3(0.2, -0.2, 0.0), Vector3.FORWARD, Vector3.FORWARD)
+		grip(Vector3(-0.2, -0.1, -0.3), Vector3(0.2, -0.1, -0.3), Vector3.FORWARD, Vector3.FORWARD)
+
+
+## Where the eyes are, in world space, for a first person camera.
+func eye_point() -> Vector3:
+	if _head == null:
+		return global_position + global_basis.y * HEAD_Y
+	return _head.global_position + _head.global_basis.y * 0.02 - _head.global_basis.z * 0.06
+
+
+func _apply_head_layer() -> void:
+	if _head == null:
+		return
+	for node in _head.find_children("*", "VisualInstance3D", true, false):
+		node.layers = 1 << (head_layer - 1) if head_layer > 0 else 1
 
 
 ## Turns the head a little toward where the kart's going, -1 left to 1 right.
@@ -280,7 +303,7 @@ func _build_head() -> void:
 	head.material_override = _face_material()
 	_head.add_child(head)
 	var gear := design.style_of("headgear")
-	if gear in ["none", "ponytail", "headband"]:
+	if gear in ["none", "headband"]:
 		_add(_head, MeshKit.rounded_cylinder(0.06, 0.045, 0.01, 24), design.skin(), Vector3(0.0, HEAD_HEIGHT * 0.5 + 0.018, 0.0))
 	_build_headgear()
 
@@ -307,12 +330,13 @@ func _build_headgear() -> void:
 			_open_helmet_shell(colour, true)
 			# A strap under the chin, and a clear visor pushed up on the brow.
 			_add(_head, MeshKit.arc_tube(r + 0.004, 0.006, deg_to_rad(205.0), deg_to_rad(335.0)), Color("#1b1b1b"), Vector3(0.0, 0.0, -0.04))
-			var visor := _add(_head, MeshKit.rounded_box(Vector3(0.22, 0.035, 0.03), 0.012), Color("#8fd3f4"), Vector3(0.0, 0.085, -r - 0.012), Basis(Vector3.RIGHT, -0.3), 0.3)
+			# The visor sits on the front of the shell, not in it.
+			var visor := _add(_head, MeshKit.rounded_box(Vector3(0.22, 0.035, 0.03), 0.012), Color("#8fd3f4"), Vector3(0.0, 0.085, -_shell_radius(0.085) - 0.016), Basis(Vector3.RIGHT, -0.3), 0.3)
 			visor.transparency = 0.35
-			_add(_head, MeshKit.rounded_box(Vector3(0.035, 0.015, 0.2), 0.007), Color.WHITE, Vector3(0.0, top + 0.05, 0.02))
 		"open_helmet":
 			_open_helmet_shell(colour, false)
-			_goggles(0.075)
+			# The goggles sit on the front of the shell.
+			_goggles(0.07, _shell_radius(0.07))
 		"cap":
 			_add(_head, _sphere(r + 0.008, 0.1), colour, Vector3(0.0, top - 0.005, 0.0))
 			_add(_head, MeshKit.rounded_box(Vector3(0.17, 0.012, 0.1), 0.005), colour, Vector3(0.0, top - 0.012, -r - 0.03))
@@ -327,7 +351,9 @@ func _build_headgear() -> void:
 		"hard_hat":
 			_add(_head, _sphere(r + 0.018, 0.14), colour, Vector3(0.0, top, 0.0))
 			_add(_head, MeshKit.rounded_cylinder(r + 0.05, 0.014, 0.006, 32), colour, Vector3(0.0, top - 0.025, -0.01))
-			_add(_head, MeshKit.rounded_box(Vector3(0.028, 0.028, 0.22), 0.012), colour.lightened(0.2), Vector3(0.0, top + 0.06, 0.0))
+			# A ridge along the top, short enough that its ends stay down on the
+			# dome instead of sticking out past it.
+			_add(_head, MeshKit.rounded_box(Vector3(0.028, 0.04, 0.14), 0.012), colour.lightened(0.2), Vector3(0.0, top + 0.06, 0.0))
 		"spiky_hair":
 			_add(_head, _sphere(r + 0.006, 0.08), colour, Vector3(0.0, top - 0.005, 0.01))
 			for i in 7:
@@ -335,20 +361,50 @@ func _build_headgear() -> void:
 				var spike := _add(_head, _cylinder(0.0, 0.034, 0.11, 8), colour, Vector3(sin(a) * 0.07, top + 0.04, cos(a) * 0.05 + 0.02))
 				spike.basis = Basis(Vector3(cos(a), 0.0, -sin(a)), -0.5) * Basis(Vector3.RIGHT, 0.3)
 		"ponytail":
-			_add(_head, _sphere(r + 0.008, 0.1), colour, Vector3(0.0, top - 0.005, 0.012))
-			_add(_head, MeshKit.rounded_box(Vector3(0.22, 0.13, 0.05), 0.025), colour, Vector3(0.0, 0.0, r - 0.012))
-			var tail := _add(_head, _cylinder(0.02, 0.04, 0.16, 12), colour, Vector3(0.0, -0.02, r + 0.07))
+			# One piece of hair, over the top and down the back of the head,
+			# with the tail coming out low at the back.
+			_shell(colour, 0.014, deg_to_rad(105.0), deg_to_rad(255.0), -0.06)
+			var tail := _add(_head, _cylinder(0.02, 0.04, 0.16, 12), colour, Vector3(0.0, -0.03, r + 0.05))
 			tail.basis = Basis(Vector3.RIGHT, -0.5)
 		"headband":
 			var band := TorusMesh.new()
 			band.inner_radius = r - 0.002
 			band.outer_radius = r + 0.012
 			_add(_head, band, colour, Vector3(0.0, 0.06, 0.0))
-			_goggles(0.07)
+			_goggles(0.07, r + 0.012)
 		"top_hat":
-			_add(_head, MeshKit.rounded_cylinder(r + 0.05, 0.014, 0.006, 32), colour, Vector3(0.0, top + 0.005, 0.0))
-			_add(_head, MeshKit.rounded_cylinder(0.095, 0.18, 0.01, 28), colour, Vector3(0.0, top + 0.095, 0.0))
-			_add(_head, _cylinder(0.097, 0.097, 0.03, 28), Color("#c4281c"), Vector3(0.0, top + 0.03, 0.0))
+			# It fits down over the top of the head, like a minifig's, with the
+			# brim at the brow.
+			var brim := top - 0.045
+			_add(_head, MeshKit.rounded_cylinder(r + 0.05, 0.014, 0.006, 32), colour, Vector3(0.0, brim, 0.0))
+			_add(_head, MeshKit.rounded_cylinder(r + 0.012, 0.2, 0.01, 32), colour, Vector3(0.0, brim + 0.1, 0.0))
+			_add(_head, _cylinder(r + 0.014, r + 0.014, 0.03, 32), Color("#c4281c"), Vector3(0.0, brim + 0.022, 0.0))
+
+
+## How far out from the middle of the head a helmet's shell is at this height
+## (see _open_helmet_shell()), for putting things on the front of it.
+static func _shell_radius(height: float) -> float:
+	var up := clampf((height - 0.045) / (HEAD_HEIGHT * 0.5), 0.0, 1.0)
+	return (HEAD_RADIUS + 0.022) * cos(asin(up))
+
+
+## A dome over the top of the head, `extra` out from it, that comes down to
+## `bottom` around the head from `from` to `to` (radians, 0 at the front,
+## going around toward the right), for hair.
+func _shell(colour: Color, extra: float, from: float, to: float, bottom: float) -> void:
+	var r := HEAD_RADIUS + extra
+	var top := HEAD_HEIGHT * 0.5
+	var dome := PackedVector2Array()
+	for i in 9:
+		var a := PI * 0.5 * i / 8.0
+		dome.append(Vector2(r * cos(a), 0.045 + (top + 0.01) * sin(a)))
+	var material := _mat(colour).duplicate() as StandardMaterial3D
+	material.cull_mode = BaseMaterial3D.CULL_DISABLED
+	for mesh in [MeshKit.lathe(dome, 40), MeshKit.lathe(PackedVector2Array([Vector2(r - 0.004, bottom), Vector2(r, bottom + 0.03), Vector2(r, 0.05)]), 40, from, to)]:
+		var node := MeshInstance3D.new()
+		node.mesh = mesh
+		node.material_override = material
+		_head.add_child(node)
 
 
 ## A minifig helmet. It's a dome over the top that comes down around the back
@@ -376,13 +432,15 @@ func _open_helmet_shell(colour: Color, deep: bool) -> void:
 		_head.add_child(guard)
 
 
-func _goggles(height: float) -> void:
+## Goggles on the front of whatever's `out` from the middle of the head at
+## this height (the head, a band or a helmet), sitting on it, not in it.
+func _goggles(height: float, out: float = HEAD_RADIUS) -> void:
 	for s in [-1.0, 1.0]:
 		var rim := TorusMesh.new()
 		rim.inner_radius = 0.022
 		rim.outer_radius = 0.033
-		_add(_head, rim, Color("#3c3f44"), Vector3(0.036 * s, height, -HEAD_RADIUS - 0.01), Basis(Vector3.RIGHT, PI * 0.5), 0.5)
-		var lens := _add(_head, _cylinder(0.023, 0.023, 0.008, 16), Color("#8fd3f4"), Vector3(0.036 * s, height, -HEAD_RADIUS - 0.012), Basis(Vector3.RIGHT, PI * 0.5), 0.4)
+		_add(_head, rim, Color("#3c3f44"), Vector3(0.036 * s, height, -out - 0.008), Basis(Vector3.RIGHT, PI * 0.5), 0.5)
+		var lens := _add(_head, _cylinder(0.023, 0.023, 0.008, 16), Color("#8fd3f4"), Vector3(0.036 * s, height, -out - 0.01), Basis(Vector3.RIGHT, PI * 0.5), 0.4)
 		lens.transparency = 0.25
 
 
