@@ -548,6 +548,8 @@ func _build_placing() -> void:
 	_turn_buttons.append(turn)
 	column.add_child(turn)
 	_place = BuilderStyle.pill("Place", MenuStyle.ACCENT, BuilderStyle.ON_ACCENT, func() -> void: place_pressed.emit(), 52.0)
+	# Placing a part makes its own snap, so no click on top.
+	_place.set_meta("quiet", true)
 	column.add_child(_place)
 
 

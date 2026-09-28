@@ -79,6 +79,8 @@ var camera: RaceCamera
 const FRAMES_BEFORE_COUNTDOWN := 10
 var _frames_drawn := 0
 var _watch_in := 0.0
+## The last number of the countdown that beeped.
+var _beeped := 4
 ## Where each racer was in the order the last time the drivers looked.
 var _places := {}
 
@@ -149,9 +151,11 @@ func _ready() -> void:
 		racer.kart.controls = racer.ai.controls
 		add_child(racer.ai)
 	humans.append(player)
+	player.kart.sound.wind = true
 	for racer in racers:
 		if racer.player and racer != player:
 			humans.append(racer)
+			racer.kart.sound.wind = true
 
 	var karts: Array[Kart] = []
 	for racer in racers:
@@ -315,7 +319,12 @@ func _physics_process(delta: float) -> void:
 	if _frames_drawn < FRAMES_BEFORE_COUNTDOWN:
 		return
 	time += delta
+	# A beep for each number of the countdown, and a higher one for GO.
+	if not started and ceili(-time) < _beeped and ceili(-time) >= 1:
+		_beeped = ceili(-time)
+		Sounds.play("fx/beep")
 	if not started and time >= 0.0:
+		Sounds.play("fx/go")
 		started = true
 		for racer in racers:
 			racer.kart.locked = false
@@ -329,8 +338,13 @@ func _physics_process(delta: float) -> void:
 			if studs != null:
 				kart.add_studs(studs.collect(kart))
 			var was_done := racer.progress.finished
+			var was_lap := racer.progress.current_lap()
 			racer.progress.update(racer.offset, time)
+			if racer.player and not racer.progress.finished and racer.progress.current_lap() > was_lap:
+				Sounds.play("fx/final_lap" if racer.progress.current_lap() == laps else "fx/lap")
 			if racer.progress.finished and not was_done:
+				if racer.player:
+					Sounds.play("fx/win" if place_of(racer) == 1 and mode != Game.MODE_TIME_TRIAL else "fx/finish")
 				# The winner cheers and everyone else is happy to be done.
 				if place_of(racer) == 1:
 					racer.kart.cheer()

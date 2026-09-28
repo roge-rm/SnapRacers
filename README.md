@@ -98,6 +98,17 @@ They're brick minifigs, just a bit cuter, with bigger heads, big shiny eyes and 
 - **Six camera views:** close and far chase, first person from your driver's eyes (with their hands on the wheel), a bumper cam, overhead, and TV cameras beside the track. The camera button goes through them and each player's last view is remembered. Hold look back to see who's coming. When you cross the line the camera circles your kart, then the TV cameras take over while the AI drives you home.
 - **Four difficulty levels** for the AI drivers, picked before a race or a cup. Easy drivers take it gently, slip up now and then and wait for you. Expert drivers are right on the limit and never let up. Trophies are kept for each level.
 
+### Sound
+
+Everything you hear was made from scratch for the game, by a little synthesiser in `tools/sound`. Nothing's recorded or downloaded.
+
+- **Engines:** each kind of engine has its own sound, from the buzzy little kart engine and the lawnmower micro engine to the lumpy V twin, the clattering diesel, the burbling V8, the whining electric motor and the roaring jet. They rev up as the kart speeds up, and on the grid you can rev yours.
+- **Driving:** tires squeal when you slide, there's a rumble on grass and dirt, and the wind picks up as you go faster.
+- **Everything else:** knocks and crashes, bricks clattering off, every gadget, studs, the countdown, laps, the finish, and clicks and snaps in the menus and the garage.
+- **Music:** a laid back tune for the menus and the garage, and a tune of its own for each cup. I wrote them note by note and the synthesiser plays them.
+
+Music and effects each have their own volume in Settings.
+
 Every course is made of track pieces snapped together on a grid, with hills, crests, jumps, bridges, a loop and plenty of scenery. Each one is based on a real kart circuit.
 
 | Cup | Courses |
@@ -128,7 +139,7 @@ tools/build-android.sh            # the phone APK (arm64)
 tools/build-android.sh --install  # the emulator APK (x86_64), installed on the running emulator
 ```
 
-`tools/build-engine.sh` builds Godot from source with only what the game uses (the list is in `tools/engine/profile.py`), which makes the APK a lot smaller. It needs the Android NDK version Godot asks for and `uv` for installing scons. The finished engine goes in `tools/godot/custom`, and the Android build puts it into the APK. Without it, the build uses the stock engine.
+`tools/build-engine.sh` builds Godot from source with only what the game uses (the list is in `tools/engine/profile.py`), which makes the APK a lot smaller. It keeps Ogg Vorbis for the music. It needs the Android NDK version Godot asks for and `uv` for installing scons. The finished engine goes in `tools/godot/custom`, and the Android build puts it into the APK. Without it, the build uses the stock engine.
 
 The heavy parts of both builds happen in `/tmp`, because my `/home` is on a slow hard drive. The engine keeps a compile cache there too, so rebuilding it after a small change is quick. `/tmp` is emptied on a reboot, but the finished engine is kept, so it only needs building again for a new version of Godot or a change to the list.
 
@@ -138,6 +149,7 @@ The heavy parts of both builds happen in `/tmp`, because my `/home` is on a slow
 | Engine | Godot 4.7.2, GL Compatibility renderer, Jolt physics |
 | ABIs | `arm64-v8a` for phones (a release build), `x86_64` for the emulator (a debug build) |
 | Code | GDScript in `scripts`, with parts, karts, drivers and courses as JSON in `data` |
+| Sound | Made by `tools/sound/make_sounds.py` into `sound` (see `tools/sound/README.md`) |
 
 ## Testing
 

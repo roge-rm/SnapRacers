@@ -70,6 +70,10 @@ func _ready() -> void:
 
 	_stages = [_warm_race, _warm_garage, _warm_driver]
 	_began = Time.get_ticks_msec()
+	# The race and the rest are only here to get things ready, so nobody should
+	# hear them. The sounds get loaded meanwhile.
+	Sounds.hushed = true
+	Sounds.load_all()
 	# Let the splash itself get on screen first, so there's something to look
 	# at while the first warm up frames stall.
 	await get_tree().process_frame
@@ -126,6 +130,7 @@ func _process(delta: float) -> void:
 	elif _scene == null and _shown >= AT_LEAST:
 		_done = true
 		print("Warm-up took %d ms" % (Time.get_ticks_msec() - _began))
+		Sounds.hushed = false
 		Game.show_menu()
 
 

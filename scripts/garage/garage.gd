@@ -255,8 +255,12 @@ func turn() -> void:
 
 ## Puts the part being placed down, and its mirror image too with Mirror on.
 func place() -> void:
-	if _holding == "" or not _ghost_ok:
+	if _holding == "":
 		return
+	if not _ghost_ok:
+		Sounds.play("fx/nope")
+		return
+	Sounds.play("fx/snap", 0.0, randf_range(0.95, 1.05))
 	# A move took its undo step when it started.
 	if _moving.is_empty():
 		_remember()
@@ -305,6 +309,7 @@ func move_selected() -> void:
 	_remember()
 	var index := _selected
 	design.parts.remove_at(index)
+	Sounds.play("fx/unsnap")
 	_selected = -1
 	_rebuild()
 	start_placing(p.id, p.rot, p.get("color"), p.at)
@@ -334,6 +339,7 @@ func delete_selected() -> void:
 	_remember()
 	var gone: Dictionary = design.parts[_selected]
 	design.parts.remove_at(_selected)
+	Sounds.play("fx/unsnap")
 	if mirror:
 		var twin := find_part(mirrored(gone))
 		if twin != -1:

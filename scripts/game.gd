@@ -61,6 +61,7 @@ func _ready() -> void:
 	character = CharacterDesign.load_file(CURRENT_DRIVER if FileAccess.file_exists(CURRENT_DRIVER) else ROSTER + "/racer.json")
 	theme = Theme.new()
 	theme.default_font_size = 22
+	Sounds.setup(volume(Sounds.MUSIC_BUS), volume(Sounds.EFFECTS_BUS))
 
 
 ## Starts the game in `host`. Tests skip the splash.
@@ -327,6 +328,16 @@ func show_fps() -> bool:
 	return settings.get_value("display", "show_fps", false)
 
 
+## The volume of the Music or Effects bus, 0 to 1.
+func volume(bus: String) -> float:
+	return settings.get_value("sound", bus.to_lower(), 0.8 if bus == Sounds.MUSIC_BUS else 1.0)
+
+
+func set_volume(bus: String, value: float) -> void:
+	set_setting("sound", bus.to_lower(), value)
+	Sounds.set_volume(bus, value)
+
+
 func set_setting(section: String, key: String, value: Variant) -> void:
 	settings.set_value(section, key, value)
 	settings.save(SETTINGS)
@@ -360,6 +371,12 @@ func _swap(next: Node) -> void:
 	if _screen != null:
 		_screen.queue_free()
 	_screen = next
+	# Each cup has its own race tune, and everywhere else plays the menu's.
+	# The splash is quiet.
+	if next is Race:
+		Sounds.music(Sounds.race_tune(Tracks.id_of(track_path)))
+	elif not next is SplashScreen:
+		Sounds.music("menu")
 	_set_portrait(next is Race and race_split() == FACE_TO_FACE)
 	_host.add_child(next)
 

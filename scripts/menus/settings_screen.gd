@@ -4,7 +4,7 @@ extends Control
 ## Settings, split into tabs the way ScorchDroid does it. Everything saves as
 ## soon as you change it.
 
-const TABS := ["Player", "Display"]
+const TABS := ["Player", "Sound", "Display"]
 
 var _tab_buttons: Array[Button] = []
 var _underlines: Array[ColorRect] = []
@@ -36,6 +36,7 @@ func _ready() -> void:
 		_underlines.append(line)
 
 	_pages.append(_player_page())
+	_pages.append(_sound_page())
 	_pages.append(_display_page())
 	for page in _pages:
 		column.add_child(page)
@@ -63,6 +64,25 @@ func _player_page() -> Control:
 	name_edit.text = Game.settings.get_value("player", "name", "")
 	name_edit.text_changed.connect(func(text: String) -> void: Game.set_setting("player", "name", text.strip_edges()))
 	page.add_child(name_edit)
+	return page
+
+
+func _sound_page() -> Control:
+	var page := VBoxContainer.new()
+	page.add_theme_constant_override("separation", 10)
+	for bus in [[Sounds.MUSIC_BUS, "Music", "The tunes in the menus and the races"], [Sounds.EFFECTS_BUS, "Effects", "Engines, crashes, gadgets and clicks"]]:
+		var row := HBoxContainer.new()
+		row.add_theme_constant_override("separation", 20)
+		page.add_child(row)
+		var heading := MenuStyle.heading(bus[1], bus[2])
+		heading.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		row.add_child(heading)
+		var name: String = bus[0]
+		row.add_child(MenuStyle.slider(Game.volume(name), func(value: float) -> void:
+			Game.set_volume(name, value)
+			# A click at the new level, so you can hear how loud it is.
+			if name == Sounds.EFFECTS_BUS:
+				Sounds.play("fx/click")))
 	return page
 
 

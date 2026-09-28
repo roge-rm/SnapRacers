@@ -177,6 +177,45 @@ static func link(text: String, action: Callable) -> Button:
 
 ## A heading with a line of grey explanation under it, like ScorchDroid's
 ## settings.
+## A slider for a setting, big enough for a thumb: a thick track filled in
+## the accent colour up to a round handle.
+static func slider(value: float, changed: Callable, low := 0.0, high := 1.0, step := 0.1) -> HSlider:
+	var s := HSlider.new()
+	s.min_value = low
+	s.max_value = high
+	s.step = step
+	s.value = value
+	s.focus_mode = Control.FOCUS_NONE
+	s.custom_minimum_size = Vector2(320.0, 48.0)
+	s.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	var track := StyleBoxFlat.new()
+	track.bg_color = Color(1.0, 1.0, 1.0, 0.15)
+	track.set_corner_radius_all(5)
+	track.content_margin_top = 5.0
+	track.content_margin_bottom = 5.0
+	var filled := track.duplicate() as StyleBoxFlat
+	filled.bg_color = ACCENT
+	s.add_theme_stylebox_override("slider", track)
+	s.add_theme_stylebox_override("grabber_area", filled)
+	s.add_theme_stylebox_override("grabber_area_highlight", filled)
+	var knob := _knob(28, Color.WHITE)
+	s.add_theme_icon_override("grabber", knob)
+	s.add_theme_icon_override("grabber_highlight", knob)
+	s.value_changed.connect(changed)
+	return s
+
+
+## A round handle, drawn as a picture.
+static func _knob(size: int, colour: Color) -> ImageTexture:
+	var image := Image.create_empty(size, size, false, Image.FORMAT_RGBA8)
+	var middle := (size - 1) * 0.5
+	for y in size:
+		for x in size:
+			var d := Vector2(x - middle, y - middle).length()
+			image.set_pixel(x, y, Color(colour, clampf(middle - d + 0.5, 0.0, 1.0)))
+	return ImageTexture.create_from_image(image)
+
+
 static func heading(text: String, explanation := "") -> VBoxContainer:
 	var box := VBoxContainer.new()
 	box.add_theme_constant_override("separation", 2)

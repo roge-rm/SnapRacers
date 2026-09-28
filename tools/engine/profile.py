@@ -3,8 +3,9 @@
 # library, and so the APK, a lot smaller.
 #
 # The game draws with the Compatibility renderer (OpenGL ES 3), runs its
-# physics with Jolt, and has no sound, video, XR, navigation or 2D physics.
-# Networking stays in, for racing online later.
+# physics with Jolt, and has no video, XR, navigation or 2D physics. Sound
+# stays in, with Ogg Vorbis for the music, and so does networking, for
+# racing online later.
 #
 # tools/build-engine.sh runs this and passes every name it sets to scons, so
 # it's plain Python. The target (release or debug) and link time optimisation
@@ -37,8 +38,8 @@ for module in [
     "dds", "etcpak", "fbx", "glslang", "gltf", "godot_physics_2d", "godot_physics_3d",
     "gridmap", "hdr", "interactive_music", "jpg", "jsonrpc", "ktx", "lightmapper_rd",
     "meshoptimizer", "mobile_vr", "mp3", "navigation_2d", "navigation_3d", "noise",
-    "objectdb_profiler", "ogg", "openxr", "raycast", "regex", "svg", "tga", "theora",
-    "tinyexr", "upnp", "vhacd", "visual_shader", "vorbis", "webrtc", "webxr",
+    "objectdb_profiler", "openxr", "raycast", "regex", "svg", "tga", "theora",
+    "tinyexr", "upnp", "vhacd", "visual_shader", "webrtc", "webxr",
     "xatlas_unwrap", "zip",
 ]:
     globals()["module_%s_enabled" % module] = "no"

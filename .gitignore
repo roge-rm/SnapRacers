@@ -25,3 +25,4 @@ core.[0-9]*
 /tools/track-design/traced/
 /tools/track-design/courses/*.png
 /tools/track-design/__pycache__/
+/tools/sound/__pycache__/

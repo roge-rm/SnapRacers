@@ -97,6 +97,11 @@ const STICK_PITCH_DAMP := 4.0
 ## A little extra pull onto sticky road to keep all four wheels planted over
 ## bumps. On a loop the kart's own speed presses it down far harder than this.
 const STICK_PULL := 0.1
+## The sound each gadget makes when it's used (see sound/fx).
+const GADGET_SOUNDS := {
+	"turbo": "fx/turbo", "spring": "fx/spring", "dropper": "fx/drop", "cannon": "fx/cannon",
+	"repair": "fx/repair", "shield": "fx/shield", "magnet": "fx/magnet",
+}
 
 
 class Wheel:
@@ -170,6 +175,11 @@ var _gadget_wait: Array[float] = [0.0, 0.0]
 var _bubble: MeshInstance3D
 var _steering: SteeringVisual
 var _rig: CharacterRig
+## What the kart sounds like. It stays when the kart's rebuilt.
+var sound: KartSound
+## How much of the kart's weight is on grass or dirt right now, 0 to 1, for
+## its rumble.
+var rough := 0.0
 ## A kart the race says is close by, which the driver turns to look at.
 var alongside: Kart
 var _rammed_wait := 0.0
@@ -327,8 +337,11 @@ static func _weight_shares(full: KartStats) -> Array[float]:
 
 ## Puts together whatever parts are still on.
 func _assemble() -> void:
+	if sound == null:
+		sound = KartSound.new(self)
+		add_child(sound)
 	for child in get_children():
-		if child == _bubble:
+		if child == _bubble or child == sound:
 			continue
 		remove_child(child)
 		child.queue_free()
@@ -399,6 +412,7 @@ func _assemble() -> void:
 		shape.position = stats.seat_top + Vector3(0.0, 0.4, 0.0)
 		add_child(shape)
 
+	sound.refit(stats)
 	mass = maxf(stats.mass, 1.0)
 	center_of_mass = stats.center_of_mass
 	_driven_count = 0
@@ -468,6 +482,7 @@ func lose_parts(indices: Array[int]) -> void:
 	linear_velocity = keep_linear
 	angular_velocity = keep_angular
 	react("surprised", 1.2)
+	Sounds.play_at("fx/bricks", sound)
 	parts_lost.emit(newly)
 
 
@@ -556,6 +571,8 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 	var space := state.get_space_state()
 	var sticky_up := Vector3.ZERO
 	var sticky_wheels := 0
+	var on_rough := 0
+	var on_any := 0
 	var share := mass / maxf(wheels.size(), 1)
 	for w in wheels:
 		var anchor := state.transform * (w.rest + Vector3.UP * SUSPENSION_TRAVEL)
@@ -611,6 +628,9 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 		var ground: Object = hit.get("collider")
 		var grip_here: float = ground.get_meta("grip", 1.0) if ground != null else 1.0
 		var drag_here: float = ground.get_meta("drag", 1.0) if ground != null else 1.0
+		on_any += 1
+		if grip_here < 1.0:
+			on_rough += 1
 		grip_here = ground_grip(grip_here, w.offroad)
 		drag_here = ground_drag(drag_here, w.offroad)
 		var resist := w.rolling * load * drag_here
@@ -627,6 +647,8 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 		state.apply_force(side * tire.y, contact + up * height * ROLL_HELP - origin)
 		state.apply_force(heading * tire.x, contact + up * height - origin)
 		applied += normal * load + side * tire.y + heading * tire.x
+
+	rough = float(on_rough) / on_any if on_any > 0 else 0.0
 
 	# Sticky road. Gravity already pulls everything down, so this cancels that
 	# and pulls toward the road instead.
@@ -733,10 +755,13 @@ func _feel_knocks(state: PhysicsDirectBodyState3D) -> void:
 			rammed = true
 		shares[part] = shares.get(part, 0.0) + weight
 		total += weight
+	if sound != null:
+		sound.knocked(knock)
 	if rammed:
 		knock *= RAM_KNOCK
 		if knock > RAM_HIT * RAM_KNOCK and _rammed_wait <= 0.0 and shield_left <= 0.0:
 			_rammed_wait = RAM_EVERY
+			Sounds.play_at.call_deferred("fx/ram", sound)
 			knock_off_a_part.call_deferred()
 	# A shield holds everything on, however hard the knock.
 	if shield_left > 0.0:
@@ -858,11 +883,16 @@ func use_gadget(slot: int) -> bool:
 		"shield":
 			shield_left = SHIELD_TIME
 			_show_bubble()
+	var noise: String = GADGET_SOUNDS.get(def.get("gadget", ""), "")
+	if noise != "":
+		Sounds.play_at(noise, sound)
 	gadget_used.emit(def.get("gadget", ""))
 	return true
 
 
 func add_studs(count: int) -> void:
+	if count > 0:
+		Sounds.play_at("fx/stud", sound, -4.0, randf_range(0.95, 1.1))
 	studs_picked += maxi(count, 0)
 	studs = clampi(studs + count, 0, MOST_STUDS)
 
@@ -885,6 +915,7 @@ func rammed_with(point: Vector3) -> bool:
 func knock_off_a_part() -> void:
 	if shield_left > 0.0 or stats == null:
 		return
+	Sounds.play_at("fx/hit", sound)
 	var outermost := -1
 	var furthest := -1.0
 	for info in stats.parts:
@@ -955,6 +986,7 @@ func _reset(state: PhysicsDirectBodyState3D) -> void:
 	slowdown_left = 0.0 if run_up_reset else RESET_SLOWDOWN_TIME
 	run_up_reset = false
 	_repair_pending = true
+	Sounds.play_at.call_deferred("fx/reset", sound)
 	was_reset.emit.call_deferred()
 
 
