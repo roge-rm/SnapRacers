@@ -8,14 +8,20 @@ extends RefCounted
 ## It also knows the building rules. Parts join the way real bricks do. The
 ## studs on top of one part press into the bottom of the part above, as long
 ## as they overlap. Wheels are different. They have no studs, and they clip
-## onto the side of a part by their axle instead.
+## onto the side of a part by their axle instead. Fairings and side pods clip
+## onto the side the same way.
 
 ## How big a kart can be, in studs across, plates high and studs long.
 const BUILD_SIZE := Vector3i(20, 30, 24)
 const MOST_GADGETS := 2
+## How far above the bottom of the wheels everything else has to be, in
+## plates, so it doesn't scrape when the springs squash.
+const CLEARANCE := 2
 const SAVE_DIR := "user://karts"
 
 var name := "Kart"
+## A line about what kind of kart it is, for the stock karts.
+var about := ""
 ## Each entry is { "id": String, "at": Vector3i, "rot": int }, plus "color"
 ## (a Color) when the part has been painted something other than its own
 ## colour.
@@ -25,6 +31,7 @@ var parts: Array[Dictionary] = []
 static func from_dict(data: Dictionary) -> KartDesign:
 	var design := KartDesign.new()
 	design.name = str(data.get("name", "Kart"))
+	design.about = str(data.get("about", ""))
 	for entry in data.get("parts", []):
 		var at: Array = entry.get("at", [0, 0, 0])
 		var part := {
@@ -53,7 +60,10 @@ func to_dict() -> Dictionary:
 		if p.has("color"):
 			entry["color"] = "#" + p.color.to_html(false)
 		out.append(entry)
-	return { "name": name, "parts": out }
+	var data := { "name": name, "parts": out }
+	if about != "":
+		data["about"] = about
+	return data
 
 
 func duplicate_design() -> KartDesign:
@@ -113,6 +123,12 @@ static func is_wheel(id: String) -> bool:
 	return PartCatalog.get_part(id).get("kind", "") == "wheel"
 
 
+## Whether a part clips onto the side of another part instead of joining by
+## studs. Wheels do, and so do fairings.
+static func clips_on_side(id: String) -> bool:
+	return PartCatalog.get_part(id).get("kind", "") in ["wheel", "fairing"]
+
+
 ## Whether a part here would fit inside the build area without going through
 ## anything.
 func fits(id: String, at: Vector3i, rot: int, ignore := -1) -> bool:
@@ -129,15 +145,16 @@ func fits(id: String, at: Vector3i, rot: int, ignore := -1) -> bool:
 
 ## Whether these two parts hold onto each other.
 static func joined(id_a: String, box_a: AABB, id_b: String, box_b: AABB) -> bool:
-	var wheel_a := is_wheel(id_a)
-	var wheel_b := is_wheel(id_b)
+	var wheel_a := clips_on_side(id_a)
+	var wheel_b := clips_on_side(id_b)
 	if wheel_a and wheel_b:
 		return false
 	if not wheel_a and not wheel_b:
 		# By studs, when one sits right on top of the other and they overlap.
 		var stacked := is_equal_approx(box_a.end.y, box_b.position.y) or is_equal_approx(box_b.end.y, box_a.position.y)
 		return stacked and _overlap_area(box_a, box_b, Vector3.AXIS_Y) > 0.0
-	# By an axle, when the wheel's flat side is against the side of the part.
+	# By an axle (or a clip), when the wheel's flat side is against the side of
+	# the part.
 	var side_by_side := is_equal_approx(box_a.end.x, box_b.position.x) or is_equal_approx(box_b.end.x, box_a.position.x)
 	return side_by_side and _overlap_area(box_a, box_b, Vector3.AXIS_X) > 0.0
 
@@ -212,6 +229,27 @@ func detached_after(lost: Dictionary, anchor: int) -> Array[int]:
 	return out
 
 
+## How many studs the driver has to reach forward from the front of their
+## seat to the steering, or -1 if the steering isn't in front of the seat
+## where they could get at it (or there's no seat or steering).
+func steering_gap() -> int:
+	var seat := seat_index()
+	if seat == -1:
+		return -1
+	var seat_box := box_of(seat)
+	var best := -1
+	for i in parts.size():
+		if PartCatalog.get_part(parts[i].id).get("kind", "") != "steering":
+			continue
+		var box := box_of(i)
+		# It has to be in front of the seat and overlap it from side to side.
+		var gap := int(seat_box.position.z - box.end.z)
+		var across := minf(box.end.x, seat_box.end.x) - maxf(box.position.x, seat_box.position.x)
+		if gap >= 0 and across > 0.0 and (best == -1 or gap < best):
+			best = gap
+	return best
+
+
 func seat_index() -> int:
 	for i in parts.size():
 		if PartCatalog.get_part(parts[i].id).get("kind", "") == "seat":
@@ -255,6 +293,10 @@ func problems() -> Array[String]:
 		out.append("It needs an engine.")
 	if steering == 0:
 		out.append("It needs a steering wheel or handlebars in front of the seat.")
+	elif seats > 0:
+		var gap := steering_gap()
+		if gap == -1 or gap > KartStats.MOST_REACH:
+			out.append("The driver can't reach the steering. It has to be right in front of the seat.")
 	if wheels < 3:
 		out.append("It needs at least three wheels.")
 	if gadgets > MOST_GADGETS:
@@ -266,8 +308,8 @@ func problems() -> Array[String]:
 			if _overlap_volume(box_of(i), box_of(j)) > 0.0:
 				out.append("Two parts are inside each other.")
 				return out
-	if wheels > 0 and lowest_other < lowest_wheel:
-		out.append("Something hangs down below the wheels and would scrape along the ground.")
+	if wheels > 0 and lowest_other < lowest_wheel + CLEARANCE:
+		out.append("Something hangs down too low and would scrape along the ground. Everything but the wheels needs two plates of room underneath.")
 	return out
 
 

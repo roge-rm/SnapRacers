@@ -75,6 +75,15 @@ func _draw() -> void:
 			draw_rect(Rect2(c + Vector2(-11, -5), Vector2(22, 14)), ink)
 			for x in [-7.0, 3.0]:
 				draw_rect(Rect2(c + Vector2(x, -9), Vector2(5, 4)), ink)
+		"slopes":
+			draw_colored_polygon(PackedVector2Array([c + Vector2(-12, 9), c + Vector2(12, 9), c + Vector2(12, -8), c + Vector2(4, -8)]), ink)
+			draw_rect(Rect2(c + Vector2(6, -12), Vector2(5, 4)), ink)
+		"wings":
+			draw_rect(Rect2(c + Vector2(-13, -8), Vector2(26, 5)), ink)
+			for x in [-7.0, 5.0]:
+				draw_line(c + Vector2(x, -3), c + Vector2(x, 10), ink, w)
+			draw_line(c + Vector2(-13, -11), c + Vector2(-13, 0), ink, 2.0)
+			draw_line(c + Vector2(13, -11), c + Vector2(13, 0), ink, 2.0)
 		"wheels":
 			draw_arc(c, 11.0, 0.0, TAU, 24, ink, w, true)
 			draw_circle(c, 4.0, ink)

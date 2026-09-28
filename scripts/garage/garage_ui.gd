@@ -50,16 +50,25 @@ signal name_changed(text: String)
 const CATEGORIES := [
 	["Plates", ["plate"], "plates"],
 	["Bricks", ["brick"], "bricks"],
+	["Bodywork", ["body", "fairing"], "slopes"],
 	["Wheels", ["wheel"], "wheels"],
 	["Engines", ["engine"], "engines"],
+	["Cockpit", ["seat", "steering", "screen"], "extras"],
+	["Wings", ["wing"], "wings"],
 	["Gadgets", ["gadget"], "gadgets"],
-	["Extras", ["seat", "steering", "wing"], "extras"],
 ]
 ## The colours you can paint parts, the classic brick ones.
 const PAINTS := [
 	"#c4281c", "#da8540", "#f2cd37", "#a4bd46", "#4b9f4a", "#237841", "#36aebf", "#0d69ab",
 	"#143044", "#7b2e2f", "#694030", "#d7c599", "#f2f3f2", "#a3a2a4", "#635f61", "#1b2a34",
 ]
+## What the stats card says about where most of the kart's drag comes from.
+const DRAG_TIPS := {
+	"driver": "Most of the drag is the driver. A windscreen in front of them, or a seat that lays them back, would help.",
+	"wheels": "Most of the drag is the wheels. Fairings in front of them would help.",
+	"flat": "Most of the drag is flat fronts. Slopes, curves or a nose cone would help.",
+	"smooth": "The air gets past this kart smoothly.",
+}
 const DANGER := BuilderStyle.DANGER
 const DATA := BuilderStyle.DATA
 
@@ -88,6 +97,7 @@ var _stats_card: PanelContainer
 var _stats_name: Label
 var _stats_label: Label
 var _problems_label: Label
+var _tip_label: Label
 var _problem_count := 0
 
 var _held_chip: PanelContainer
@@ -219,14 +229,20 @@ func show_stats(stats: KartStats, problems: Array[String]) -> void:
 		"Top speed  %d km/h" % roundi(stats.top_speed() * 3.6),
 		"Pull  %.2f g" % stats.pull(),
 		"Cornering  %.2f g" % stats.cornering(),
+		"Control  %d%%" % roundi(stats.control * 100.0),
+		"Off-road grip  %+d%%" % roundi(stats.offroad * 100.0),
 		"Weight  %d kg" % roundi(stats.mass),
 		"Power  %.1f kW" % (stats.power / 1000.0),
-		"Drag  %.2f m²" % stats.drag_area,
-		"Wheels  %d" % stats.wheels.size(),
 	]
+	if stats.thrust > 0.0:
+		lines.append("Thrust  %d N" % roundi(stats.thrust))
+	lines.append("Drag  %.2f m²" % stats.drag_area)
+	lines.append("Wheels  %d" % stats.wheels.size())
 	if stats.lift_area > 0.0:
 		lines.append("Wing  %.2f m²" % stats.lift_area)
 	_stats_label.text = "\n".join(lines)
+	_tip_label.text = DRAG_TIPS.get(stats.most_drag(), "") if not stats.parts.is_empty() else ""
+	_tip_label.visible = _tip_label.text != ""
 	_problems_label.text = "\n\n".join(problems)
 	_problems_label.visible = not problems.is_empty()
 	_problem_count = problems.size()
@@ -451,6 +467,12 @@ func _build_stats() -> void:
 	_stats_label.add_theme_font_size_override("font_size", 18)
 	_stats_label.add_theme_color_override("font_color", DATA)
 	box.add_child(_stats_label)
+	_tip_label = Label.new()
+	_tip_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_tip_label.custom_minimum_size = Vector2(230, 0)
+	_tip_label.add_theme_font_size_override("font_size", 16)
+	_tip_label.add_theme_color_override("font_color", Color(1, 1, 1, 0.7))
+	box.add_child(_tip_label)
 	_problems_label = Label.new()
 	_problems_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_problems_label.custom_minimum_size = Vector2(230, 0)
@@ -650,7 +672,7 @@ func _build_dialogs() -> void:
 	title.add_theme_font_size_override("font_size", 26)
 	box.add_child(title)
 	var scroll := ScrollContainer.new()
-	scroll.custom_minimum_size = Vector2(460, 380)
+	scroll.custom_minimum_size = Vector2(460, 460)
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	box.add_child(scroll)
 	_load_list = VBoxContainer.new()
@@ -689,19 +711,27 @@ func _open_rename() -> void:
 	_name_edit.grab_focus()
 
 
+## The karts you've saved, then the stock karts. Loading a stock kart gives
+## you a copy of it to change.
 func _open_load() -> void:
 	for child in _load_list.get_children():
 		child.queue_free()
-	var choices: Array = [["Starter (comes with the game)", Game.STARTER]]
-	for path in KartDesign.saved_paths():
-		var design := KartDesign.load_file(path)
-		choices.append([design.name, path])
-	for choice in choices:
-		var button := MenuStyle.button(choice[0], func() -> void:
-			_load_popup.hide()
-			load_chosen.emit(choice[1]))
-		_load_list.add_child(button)
+	var saved := KartDesign.saved_paths()
+	if not saved.is_empty():
+		_load_list.add_child(MenuStyle.heading("Your karts"))
+		for path in saved:
+			_load_list.add_child(_load_button(KartDesign.load_file(path).name, path))
+	_load_list.add_child(MenuStyle.heading("Stock karts", "Load one to race it as it is, or to build from."))
+	for key in Game.stock_keys():
+		var design := Game.stock_kart(key)
+		_load_list.add_child(_load_button(design.name, "%s/%s.json" % [Game.STOCK, key]))
 	_load_popup.popup_centered()
+
+
+func _load_button(text: String, path: String) -> Button:
+	return MenuStyle.button(text, func() -> void:
+		_load_popup.hide()
+		load_chosen.emit(path))
 
 
 ## A part in the drawer: its picture and name. Tap it to get it on the kart,

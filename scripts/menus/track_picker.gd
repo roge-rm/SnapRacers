@@ -27,21 +27,11 @@ func _ready() -> void:
 			var line := describe(track)
 			if mode == Game.MODE_TIME_TRIAL and Records.best_time(id) > 0.0:
 				line += "\nRecord %s, best lap %s" % [RaceHud.clock(Records.best_time(id)), RaceHud.clock(Records.best_lap(id))]
-			var button := MenuStyle.button(track.name, _start.bind(path), line)
+			var button := MenuStyle.button(track.name, Game.show_kart_picker.bind(Game.start_course.bind(mode, path), Game.show_tracks.bind(mode)), line)
 			button.custom_minimum_size.y = 84.0
 			button.set_meta("track", path)
 			column.add_child(button)
 	MenuStyle.back_at_bottom(column, go_back)
-
-
-func _start(path: String) -> void:
-	match mode:
-		Game.MODE_TIME_TRIAL:
-			Game.start_time_trial(path)
-		Game.MODE_PRACTICE:
-			Game.start_practice(path)
-		_:
-			Game.start_race(path)
 
 
 ## A line saying what's on a track, like "675 m, 3 laps, a bridge and a jump".

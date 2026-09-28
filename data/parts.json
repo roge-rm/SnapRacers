@@ -1,5 +1,5 @@
 {
-	"_comment": "Sizes are [studs across, plates high, studs long]. A brick is three plates high. Mass is in kg, power in watts. Strength is how hard a part has to be hit before it comes off, as an impulse in newton seconds (a 100 kg kart hitting a wall at 10 m/s is roughly 1000, shared between the parts that touch it). The seat never comes off, so the driver always stays in. Gadgets cost studs to use (cost 0 means always on), and a kart can carry two.",
+	"_comment": "Sizes are [studs across, plates high, studs long]. A brick is three plates high. Mass is in kg, power in watts, push and thrust in newtons. Strength is how hard a part has to be hit before it comes off, as an impulse in newton seconds (a 100 kg kart hitting a wall at 10 m/s is roughly 1000, shared between the parts that touch it). The seat never comes off, so the driver always stays in. Gadgets cost studs to use (cost 0 means always on), and a kart can carry two. Aero says how smoothly air gets past a part's front and back, as it's placed with no turn (the front is toward -Z). 1 is a flat face and smaller is smoother. Off-road is how much of the grip a tire loses on grass and dirt it keeps anyway, so 0.6 keeps most of it and a negative number loses even more. Control is how quickly the driver can steer from that seat or with that steering, as a fraction. Driver height is how many plates of the driver stick up above the seat.",
 	"parts": {
 		"plate_6x10": {
 			"name": "Chassis plate 6x10",
@@ -49,13 +49,179 @@
 			"strength": 700.0,
 			"color": "#c4281c"
 		},
+		"slope_2x2": {
+			"name": "Slope 2x2",
+			"kind": "body",
+			"shape": "slope",
+			"size": [2, 3, 2],
+			"mass": 0.8,
+			"strength": 600.0,
+			"aero": { "front": 0.55, "back": 1.0 },
+			"about": "A brick with its front sloped off, so the air slides over it. Turn it around and it smooths the back instead.",
+			"color": "#c4281c"
+		},
+		"slope_4x2": {
+			"name": "Slope 4x2",
+			"kind": "body",
+			"shape": "slope",
+			"size": [4, 3, 2],
+			"mass": 1.5,
+			"strength": 600.0,
+			"aero": { "front": 0.55, "back": 1.0 },
+			"color": "#c4281c"
+		},
+		"slope_long_2x4": {
+			"name": "Long slope 2x4",
+			"kind": "body",
+			"shape": "slope_long",
+			"size": [2, 3, 4],
+			"mass": 1.4,
+			"strength": 600.0,
+			"aero": { "front": 0.45, "back": 1.0 },
+			"about": "A long gentle slope, smoother than a steep one.",
+			"color": "#c4281c"
+		},
+		"slope_long_4x4": {
+			"name": "Long slope 4x4",
+			"kind": "body",
+			"shape": "slope_long",
+			"size": [4, 3, 4],
+			"mass": 2.6,
+			"strength": 600.0,
+			"aero": { "front": 0.45, "back": 1.0 },
+			"color": "#c4281c"
+		},
+		"slope_inverted_2x2": {
+			"name": "Inverted slope 2x2",
+			"kind": "body",
+			"shape": "slope_inverted",
+			"size": [2, 3, 2],
+			"mass": 0.8,
+			"strength": 600.0,
+			"aero": { "front": 0.7, "back": 1.0 },
+			"about": "Sloped underneath, for tucking in under a nose.",
+			"color": "#c4281c"
+		},
+		"curve_2x4": {
+			"name": "Curved slope 2x4",
+			"kind": "body",
+			"shape": "curve",
+			"size": [2, 2, 4],
+			"mass": 1.0,
+			"strength": 600.0,
+			"aero": { "front": 0.4, "back": 1.0 },
+			"about": "A smooth curved slope with no studs, like the bonnet of a sports car.",
+			"color": "#c4281c"
+		},
+		"curve_4x4": {
+			"name": "Curved slope 4x4",
+			"kind": "body",
+			"shape": "curve",
+			"size": [4, 2, 4],
+			"mass": 1.8,
+			"strength": 600.0,
+			"aero": { "front": 0.4, "back": 1.0 },
+			"color": "#c4281c"
+		},
+		"nose_2x2": {
+			"name": "Nose cone 2x2",
+			"kind": "body",
+			"shape": "nose",
+			"size": [2, 3, 2],
+			"mass": 0.7,
+			"strength": 600.0,
+			"aero": { "front": 0.3, "back": 1.0, "side": 0.6 },
+			"about": "Rounded all over, so it cuts through the air better than anything. It works as a tail cone too.",
+			"color": "#c4281c"
+		},
+		"nose_4x4": {
+			"name": "Nose cone 4x4",
+			"kind": "body",
+			"shape": "nose",
+			"size": [4, 3, 4],
+			"mass": 2.2,
+			"strength": 600.0,
+			"aero": { "front": 0.3, "back": 1.0, "side": 0.6 },
+			"color": "#c4281c"
+		},
+		"wedge_left_4x6": {
+			"name": "Wedge plate 4x6 left",
+			"kind": "plate",
+			"shape": "wedge_left",
+			"size": [4, 1, 6],
+			"mass": 1.2,
+			"strength": 700.0,
+			"aero": { "front": 0.7, "back": 1.0 },
+			"about": "A plate cut to a point, for a pointy nose. Pair it with the right one.",
+			"mirror": "wedge_right_4x6",
+			"color": "#d8d8d8"
+		},
+		"wedge_right_4x6": {
+			"name": "Wedge plate 4x6 right",
+			"kind": "plate",
+			"shape": "wedge_right",
+			"size": [4, 1, 6],
+			"mass": 1.2,
+			"strength": 700.0,
+			"aero": { "front": 0.7, "back": 1.0 },
+			"mirror": "wedge_left_4x6",
+			"color": "#d8d8d8"
+		},
+		"fender_2x4": {
+			"name": "Mudguard 2x4",
+			"kind": "body",
+			"shape": "arch",
+			"size": [2, 2, 4],
+			"mass": 0.9,
+			"strength": 500.0,
+			"aero": { "front": 0.6, "back": 1.0 },
+			"about": "Goes over a wheel. It looks the part and keeps a little air off the tire.",
+			"color": "#1b2a34"
+		},
+		"wheel_fairing_1": {
+			"name": "Wheel fairing, narrow",
+			"kind": "fairing",
+			"shape": "fairing",
+			"size": [1, 5, 2],
+			"mass": 1.0,
+			"strength": 500.0,
+			"aero": { "front": 0.35, "back": 0.6 },
+			"about": "Clips onto the side of the kart in front of a wheel, like a wheel clips on, so the air goes around the tire instead of into it.",
+			"color": "#f2f3f2"
+		},
+		"wheel_fairing_2": {
+			"name": "Wheel fairing, wide",
+			"kind": "fairing",
+			"shape": "fairing",
+			"size": [2, 5, 2],
+			"mass": 1.6,
+			"strength": 500.0,
+			"aero": { "front": 0.35, "back": 0.6 },
+			"about": "The same, for a wide wheel.",
+			"color": "#f2f3f2"
+		},
+		"side_pod": {
+			"name": "Side pod",
+			"kind": "fairing",
+			"shape": "fairing",
+			"size": [1, 3, 6],
+			"mass": 1.8,
+			"strength": 600.0,
+			"aero": { "front": 0.45, "back": 0.6 },
+			"about": "Clips onto the side of the kart and smooths the air along it, and past the back wheels.",
+			"color": "#f2f3f2"
+		},
 		"seat": {
 			"name": "Driver's seat",
 			"kind": "seat",
 			"size": [2, 3, 2],
 			"mass": 3.0,
 			"strength": 0.0,
-			"color": "#1b1b1b"
+			"color": "#1b1b1b",
+			"about": "Sits the driver upright. They see everything and steer quickly, but a lot of them sticks up into the wind.",
+			"driver_height": 7,
+			"recline": 0,
+			"control": 1.0
 		},
 		"engine_small": {
 			"name": "Small engine",
@@ -65,7 +231,9 @@
 			"strength": 1500.0,
 			"power": 9000.0,
 			"max_force": 1400.0,
-			"color": "#9aa0a6"
+			"color": "#9aa0a6",
+			"about": "A plain little engine that gets any kart going.",
+			"style": "block"
 		},
 		"engine_big": {
 			"name": "Big engine",
@@ -75,7 +243,82 @@
 			"strength": 1800.0,
 			"power": 15000.0,
 			"max_force": 1900.0,
+			"color": "#9aa0a6",
+			"about": "More power for a bigger kart, and more weight to carry.",
+			"style": "block"
+		},
+		"engine_micro": {
+			"name": "Micro engine",
+			"kind": "engine",
+			"style": "micro",
+			"about": "Tiny and light. Not much power, but a featherweight kart doesn't need much.",
+			"size": [1, 2, 2],
+			"mass": 9.0,
+			"strength": 1000.0,
+			"power": 6000.0,
+			"max_force": 1100.0,
 			"color": "#9aa0a6"
+		},
+		"electric_motor": {
+			"name": "Electric motor",
+			"kind": "engine",
+			"style": "electric",
+			"about": "Quiet and light, and it pushes hardest from a standstill. It runs out of puff at top speed.",
+			"size": [2, 2, 2],
+			"mass": 14.0,
+			"strength": 1200.0,
+			"power": 8000.0,
+			"max_force": 2000.0,
+			"color": "#36aebf"
+		},
+		"engine_twin": {
+			"name": "Twin engine",
+			"kind": "engine",
+			"style": "twin",
+			"about": "Two cylinders. A good step up from the small engine without the big one's weight.",
+			"size": [2, 3, 3],
+			"mass": 28.0,
+			"strength": 1600.0,
+			"power": 12000.0,
+			"max_force": 1600.0,
+			"color": "#9aa0a6"
+		},
+		"engine_diesel": {
+			"name": "Diesel",
+			"kind": "engine",
+			"style": "diesel",
+			"about": "Heavy and slow to rev, but it shoves like nothing else, up hills and through grass.",
+			"size": [3, 3, 3],
+			"mass": 60.0,
+			"strength": 2200.0,
+			"power": 11000.0,
+			"max_force": 2600.0,
+			"color": "#4b5320"
+		},
+		"engine_v8": {
+			"name": "Racing V8",
+			"kind": "engine",
+			"style": "v8",
+			"about": "The most power there is, in a heavy engine that doesn't take knocks well.",
+			"size": [2, 3, 4],
+			"mass": 55.0,
+			"strength": 1200.0,
+			"power": 19000.0,
+			"max_force": 2100.0,
+			"color": "#c4281c"
+		},
+		"jet": {
+			"name": "Jet engine",
+			"kind": "engine",
+			"style": "jet",
+			"about": "Pushes the kart along by itself instead of through the wheels, so it keeps pushing on grass and ice. It doesn't reverse.",
+			"size": [2, 3, 4],
+			"mass": 20.0,
+			"strength": 900.0,
+			"power": 0.0,
+			"max_force": 0.0,
+			"thrust": 520.0,
+			"color": "#a3a2a4"
 		},
 		"wheel_small": {
 			"name": "Small wheel",
@@ -87,7 +330,8 @@
 			"width": 0.25,
 			"grip": 1.0,
 			"rolling": 0.015,
-			"color": "#202020"
+			"color": "#202020",
+			"tread": "road"
 		},
 		"wheel_small_wide": {
 			"name": "Small wide wheel",
@@ -99,7 +343,8 @@
 			"width": 0.5,
 			"grip": 1.3,
 			"rolling": 0.028,
-			"color": "#202020"
+			"color": "#202020",
+			"tread": "road"
 		},
 		"wheel_big_wide": {
 			"name": "Big wide wheel",
@@ -111,6 +356,97 @@
 			"width": 0.5,
 			"grip": 1.35,
 			"rolling": 0.03,
+			"color": "#202020",
+			"tread": "road"
+		},
+		"wheel_tiny": {
+			"name": "Tiny wheel",
+			"kind": "wheel",
+			"tread": "road",
+			"about": "Small and light, for a kart that sits right down on the road.",
+			"size": [1, 4, 2],
+			"mass": 1.8,
+			"strength": 1100.0,
+			"radius": 0.2,
+			"width": 0.25,
+			"grip": 0.9,
+			"rolling": 0.013,
+			"offroad": 0.0,
+			"color": "#202020"
+		},
+		"wheel_slick": {
+			"name": "Slick",
+			"kind": "wheel",
+			"tread": "slick",
+			"about": "No tread at all, so it grips the road better than any other tire. On grass it's hopeless.",
+			"size": [2, 6, 3],
+			"mass": 4.5,
+			"strength": 1200.0,
+			"radius": 0.3,
+			"width": 0.5,
+			"grip": 1.45,
+			"rolling": 0.02,
+			"offroad": -0.3,
+			"color": "#202020"
+		},
+		"wheel_knobbly": {
+			"name": "Knobbly wheel",
+			"kind": "wheel",
+			"tread": "knobbly",
+			"about": "Chunky tread that bites into grass and dirt. It's a bit slow on the road.",
+			"size": [2, 7, 3],
+			"mass": 6.0,
+			"strength": 1300.0,
+			"radius": 0.35,
+			"width": 0.4,
+			"grip": 1.05,
+			"rolling": 0.035,
+			"offroad": 0.6,
+			"color": "#202020"
+		},
+		"wheel_big": {
+			"name": "Big wheel",
+			"kind": "wheel",
+			"tread": "road",
+			"about": "Tall and narrow, so it rolls easily and rides over bumps.",
+			"size": [1, 8, 4],
+			"mass": 5.0,
+			"strength": 1200.0,
+			"radius": 0.4,
+			"width": 0.25,
+			"grip": 1.0,
+			"rolling": 0.013,
+			"offroad": 0.1,
+			"color": "#202020"
+		},
+		"wheel_skinny": {
+			"name": "Skinny wheel",
+			"kind": "wheel",
+			"tread": "skinny",
+			"about": "Like a bicycle wheel. It rolls further than anything and barely grips.",
+			"size": [1, 9, 4],
+			"mass": 3.5,
+			"strength": 900.0,
+			"radius": 0.45,
+			"width": 0.15,
+			"grip": 0.9,
+			"rolling": 0.01,
+			"offroad": 0.0,
+			"color": "#202020"
+		},
+		"wheel_monster": {
+			"name": "Monster wheel",
+			"kind": "wheel",
+			"tread": "knobbly",
+			"about": "Huge. It goes over anything, and lifts the kart up high where it rolls in corners.",
+			"size": [3, 11, 5],
+			"mass": 14.0,
+			"strength": 1600.0,
+			"radius": 0.55,
+			"width": 0.6,
+			"grip": 1.2,
+			"rolling": 0.04,
+			"offroad": 0.7,
 			"color": "#202020"
 		},
 		"spoiler_6": {
@@ -120,6 +456,31 @@
 			"mass": 1.2,
 			"strength": 350.0,
 			"lift_area": 0.35,
+			"color": "#f2cd37",
+			"aero": { "front": 0.9, "back": 0.9 }
+		},
+		"front_wing_6x2": {
+			"name": "Front wing",
+			"kind": "wing",
+			"shape": "wing_front",
+			"about": "A low wing across the front that presses the front wheels down.",
+			"size": [6, 1, 2],
+			"mass": 1.0,
+			"strength": 300.0,
+			"lift_area": 0.25,
+			"aero": { "front": 0.8, "back": 0.8 },
+			"color": "#f2cd37"
+		},
+		"rear_wing_6x2": {
+			"name": "Big rear wing",
+			"kind": "wing",
+			"shape": "wing_tall",
+			"about": "A big wing up on stilts, in clean air. Lots of grip in fast corners, and lots of drag.",
+			"size": [6, 4, 2],
+			"mass": 1.8,
+			"strength": 350.0,
+			"lift_area": 0.6,
+			"aero": { "front": 0.9, "back": 0.9 },
 			"color": "#f2cd37"
 		},
 		"steering_wheel": {
@@ -130,17 +491,75 @@
 			"size": [2, 5, 1],
 			"mass": 1.5,
 			"strength": 1500.0,
-			"color": "#1b1b1b"
+			"color": "#1b1b1b",
+			"control": 1.0
 		},
 		"handlebars": {
 			"name": "Handlebars",
 			"kind": "steering",
 			"style": "bars",
-			"about": "Like a steering wheel, but wider, for a driver who likes to lean into it.",
+			"about": "Like a steering wheel, but wider, so the driver can steer a little quicker.",
 			"size": [4, 5, 1],
 			"mass": 1.5,
 			"strength": 1500.0,
-			"color": "#3c3f44"
+			"color": "#3c3f44",
+			"control": 1.1
+		},
+		"bucket_seat": {
+			"name": "Bucket seat",
+			"kind": "seat",
+			"size": [2, 2, 2],
+			"mass": 2.5,
+			"strength": 0.0,
+			"about": "Sits the driver lower and leaning back a little. Less of them catches the wind, and the kart sits lower.",
+			"driver_height": 6,
+			"recline": 25,
+			"control": 0.97,
+			"color": "#1b1b1b"
+		},
+		"lay_down_seat": {
+			"name": "Lay-down seat",
+			"kind": "seat",
+			"size": [2, 1, 4],
+			"mass": 2.5,
+			"strength": 0.0,
+			"about": "The driver lies nearly flat, like on a luge. Hardly any of them is in the wind, but it's harder to steer lying down.",
+			"driver_height": 4,
+			"recline": 55,
+			"control": 0.88,
+			"color": "#1b1b1b"
+		},
+		"yoke": {
+			"name": "Yoke",
+			"kind": "steering",
+			"style": "yoke",
+			"about": "A low flat-topped steering wheel that tucks in under a windscreen.",
+			"size": [2, 4, 1],
+			"mass": 1.2,
+			"strength": 1500.0,
+			"control": 0.97,
+			"color": "#1b1b1b"
+		},
+		"windscreen_2": {
+			"name": "Windscreen 2x1",
+			"kind": "screen",
+			"shape": "screen",
+			"size": [2, 3, 1],
+			"mass": 0.5,
+			"strength": 400.0,
+			"aero": { "front": 0.5, "back": 1.0 },
+			"about": "See-through, and sloped back. Put it in front of the driver and the wind goes over their head.",
+			"color": "#9fd8ef"
+		},
+		"windscreen_4": {
+			"name": "Windscreen 4x1",
+			"kind": "screen",
+			"shape": "screen",
+			"size": [4, 3, 1],
+			"mass": 0.9,
+			"strength": 400.0,
+			"aero": { "front": 0.5, "back": 1.0 },
+			"color": "#9fd8ef"
 		},
 		"turbo": {
 			"name": "Turbo",

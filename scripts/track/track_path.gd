@@ -145,6 +145,14 @@ func _blend(offset: float) -> Array:
 	return [i, j, f]
 
 
+## What kind of piece of track is at this distance around it, like
+## "straight" or "jump".
+func piece_type_at(offset: float) -> String:
+	if piece_of.is_empty():
+		return ""
+	return pieces[piece_of[_index_before(offset)]].type
+
+
 func point_at(offset: float) -> Vector3:
 	var b := _blend(offset)
 	return points[b[0]].lerp(points[b[1]], b[2])

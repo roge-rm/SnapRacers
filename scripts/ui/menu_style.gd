@@ -123,13 +123,14 @@ static func title(text := "SnapRacers", subtitle := "") -> VBoxContainer:
 	return box
 
 
+## A pill button. It works in a scrolling list too (see ScrollButton).
 static func button(text: String, action: Callable, subtitle := "") -> Button:
-	var b := Button.new()
+	var b := ScrollButton.new()
 	b.text = text if subtitle == "" else "%s\n%s" % [text, subtitle]
 	b.custom_minimum_size = Vector2(0.0, BUTTON_HEIGHT)
 	b.focus_mode = Control.FOCUS_NONE
 	if action.is_valid():
-		b.pressed.connect(action)
+		b.tapped.connect(action)
 	return b
 
 

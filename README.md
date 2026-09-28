@@ -1,0 +1,173 @@
+# SnapRacers
+
+SnapRacers is a kart racing game for Android 8.1 and up, where you build your kart out of snap-together bricks and then race it.
+
+Put your kart together in the garage from plates, bricks, slopes, wheels, engines, wings and gadgets. Every part you add changes how it drives. Wide tires grip more but drag more, a bigger engine is faster but heavier, sloped and rounded parts let the air slide past, and how your driver sits decides how much of them is in the wind and how quickly they can steer. Then take it out on sixteen courses based on real kart tracks from around the world, against seven AI drivers or a friend on the same phone.
+
+Crashes knock parts off, and the kart drives with whatever's left. If it gets too bad, reset and you're back on the track in one piece, just a little slower for a moment.
+
+I wanted a kart racer where building the kart is half the fun and what you build really matters on the track. It's still early, and there's more to come (racing online and a track builder are next), but it's very playable now.
+
+Enjoy,<br>
+Dan (rm)
+
+---
+
+## Screenshots
+
+<table>
+  <tr>
+    <td align="center"><img src="screenshots/garage.png" width="400" alt="The garage"><br>The garage, with the Streamliner loaded</td>
+    <td align="center"><img src="screenshots/race.png" width="400" alt="The start of a race"><br>The start of a Grand Prix at Peach Pit</td>
+  </tr>
+  <tr>
+    <td align="center"><img src="screenshots/karts.png" width="400" alt="The kart picker"><br>Picking a kart before a race</td>
+    <td align="center"><img src="screenshots/driver.png" width="400" alt="The driver screen"><br>Building a driver</td>
+  </tr>
+</table>
+
+---
+
+## What's in it
+
+### The garage
+
+The garage works like the builder in Apogee, my physics sim. The kart fills the screen and everything else floats over it.
+
+- Drag a part out of the drawer onto the kart, or tap it, then nudge it into place a stud at a time with the arrows.
+- Tap a part on the kart to move, turn, copy or delete it.
+- Mirror puts every part down on both sides at once.
+- Paint any part in sixteen classic brick colours.
+- Undo and redo everything, and save as many karts as you like.
+- A card in the corner shows how the kart will drive: top speed, pull, cornering, control, off-road grip, weight and drag, and it tells you where most of the drag is coming from.
+- Take it straight out for a test drive.
+
+### 57 parts
+
+| | |
+|---|---|
+| **Plates and bricks** | The frame and body, including wedge plates for a pointed nose. |
+| **Bodywork** | Slopes, long slopes, curved slopes, inverted slopes, nose cones, mudguards, wheel fairings and side pods. Put them at the front and the air slides over them, or turn them around to smooth the back. |
+| **Wheels** | Nine kinds, from tiny wheels that keep the kart low to monster wheels that go over anything. Slicks grip the road best and hate grass, knobbly tires bite into grass and dirt, and skinny bicycle wheels roll further than anything. |
+| **Engines** | Eight: small and big engines, a micro engine, an electric motor that pushes hardest from a standstill, a twin, a diesel that shoves like nothing else, a racing V8, and a jet that pushes the kart along by itself instead of through the wheels. |
+| **Cockpit** | An upright seat, a bucket seat and a lay-down seat, a steering wheel, handlebars and a yoke, and windscreens. |
+| **Wings** | A spoiler, a front wing and a big rear wing on stilts, for grip in fast corners. |
+| **Gadgets** | Turbo, spring, brick dropper, brick cannon, repair kit, shield, ram plate and magnet. You can carry two, and most of them run on studs you pick up on the track. |
+
+### Air and ergonomics
+
+Air resistance comes from the shape of the kart. Looked at from the front, each little square catches wind depending on what the air hits first and what it leaves last. A flat brick face catches all of it, while a slope or nose cone lets it slide past. The driver's in the wind too, unless there's a windscreen in front of them. A wheel out in the open churns up a lot of air, so fairings in front of the wheels help more than anything.
+
+How the driver sits matters. Lying down keeps them out of the wind and the kart low, but it's harder to steer quickly lying down. The steering has to be right in front of the seat, and every stud further they have to reach for it slows their hands.
+
+### Sixteen stock karts
+
+If you'd rather not build, there are sixteen stock karts to pick from before any race, and the AI drivers race in them too. Each AI driver draws one at random at the start of a race, or once for a whole Grand Prix. Around a lap they're all within about seven percent of each other, but they get there in very different ways.
+
+| | |
+|---|---|
+| **Starter** | A bit of everything. It's a good kart to learn on and to build from. |
+| **Featherlight** | Light and low, with tiny wheels at the front and handlebars for quick hands. |
+| **Bruiser** | A heavy slab with a diesel and a ram. |
+| **Slingshot** | A dragster with a V8 in the back. |
+| **Streamliner** | Faired in from nose to tail, with the driver lying down behind the screen. |
+| **Mudlark** | Knobbly tires and a diesel, sitting up high. |
+| **Trike** | One wheel at the front and an electric motor at the back. |
+| **Six-wheeler** | Four small wheels steering at the front. |
+| **Monster** | Monster wheels and a big engine. |
+| **Rocket** | A jet engine, slicks and wings. |
+| **Classic** | A proper go-kart: a flat frame, a little engine and handlebars. |
+| **Downforce** | Big wings front and back, and slicks. |
+| **Brick Tank** | Two layers of bricks all around, a shield and a repair kit. |
+| **Sparky** | An electric all rounder with a magnet for studs. |
+| **Hot Rod** | A V8 out in front and big wheels at the back. |
+| **Soapbox** | Bicycle wheels, a nose cone and a tiny engine. |
+
+### Drivers
+
+Build your driver from a head, headgear, torso, arms and legs, each in its own colours, with a picture of your driver wearing every choice. What they wear decides how heavy they are, and a heavier driver makes a steadier kart that's harder to knock around. The seven AI drivers are built the same way.
+
+### Racing
+
+- **Grand Prix:** four cups of four races each, for points and trophies. From the second race on, the leader starts at the back.
+- **Time trial:** race the clock on any of the sixteen courses, with your best times kept.
+- **Practice:** drive any course on your own for as long as you like.
+- **Two players on one phone:** side by side in landscape, or face to face in portrait with the phone flat between you and the far half turned around.
+
+Every course is made of track pieces snapped together on a grid, with hills, crests, jumps, bridges, a loop and plenty of scenery. Each one is based on a real kart circuit.
+
+| Cup | Courses |
+|---|---|
+| **Baseplate** | Peach Pit, Trulli Turns, Lemon Lake, Pithead Park |
+| **Axle** | Delta Dash, Bucketwheel Bend, Foundry Flats, Amber Arc |
+| **Gearbox** | Timberline, Frostbite Forest, Dune Drift, Whistlestop Woods |
+| **Keystone** | Windmill Ridge, Launchpad Loop, Magma Mile, Castle Keep |
+
+---
+
+## Installing
+
+There's no release yet. For now, build it yourself (see below) and sideload the APK.
+
+## Building
+
+SnapRacers is made with the Godot Engine 4.7.2, using the Compatibility renderer and Jolt physics. The build scripts expect a self-contained copy of Godot in `tools/godot`, which isn't in the repo:
+
+- `tools/godot/Godot_v4.7.2-stable_linux.x86_64`, with an empty `._sc_` file beside it so it keeps its settings in `tools/godot/editor_data`
+- the 4.7.2 export templates in `tools/godot/editor_data/export_templates/4.7.2.stable`
+- the Android SDK and Java 21, set in the editor settings under Export › Android
+
+```sh
+tools/build-engine.sh             # our own cut down engine (once, and again for a new Godot)
+tools/build-android.sh            # the phone APK (arm64)
+tools/build-android.sh --install  # the emulator APK (x86_64), installed on the running emulator
+```
+
+`tools/build-engine.sh` builds Godot from source with only what the game uses (the list is in `tools/engine/profile.py`), which makes the APK a lot smaller. It needs the Android NDK version Godot asks for and `uv` for installing scons. The finished engine goes in `tools/godot/custom`, and the Android build puts it into the APK. Without it, the build uses the stock engine.
+
+The heavy parts of both builds happen in `/tmp`, because my `/home` is on a slow hard drive. The engine keeps a compile cache there too, so rebuilding it after a small change is quick. `/tmp` is emptied on a reboot, but the finished engine is kept, so it only needs building again for a new version of Godot or a change to the list.
+
+| | |
+|---|---|
+| Minimum Android | 8.1 (API 27) |
+| Engine | Godot 4.7.2, GL Compatibility renderer, Jolt physics |
+| ABIs | `arm64-v8a` for phones (a release build), `x86_64` for the emulator (a debug build) |
+| Code | GDScript in `scripts`, with parts, karts, drivers and courses as JSON in `data` |
+
+## Testing
+
+The tests run headless on the computer and take a few minutes:
+
+```sh
+tools/run-tests.sh
+```
+
+They check things like:
+
+- the starter kart settles on its wheels, gets up to speed, turns, brakes and resets (`drive_test`)
+- the building rules (`design_test`)
+- every part can be built and turned, and shapes, windscreens, seats, jets and tires do what they should (`parts_test`)
+- a gentle bump costs nothing, a crash at full speed knocks parts off, and a reset puts them back (`damage_test`)
+- every course closes into a loop without running into itself (`track_test`)
+- a fast kart sticks to the loop all the way around and a slow one drops off (`loop_test`)
+- every gadget does what it says (`gadget_test`)
+- drivers really do hold the steering wheel and follow it around (`character_test`)
+- the garage, the menus and every mode, including a whole Grand Prix and two players on one phone (`garage_test`, `menu_test`, `modes_test`, `split_test`)
+- every stock kart gets around a lap with the AI driving (`stock_test`)
+- whole races with eight karts, around the loop too (`race_test`)
+
+### Stock karts and courses
+
+`tools/stock-karts` builds the stock karts and times them all against each other. `tools/track-design` turns real kart circuits into brick track pieces. Each has its own README.
+
+---
+
+## Licence
+
+SnapRacers is free software under the **GNU General Public License, version 3 or later**. See [LICENSE](LICENSE).
+
+Copyright © 2026 Dan Hunke.
+
+It's made with the [Godot Engine](https://godotengine.org), which is free and open source under the MIT licence.
+
+The courses are traced from OpenStreetMap map data, which is © OpenStreetMap contributors and available under the Open Database Licence.

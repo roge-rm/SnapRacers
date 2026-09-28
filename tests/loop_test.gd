@@ -35,7 +35,7 @@ class Runner:
 			if track.piece_of[k] == 2 and loop_end == 0.0:
 				loop_end = track.distances[k]
 
-		var design := KartDesign.load_file("res://data/karts/starter.json")
+		var design := KartDesign.load_file("res://data/karts/stock/starter.json")
 		fast = Kart.new()
 		fast.build(design)
 		fast.transform = track.place_at(2.0, 0.05)
@@ -50,7 +50,7 @@ class Runner:
 	## clear, and creeps in.
 	func add_slow() -> void:
 		slow = Kart.new()
-		slow.build(KartDesign.load_file("res://data/karts/starter.json"))
+		slow.build(KartDesign.load_file("res://data/karts/stock/starter.json"))
 		slow.transform = track.place_at(loop_start - 6.0, 0.05)
 		add_child(slow)
 		slow.controls.throttle = 0.12

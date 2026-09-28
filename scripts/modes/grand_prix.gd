@@ -19,6 +19,10 @@ var round := 0
 var points := {}
 ## Each race's finishing order so far, as lists of names.
 var results: Array = []
+## The stock kart each AI driver races the whole cup in, as { driver: kart }.
+var karts := {}
+## The kart you started the cup in (see Game.kart_choice()).
+var player_kart := ""
 
 static var _cups: Array = []
 

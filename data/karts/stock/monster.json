@@ -1,0 +1,20 @@
+{
+	"name": "Monster",
+	"about": "Monster wheels and a big engine. It rolls over everything, and over itself if you corner too hard.",
+	"parts": [
+		{"id": "plate_6x10", "at": [7, 5, 6], "rot": 0, "color": "#1b1b1b"},
+		{"id": "wheel_monster", "at": [4, 0, 5], "rot": 0},
+		{"id": "wheel_monster", "at": [13, 0, 5], "rot": 0},
+		{"id": "wheel_monster", "at": [4, 0, 13], "rot": 0},
+		{"id": "wheel_monster", "at": [13, 0, 13], "rot": 0},
+		{"id": "ram_plate", "at": [7, 6, 6], "rot": 0, "color": "#6b3fa0"},
+		{"id": "brick_2x4", "at": [7, 6, 7], "rot": 0, "color": "#6b3fa0"},
+		{"id": "brick_2x4", "at": [11, 6, 7], "rot": 0, "color": "#6b3fa0"},
+		{"id": "steering_wheel", "at": [9, 6, 9], "rot": 0},
+		{"id": "seat", "at": [9, 6, 10], "rot": 0},
+		{"id": "engine_big", "at": [9, 6, 12], "rot": 0},
+		{"id": "brick_2x2", "at": [7, 6, 12], "rot": 0, "color": "#6b3fa0"},
+		{"id": "brick_2x2", "at": [11, 6, 12], "rot": 0, "color": "#6b3fa0"},
+		{"id": "spring", "at": [9, 6, 15], "rot": 0}
+	]
+}

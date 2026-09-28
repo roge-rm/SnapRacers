@@ -14,7 +14,6 @@ extends Node3D
 ## own SubViewport. When you're face to face, the far player's half is turned
 ## upside down so it's the right way up from their end of the phone.
 
-const AI_KARTS := Game.AI_KARTS
 ## The gap between the two halves in split screen, in pixels.
 const DIVIDER := 4
 const COUNTDOWN := 3.0
@@ -98,18 +97,22 @@ func _ready() -> void:
 	var entries := []
 	var solo := mode == Game.MODE_TIME_TRIAL or mode == Game.MODE_PRACTICE
 	if not solo:
-		# Player 2 takes one of the AI karts, and the AI has the rest.
-		var two := Game.player_two_kart()
-		var keys := Game.ai_kart_keys()
+		# Each AI driver has a stock kart, drawn at random for this race, or
+		# for the whole cup in a Grand Prix.
+		var drivers := Game.ai_driver_keys()
+		var karts := Game.draw_karts(drivers, [Game.player_two_kart()] if people > 1 else [])
+		if mode == Game.MODE_GRAND_PRIX and Game.grand_prix != null and not Game.grand_prix.karts.is_empty():
+			karts = Game.grand_prix.karts
+		# Player 2 takes the last driver's place, in the kart they picked.
+		var two_driver: String = drivers.pop_back() if people > 1 else ""
+		drivers.resize(mini(drivers.size(), KARTS - people))
+		for i in drivers.size():
+			var who := Game.roster_driver(drivers[i])
+			var design := Game.stock_kart(karts.get(drivers[i], "starter"))
+			entries.append({ "name": who.name, "design": design, "who": who, "skill": AI_NAMES_SKILL[i % AI_NAMES_SKILL.size()], "line": (i % 3 - 1) * 1.5 })
 		if people > 1:
-			keys.erase(two)
-		keys = keys.slice(0, KARTS - people)
-		for i in keys.size():
-			var design := KartDesign.load_file(AI_KARTS + "/" + keys[i] + ".json")
-			entries.append({ "name": design.name, "design": design, "who": Game.roster_driver(keys[i]), "skill": AI_NAMES_SKILL[i % AI_NAMES_SKILL.size()], "line": (i % 3 - 1) * 1.5 })
-		if people > 1:
-			entries.append({ "name": "Player 2", "design": KartDesign.load_file(AI_KARTS + "/" + two + ".json"), "who": Game.roster_driver(two), "human": 1 })
-	entries.append({ "name": Game.player_name(), "design": Game.design, "who": Game.character, "human": 0 })
+			entries.append({ "name": "Player 2", "design": Game.stock_kart(Game.player_two_kart()), "who": Game.roster_driver(two_driver), "human": 1 })
+	entries.append({ "name": Game.player_name(), "design": Game.chosen_design(), "who": Game.character, "human": 0 })
 	# After the first race of a Grand Prix, the grid goes by the points so far.
 	if mode == Game.MODE_GRAND_PRIX and Game.grand_prix != null and Game.grand_prix.round > 0:
 		var order: Array = Game.grand_prix.grid_order()
@@ -337,6 +340,7 @@ func _clear_spot(racer: Racer) -> Transform3D:
 		backed = true
 	if backed:
 		start -= RUN_UP
+	racer.kart.run_up_reset = backed
 	for back in [0.0, 5.0, 10.0, 15.0, 20.0]:
 		for side in across:
 			var spot := track.place_at(start - back)

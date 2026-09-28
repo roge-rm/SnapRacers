@@ -1,0 +1,17 @@
+{
+	"name": "Classic",
+	"about": "A proper go-kart: a flat frame, a little engine off to one side and handlebars. Light, simple and quick in the twisty bits.",
+	"parts": [
+		{"id": "plate_6x10", "at": [7, 2, 7], "rot": 0, "color": "#f2cd37"},
+		{"id": "wheel_small", "at": [6, 0, 8], "rot": 0},
+		{"id": "wheel_small", "at": [13, 0, 8], "rot": 0},
+		{"id": "wheel_small_wide", "at": [5, 0, 14], "rot": 0},
+		{"id": "wheel_small_wide", "at": [13, 0, 14], "rot": 0},
+		{"id": "plate_2x4", "at": [8, 3, 7], "rot": 1, "color": "#1b1b1b"},
+		{"id": "handlebars", "at": [8, 3, 10], "rot": 0},
+		{"id": "bucket_seat", "at": [9, 3, 11], "rot": 0},
+		{"id": "engine_small", "at": [11, 3, 13], "rot": 0},
+		{"id": "plate_2x4", "at": [8, 3, 15], "rot": 1, "color": "#1b1b1b"},
+		{"id": "spring", "at": [7, 3, 13], "rot": 0}
+	]
+}

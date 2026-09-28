@@ -16,7 +16,7 @@ const INK := Color("#1b1b1b")
 
 
 static func paint(style: String, skin: Color, radius: float, height: float) -> ImageTexture:
-	var image := Image.create(WIDE, TALL, true, Image.FORMAT_RGBA8)
+	var image := Image.create_empty(WIDE, TALL, true, Image.FORMAT_RGBA8)
 	image.fill(skin)
 	var across := WIDE / (TAU * radius) # pixels per metre around the head
 	var up := TALL / height # pixels per metre up it

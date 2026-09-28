@@ -42,8 +42,15 @@ const HAND_SIZE := 0.045
 
 var design: CharacterDesign
 var seated := true
+## How far back they lean from the hips, in radians, for a laid back seat.
+## Set it before the rig goes into the scene.
+var recline := 0.0
 
 var _head: Node3D
+## Everything above the hips, which leans back with `recline`.
+var _upper: Node3D
+## A grip asked for before the rig was built, to do once it is.
+var _early_grip := []
 var _arm: Array[Node3D] = []
 var _hand: Array[Node3D] = []
 ## Where each hand's grip sits, in its arm's own unswung space.
@@ -59,11 +66,21 @@ func _init(character: CharacterDesign, sitting := true) -> void:
 
 
 func _ready() -> void:
+	# The upper body pivots at the top of the hips. Its children are placed in
+	# the rig's own space, as if it weren't leaning.
+	_upper = Node3D.new()
+	var pivot := Vector3(0.0, HIPS_TOP, 0.0)
+	var lean := Basis(Vector3.RIGHT, recline)
+	_upper.transform = Transform3D(lean, pivot - lean * pivot)
+	add_child(_upper)
 	_build_hips_and_legs()
 	_build_torso()
 	_build_head()
 	_build_arms()
-	rest_hands()
+	if _early_grip.is_empty():
+		rest_hands()
+	else:
+		grip.callv(_early_grip)
 
 
 # Posing.
@@ -71,8 +88,13 @@ func _ready() -> void:
 ## Puts the hands as near these points (in the rig's own space) as swinging
 ## the arms allows, gripping along these directions.
 func grip(left: Vector3, right: Vector3, left_along := Vector3.BACK, right_along := Vector3.BACK) -> void:
-	_swing_arm(0, left, left_along)
-	_swing_arm(1, right, right_along)
+	if _upper == null:
+		_early_grip = [left, right, left_along, right_along]
+		return
+	# The arms hang off the leaning upper body, so work in its space.
+	var to_upper := _upper.transform.affine_inverse()
+	_swing_arm(0, to_upper * left, to_upper.basis * left_along)
+	_swing_arm(1, to_upper * right, to_upper.basis * right_along)
 
 
 ## Rests the hands on the thighs when sitting, or down by the sides when
@@ -92,7 +114,7 @@ func look(amount: float) -> void:
 
 ## Where each hand is holding right now, in the rig's space. Tests use it.
 func hand_position(side: int) -> Vector3:
-	return _arm[side].transform * _grip_local[side]
+	return _upper.transform * (_arm[side].transform * _grip_local[side])
 
 
 func shoulder(side: int) -> Vector3:
@@ -219,40 +241,40 @@ func _build_torso() -> void:
 	var colour := design.color_of("torso")
 	var style := design.style_of("torso")
 	var armour := style == "armour"
-	_add(self, MeshKit.rounded_box(Vector3(TORSO_BOTTOM_WIDTH, TORSO_HEIGHT, TORSO_DEPTH), 0.015, TORSO_TAPER), colour, Vector3(0.0, TORSO_Y, 0.0), Basis.IDENTITY, 0.35 if armour else 0.0)
+	_add(_upper, MeshKit.rounded_box(Vector3(TORSO_BOTTOM_WIDTH, TORSO_HEIGHT, TORSO_DEPTH), 0.015, TORSO_TAPER), colour, Vector3(0.0, TORSO_Y, 0.0), Basis.IDENTITY, 0.35 if armour else 0.0)
 	var front := -TORSO_DEPTH * 0.5 - 0.002
 	var light := colour.lightened(0.45)
 	var dark := colour.darkened(0.4)
 	match style:
 		"racing_suit":
-			_print(self, Vector2(0.06, TORSO_HEIGHT * 0.9), Color.WHITE, Vector3(-0.06, TORSO_Y, front))
-			_add(self, _cylinder(0.04, 0.04, 0.006), Color.WHITE, Vector3(0.075, TORSO_Y + 0.07, front), Basis(Vector3.RIGHT, PI * 0.5))
+			_print(_upper, Vector2(0.06, TORSO_HEIGHT * 0.9), Color.WHITE, Vector3(-0.06, TORSO_Y, front))
+			_add(_upper, _cylinder(0.04, 0.04, 0.006), Color.WHITE, Vector3(0.075, TORSO_Y + 0.07, front), Basis(Vector3.RIGHT, PI * 0.5))
 		"jacket":
-			_print(self, Vector2(0.012, TORSO_HEIGHT * 0.88), dark, Vector3(0.0, TORSO_Y - 0.01, front))
+			_print(_upper, Vector2(0.012, TORSO_HEIGHT * 0.88), dark, Vector3(0.0, TORSO_Y - 0.01, front))
 			for s in [-1.0, 1.0]:
-				_print(self, Vector2(0.08, 0.035), dark, Vector3(0.045 * s, NECK_Y - 0.035, front), Basis(Vector3.BACK, 0.55 * s))
+				_print(_upper, Vector2(0.08, 0.035), dark, Vector3(0.045 * s, NECK_Y - 0.035, front), Basis(Vector3.BACK, 0.55 * s))
 		"overalls":
-			_print(self, Vector2(0.2, 0.15), light, Vector3(0.0, TORSO_Y - 0.07, front))
+			_print(_upper, Vector2(0.2, 0.15), light, Vector3(0.0, TORSO_Y - 0.07, front))
 			for s in [-1.0, 1.0]:
-				_print(self, Vector2(0.03, 0.2), light, Vector3(0.08 * s, TORSO_Y + 0.07, front))
-				_add(self, _cylinder(0.012, 0.012, 0.006, 12), Color("#f2cd37"), Vector3(0.08 * s, TORSO_Y, front - 0.004), Basis(Vector3.RIGHT, PI * 0.5))
+				_print(_upper, Vector2(0.03, 0.2), light, Vector3(0.08 * s, TORSO_Y + 0.07, front))
+				_add(_upper, _cylinder(0.012, 0.012, 0.006, 12), Color("#f2cd37"), Vector3(0.08 * s, TORSO_Y, front - 0.004), Basis(Vector3.RIGHT, PI * 0.5))
 		"hoodie":
-			_add(self, MeshKit.rounded_box(Vector3(0.24, 0.08, 0.06), 0.03), colour, Vector3(0.0, NECK_Y - 0.01, 0.09))
-			_print(self, Vector2(0.2, 0.07), dark, Vector3(0.0, TORSO_Y - 0.1, front))
+			_add(_upper, MeshKit.rounded_box(Vector3(0.24, 0.08, 0.06), 0.03), colour, Vector3(0.0, NECK_Y - 0.01, 0.09))
+			_print(_upper, Vector2(0.2, 0.07), dark, Vector3(0.0, TORSO_Y - 0.1, front))
 			for s in [-1.0, 1.0]:
-				_print(self, Vector2(0.008, 0.09), Color.WHITE, Vector3(0.03 * s, NECK_Y - 0.06, front))
+				_print(_upper, Vector2(0.008, 0.09), Color.WHITE, Vector3(0.03 * s, NECK_Y - 0.06, front))
 		"armour":
-			_add(self, MeshKit.rounded_box(Vector3(0.3, 0.18, 0.02), 0.015, 0.85), light, Vector3(0.0, TORSO_Y + 0.04, front), Basis.IDENTITY, 0.6)
+			_add(_upper, MeshKit.rounded_box(Vector3(0.3, 0.18, 0.02), 0.015, 0.85), light, Vector3(0.0, TORSO_Y + 0.04, front), Basis.IDENTITY, 0.6)
 		"tee":
-			_print(self, Vector2(0.1, 0.02), dark, Vector3(0.0, NECK_Y - 0.02, front))
+			_print(_upper, Vector2(0.1, 0.02), dark, Vector3(0.0, NECK_Y - 0.02, front))
 	# The neck post the head sits on.
-	_add(self, MeshKit.rounded_cylinder(0.05, 0.03, 0.006, 20), design.skin(), Vector3(0.0, NECK_Y, 0.0))
+	_add(_upper, MeshKit.rounded_cylinder(0.05, 0.03, 0.006, 20), design.skin(), Vector3(0.0, NECK_Y, 0.0))
 
 
 func _build_head() -> void:
 	_head = Node3D.new()
 	_head.position = Vector3(0.0, HEAD_Y, 0.0)
-	add_child(_head)
+	_upper.add_child(_head)
 	var head := MeshInstance3D.new()
 	head.mesh = MeshKit.rounded_cylinder(HEAD_RADIUS, HEAD_HEIGHT, 0.035, 40)
 	head.material_override = _face_material()
@@ -374,7 +396,7 @@ func _build_arms() -> void:
 	var hand_colour := Color("#3c3f44") if gloves else (colour.lightened(0.15) if metal else skin)
 	for side in 2:
 		var arm := Node3D.new()
-		add_child(arm)
+		_upper.add_child(arm)
 		# The upper arm hangs straight down from the shoulder. Its top tucks
 		# into the side of the torso, so there's no joint showing.
 		_add(arm, MeshKit.rounded_box(Vector3(0.085, UPPER_ARM + 0.04, 0.09), 0.038), colour, Vector3(0.0, -UPPER_ARM * 0.5 + 0.02, 0.0), Basis.IDENTITY, shine)
@@ -395,7 +417,7 @@ func _build_arms() -> void:
 		# The wrist, and the hand on it, which twists to grip.
 		_add(arm, _cylinder(0.022, 0.022, 0.03, 12), hand_colour, wrist + dir * 0.008, fore_basis, shine)
 		var hand := Node3D.new()
-		add_child(hand)
+		_upper.add_child(hand)
 		_add(hand, MeshKit.hand(HAND_SIZE), hand_colour, Vector3.ZERO, Basis.IDENTITY, shine)
 		_arm.append(arm)
 		_hand.append(hand)

@@ -22,7 +22,7 @@ class Runner:
 		track = TestTrack.new()
 		add_child(track)
 		kart = Kart.new()
-		kart.build(KartDesign.load_file("res://data/karts/starter.json"))
+		kart.build(KartDesign.load_file("res://data/karts/stock/starter.json"))
 		# Out on the open grass, well away from the jump and the brick pile.
 		kart.transform = Transform3D(Basis.IDENTITY, Vector3(80.0, 0.05, 100.0))
 		add_child(kart)

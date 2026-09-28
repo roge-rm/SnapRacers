@@ -51,13 +51,13 @@ func _set_layout(layout: String) -> void:
 func _show() -> void:
 	for button in _layout_buttons:
 		MenuStyle.mark(button, button.get_meta("mode") == Game.split())
-	var design := KartDesign.load_file("%s/%s.json" % [Game.AI_KARTS, Game.player_two_kart()])
-	_second.text = "Player 2 drives %s's kart   ›" % design.name
+	var design := Game.stock_kart(Game.player_two_kart())
+	_second.text = "Player 2 drives the %s   ›" % design.name
 
 
-## Player 2 moves on to the next AI kart.
+## Player 2 moves on to the next stock kart.
 func _next_kart() -> void:
-	var keys := Game.ai_kart_keys()
+	var keys := Game.stock_keys()
 	var next := keys[(keys.find(Game.player_two_kart()) + 1) % keys.size()]
 	Game.set_setting("race", "player_two", next)
 	_show()

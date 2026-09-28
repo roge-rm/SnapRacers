@@ -68,12 +68,28 @@ func _grand_prix() -> void:
 
 	Game.start_grand_prix("baseplate")
 	var me := Game.player_name()
+	var karts := {}
 	# Finish every race with you coming second, behind Brickley.
 	for round in 4:
 		var race: Race = await wait_for(Race)
 		check(race != null and race.mode == Game.MODE_GRAND_PRIX, "race %d of the cup starts" % (round + 1))
 		check(race.track_id == Game.grand_prix.track_ids()[round], "on the cup's course %d (%s)" % [round + 1, race.track.name])
 		check(race.racers.size() == Race.KARTS, "against the AI (%d karts)" % race.racers.size())
+		# The AI are the drivers from the roster, each in a stock kart they keep
+		# for the whole cup.
+		var now := {}
+		for r in race.racers:
+			now[r.name] = r.kart.design.name
+		if round == 0:
+			karts = now
+			var ai: Array = race.racers.filter(func(r): return not r.player)
+			check(ai.all(func(r): return Game.ai_driver_keys().has(r.name.to_lower())), "the AI are the roster's drivers %s" % [ai.map(func(r): return r.name)])
+			var kinds := {}
+			for r in ai:
+				kinds[r.kart.design.name] = true
+			check(kinds.size() == ai.size(), "each in a different stock kart %s" % [now.values()])
+		else:
+			check(now == karts, "everyone's in the same kart as the first race")
 		if round == 1:
 			# You were second, so you start near the back but not last.
 			var slot := race.racers.find(race.player)

@@ -31,7 +31,7 @@ class Runner:
 		wall.position = Vector3(60.0, 1.5, 60.0)
 		add_child(wall)
 
-		var design := KartDesign.load_file("res://data/karts/starter.json")
+		var design := KartDesign.load_file("res://data/karts/stock/starter.json")
 		gentle = Kart.new()
 		gentle.build(design)
 		gentle.transform = Transform3D(Basis.IDENTITY, Vector3(40.0, 0.05, 64.0))

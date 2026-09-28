@@ -15,7 +15,7 @@ func _ready() -> void:
 		var best := Records.best_cup_place(cup.id)
 		if best > 0:
 			line += "\n" + TROPHIES.get(best, "Best finish %s" % RaceHud.ordinal(best))
-		var button := MenuStyle.button(cup.name, Game.start_grand_prix.bind(cup.id), line)
+		var button := MenuStyle.button(cup.name, Game.show_kart_picker.bind(Game.start_grand_prix.bind(cup.id), Game.show_cups), line)
 		button.custom_minimum_size.y = 96.0
 		button.set_meta("cup", cup.id)
 		column.add_child(button)

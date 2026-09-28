@@ -40,8 +40,31 @@ if [ ! -f "$BUILD/android/.build_version" ]; then
 	cat "$TEMPLATES/version.txt" > "$BUILD/android/.build_version"
 fi
 
+# Our own cut down engine (see tools/build-engine.sh), when it's been built.
+# Phones get a release build of it, signed with the debug key so it can be
+# sideloaded. The emulator gets a debug build, so the debug switches work.
+ABI=arm64-v8a
+KIND=release
+if [ "$PRESET" = "Android emulator" ]; then
+	ABI=x86_64
+	KIND=debug
+fi
+CUSTOM="tools/godot/custom/$ABI/libgodot_android.so"
+EXPORT=--export-debug
+if [ -f "$CUSTOM" ]; then
+	python3 tools/engine/swap_engine.py "$BUILD/android/build/libs/$KIND/godot-lib.template_$KIND.aar" "$ABI" "$CUSTOM"
+	if [ "$KIND" = release ]; then
+		EXPORT=--export-release
+		export GODOT_ANDROID_KEYSTORE_RELEASE_PATH="$HOME/.android/debug.keystore"
+		export GODOT_ANDROID_KEYSTORE_RELEASE_USER=androiddebugkey
+		export GODOT_ANDROID_KEYSTORE_RELEASE_PASSWORD=android
+	fi
+else
+	echo "Using the stock engine. Run tools/build-engine.sh for a much smaller APK."
+fi
+
 "$GODOT" --headless --path . --import > /dev/null 2>&1 || true
-"$GODOT" --headless --path . --export-debug "$PRESET" "$APK"
+"$GODOT" --headless --path . "$EXPORT" "$PRESET" "$APK"
 ls -l "$APK"
 
 if [ "$PRESET" = "Android" ] && [ -d "$(dirname "$DROP")" ]; then

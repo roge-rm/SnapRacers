@@ -41,7 +41,7 @@ func _ready() -> void:
 	env.environment.ambient_light_energy = 0.55
 	_view.add_child(env)
 	var sun := DirectionalLight3D.new()
-	sun.rotation_degrees = Vector3(-50.0, 35.0, 0.0)
+	sun.rotation_degrees = Vector3(-50.0, 215.0, 0.0)
 	sun.light_energy = 1.0
 	_view.add_child(sun)
 	_camera = Camera3D.new()
@@ -83,6 +83,8 @@ func _process(_delta: float) -> void:
 	if def.get("kind", "") == "wheel":
 		biggest = maxf(biggest, float(def.get("radius", 0.3)) * 2.0)
 	_camera.size = biggest * 1.5
-	_camera.position = Vector3(1.0, 0.9, 1.3).normalized() * 10.0
+	# From in front and to one side, where the shaping on slopes and noses
+	# shows.
+	_camera.position = Vector3(1.0, 0.9, -1.3).normalized() * 10.0
 	_camera.look_at(Vector3.ZERO, Vector3.UP)
 	_view.render_target_update_mode = SubViewport.UPDATE_ONCE

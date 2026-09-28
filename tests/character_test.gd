@@ -51,9 +51,6 @@ class Runner:
 				classes[who.weight_class()] = true
 		check(names.size() == 8, "eight drivers on the roster %s" % [names])
 		check(classes.size() == 3, "light, medium and heavy are all there %s" % [classes.keys()])
-		for file in DirAccess.get_files_at("res://data/karts/ai"):
-			if file.ends_with(".json"):
-				check(FileAccess.file_exists("res://data/characters/roster/" + file), "the %s kart has a driver" % file.get_basename())
 
 		var racer := CharacterDesign.load_file("res://data/characters/roster/racer.json")
 		var again := CharacterDesign.from_dict(racer.to_dict())
@@ -63,12 +60,12 @@ class Runner:
 		check(tread.weight_class() == "Heavy" and pip.weight_class() == "Light", "Tread is heavy (%.0f kg) and Pip is light (%.0f kg)" % [tread.mass(), pip.mass()])
 
 		# A kart has to have something to steer with.
-		var no_wheel := KartDesign.load_file("res://data/karts/starter.json")
+		var no_wheel := KartDesign.load_file("res://data/karts/stock/starter.json")
 		no_wheel.parts = no_wheel.parts.filter(func(p): return PartCatalog.get_part(p.id).kind != "steering")
 		check(no_wheel.problems().has("It needs a steering wheel or handlebars in front of the seat."), "a kart with no steering wheel says so")
 
 		# A heavy driver and a light one make different karts.
-		var design := KartDesign.load_file("res://data/karts/starter.json")
+		var design := KartDesign.load_file("res://data/karts/stock/starter.json")
 		kart = Kart.new()
 		kart.build(design, tread)
 		kart.transform = Transform3D(Basis.IDENTITY, Vector3(60.0, 0.05, 100.0))

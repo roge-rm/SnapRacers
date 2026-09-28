@@ -1,0 +1,18 @@
+{
+	"name": "Soapbox",
+	"about": "Bicycle wheels, a nose cone and a tiny engine. Hardly any push, but hardly anything holds it back either.",
+	"parts": [
+		{"id": "plate_6x10", "at": [7, 4, 5], "rot": 0, "color": "#d7c599"},
+		{"id": "wheel_skinny", "at": [6, 0, 5], "rot": 0},
+		{"id": "wheel_skinny", "at": [13, 0, 5], "rot": 0},
+		{"id": "wheel_skinny", "at": [6, 0, 14], "rot": 0},
+		{"id": "wheel_skinny", "at": [13, 0, 14], "rot": 0},
+		{"id": "nose_4x4", "at": [8, 5, 5], "rot": 0, "color": "#c4281c"},
+		{"id": "windscreen_2", "at": [9, 8, 8], "rot": 0},
+		{"id": "yoke", "at": [9, 5, 9], "rot": 0},
+		{"id": "lay_down_seat", "at": [9, 5, 10], "rot": 0},
+		{"id": "engine_micro", "at": [11, 5, 13], "rot": 0},
+		{"id": "nose_2x2", "at": [9, 5, 14], "rot": 2, "color": "#c4281c"},
+		{"id": "spring", "at": [7, 5, 13], "rot": 0}
+	]
+}

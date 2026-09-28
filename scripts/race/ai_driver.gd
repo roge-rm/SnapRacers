@@ -6,8 +6,9 @@ extends Node
 ## It aims at a point on the track a little way ahead (further the faster it's
 ## going) and steers toward it. For speed it looks down the road for bends,
 ## works out how fast its own kart can take each one from how well it grips,
-## and brakes in time to be at that speed when it gets there. If it's stuck or
-## upside down for a couple of seconds it resets, the same as a player would.
+## and brakes in time to be at that speed when it gets there. If it runs into
+## something it backs off it, and if it's still stuck or upside down after a
+## couple of seconds it resets, the same as a player would.
 
 ## How close to its kart's limit it dares to corner. 1 is right at the limit.
 @export var skill := 0.92
@@ -18,6 +19,12 @@ const BRAKING := 8.0 # m/s² it counts on when planning to slow down
 const LOOK_NEAR := 7.0
 const LOOK_FAR := 26.0
 const STUCK_AFTER := 2.5
+## Stuck the right way up for this long, it backs off for BACK_FOR before it
+## tries again. Only if that doesn't work does it reset.
+const BACK_AFTER := 0.8
+const BACK_FOR := 1.0
+## How far on around the track it has to get before it counts as unstuck.
+const FREE_AFTER := 6.0
 const SEE_AHEAD := 12.0 # how far ahead it watches for karts in its way
 const KART_ROOM := 2.8 # how far to the side a kart has to be to be out of the way
 
@@ -31,6 +38,12 @@ var controls := KartControls.new()
 
 var _stuck := 0.0
 var _think := 0.0
+## Time left backing away from something it's stuck against.
+var _backing := 0.0
+## Whether it's backed off already this time it got stuck.
+var _backed := false
+## Where it was on the track when it got stuck.
+var _stuck_at := 0.0
 
 const THINK_EVERY := 0.3 # seconds between looking at its gadgets
 
@@ -55,7 +68,9 @@ func _physics_process(delta: float) -> void:
 
 	# For speed, find the slowest it needs to be for anything coming up, with
 	# room to brake.
-	var grip := kart.stats.cornering() * KartStats.gravity() * skill
+	# A driver who can't steer quickly (see KartStats.control) is late into
+	# every bend, so takes them a little slower.
+	var grip := kart.stats.cornering() * KartStats.gravity() * skill * minf(1.0, 0.6 + 0.4 * kart.stats.control)
 	var allowed := INF
 	var ahead := 4.0
 	while ahead <= 64.0:
@@ -64,15 +79,25 @@ func _physics_process(delta: float) -> void:
 			var corner := sqrt(grip / bend)
 			allowed = minf(allowed, sqrt(corner * corner + 2.0 * BRAKING * ahead))
 		ahead += 4.0
-	var here := track.bend_at(offset + 2.0)
+	# The bend it's in counts too, or it floors it on the way out of a hairpin
+	# while it's still turning and runs wide.
+	var here := maxf(track.bend_at(offset), track.bend_at(offset + 2.0))
 	if here > 0.002:
 		allowed = minf(allowed, sqrt(grip / here))
 
-	if speed > allowed + 1.5:
+	if _backing > 0.0:
+		# Backing off whatever it ran into, steering the other way.
+		_backing -= delta
+		controls.throttle = 0.0
+		controls.brake = 1.0
+		controls.steer = -controls.steer
+	# In a tight bend it holds its speed down firmly. Out on the road it lets
+	# it run a little over before braking.
+	elif speed > allowed + (0.4 if here > 0.05 else 1.5):
 		controls.throttle = 0.0
 		controls.brake = 1.0
 	elif speed > allowed:
-		controls.throttle = 0.2
+		controls.throttle = 0.0 if here > 0.05 else 0.2
 		controls.brake = 0.0
 	else:
 		controls.throttle = 1.0
@@ -106,7 +131,7 @@ func _dodge() -> float:
 
 
 ## Every so often it looks at each gadget it can afford and uses it if the
-## moment's right. That's a turbo on a straight, the cannon at a kart dead
+## moment's right. That's a turbo on a straight with no jump coming, the cannon at a kart dead
 ## ahead, bricks for a kart right behind, a repair once it's lost a couple of
 ## parts, a shield when someone's close, and a spring to hop free when it's
 ## stuck.
@@ -134,9 +159,13 @@ func _worth_using(kind: String, speed: float) -> bool:
 		"turbo":
 			if speed < 8.0:
 				return false
-			var ahead := 4.0
-			while ahead <= 40.0:
-				if track.bend_at(offset + ahead) > 0.008:
+			# Not in a bend or with one coming, or a jump, which it would fly
+			# right off. The faster it's going, the further ahead it has to be
+			# clear. Fired on the way out of a hairpin, it carried the kart
+			# wide into the barrier.
+			var ahead := -4.0
+			while ahead <= maxf(40.0, speed * Kart.TURBO_TIME * 1.5 + 15.0):
+				if track.bend_at(offset + ahead) > 0.008 or track.piece_type_at(offset + ahead) == "jump":
 					return false
 				ahead += 4.0
 			return true
@@ -171,11 +200,23 @@ func _nearest(from: float, to: float, side_room: float) -> Kart:
 
 func _stuck_check(delta: float, speed: float, up: Vector3) -> void:
 	# It's stuck against something, or on its back. Upside down only counts
-	# when it isn't meant to be, so not at the top of a loop.
-	if not kart.locked and (speed < 1.5 or (up.y < 0.3 and not kart.sticking)):
+	# when it isn't meant to be, so not at the top of a loop. It only counts
+	# as free again once it's got a little further around the track.
+	var upside_down := up.y < 0.3 and not kart.sticking
+	if not kart.locked and (speed < 1.5 or upside_down):
+		if _stuck == 0.0:
+			_stuck_at = offset
 		_stuck += delta
-	else:
+	elif _stuck > 0.0 and offset - _stuck_at > FREE_AFTER:
 		_stuck = 0.0
+		_backed = false
+	# The right way up, against a wall or a barrier, it backs off it once,
+	# the way a person would.
+	if not upside_down and _stuck > BACK_AFTER and not _backed:
+		_backed = true
+		_backing = BACK_FOR
 	if _stuck > STUCK_AFTER:
 		_stuck = 0.0
+		_backed = false
+		_backing = 0.0
 		controls.reset = true

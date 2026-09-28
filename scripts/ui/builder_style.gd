@@ -97,7 +97,7 @@ static func dark_pill(text: String, action: Callable) -> Button:
 	return pill(text, SCRIM, Color.WHITE, action)
 
 
-## Colours a round swatch, with a white ring round it when it's the one picked.
+## Colours a round swatch, with a white ring around it when it's the one picked.
 static func show_swatch(swatch: Button, colour: Color, picked: bool) -> void:
 	var style := StyleBoxFlat.new()
 	style.bg_color = colour

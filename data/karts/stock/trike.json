@@ -1,0 +1,19 @@
+{
+	"name": "Trike",
+	"about": "One wheel at the front and an electric motor at the back. Light and eager, and tippy if you push it.",
+	"parts": [
+		{"id": "plate_2x4", "at": [7, 2, 4], "rot": 0, "color": "#f2f3f2"},
+		{"id": "plate_2x4", "at": [11, 2, 4], "rot": 0, "color": "#f2f3f2"},
+		{"id": "wheel_small_wide", "at": [9, 0, 4], "rot": 0},
+		{"id": "plate_6x10", "at": [7, 2, 9], "rot": 0, "color": "#f2f3f2"},
+		{"id": "brick_2x4", "at": [7, 3, 6], "rot": 0, "color": "#36aebf"},
+		{"id": "brick_2x4", "at": [11, 3, 6], "rot": 0, "color": "#36aebf"},
+		{"id": "handlebars", "at": [8, 3, 10], "rot": 0},
+		{"id": "seat", "at": [9, 3, 11], "rot": 0},
+		{"id": "wheel_small", "at": [6, 0, 14], "rot": 0},
+		{"id": "wheel_small", "at": [13, 0, 14], "rot": 0},
+		{"id": "electric_motor", "at": [9, 3, 14], "rot": 0},
+		{"id": "magnet", "at": [7, 3, 14], "rot": 0},
+		{"id": "turbo", "at": [11, 3, 14], "rot": 0}
+	]
+}

@@ -36,7 +36,8 @@ func _ready() -> void:
 		print("-- %s" % mode)
 		# Set this for the run without saving over what was last picked.
 		Game.settings.set_value("race", "split", mode)
-		Game.settings.set_value("race", "player_two", "pip")
+		Game.settings.set_value("race", "player_two", "rocket")
+		Game.settings.set_value("race", "kart", Game.OWN_KART)
 		var before := race_on_screen()
 		Game.start_race(Game.TRACKS + "/peach_pit.json")
 		var race: Race = null
@@ -53,8 +54,8 @@ func check_race(race: Race, mode: String) -> void:
 	check(race.racers.size() == Race.KARTS, "still %d karts in all (%d)" % [Race.KARTS, race.racers.size()])
 	check(race.humans.size() == 2 and race.humans[0] == race.player, "two of them people, player 1 first")
 	var second := race.humans[1]
-	check(second.name == "Player 2" and second.kart.design.name == "Pip", "player 2 drives the kart picked for them (%s)" % second.kart.design.name)
-	check(race.racers.filter(func(r): return r.kart.design.name == "Pip").size() == 1, "and the AI doesn't drive another one")
+	check(second.name == "Player 2" and second.kart.design.name == "Rocket", "player 2 drives the kart picked for them (%s)" % second.kart.design.name)
+	check(race.racers.filter(func(r): return r.kart.design.name == "Rocket").size() == 1, "and the AI doesn't drive another one")
 
 	var views := race.find_children("*", "SubViewport", true, false)
 	check(views.size() == 2, "each has a view of their own (%d)" % views.size())

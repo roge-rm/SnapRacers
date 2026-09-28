@@ -7,7 +7,9 @@ extends Node
 ## the main menu. The phone's back button (or Esc) asks the current screen to
 ## go back, and a screen that doesn't say otherwise goes back to the menu.
 
-const STARTER := "res://data/karts/starter.json"
+## The stock karts, which the AI drives and anyone can pick.
+const STOCK := "res://data/karts/stock"
+const STARTER := STOCK + "/starter.json"
 ## The kart you were last working on, kept between launches.
 const CURRENT_KART := "user://current_kart.json"
 ## The driver you last built, kept between launches too.
@@ -40,8 +42,8 @@ var grand_prix: GrandPrix
 const SOLO := ""
 const SIDE_BY_SIDE := "side"
 const FACE_TO_FACE := "face"
-## The AI karts, one of which player 2 drives.
-const AI_KARTS := "res://data/karts/ai"
+## What `kart_choice()` says when you're driving the kart from the garage.
+const OWN_KART := "own"
 
 var _host: Node
 var _screen: Node
@@ -99,9 +101,17 @@ func show_tracks(for_mode := MODE_RACE) -> void:
 	_swap(TrackPicker.new(for_mode))
 
 
+## Pick a kart, then `go` starts the race. Back goes to `back`.
+func show_kart_picker(go: Callable, back: Callable) -> void:
+	_swap(KartPicker.new(go, back))
+
+
 func start_grand_prix(cup_id: String) -> void:
 	mode = MODE_GRAND_PRIX
 	grand_prix = GrandPrix.new(cup_id)
+	# Everyone keeps the same kart for the whole cup.
+	grand_prix.karts = draw_karts(ai_driver_keys())
+	grand_prix.player_kart = kart_choice()
 	show_race(grand_prix.track_path())
 
 
@@ -114,6 +124,17 @@ func finish_grand_prix_race(order: Array) -> void:
 
 func next_grand_prix_race() -> void:
 	show_race(grand_prix.track_path())
+
+
+## Starts a time trial, practice or a race against the AI on this course.
+func start_course(for_mode: String, path: String) -> void:
+	match for_mode:
+		MODE_TIME_TRIAL:
+			start_time_trial(path)
+		MODE_PRACTICE:
+			start_practice(path)
+		_:
+			start_race(path)
 
 
 func start_time_trial(path: String) -> void:
@@ -204,20 +225,68 @@ func race_split() -> String:
 	return split() if mode == MODE_RACE else SOLO
 
 
-## Which AI kart player 2 drives, by its file name.
+## Which stock kart player 2 drives, by its file name.
 func player_two_kart() -> String:
-	var key: String = settings.get_value("race", "player_two", "brickley")
-	return key if FileAccess.file_exists("%s/%s.json" % [AI_KARTS, key]) else "brickley"
+	var key: String = settings.get_value("race", "player_two", "sparky")
+	return key if stock_keys().has(key) else "sparky"
 
 
-## The AI karts' file names, without .json, in order.
-func ai_kart_keys() -> Array[String]:
+## The stock karts' file names, without .json, in order.
+func stock_keys() -> Array[String]:
 	var keys: Array[String] = []
-	for file in DirAccess.get_files_at(AI_KARTS):
+	for file in DirAccess.get_files_at(STOCK):
 		if file.ends_with(".json"):
 			keys.append(file.get_basename())
 	keys.sort()
 	return keys
+
+
+func stock_kart(key: String) -> KartDesign:
+	return KartDesign.load_file("%s/%s.json" % [STOCK, key])
+
+
+## The AI drivers, by their file names in the roster. The Racer is yours.
+func ai_driver_keys() -> Array[String]:
+	var keys: Array[String] = []
+	for file in DirAccess.get_files_at(ROSTER):
+		if file.ends_with(".json") and file != "racer.json":
+			keys.append(file.get_basename())
+	keys.sort()
+	return keys
+
+
+## Deals a random stock kart to each of these drivers, as { driver: kart }.
+## Nobody gets the same kart as anyone else while there are enough to go
+## around, and nobody gets one in `leave_out` (like player 2's).
+func draw_karts(drivers: Array, leave_out: Array = []) -> Dictionary:
+	var deck: Array[String] = []
+	var out := {}
+	for driver in drivers:
+		if deck.is_empty():
+			deck = stock_keys().filter(func(k): return not leave_out.has(k))
+			deck.shuffle()
+		out[driver] = deck.pop_back()
+	return out
+
+
+## Which kart you race in: OWN_KART for the one from the garage, or a stock
+## kart's key.
+func kart_choice() -> String:
+	var key: String = settings.get_value("race", "kart", OWN_KART)
+	return key if key == OWN_KART or stock_keys().has(key) else OWN_KART
+
+
+func set_kart_choice(key: String) -> void:
+	set_setting("race", "kart", key)
+
+
+## The kart you race in, from your choice. In a Grand Prix it's the one you
+## started the cup with.
+func chosen_design() -> KartDesign:
+	var key := kart_choice()
+	if mode == MODE_GRAND_PRIX and grand_prix != null and grand_prix.player_kart != "":
+		key = grand_prix.player_kart
+	return design if key == OWN_KART else stock_kart(key)
 
 
 func show_fps() -> bool:

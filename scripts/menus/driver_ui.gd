@@ -98,7 +98,7 @@ func show_slot(which: String) -> void:
 		var tile := DriverTile.new(style, "%s\n%s kg" % [info.get("name", style), weight], design.style_of(slot) == style)
 		tile.set_meta("key", DriverThumbnails.key_of(design, slot, style))
 		tile.icon = _pictures.picture(design, slot, style)
-		tile.pressed.connect(func() -> void: style_chosen.emit(slot, style))
+		tile.tapped.connect(func() -> void: style_chosen.emit(slot, style))
 		_tiles.add_child(tile)
 	_show_swatches()
 
@@ -281,7 +281,7 @@ func _build_bottom() -> void:
 	hint_panel.size_flags_horizontal = SIZE_SHRINK_CENTER
 	_bottom.add_child(hint_panel)
 	var hint := Label.new()
-	hint.text = "Drag them to spin them round."
+	hint.text = "Drag them to spin them around."
 	hint.add_theme_font_size_override("font_size", 18)
 	hint_panel.add_child(hint)
 	var row := HBoxContainer.new()
@@ -301,7 +301,7 @@ func _build_bottom() -> void:
 ## A style of piece in the drawer: a picture of your driver wearing it, its
 ## name and weight. The one they're wearing is lit up.
 class DriverTile:
-	extends Button
+	extends ScrollButton
 
 	var style := ""
 

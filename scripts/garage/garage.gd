@@ -373,7 +373,9 @@ static func mirrored(entry: Dictionary) -> Dictionary:
 	var rot: int = posmod(4 - int(entry.rot), 4)
 	var size := Grid.rotated_size(PartCatalog.get_part(entry.id).size, rot)
 	var at: Vector3i = entry.at
-	var twin := { "id": entry.id, "at": Vector3i(KartDesign.BUILD_SIZE.x - at.x - size.x, at.y, at.z), "rot": rot }
+	# A left handed part's twin is the right handed one.
+	var id: String = PartCatalog.get_part(entry.id).get("mirror", entry.id)
+	var twin := { "id": id, "at": Vector3i(KartDesign.BUILD_SIZE.x - at.x - size.x, at.y, at.z), "rot": rot }
 	if entry.has("color"):
 		twin["color"] = entry.color
 	return twin
@@ -478,6 +480,7 @@ func _rebuild() -> void:
 		# The stats put the kart's origin under the middle of it, so put that
 		# back onto the grid to find the seat.
 		var rig := CharacterRig.new(Game.character, true)
+		rig.recline = stats.recline
 		rig.position = stats.seat_top + Grid.to_metres(stats.origin_cell)
 		_parts_root.add_child(rig)
 		# Hands on the steering wheel if there is one.
@@ -520,7 +523,7 @@ func _part_node(id: String, rot: int, colour: Variant = null) -> Node3D:
 		def = def.duplicate()
 		def["color"] = colour
 	var size := Grid.rotated_size(def.size, rot)
-	return PartVisuals.make(def, Grid.to_metres(Vector3(size)))
+	return PartVisuals.make(def, Grid.to_metres(Vector3(size)), rot)
 
 
 func _world_centre(id: String, at: Vector3i, rot: int) -> Vector3:
@@ -535,7 +538,7 @@ func _make_ghosts() -> void:
 	_ghost = _part_node(_holding, _holding_rot, _holding_colour)
 	add_child(_ghost)
 	_ghost.visible = false
-	_twin_ghost = _part_node(_holding, posmod(4 - _holding_rot, 4), _holding_colour)
+	_twin_ghost = _part_node(PartCatalog.get_part(_holding).get("mirror", _holding), posmod(4 - _holding_rot, 4), _holding_colour)
 	add_child(_twin_ghost)
 	_twin_ghost.visible = false
 

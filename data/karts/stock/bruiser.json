@@ -1,0 +1,20 @@
+{
+	"name": "Bruiser",
+	"about": "A heavy slab with a diesel and a ram. Slow to get going, but it shoves everyone else out of the way.",
+	"parts": [
+		{"id": "plate_6x10", "at": [7, 3, 6], "rot": 0, "color": "#635f61"},
+		{"id": "wheel_big_wide", "at": [5, 0, 6], "rot": 0},
+		{"id": "wheel_big_wide", "at": [13, 0, 6], "rot": 0},
+		{"id": "wheel_big_wide", "at": [5, 0, 12], "rot": 0},
+		{"id": "wheel_big_wide", "at": [13, 0, 12], "rot": 0},
+		{"id": "ram_plate", "at": [7, 4, 6], "rot": 0},
+		{"id": "brick_2x4", "at": [7, 4, 7], "rot": 0, "color": "#7b2e2f"},
+		{"id": "brick_2x4", "at": [11, 4, 7], "rot": 0, "color": "#7b2e2f"},
+		{"id": "steering_wheel", "at": [9, 4, 9], "rot": 0},
+		{"id": "seat", "at": [9, 4, 10], "rot": 0},
+		{"id": "engine_diesel", "at": [8, 4, 12], "rot": 0},
+		{"id": "brick_dropper", "at": [11, 4, 12], "rot": 0},
+		{"id": "brick_2x2", "at": [7, 7, 7], "rot": 0, "color": "#7b2e2f"},
+		{"id": "brick_2x2", "at": [11, 7, 7], "rot": 0, "color": "#7b2e2f"}
+	]
+}

@@ -62,7 +62,7 @@ static func rounded_box(size: Vector3, radius: float, taper := 1.0, steps := 5) 
 					tool.add_vertex(vertex[0])
 	tool.index()
 	var mesh := tool.commit()
-	_fix_winding(mesh)
+	fix_winding(mesh)
 	_cache[key] = mesh
 	return mesh
 
@@ -73,7 +73,7 @@ static func _ease(x: float) -> float:
 
 ## Flips any triangle whose winding points it inward, so the rounded box
 ## shows from outside whichever way the face loops above happened to run.
-static func _fix_winding(mesh: ArrayMesh) -> void:
+static func fix_winding(mesh: ArrayMesh) -> void:
 	var arrays := mesh.surface_get_arrays(0)
 	var verts: PackedVector3Array = arrays[Mesh.ARRAY_VERTEX]
 	var normals: PackedVector3Array = arrays[Mesh.ARRAY_NORMAL]
@@ -187,7 +187,7 @@ static func lathe(profile: PackedVector2Array, sides := 32, from := 0.0, to := T
 				tool.add_vertex(vertex[0])
 	tool.index()
 	var mesh := tool.commit()
-	_fix_winding(mesh)
+	fix_winding(mesh)
 	_cache[key] = mesh
 	return mesh
 

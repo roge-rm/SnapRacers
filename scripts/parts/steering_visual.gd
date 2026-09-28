@@ -1,7 +1,8 @@
 class_name SteeringVisual
 extends Node3D
 
-## What the driver steers with, either a wheel on a column or handlebars. It
+## What the driver steers with: a wheel on a column, handlebars, or a yoke
+## (a wheel with its top cut off, so it tucks in under a windscreen). It
 ## turns with the kart's steering and says where the driver's hands go on it,
 ## so they can follow it around.
 ##
@@ -77,6 +78,19 @@ func _init(def: Dictionary, extent: Vector3) -> void:
 			grip.height = 0.09
 			grip.radial_segments = 12
 			_add(grip, colour, Transform3D(Basis(Vector3.BACK, PI * 0.5), Vector3(radius * s, 0.0, 0.0)), 0.0, _wheel)
+	elif style == "yoke":
+		# The bottom half of a rim, with a short grip rising from each end.
+		radius = 0.15
+		_add(MeshKit.arc_tube(radius, 0.018, PI, TAU, 14, 8), colour, Transform3D(Basis(Vector3.RIGHT, -PI * 0.5), Vector3.ZERO), 0.0, _wheel)
+		for s in [-1.0, 1.0]:
+			var grip := CylinderMesh.new()
+			grip.top_radius = 0.02
+			grip.bottom_radius = 0.02
+			grip.height = 0.08
+			grip.radial_segments = 10
+			_add(grip, colour, Transform3D(Basis(Vector3.RIGHT, PI * 0.5), Vector3(radius * s, 0.0, -0.03)), 0.0, _wheel)
+		var bar := MeshKit.rounded_box(Vector3(radius * 1.6, 0.014, 0.03), 0.006)
+		_add(bar, Color("#9aa0a6"), Transform3D(Basis.IDENTITY, Vector3(0.0, 0.0, 0.03)), 0.6, _wheel)
 	else:
 		var rim := TorusMesh.new()
 		rim.inner_radius = radius - 0.016

@@ -54,7 +54,7 @@ func _ready() -> void:
 		racer.kart.was_reset.connect(func() -> void:
 			resets[racer.name] += 1
 			if OS.has_environment("RACE_DEBUG"):
-				print("RESET %s at %.0f m (piece %d %s) speed %.1f" % [racer.name, racer.offset, race.track.piece_of[race.track._index_before(racer.offset)], race.track.pieces[race.track.piece_of[race.track._index_before(racer.offset)]].type, racer.kart.linear_velocity.length()]))
+				print("RESET %s (%s) at %.0f m (piece %d %s) speed %.1f" % [racer.name, racer.kart.design.name, racer.offset, race.track.piece_of[race.track._index_before(racer.offset)], race.track.pieces[race.track.piece_of[race.track._index_before(racer.offset)]].type, racer.kart.linear_velocity.length()]))
 	print("%s, %.0f m a lap, %d karts" % [race.track.name, race.track.length, race.racers.size()])
 
 
@@ -67,7 +67,7 @@ func _physics_process(_delta: float) -> void:
 	var everyone := race.racers.all(func(r): return r.progress.finished)
 	if everyone or race.time > GIVE_UP:
 		for racer in race.standings():
-			print("  %s: %s, laps %s, %d resets" % [racer.name, RaceHud.clock(racer.progress.finish_time) if racer.progress.finished else "didn't finish", racer.progress.lap_times.map(func(t): return snappedf(t, 0.1)), resets[racer.name]])
+			print("  %s in the %s: %s, laps %s, %d resets" % [racer.name, racer.kart.design.name, RaceHud.clock(racer.progress.finish_time) if racer.progress.finished else "didn't finish", racer.progress.lap_times.map(func(t): return snappedf(t, 0.1)), resets[racer.name]])
 		for racer in race.racers:
 			check(racer.progress.finished, "%s finishes" % racer.name)
 			# With cannon bricks, dropped piles and a pack going around a loop, a

@@ -22,7 +22,7 @@ class Runner:
 
 	## The starter kart with these gadgets on it, at this spot facing -Z.
 	func kart_with(gadgets: Array, at: Vector3, swap_bumper := false) -> Kart:
-		var design := KartDesign.load_file("res://data/karts/starter.json")
+		var design := KartDesign.load_file("res://data/karts/stock/starter.json")
 		# The starter comes with a turbo, so clear it and each kart only has the
 		# gadgets being tried.
 		design.parts = design.parts.filter(func(p): return PartCatalog.get_part(p.id).kind != "gadget")
@@ -43,7 +43,7 @@ class Runner:
 		add_child(TestTrack.new())
 
 		# Too many gadgets.
-		var three := KartDesign.load_file("res://data/karts/starter.json")
+		var three := KartDesign.load_file("res://data/karts/stock/starter.json")
 		three.parts = three.parts.filter(func(p): return p.id != "turbo")
 		for spot in [Vector3i(7, 3, 10), Vector3i(11, 3, 10), Vector3i(9, 6, 11)]:
 			three.parts.append({ "id": "turbo", "at": spot, "rot": 0 })

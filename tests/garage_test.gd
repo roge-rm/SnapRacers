@@ -77,7 +77,18 @@ func _ready() -> void:
 
 func _bank() -> void:
 	var tiles := garage.ui.find_children("*", "Button", true, false).filter(func(b): return b is GarageUI.PartTile)
-	check(tiles.size() == 2, "the bank starts on the plates (%d)" % tiles.size())
+	check(tiles.size() == 4, "the bank starts on the plates, wedges and all (%d)" % tiles.size())
+	# Every part is in one of the drawer's tabs, and every tab has something.
+	var shown := {}
+	for i in GarageUI.CATEGORIES.size():
+		garage.ui._show_category(i)
+		await frames(1)
+		var ids: Array = garage.ui.find_children("*", "Button", true, false).filter(func(b): return b is GarageUI.PartTile and not b.is_queued_for_deletion()).map(func(b): return b.id)
+		check(not ids.is_empty(), "the %s tab has parts in it" % GarageUI.CATEGORIES[i][0])
+		for id in ids:
+			shown[id] = true
+	var missing := PartCatalog.ids().filter(func(id): return not shown.has(id))
+	check(missing.is_empty(), "every part is in the drawer somewhere %s" % [missing])
 	garage.ui._show_category(5)
 	await frames(1)
 	var extras: Array = garage.ui.find_children("*", "Button", true, false).filter(func(b): return b is GarageUI.PartTile).map(func(b): return b.id)

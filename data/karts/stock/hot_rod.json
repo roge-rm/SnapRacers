@@ -1,0 +1,18 @@
+{
+	"name": "Hot Rod",
+	"about": "A V8 out in front and big wheels at the back. Loud, heavy and very fast, if you can keep it pointing the right way.",
+	"parts": [
+		{"id": "plate_6x10", "at": [7, 2, 5], "rot": 0, "color": "#1b1b1b"},
+		{"id": "wheel_small", "at": [6, 0, 5], "rot": 0},
+		{"id": "wheel_small", "at": [13, 0, 5], "rot": 0},
+		{"id": "wheel_big_wide", "at": [5, 0, 11], "rot": 0},
+		{"id": "wheel_big_wide", "at": [13, 0, 11], "rot": 0},
+		{"id": "engine_v8", "at": [9, 3, 5], "rot": 0},
+		{"id": "turbo", "at": [7, 3, 6], "rot": 0},
+		{"id": "brick_cannon", "at": [11, 3, 5], "rot": 0},
+		{"id": "steering_wheel", "at": [9, 3, 10], "rot": 0},
+		{"id": "seat", "at": [9, 3, 11], "rot": 0},
+		{"id": "brick_2x4", "at": [7, 3, 11], "rot": 0, "color": "#c4281c"},
+		{"id": "brick_2x4", "at": [11, 3, 11], "rot": 0, "color": "#c4281c"}
+	]
+}

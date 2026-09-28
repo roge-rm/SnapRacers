@@ -40,6 +40,9 @@ const SMALL_SLIDE := deg_to_rad(3.0)
 const STEER_RATE := 4.0 # how fast the wheels turn, in full locks per second
 const BRAKE_FORCE := 2800.0
 const REVERSE_FRACTION := 0.45
+## A jet has no push through the wheels to reverse with, so every kart gets
+## at least this much push backward, like a little starter motor.
+const REVERSE_PUSH := 1000.0
 const REVERSE_TOP_SPEED := 6.0
 const ROLL_HELP := 0.6 # lifts the cornering forces toward the centre of mass so it doesn't flip in every corner
 const RESET_LIFT := 1.0
@@ -104,6 +107,8 @@ class Wheel:
 	var width := 0.25
 	var grip := 1.0
 	var rolling := 0.015
+	## How much of the grip it loses on grass and dirt it keeps anyway.
+	var offroad := 0.0
 	var steered := false
 	var driven := false
 	var spring := 0.0
@@ -135,6 +140,8 @@ var lost := {}
 # What the parts add up to, worked out in build().
 var power := 0.0
 var max_force := 0.0
+## Push from jet engines, straight through the middle of the kart.
+var thrust := 0.0
 var drag_area := 0.0
 var lift_area := 0.0
 
@@ -165,6 +172,9 @@ var _steering: SteeringVisual
 var _rig: CharacterRig
 var _rammed_wait := 0.0
 var slowdown_left := 0.0
+## Set by the race when a reset is putting the kart back at the run up to a
+## loop or a wall ride, so it doesn't get the reset slowdown.
+var run_up_reset := false
 
 var _reset_held := false
 var _reset_asked := false
@@ -318,6 +328,7 @@ func _assemble() -> void:
 	stats = KartStats.compute(design, lost, _full.origin_cell, _driver_mass())
 	power = stats.power
 	max_force = stats.max_force
+	thrust = stats.thrust
 	drag_area = stats.drag_area
 	lift_area = stats.lift_area
 
@@ -331,6 +342,7 @@ func _assemble() -> void:
 			w.width = info.def.get("width", 0.25)
 			w.grip = info.def.get("grip", 1.0)
 			w.rolling = info.def.get("rolling", 0.015)
+			w.offroad = info.def.get("offroad", 0.0)
 			var setup: Array = _wheel_setup[info.index]
 			w.steered = setup[0]
 			w.driven = setup[1]
@@ -355,7 +367,7 @@ func _assemble() -> void:
 		shape.shape = box
 		shape.position = info.centre
 		add_child(shape)
-		var look := PartVisuals.make(info.def, info.extent)
+		var look := PartVisuals.make(info.def, info.extent, info.rot)
 		look.position = info.centre
 		add_child(look)
 		if look is SteeringVisual and _steering == null:
@@ -363,6 +375,7 @@ func _assemble() -> void:
 
 	if stats.has_seat:
 		_rig = CharacterRig.new(driver if driver != null else default_driver(), true)
+		_rig.recline = stats.recline
 		_rig.position = stats.seat_top
 		add_child(_rig)
 		# The driver takes hits too, so a rollover lands on something.
@@ -414,7 +427,7 @@ func lose_parts(indices: Array[int]) -> void:
 		if not newly.has(info.index):
 			continue
 		var at := global_transform * info.centre
-		var piece := Debris.make(info.def, info.extent, Transform3D(global_basis, at))
+		var piece := Debris.make(info.def, info.extent, Transform3D(global_basis, at), info.rot)
 		piece.linear_velocity = linear_velocity + angular_velocity.cross(at - com)
 		piece.angular_velocity = angular_velocity
 		get_parent().add_child(piece)
@@ -490,7 +503,8 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 			slide = 0.0
 	full_lock = steer_limit(speed, slide)
 	var wanted_steer := controls.steer * full_lock if stats.steering != null else 0.0
-	steer_angle = move_toward(steer_angle, wanted_steer, STEER_RATE * MAX_STEER * dt)
+	# A driver who sits awkwardly or has to reach steers more slowly.
+	steer_angle = move_toward(steer_angle, wanted_steer, STEER_RATE * stats.control * MAX_STEER * dt)
 
 	# Engine and brakes. Holding the brake once the kart has stopped reverses.
 	var drive := 0.0
@@ -503,7 +517,7 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 		if forward_speed > 0.5:
 			braking = true
 		elif forward_speed > -REVERSE_TOP_SPEED:
-			drive -= controls.brake * max_force * REVERSE_FRACTION
+			drive -= controls.brake * maxf(max_force, REVERSE_PUSH) * REVERSE_FRACTION
 	if slowdown_left > 0.0:
 		drive *= RESET_SLOWDOWN
 	var drive_per_wheel := drive / maxf(_driven_count, 1)
@@ -566,6 +580,8 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 		var ground: Object = hit.get("collider")
 		var grip_here: float = ground.get_meta("grip", 1.0) if ground != null else 1.0
 		var drag_here: float = ground.get_meta("drag", 1.0) if ground != null else 1.0
+		grip_here = ground_grip(grip_here, w.offroad)
+		drag_here = ground_drag(drag_here, w.offroad)
 		var resist := w.rolling * load * drag_here
 		if braking:
 			resist += BRAKE_FORCE * (1.0 if locked else controls.brake) / wheels.size()
@@ -620,7 +636,13 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 	# their grip to push that hard, so they had none left to hold the back of
 	# the kart in line, and the slightest steer spun it around.
 	var on_ground := wheels.any(func(w: Wheel) -> bool: return w.grounded)
-	if boost_left > 0.0 and slowdown_left <= 0.0 and on_ground and forward_speed < stats.top_speed() * TURBO_TOP_SPEED:
+	# A jet pushes the same way, whatever the tires are on.
+	if thrust > 0.0 and controls.throttle > 0.0 and not locked and on_ground:
+		var jet := -basis.z * thrust * controls.throttle * (RESET_SLOWDOWN if slowdown_left > 0.0 else 1.0)
+		state.apply_central_force(jet)
+		applied += jet
+	# It cuts out while you brake, so it can't carry you off at a corner.
+	if boost_left > 0.0 and slowdown_left <= 0.0 and on_ground and controls.brake <= 0.0 and forward_speed < stats.top_speed() * TURBO_TOP_SPEED:
 		var push := -basis.z * TURBO_FORCE
 		state.apply_central_force(push)
 		applied += push
@@ -628,6 +650,18 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 	_feel_knocks(state)
 	_last_velocity = state.linear_velocity
 	_last_applied = applied
+
+
+## How much a tire grips on this ground, as a multiple of its grip on the
+## road. Off-road tires keep some of what they'd lose on grass and dirt, and
+## slicks lose even more (see "offroad" in parts.json).
+static func ground_grip(ground: float, offroad: float) -> float:
+	return 1.0 - (1.0 - ground) * (1.0 - offroad) if ground < 1.0 else ground
+
+
+## The same for how much the ground drags on a tire.
+static func ground_drag(ground: float, offroad: float) -> float:
+	return 1.0 + (ground - 1.0) * (1.0 - offroad) if ground > 1.0 else ground
 
 
 ## Works out how hard the kart was just knocked and which parts took it.
@@ -864,7 +898,10 @@ func _reset(state: PhysicsDirectBodyState3D) -> void:
 	state.linear_velocity = Vector3.ZERO
 	state.angular_velocity = Vector3.ZERO
 	steer_angle = 0.0
-	slowdown_left = RESET_SLOWDOWN_TIME
+	# Put back before a loop, it needs all its speed for another go, so it's
+	# held back already by starting further back.
+	slowdown_left = 0.0 if run_up_reset else RESET_SLOWDOWN_TIME
+	run_up_reset = false
 	_repair_pending = true
 	was_reset.emit.call_deferred()
 
