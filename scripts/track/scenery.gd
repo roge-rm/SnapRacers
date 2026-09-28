@@ -111,6 +111,9 @@ const THEMES := {
 
 var track: TrackPath
 var theme: Dictionary
+## Only the landmarks put down by hand, with no trackside things or trees,
+## for the track editor.
+var only_landmarks := false
 ## Places kept clear of scenery, as [middle, radius] (like the dirt inside a
 ## cut bend).
 var keep_clear: Array = []
@@ -141,14 +144,22 @@ func _ready() -> void:
 	_road_clear = track.width * 0.5 + TrackPath.KERB + TrackBuilder.WALL_THICKNESS + 1.5
 	_map_distances()
 	_hash_track()
-	_trackside()
-	_under_jumps()
-	var landmarks: Array = theme.get("landmarks", [])
-	landmarks = landmarks.duplicate()
-	landmarks.sort_custom(func(a, b): return Props.ROOM.get(a, 3.0) > Props.ROOM.get(b, 3.0))
-	for lm in landmarks:
-		_place_landmark(lm)
-	_fill()
+	if not only_landmarks:
+		_trackside()
+		_under_jumps()
+	# Landmarks put down by hand go exactly where they were put. Without any,
+	# the theme places its own where you'll see them.
+	for mark in track.landmarks:
+		var at: Array = mark.get("at", [0.0, 0.0])
+		_add(str(mark.get("prop", "")), Vector3(float(at[0]), 0.0, float(at[1])), int(mark.get("facing", 0)))
+	if track.landmarks.is_empty() and not only_landmarks:
+		var landmarks: Array = theme.get("landmarks", [])
+		landmarks = landmarks.duplicate()
+		landmarks.sort_custom(func(a, b): return Props.ROOM.get(a, 3.0) > Props.ROOM.get(b, 3.0))
+		for lm in landmarks:
+			_place_landmark(lm)
+	if not only_landmarks:
+		_fill()
 	# Only things near the road need to be solid. And nothing that ended up on
 	# the road itself may be, or karts would pile into it (the walls keep
 	# them off everything else).

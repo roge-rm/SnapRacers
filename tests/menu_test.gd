@@ -46,7 +46,7 @@ func _ready() -> void:
 
 	var buttons := screen().find_children("*", "Button", true, false)
 	var labels := buttons.map(func(b): return b.text.get_slice("\n", 0))
-	check(labels == ["Single player", "Multiplayer", "Garage", "Driver", "Settings", "About", "Quit"], "the menu has its buttons %s" % [labels])
+	check(labels == ["Single player", "Multiplayer", "Garage", "Driver", "Track editor", "Settings", "About", "Quit"], "the menu has its buttons %s" % [labels])
 
 	Game.show_settings()
 	await frames(2)
@@ -100,8 +100,8 @@ func _ready() -> void:
 	check(screen() is SinglePlayerMenu, "single player opens")
 	var picks := screen().find_children("*", "Button", true, false).filter(func(b): return b.text != "Back")
 	var labels2 := picks.map(func(b): return b.text.get_slice("\n", 0))
-	check(labels2 == ["Grand Prix", "Time trial", "Practice"], "with a Grand Prix, time trials and practice %s" % [labels2])
-	picks[2].pressed.emit()
+	check(labels2 == ["Grand Prix", "Single race", "Time trial", "Practice"], "with a Grand Prix, a single race, time trials and practice %s" % [labels2])
+	picks[3].pressed.emit()
 	await frames(2)
 	check(screen() is TrackPicker, "practice opens the course list")
 	var tracks := screen().find_children("*", "Button", true, false).filter(func(b): return b.has_meta("track"))

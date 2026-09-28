@@ -17,6 +17,8 @@ var failures := 0
 var resets := {}
 var first_lap := {}
 var used := {}
+## A course the test built, to tidy away at the end.
+var built_path := ""
 
 
 func check(ok: bool, what: String) -> void:
@@ -34,7 +36,22 @@ func _ready() -> void:
 		which = OS.get_cmdline_user_args()[0]
 	# One player, whatever was last picked, without saving over it.
 	Game.settings.set_value("race", "split", Game.SOLO)
-	Game.show_race(Game.TRACKS + "/" + which + ".json")
+	var path := Game.TRACKS + "/" + which + ".json"
+	if which == "built":
+		# A course built the way the track editor builds one: some pieces, then
+		# Close it up to finish it off.
+		var course := CourseDesign.starter()
+		course.name = "Race Test Built"
+		course.pieces.append_array([
+			{"type": "straight", "length": 2}, {"type": "curve", "turn": "right", "size": 2},
+			{"type": "crest", "length": 3, "height": 1.5}, {"type": "curve", "turn": "right", "size": 1},
+			{"type": "slant", "turn": "left", "length": 3, "across": 1}, {"type": "straight", "length": 2},
+		])
+		course.pieces.append_array(course.close_up())
+		check(course.problems().is_empty(), "a course built in the editor is ready to race %s" % [course.problems()])
+		path = course.with_start_on_longest_straight().save()
+		built_path = path
+	Game.show_race(path)
 	while race == null:
 		await get_tree().process_frame
 		for child in host.get_children():
@@ -90,5 +107,7 @@ func _physics_process(_delta: float) -> void:
 		var average := race.track.length * race.laps / fastest
 		check(average > 13.5, "the winner goes around at a good clip (%.1f s, %.1f m/s)" % [fastest, average])
 		print("All race checks passed." if failures == 0 else "%d race checks failed." % failures)
+		if built_path != "":
+			DirAccess.remove_absolute(built_path)
 		get_tree().quit(1 if failures > 0 else 0)
 		race = null

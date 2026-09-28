@@ -47,6 +47,12 @@ const OWN_KART := "own"
 
 var _host: Node
 var _screen: Node
+## Whether the race going on was started from the track editor, which is
+## where leaving it goes back to.
+var came_from_editor := false
+## Whether a race against the AI is just you (a single race), rather than
+## the two of you from the Multiplayer menu.
+var racing_alone := false
 var _loading: CanvasLayer
 var _loading_since := 0
 var _portrait := false
@@ -97,9 +103,10 @@ func show_cups() -> void:
 	_swap(CupPicker.new())
 
 
-## The course list for time trials, practice or a race against the AI.
-func show_tracks(for_mode := MODE_RACE) -> void:
-	_swap(TrackPicker.new(for_mode))
+## The course list for time trials, practice or a race against the AI,
+## on your own or (from the Multiplayer menu) for two.
+func show_tracks(for_mode := MODE_RACE, alone := false) -> void:
+	_swap(TrackPicker.new(for_mode, alone))
 
 
 ## Pick a kart, then `go` starts the race. Back goes to `back`. With `ai`,
@@ -131,7 +138,11 @@ func next_grand_prix_race() -> void:
 
 
 ## Starts a time trial, practice or a race against the AI on this course.
-func start_course(for_mode: String, path: String) -> void:
+## From the track editor, leaving the race goes back there.
+func start_course(for_mode: String, path: String, from_editor := false) -> void:
+	came_from_editor = from_editor
+	if from_editor:
+		racing_alone = true
 	match for_mode:
 		MODE_TIME_TRIAL:
 			start_time_trial(path)
@@ -154,6 +165,12 @@ func start_practice(path: String) -> void:
 func start_race(path: String) -> void:
 	mode = MODE_RACE
 	show_race(path)
+
+
+## The track editor, with the course you were last working on.
+func show_track_editor() -> void:
+	came_from_editor = false
+	_swap(TrackEditor.new())
 
 
 func show_driver() -> void:
@@ -226,7 +243,7 @@ func players() -> int:
 ## How the screen is shared in the race about to start. Only races against the
 ## AI can be for two. Everything else is for one player.
 func race_split() -> String:
-	return split() if mode == MODE_RACE else SOLO
+	return split() if mode == MODE_RACE and not racing_alone else SOLO
 
 
 ## Which stock kart player 2 drives, by its file name.

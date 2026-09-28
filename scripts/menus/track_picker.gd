@@ -1,37 +1,51 @@
 class_name TrackPicker
 extends Control
 
-## Pick a course for a time trial, a practice session or a two player race.
-## They're listed cup by cup, and each one says how long a lap is and what's
-## waiting for you on it. In time trials it shows your record too.
+## Pick a course for a time trial, a practice session or a race against the
+## AI, on your own or for two. They're listed cup by cup, then the courses
+## you've built in the track editor, and each one says how long a lap is and
+## what's waiting for you on it. In time trials it shows your record too.
 
 var mode := Game.MODE_RACE
+## A race just for you, from the Single player menu.
+var alone := false
 
 
-func _init(for_mode := Game.MODE_RACE) -> void:
+func _init(for_mode := Game.MODE_RACE, for_one := false) -> void:
 	mode = for_mode
+	alone = for_one
 
 
 func _ready() -> void:
 	var titles := {
 		Game.MODE_TIME_TRIAL: "Time trial",
 		Game.MODE_PRACTICE: "Practice",
-		Game.MODE_RACE: "Pick a course",
+		Game.MODE_RACE: "Single race" if alone else "Pick a course",
 	}
 	var column := MenuStyle.page(self, titles.get(mode, "Pick a course"), go_back, 760.0)
 	for cup in GrandPrix.cups():
 		column.add_child(MenuStyle.heading(cup.name))
 		for id in cup.tracks:
-			var path := Tracks.path_of(id)
-			var track := TrackPath.load_file(path)
-			var line := describe(track)
-			if mode == Game.MODE_TIME_TRIAL and Records.best_time(id) > 0.0:
-				line += "\nRecord %s, best lap %s" % [RaceHud.clock(Records.best_time(id)), RaceHud.clock(Records.best_lap(id))]
-			var button := MenuStyle.button(track.name, Game.show_kart_picker.bind(Game.start_course.bind(mode, path), Game.show_tracks.bind(mode), mode == Game.MODE_RACE), line)
-			button.custom_minimum_size.y = 84.0
-			button.set_meta("track", path)
-			column.add_child(button)
+			column.add_child(_course_button(Tracks.path_of(id)))
+	# The courses you've built, as long as they're finished.
+	var yours := CourseDesign.saved().filter(func(p): return CourseDesign.load_file(p) != null and CourseDesign.load_file(p).problems().is_empty())
+	if not yours.is_empty():
+		column.add_child(MenuStyle.heading("Your courses", "Built in the track editor"))
+		for path in yours:
+			column.add_child(_course_button(path))
 	MenuStyle.back_at_bottom(column, go_back)
+
+
+func _course_button(path: String) -> Button:
+	var id := Tracks.id_of(path)
+	var track := TrackPath.load_file(path)
+	var line := describe(track)
+	if mode == Game.MODE_TIME_TRIAL and Records.best_time(id) > 0.0:
+		line += "\nRecord %s, best lap %s" % [RaceHud.clock(Records.best_time(id)), RaceHud.clock(Records.best_lap(id))]
+	var button := MenuStyle.button(track.name, Game.show_kart_picker.bind(_starter(mode, path, alone), Game.show_tracks.bind(mode, alone), mode == Game.MODE_RACE), line)
+	button.custom_minimum_size.y = 84.0
+	button.set_meta("track", path)
+	return button
 
 
 ## A line saying what's on a track, like "675 m, 3 laps, a bridge and a jump".
@@ -59,8 +73,16 @@ static func describe(track: TrackPath) -> String:
 	return text
 
 
+## What starts the race once a kart's picked. It's made here, away from the
+## course list, which is gone by then.
+static func _starter(for_mode: String, path: String, for_one: bool) -> Callable:
+	return func() -> void:
+		Game.racing_alone = for_one
+		Game.start_course(for_mode, path)
+
+
 func go_back() -> void:
-	if mode == Game.MODE_RACE:
+	if mode == Game.MODE_RACE and not alone:
 		Game.show_multiplayer()
 	else:
 		Game.show_single_player()

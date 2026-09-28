@@ -14,6 +14,7 @@ func _ready() -> void:
 	column.add_child(MenuStyle.button("Multiplayer", Game.show_multiplayer))
 	column.add_child(MenuStyle.button("Garage", Game.show_garage))
 	column.add_child(MenuStyle.button("Driver", Game.show_driver))
+	column.add_child(MenuStyle.button("Track editor", Game.show_track_editor))
 	column.add_child(MenuStyle.button("Settings", Game.show_settings))
 	column.add_child(MenuStyle.button("About", Game.show_about))
 	MenuStyle.back_at_bottom(column, go_back, "Quit")

@@ -94,9 +94,18 @@ Build your driver from a face, hair, facial hair, headgear, something around the
 
 They're brick minifigs, just a bit cuter, with bigger heads, big shiny eyes and rosy cheeks, all in shiny toy plastic. They blink, look over at karts that pull up beside them, look surprised when they get hit, grin when they pass someone and look cross when they get passed. The winner throws their fists in the air and bounces in the seat. Standing on the driver screen they fidget, look around and wave now and then, and they give a little hop every time you try something new on them.
 
+### Track editor
+
+Build your own courses the way you'd put together a slot car set. Every piece you tap clicks onto the end of the road: straights, bends in three sizes, slants and S bends, humps, ramps and climbing bends for bridges, and the stunts, like the jump, the loop, wall rides, banked sweepers and bends with a shortcut across the middle. Tap a piece of road to take it out, change it to dirt, grass, sand or ice, take its walls off, or add more pieces after it.
+
+When you've had enough, Close it up works out the fewest pieces to bring the road back around to the start without running into itself. A card in the corner says what's still stopping it being raced, like the road not closing or no straight long enough for the grid. Pick a theme for the ground, the colours and the trees, and put landmarks like windmills, castles, rockets and lighthouses wherever you want them around the course.
+
+Saving moves the start line onto your longest straight, where the grid has room, and your course joins the lists for single races, time trials, practice and two player races, with its own records. Each course is one file with everything in it, ready for racing online later.
+
 ### Racing
 
 - **Grand Prix:** four cups of four races each, for points and trophies. From the second race on, the leader starts at the back.
+- **Single race:** one race against the AI on any course, including your own.
 - **Time trial:** race the clock on any of the sixteen courses, with your best times kept.
 - **Practice:** drive any course on your own for as long as you like.
 - **Two players on one phone:** side by side in landscape, or face to face in portrait with the phone flat between you and the far half turned around.

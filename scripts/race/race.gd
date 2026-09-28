@@ -488,6 +488,9 @@ func place_of(racer: Racer) -> int:
 
 ## Back to the menu this race was started from.
 func leave() -> void:
+	if Game.came_from_editor:
+		Game.show_track_editor()
+		return
 	match mode:
 		Game.MODE_GRAND_PRIX:
 			Game.grand_prix = null
@@ -495,7 +498,9 @@ func leave() -> void:
 		Game.MODE_TIME_TRIAL, Game.MODE_PRACTICE:
 			Game.show_tracks(mode)
 		_:
-			if split == Game.SOLO:
+			if Game.racing_alone:
+				Game.show_tracks(Game.MODE_RACE, true)
+			elif split == Game.SOLO:
 				Game.show_menu()
 			else:
 				Game.show_multiplayer()

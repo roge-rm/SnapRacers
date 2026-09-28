@@ -145,6 +145,48 @@ func _draw() -> void:
 			draw_rect(Rect2(c + Vector2(-11, -11), Vector2(22, 22)), ink, false, w)
 			for spot in [Vector2(-5, -5), Vector2(0, 0), Vector2(5, 5)]:
 				draw_circle(c + spot, 2.3, ink)
+		"straights":
+			# A stretch of road with a dashed line down the middle.
+			draw_line(c + Vector2(-6, -12), c + Vector2(-6, 12), ink, w, true)
+			draw_line(c + Vector2(6, -12), c + Vector2(6, 12), ink, w, true)
+			for y in [-10.0, -2.0, 6.0]:
+				draw_line(c + Vector2(0, y), c + Vector2(0, y + 4), ink, 2.0)
+		"bends":
+			draw_arc(c + Vector2(12, 12), 18.0, PI, PI * 1.5, 16, ink, w, true)
+			draw_arc(c + Vector2(12, 12), 8.0, PI, PI * 1.5, 12, ink, w, true)
+		"slants":
+			var s_bend := PackedVector2Array()
+			for k in 13:
+				var t := k / 12.0
+				s_bend.append(c + Vector2(lerpf(-7.0, 7.0, smoothstep(0.2, 0.8, t)), lerpf(12.0, -12.0, t)))
+			draw_polyline(s_bend, ink, 7.0, true)
+		"hills":
+			var hump := PackedVector2Array()
+			for k in 17:
+				var t := k / 16.0
+				hump.append(c + Vector2(lerpf(-13.0, 13.0, t), 8.0 - 14.0 * pow(sin(PI * t), 2.0)))
+			draw_polyline(hump, ink, w, true)
+			draw_line(c + Vector2(-13, 10), c + Vector2(13, 10), ink, 1.5)
+		"stunts":
+			draw_arc(c + Vector2(0, -2), 8.0, 0.0, TAU, 20, ink, w, true)
+			draw_line(c + Vector2(-13, 7), c + Vector2(13, 7), ink, w, true)
+		"landmarks":
+			# A little tower with a pointed roof.
+			draw_rect(Rect2(c + Vector2(-5, -4), Vector2(10, 16)), ink)
+			draw_colored_polygon(PackedVector2Array([c + Vector2(-8, -4), c + Vector2(8, -4), c + Vector2(0, -13)]), ink)
+		"course":
+			# A chequered flag.
+			draw_line(c + Vector2(-9, -12), c + Vector2(-9, 12), ink, 2.5)
+			for i in 3:
+				for j in 2:
+					if (i + j) % 2 == 0:
+						draw_rect(Rect2(c + Vector2(-8 + i * 6, -11 + j * 6), Vector2(6, 6)), ink)
+			draw_rect(Rect2(c + Vector2(-8, -11), Vector2(18, 12)), ink, false, 1.5)
+		"fit":
+			for corner in [Vector2(-1, -1), Vector2(1, -1), Vector2(1, 1), Vector2(-1, 1)]:
+				var at: Vector2 = c + corner * 11.0
+				draw_line(at, at - Vector2(corner.x * 6.0, 0.0), ink, w)
+				draw_line(at, at - Vector2(0.0, corner.y * 6.0), ink, w)
 		"open":
 			draw_line(c + Vector2(-4, -8), c + Vector2(4, 0), ink, w, true)
 			draw_line(c + Vector2(4, 0), c + Vector2(-4, 8), ink, w, true)

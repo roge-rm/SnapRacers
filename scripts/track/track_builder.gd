@@ -35,6 +35,11 @@ const PILLAR_COLOUR := Color("#a3a2a4")
 const KIND := {"road": 0.0, "kerb": 1.0, "deck": 2.0, "wall": 3.0, "walltop": 4.0}
 
 var track: TrackPath
+## How much scenery to put around it: "all", "landmarks" (only the ones put
+## down by hand, which the track editor uses to stay quick) or "none".
+var scenery := "all"
+## Whether it brings its own sky and sun. The track editor has its own.
+var sky := true
 var _material: ShaderMaterial
 ## The course's theme (see Scenery.THEMES), which sets the colours.
 var _theme: Dictionary
@@ -45,6 +50,7 @@ var _theme: Dictionary
 # every race stall on its first frame.
 static var _road_shader: Shader
 static var _grass_shader: Shader
+static var _shared_material: ShaderMaterial
 
 
 static func shader_for(code: String) -> Shader:
@@ -57,17 +63,44 @@ func _init(path: TrackPath) -> void:
 	track = path
 
 
-func _ready() -> void:
+func _prepare() -> void:
 	# A plain standard material lit the flat road with so much sky on the
 	# phone that the asphalt came out pale blue, so the road has its own
 	# shader like the grass.
 	if _road_shader == null:
 		_road_shader = shader_for(BrickShaders.TRACK)
 		_grass_shader = shader_for(BrickShaders.BASEPLATE)
-	_material = ShaderMaterial.new()
-	_material.shader = _road_shader
+	_material = road_material()
 	_theme = Scenery.theme_named(track.theme)
-	SkyAndSun.add_to(self, 80.0, Color.TRANSPARENT, _theme.get("sky", []))
+
+
+## The road's material. Every piece of road shares it.
+static func road_material() -> ShaderMaterial:
+	if _shared_material == null:
+		if _road_shader == null:
+			_road_shader = shader_for(BrickShaders.TRACK)
+			_grass_shader = shader_for(BrickShaders.BASEPLATE)
+		_shared_material = ShaderMaterial.new()
+		_shared_material.shader = _road_shader
+	return _shared_material
+
+
+## One piece of road on its own, in its own space, as it would be built into
+## a course of this width and theme. The track editor keeps these, so it can
+## lay a course out again instantly after every change.
+static func piece_mesh(spec: Dictionary, width: float, theme_id: String) -> ArrayMesh:
+	var one := TrackPath.from_dict({"theme": theme_id, "width": width, "pieces": [spec]})
+	var builder := TrackBuilder.new(one)
+	builder._prepare()
+	var mesh := builder._piece_mesh(0)
+	builder.free()
+	return mesh
+
+
+func _ready() -> void:
+	_prepare()
+	if sky:
+		SkyAndSun.add_to(self, 80.0, Color.TRANSPARENT, _theme.get("sky", []))
 	_add_grass()
 	for i in track.pieces.size():
 		_add_piece(i)
@@ -77,13 +110,16 @@ func _ready() -> void:
 	# file called noscenery in the app's data folder, the scenery is left out.
 	if OS.is_debug_build() and FileAccess.file_exists("user://noscenery"):
 		return
-	var scenery := Scenery.new(track, track.theme)
+	if scenery == "none":
+		return
+	var dressing := Scenery.new(track, track.theme)
+	dressing.only_landmarks = scenery == "landmarks"
 	# Keep the dirt inside cut bends clear, since you drive across it.
 	for i in track.pieces.size():
 		var piece := track.pieces[i]
 		if piece.cut:
-			scenery.keep_clear.append([track.piece_starts[i] * Vector3(piece.turn * piece.radius, 0.0, 0.0), piece.radius])
-	add_child(scenery)
+			dressing.keep_clear.append([track.piece_starts[i] * Vector3(piece.turn * piece.radius, 0.0, 0.0), piece.radius])
+	add_child(dressing)
 
 
 func _add_grass() -> void:
@@ -117,6 +153,12 @@ func _add_grass() -> void:
 
 
 func _baseplate(colour: Color) -> ShaderMaterial:
+	return baseplate(colour)
+
+
+## The studded green baseplate the courses sit on, in a colour.
+static func baseplate(colour: Color) -> ShaderMaterial:
+	road_material()
 	var material := ShaderMaterial.new()
 	material.shader = _grass_shader
 	material.set_shader_parameter("colour", colour)
@@ -153,12 +195,40 @@ func _profile(piece: TrackPiece) -> Array:
 
 func _add_piece(index: int) -> void:
 	var piece := track.pieces[index]
+	var mesh := _piece_mesh(index)
+	if mesh == null:
+		return
+	var body := StaticBody3D.new()
+	body.collision_layer = Kart.LAYER_WORLD
+	var feel: Array = track.grip_and_drag(piece.surface)
+	body.set_meta("grip", feel[0])
+	body.set_meta("drag", feel[1])
+	body.set_meta("sticky", piece.sticky)
+	# Which piece it is, so the track editor can tell which one was tapped.
+	body.set_meta("piece", index)
+	var look := MeshInstance3D.new()
+	look.mesh = mesh
+	look.material_override = _material
+	body.add_child(look)
+	var shape := CollisionShape3D.new()
+	shape.shape = mesh.create_trimesh_shape()
+	body.add_child(shape)
+	add_child(body)
+
+	if piece.cut:
+		_add_cut(index, piece)
+
+
+## The road, curbs, deck and walls of one piece, swept along the line down
+## its middle.
+func _piece_mesh(index: int) -> ArrayMesh:
+	var piece := track.pieces[index]
 	var samples: Array[int] = []
 	for k in track.points.size():
 		if track.piece_of[k] == index:
 			samples.append(k)
 	if samples.is_empty():
-		return
+		return null
 	# Run on into the next piece's first sample so there's no seam. The last
 	# piece of a track that doesn't come back around to the start has nothing
 	# to run on into (joining it to the start drew road right across the map).
@@ -194,25 +264,7 @@ func _add_piece(index: int) -> void:
 			_cap(tool, a, -1.0)
 		if n + 2 < samples.size() and not track.solids[samples[n + 2]]:
 			_cap(tool, b, 1.0)
-
-	var body := StaticBody3D.new()
-	body.collision_layer = Kart.LAYER_WORLD
-	var feel: Array = track.grip_and_drag(piece.surface)
-	body.set_meta("grip", feel[0])
-	body.set_meta("drag", feel[1])
-	body.set_meta("sticky", piece.sticky)
-	var mesh := tool.commit()
-	var look := MeshInstance3D.new()
-	look.mesh = mesh
-	look.material_override = _material
-	body.add_child(look)
-	var shape := CollisionShape3D.new()
-	shape.shape = mesh.create_trimesh_shape()
-	body.add_child(shape)
-	add_child(body)
-
-	if piece.cut:
-		_add_cut(index, piece)
+	return tool.commit()
 
 
 func _at(k: int, across: Vector2) -> Vector3:

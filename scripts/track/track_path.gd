@@ -29,6 +29,10 @@ var inspired_by := ""
 var about := ""
 var laps := 3
 var width := 12.0
+## Landmarks put down by hand in the track editor, as
+## { "prop": ..., "at": [x, z], "facing": 0 to 3 }. With none, the theme
+## picks its own.
+var landmarks: Array = []
 var pieces: Array[TrackPiece] = []
 var start := Transform3D.IDENTITY
 ## Where each piece starts, in the world.
@@ -63,10 +67,20 @@ static func from_dict(data: Dictionary) -> TrackPath:
 	track.about = str(data.get("about", ""))
 	track.laps = int(data.get("laps", 3))
 	track.width = float(data.get("width", 12.0))
+	track.landmarks = data.get("landmarks", []).duplicate(true)
+	track.start = start_from(data.get("start", []))
 	for spec in data.get("pieces", []):
 		track.pieces.append(TrackPiece.from_spec(spec))
 	track.build()
 	return track
+
+
+## Where the start line is, from a course file's [x, y, z, quarter turns].
+## The courses that come with the game start at the middle of the map.
+static func start_from(spec: Array) -> Transform3D:
+	if spec.size() < 4:
+		return Transform3D.IDENTITY
+	return Transform3D(Basis(Vector3.UP, float(spec[3]) * PI * 0.5), Vector3(float(spec[0]), float(spec[1]), float(spec[2])))
 
 
 func to_dict() -> Dictionary:
