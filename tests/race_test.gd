@@ -1,13 +1,13 @@
 extends Node
 
 ## Runs a whole race with the AI driving every kart, yours included, and
-## checks everyone gets round without getting stuck.
+## checks that everyone gets around without getting stuck.
 ##
 ## It runs as a scene because the race uses the Game autoload. --fixed-fps
-## lets it run flat out instead of in real time, with the physics still
-## stepping 1/60 s at a time (speeding up Engine.time_scale makes the steps
-## longer instead, and the suspension can't cope with that):
-## Pass a track's file name after -- to race there instead of the Brickyard:
+## lets it run as fast as it can instead of in real time, with the physics
+## still stepping 1/60 s at a time. (Speeding up Engine.time_scale makes the
+## steps longer instead, and the suspension can't cope with that.) Pass a
+## track's file name after -- to race there instead of the Brickyard.
 ##   tools/godot/Godot_v4.7.2-stable_linux.x86_64 --headless --fixed-fps 60 --path . res://tests/race_test.tscn -- loopworks
 
 const GIVE_UP := 260.0 # seconds of race time
@@ -32,6 +32,8 @@ func _ready() -> void:
 	var which := "brickyard"
 	if not OS.get_cmdline_user_args().is_empty():
 		which = OS.get_cmdline_user_args()[0]
+	# One player, whatever was last picked, without saving over it.
+	Game.settings.set_value("race", "split", Game.SOLO)
 	Game.show_race(Game.TRACKS + "/" + which + ".json")
 	while race == null:
 		await get_tree().process_frame
@@ -68,8 +70,9 @@ func _physics_process(_delta: float) -> void:
 			print("  %s: %s, laps %s, %d resets" % [racer.name, RaceHud.clock(racer.progress.finish_time) if racer.progress.finished else "didn't finish", racer.progress.lap_times.map(func(t): return snappedf(t, 0.1)), resets[racer.name]])
 		for racer in race.racers:
 			check(racer.progress.finished, "%s finishes" % racer.name)
-			# With cannon bricks, dropped piles and a pack going round a loop, the
-			# odd reset is part of racing. A kart that keeps needing them isn't.
+			# With cannon bricks, dropped piles and a pack going around a loop, a
+			# reset now and then is part of racing. A kart that keeps needing them
+			# isn't.
 			check(resets[racer.name] <= 6, "%s doesn't keep needing resets (%d)" % [racer.name, resets[racer.name]])
 		var fewest: int = race.racers.map(func(r): return r.kart.studs_picked).min()
 		check(fewest >= 15, "every kart gets a fair share of studs (fewest %d)" % fewest)

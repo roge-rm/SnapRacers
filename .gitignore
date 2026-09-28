@@ -12,5 +12,6 @@
 *.aab
 *.idsig
 
-# Crash dumps. Named core.<pid>, so a plain "core" pattern would also hide real folders.
+# Crash dumps. They're named core.<pid>, because a plain "core" pattern would
+# also hide real folders.
 core.[0-9]*

@@ -1,15 +1,15 @@
 class_name AIDriver
 extends Node
 
-## Drives a kart round a track.
+## Drives a kart around a track.
 ##
 ## It aims at a point on the track a little way ahead (further the faster it's
 ## going) and steers toward it. For speed it looks down the road for bends,
 ## works out how fast its own kart can take each one from how well it grips,
-## and brakes in time to be at that speed when it gets there. If it's stuck
-## or upside down for a couple of seconds it resets, same as a player would.
+## and brakes in time to be at that speed when it gets there. If it's stuck or
+## upside down for a couple of seconds it resets, the same as a player would.
 
-## How close to its kart's limit it dares to corner. 1 is flat out.
+## How close to its kart's limit it dares to corner. 1 is right at the limit.
 @export var skill := 0.92
 ## How far right of the middle of the road it likes to drive, in metres.
 @export var line := 0.0
@@ -23,7 +23,7 @@ const KART_ROOM := 2.8 # how far to the side a kart has to be to be out of the w
 
 var kart: Kart
 var track: TrackPath
-## The other karts, so it can go round them.
+## The other karts, so it can get around them.
 var others: Array[Kart] = []
 ## Where the kart is along the track. The race keeps this up to date.
 var offset := 0.0
@@ -54,7 +54,7 @@ func _physics_process(delta: float) -> void:
 	var limit := Kart.MAX_STEER * lerpf(1.0, Kart.HIGH_SPEED_STEER, clampf(speed / 28.0, 0.0, 1.0))
 	controls.steer = clampf(-angle / limit * 1.2, -1.0, 1.0)
 
-	# Speed: the slowest it needs to be for anything coming up, allowing
+	# For speed, find the slowest it needs to be for anything coming up, with
 	# room to brake.
 	var grip := kart.stats.cornering() * KartStats.gravity() * skill
 	var allowed := INF
@@ -82,7 +82,7 @@ func _physics_process(delta: float) -> void:
 	_stuck_check(delta, speed, up)
 
 
-## How far to move over to get round a kart close ahead, in metres to the
+## How far to move over to get around a kart close ahead, in metres to the
 ## right. It goes whichever way is further from the kart and still on the
 ## road.
 func _dodge() -> float:
@@ -106,10 +106,11 @@ func _dodge() -> float:
 	return 0.0
 
 
-## Every so often, looks at each gadget it can afford and uses it if the
-## moment's right: a turbo on a straight, the cannon at a kart dead ahead,
-## bricks for a kart right behind, a repair once it's lost a couple of parts,
-## a shield when someone's close, a spring to hop free when it's stuck.
+## Every so often it looks at each gadget it can afford and uses it if the
+## moment's right. That's a turbo on a straight, the cannon at a kart dead
+## ahead, bricks for a kart right behind, a repair once it's lost a couple of
+## parts, a shield when someone's close, and a spring to hop free when it's
+## stuck.
 func _use_gadgets(delta: float, speed: float) -> void:
 	_think -= delta
 	if _think > 0.0:
@@ -170,9 +171,8 @@ func _nearest(from: float, to: float, side_room: float) -> Kart:
 
 
 func _stuck_check(delta: float, speed: float, up: Vector3) -> void:
-	# Stuck against something, or on its back.
-	# Upside down only counts when it isn't meant to be, like at the top of a
-	# loop.
+	# It's stuck against something, or on its back. Upside down only counts
+	# when it isn't meant to be, so not at the top of a loop.
 	if not kart.locked and (speed < 1.5 or (up.y < 0.3 and not kart.sticking)):
 		_stuck += delta
 	else:

@@ -1,8 +1,8 @@
 extends SceneTree
 
-## Checks the tracks that come with the game: every one should close into a
-## loop, with no two bits of road running into each other, and the lap
-## counting should hold up to driving backwards over the line.
+## Checks the tracks that come with the game. Every one should close into a
+## loop, no two bits of road should run into each other, and the lap counting
+## should hold up to driving backwards over the line.
 ##
 ## Run it with:
 ##   tools/godot/Godot_v4.7.2-stable_linux.x86_64 --headless --path . -s tests/track_test.gd
@@ -22,7 +22,7 @@ func _initialize() -> void:
 			continue
 		var track := TrackPath.load_file("res://data/tracks/" + file)
 		print("%s: %d pieces, %.0f m a lap" % [track.name, track.pieces.size(), track.length])
-		check(track.closes, "%s comes back round to the start" % track.name)
+		check(track.closes, "%s comes back around to the start" % track.name)
 		var clashes := track.clashes()
 		check(clashes.is_empty(), "%s has no road running into other road %s" % [track.name, clashes.slice(0, 3)])
 		var highest := 0.0
@@ -32,7 +32,7 @@ func _initialize() -> void:
 		var stuck := track.stickies.count(true)
 		print("    %d m of it sticky" % stuck)
 
-		# Round trip through the file format.
+		# Save it and load it again.
 		var again := TrackPath.from_dict(track.to_dict())
 		check(is_equal_approx(again.length, track.length), "%s saves and loads the same" % track.name)
 

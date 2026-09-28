@@ -1,10 +1,10 @@
 class_name MenuStyle
 extends RefCounted
 
-## The look every menu screen shares, taken from ScorchDroid's menus: a dark
-## navy to purple backdrop, a big white title, and a column of soft purple
-## pill buttons. Having it in one place keeps the screens reading as one
-## thing.
+## The look every menu screen shares, taken from ScorchDroid's menus. It has a
+## dark navy to purple backdrop, a big white title, and a column of soft
+## purple pill buttons. Having it in one place keeps the screens looking like
+## they belong together.
 
 const TOP := Color("#16213a")
 const BOTTOM := Color("#2b1b3d")
@@ -15,7 +15,8 @@ const BUTTON_HEIGHT := 60.0
 static var _theme: Theme
 
 
-## The theme for menu screens: white text, pill buttons, accent highlights.
+## The theme for menu screens, with white text, pill buttons and accent
+## highlights.
 static func theme() -> Theme:
 	if _theme != null:
 		return _theme
@@ -132,7 +133,7 @@ static func button(text: String, action: Callable, subtitle := "") -> Button:
 	return b
 
 
-## Plain accent-coloured text that works like a button, for Back.
+## Plain accent coloured text that works like a button, for Back.
 static func link(text: String, action: Callable) -> Button:
 	var b := Button.new()
 	b.text = text

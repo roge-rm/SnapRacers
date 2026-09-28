@@ -1,7 +1,7 @@
 extends SceneTree
 
-## Drives karts at a loop: one fast enough to stick to it all the way round,
-## and one crawling in, which should drop off rather than stick.
+## Drives karts at a loop. One is fast enough to stick to it all the way
+## around, and the other crawls in and should drop off instead of sticking.
 ##
 ##   tools/godot/Godot_v4.7.2-stable_linux.x86_64 --headless --fixed-fps 60 --path . -s tests/loop_test.gd
 
@@ -92,9 +92,9 @@ class Runner:
 			check(fast_top > 17.0, "the fast kart goes right over the top of the loop (%.1f m up)" % fast_top)
 			check(fast_offset > loop_end + 10.0, "and comes out the other side (%.0f m along, the loop ends at %.0f)" % [fast_offset, loop_end])
 			check(fast.global_basis.y.y > 0.9, "the right way up (up.y %.2f)" % fast.global_basis.y.y)
-			check(fast_stuck_frames > 60, "sticking to the road on the way round (%d frames)" % fast_stuck_frames)
+			check(fast_stuck_frames > 60, "sticking to the road on the way around (%d frames)" % fast_stuck_frames)
 			check(fast.lost.is_empty(), "without losing any parts (%d lost)" % fast.lost.size())
-			check(slow_top < 12.0, "the slow kart doesn't make it round (%.1f m up at most)" % slow_top)
+			check(slow_top < 12.0, "the slow kart doesn't make it around (%.1f m up at most)" % slow_top)
 			check(slow.global_position.y < 3.0, "and ends up back at the bottom (%.1f m up)" % slow.global_position.y)
 			print("All loop checks passed." if failures == 0 else "%d loop checks failed." % failures)
 			get_tree().quit(1 if failures > 0 else 0)

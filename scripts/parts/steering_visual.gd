@@ -1,9 +1,9 @@
 class_name SteeringVisual
 extends Node3D
 
-## What the driver steers with: a wheel on a column, or handlebars. It turns
-## with the kart's steering, and says where the driver's hands go on it so
-## they can follow it round.
+## What the driver steers with, either a wheel on a column or handlebars. It
+## turns with the kart's steering and says where the driver's hands go on it,
+## so they can follow it around.
 ##
 ## It sits in its part's box, with the wheel tilted up toward the driver
 ## behind it (+Z).
@@ -11,9 +11,9 @@ extends Node3D
 ## How far the wheel turns at full lock. Any further and the driver's hands
 ## would have to reach right over the top of it.
 const TURN := PI / 3.0
-## Hands slide round the rim a little as it turns, so they follow this much
+## Hands slide around the rim a little as it turns, so they follow this much
 ## of its turn. A minifig's arms only swing forward and back, so their hands
-## can't go far round a wheel.
+## can't go far around a wheel.
 const HANDS_FOLLOW := 0.5
 
 var style := "wheel"
@@ -94,16 +94,17 @@ func steer(amount: float) -> void:
 	_wheel.basis = _base * Basis(Vector3.UP, -amount * TURN)
 
 
-## Where the hands go for this much steering, in this node's space:
+## Where the hands go for this much steering, in this node's space, as
 ## [left point, right point, left along the rim, right along the rim]. Hands
-## sit at quarter to three on a wheel, and on the grips of handlebars, and
-## move round with it (sliding a little on a wheel's rim).
+## sit at quarter to three on a wheel and on the grips of handlebars, and they
+## move around with it (sliding a little on a wheel's rim).
 func grips(amount: float) -> Array:
 	var spin := -amount * TURN * (HANDS_FOLLOW if style == "wheel" else 1.0)
 	var out := []
 	for angle in [PI, 0.0]:
 		var a: float = angle + spin
-		# From the wheel's straight position: the turn is already in `a`.
+		# Start from the wheel's straight position, since the turn is already
+		# in `a`.
 		var point := _rest * (Vector3(cos(a), 0.0, -sin(a)) * radius)
 		var along := (_rest.basis * Vector3(-sin(a), 0.0, -cos(a))).normalized()
 		out.append(point)

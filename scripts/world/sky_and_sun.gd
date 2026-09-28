@@ -4,7 +4,7 @@ extends RefCounted
 ## The same bright daytime sky and sun, for any scene that needs lighting.
 
 
-## Pass a backdrop colour for an indoor scene like the garage: the sky still
+## Pass a backdrop colour for an indoor scene like the garage. The sky still
 ## lights things, but you see the plain colour behind them.
 static func add_to(parent: Node, shadow_distance := 60.0, backdrop := Color.TRANSPARENT) -> void:
 	var sky_material := ProceduralSkyMaterial.new()

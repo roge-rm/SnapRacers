@@ -24,10 +24,21 @@ var settings := ConfigFile.new()
 ## The track the next race is on. Race again keeps it.
 var track_path := TRACKS + "/brickyard.json"
 
+## How the screen is shared in a race. SOLO is one player. SIDE_BY_SIDE is two
+## players in landscape with half the screen each. FACE_TO_FACE is two players
+## in portrait with the phone flat between them and the far player's half
+## upside down.
+const SOLO := ""
+const SIDE_BY_SIDE := "side"
+const FACE_TO_FACE := "face"
+## The AI karts, one of which player 2 drives.
+const AI_KARTS := "res://data/karts/ai"
+
 var _host: Node
 var _screen: Node
 var _loading: CanvasLayer
 var _loading_since := 0
+var _portrait := false
 
 
 func _ready() -> void:
@@ -84,7 +95,7 @@ func show_about() -> void:
 func show_race(path := "") -> void:
 	if path != "":
 		track_path = path
-	# A kart that can't race (say one saved before steering wheels were
+	# A kart that can't race (like one saved before steering wheels were
 	# needed) goes to the garage instead, which lists what's missing.
 	if not design.problems().is_empty():
 		show_garage()
@@ -120,6 +131,33 @@ func roster_driver(key: String) -> CharacterDesign:
 func player_name() -> String:
 	var name: String = settings.get_value("player", "name", "")
 	return name if name.strip_edges() != "" else "You"
+
+
+## How the screen is shared in the next race (SOLO, SIDE_BY_SIDE or
+## FACE_TO_FACE).
+func split() -> String:
+	var mode: String = settings.get_value("race", "split", SOLO)
+	return mode if mode in [SOLO, SIDE_BY_SIDE, FACE_TO_FACE] else SOLO
+
+
+func players() -> int:
+	return 1 if split() == SOLO else 2
+
+
+## Which AI kart player 2 drives, by its file name.
+func player_two_kart() -> String:
+	var key: String = settings.get_value("race", "player_two", "brickley")
+	return key if FileAccess.file_exists("%s/%s.json" % [AI_KARTS, key]) else "brickley"
+
+
+## The AI karts' file names, without .json, in order.
+func ai_kart_keys() -> Array[String]:
+	var keys: Array[String] = []
+	for file in DirAccess.get_files_at(AI_KARTS):
+		if file.ends_with(".json"):
+			keys.append(file.get_basename())
+	keys.sort()
+	return keys
 
 
 func show_fps() -> bool:
@@ -159,7 +197,17 @@ func _swap(next: Node) -> void:
 	if _screen != null:
 		_screen.queue_free()
 	_screen = next
+	_set_portrait(next is Race and split() == FACE_TO_FACE)
 	_host.add_child(next)
+
+
+## Face to face races are played in portrait. Everything else is landscape.
+func _set_portrait(on: bool) -> void:
+	if on == _portrait:
+		return
+	_portrait = on
+	if OS.has_feature("mobile"):
+		DisplayServer.screen_set_orientation(DisplayServer.SCREEN_PORTRAIT if on else DisplayServer.SCREEN_SENSOR_LANDSCAPE)
 
 
 func _go_back() -> void:

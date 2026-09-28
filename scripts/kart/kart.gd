@@ -6,30 +6,31 @@ extends RigidBody3D
 ## The whole kart is one rigid body. Every part adds its own collision box,
 ## mass and drag, so how it handles comes straight from what it's made of.
 ## Each wheel casts a ray down to find the ground, pushes up like a spring and
-## grips like a tire, which is far steadier than real wheel bodies on joints
-## and much easier to keep in sync online.
+## grips like a tire. That's far steadier than real wheels on joints, and much
+## easier to keep in sync online.
 ##
-## Crashes knock parts off. Every hit is traced to the part that took it, and
-## a part hit harder than its strength breaks away as a loose piece, along
-## with anything that was only held on through it. The kart then drives with
-## what's left. Resetting puts it all back together.
+## Crashes knock parts off. I trace every hit to the part that took it, and a
+## part hit harder than its strength breaks away as a loose piece, along with
+## anything that was only held on through it. The kart then drives with what's
+## left. Resetting puts it all back together.
 
 signal was_reset
 signal parts_lost(indices: Array[int])
 signal gadget_used(kind: String)
 
-const SUSPENSION_TRAVEL := 0.12 # metres either side of where the wheel was built
+const SUSPENSION_TRAVEL := 0.12 # metres up or down from where the wheel was built
 const SUSPENSION_DAMPING := 0.55 # fraction of critical damping
 ## Past this much of its travel a spring gets much stiffer, like a bump stop,
 ## so hard landings and loops (where the kart is pressed down at three times
 ## its weight) don't bottom it out onto its chassis.
 const BUMP_START := 1.5
 const BUMP_STIFFNESS := 14.0
-## The bump stop is damped too, or the kart bounces off it: round a loop the
-## wheels went from full load to none and back, driving only half the time.
+## The bump stop is damped too, or the kart bounces off it. Going around a loop
+## the wheels went from full load to none and back, and only drove half the
+## time.
 const BUMP_DAMPING := 3.0
 const MAX_STEER := deg_to_rad(30.0)
-const HIGH_SPEED_STEER := 0.35 # steering left at full speed, as a fraction
+const HIGH_SPEED_STEER := 0.35 # how much of the steering is left at full speed
 const STEER_RATE := 4.0 # how fast the wheels turn, in full locks per second
 const BRAKE_FORCE := 2800.0
 const REVERSE_FRACTION := 0.45
@@ -42,8 +43,8 @@ const RESET_SLOWDOWN := 0.5
 const LAYER_WORLD := 1
 const LAYER_KARTS := 2
 const LAYER_DEBRIS := 4
-## Things karts crash into that aren't the track: fired bricks and dropped
-## piles. Wheels don't ride on them.
+## Things karts crash into that aren't the track, like fired bricks and
+## dropped piles. Wheels don't ride on them.
 const LAYER_HAZARD := 8
 
 # Gadgets and studs.
@@ -53,46 +54,46 @@ const TURBO_FORCE := 1500.0
 const TURBO_TOP_SPEED := 1.3 # how much further past its usual top speed a turbo can push
 const SPRING_SPEED := 5.5 # upward kick from a spring, in m/s
 const SHIELD_TIME := 4.0
-## How much harder a ram plate hits: a knock from one counts this many times
-## over on the kart it hits, and a solid one (more than RAM_HIT) knocks a part
-## straight off, since the chassis a ram usually lands on is far too strong to
-## break.
+## How much harder a ram plate hits. A knock from one counts this many times
+## over on the kart it hits. A solid one (more than RAM_HIT) knocks a part
+## straight off, because a ram usually lands on the chassis and that's far too
+## strong to break.
 const RAM_KNOCK := 2.5
 const RAM_HIT := 250.0
 const RAM_EVERY := 0.5
 const GADGET_COOLDOWN := 0.6
 
-## A part's knocks add up over a few frames, since one crash lands over
-## several physics steps, and fade after that.
+## A part's knocks add up over a few frames, because one crash lands over
+## several physics steps. After that they fade away.
 const IMPACT_FADE := 0.5
-## Wheels collide through a cylinder a bit smaller than the tire, so it only
+## Wheels collide through a cylinder a bit smaller than the tire. It only
 ## touches the ground when the suspension is squashed hard, like a bump stop,
-## but still catches walls side on.
+## but it still catches walls from the side.
 const WHEEL_BODY := 0.55
-## Round loops and up wall rides the road is sticky: with two wheels on it and
-## going at least this fast, gravity pulls toward the road instead of down.
-## Any slower and you drop off. Hanging upside down (past the wall and on
-## toward the top of a loop) takes more speed than riding a wall.
+## On loops and wall rides the road is sticky. With two wheels on it and going
+## at least this fast, gravity pulls you toward the road instead of down. Any
+## slower and you drop off. Hanging upside down near the top of a loop takes
+## more speed than riding a wall.
 const STICK_SPEED := 5.0
 const STICK_SPEED_OVERHEAD := 9.0
-## A moment's grace, so a bump that lifts a wheel doesn't drop you.
+## A short grace period, so a bump that lifts a wheel doesn't drop you.
 const STICK_HOLD := 0.4
-## While sticking, the kart is steadied to lie flat on the road, the way
-## anti-gravity racers do it. Without this a kart up a wall ride would roll a
-## little further than the road, lift its wheels and slide off. These are how
-## hard it's turned back, and how much its roll is damped.
+## While it's sticking, the kart is held flat against the road the way
+## anti-gravity racers do it. Without this a kart on a wall ride rolls a
+## little past the road, lifts its wheels and slides off. These set how hard
+## it's turned back and how much its roll and pitch are damped.
 const STICK_ALIGN := 90.0
 const STICK_ALIGN_DAMP := 13.0
 const STICK_PITCH_DAMP := 4.0
-## A little extra pull onto sticky road, to keep all four wheels planted over
-## bumps. Round a loop the kart's own speed presses it on far harder.
+## A little extra pull onto sticky road to keep all four wheels planted over
+## bumps. On a loop the kart's own speed presses it down far harder than this.
 const STICK_PULL := 0.1
 
 
 class Wheel:
 	var index := 0 # which part of the design this is
 	var part: Dictionary
-	var rest := Vector3.ZERO # wheel centre as built, in kart space
+	var rest := Vector3.ZERO # the wheel's centre as built, in kart space
 	var radius := 0.3
 	var width := 0.25
 	var grip := 1.0
@@ -118,8 +119,8 @@ var controls := KartControls.new()
 ## ignores the throttle.
 var locked := false
 ## Where a reset puts the kart, given where it is now. A race points this at
-## the nearest bit of track. Left empty, the kart just rights itself where it
-## is.
+## the nearest bit of track. If it's left empty the kart just flips itself
+## upright where it is.
 var reset_to: Callable
 var wheels: Array[Wheel] = []
 ## Parts that have broken off, by their index in the design.
@@ -133,7 +134,7 @@ var lift_area := 0.0
 
 var steer_angle := 0.0
 var forward_speed := 0.0
-## Whether the kart is stuck to the road round a loop or up a wall right now.
+## Whether the kart is stuck to the road on a loop or a wall ride right now.
 var sticking := false
 ## Which way is up off the road while it's sticking.
 var stick_up := Vector3.UP
@@ -176,14 +177,14 @@ func _init() -> void:
 	angular_damp = 0.5
 	contact_monitor = true
 	max_contacts_reported = 16
-	# Slippery plastic: when the body does scrape the road or a wall it slides
-	# rather than grinding to a halt.
+	# Slippery plastic, so when the body scrapes the road or a wall it slides
+	# instead of grinding to a halt.
 	physics_material_override = PhysicsMaterial.new()
 	physics_material_override.friction = 0.3
 
 
-## Builds the kart whole. The wheels' jobs and springs are settled here, from
-## the complete kart, and stay the same when parts break off. That's why a kart
+## Builds the whole kart. I set up the wheels' jobs and springs here from the
+## complete kart, and they stay the same when parts break off. That way a kart
 ## that loses a wheel sags onto that corner instead of balancing on the rest.
 func build(new_design: KartDesign, who: CharacterDesign = null) -> void:
 	driver = who
@@ -219,22 +220,22 @@ func build(new_design: KartDesign, who: CharacterDesign = null) -> void:
 
 ## How much of the kart's weight each wheel carries standing still, as
 ## fractions that add up to one. The loads have to hold the kart up and
-## balance around its centre of mass both ways, and of all the ways to do that
-## this is the most even one. Wheels are never left carrying nothing.
+## balance around its centre of mass both ways, and of all the ways to do
+## that this is the most even one. No wheel is ever left carrying nothing.
 static func _weight_shares(full: KartStats) -> Array[float]:
 	var n := full.wheels.size()
 	var out: Array[float] = []
 	if n == 0:
 		return out
 	var com := full.center_of_mass
-	# Rows of the balance: total, then moments along z and along x.
+	# The rows of the balance are the total, then the moments along z and x.
 	var rows := [[], [], []]
 	for info in full.wheels:
 		rows[0].append(1.0)
 		rows[1].append(info.centre.z - com.z)
 		rows[2].append(info.centre.x - com.x)
 	var target := Vector3(1.0, 0.0, 0.0)
-	# Minimum-norm answer: loads = Aᵀ (A Aᵀ)⁻¹ b.
+	# The minimum norm answer is loads = Aᵀ (A Aᵀ)⁻¹ b.
 	var m := Basis()
 	for r in 3:
 		for c in 3:
@@ -242,8 +243,8 @@ static func _weight_shares(full: KartStats) -> Array[float]:
 			for k in n:
 				dot += rows[r][k] * rows[c][k]
 			m[c][r] = dot
-	# Fewer than three wheels (or all in a line) leaves this unsolvable, so
-	# fall back to an even split.
+	# With fewer than three wheels (or all of them in a line) this can't be
+	# solved, so it falls back to an even split.
 	if absf(m.determinant()) < 1e-6:
 		for k in n:
 			out.append(1.0 / n)
@@ -320,7 +321,7 @@ func _assemble() -> void:
 		_rig = CharacterRig.new(driver if driver != null else default_driver(), true)
 		_rig.position = stats.seat_top
 		add_child(_rig)
-		# The driver takes hits too, so a roll-over lands on something.
+		# The driver takes hits too, so a rollover lands on something.
 		var shape := CollisionShape3D.new()
 		var box := BoxShape3D.new()
 		box.size = Vector3(0.4, 0.7, 0.3)
@@ -397,7 +398,7 @@ func _physics_process(delta: float) -> void:
 		_bubble.visible = shield_left > 0.0
 
 	if _repair_asked:
-		# A repair kit: everything back on, and no slowdown.
+		# A repair kit puts everything back on with no slowdown.
 		_repair_asked = false
 		lost.clear()
 		_impact.clear()
@@ -435,8 +436,8 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 	forward_speed = state.linear_velocity.dot(-basis.z)
 
 	var steer_limit := MAX_STEER * lerpf(1.0, HIGH_SPEED_STEER, clampf(speed / 28.0, 0.0, 1.0))
-	# No steering wheel, no steering: it's been knocked off, so the front
-	# wheels just follow along until a reset puts it back.
+	# If the steering wheel has been knocked off there's no steering. The
+	# front wheels just follow along until a reset puts it back.
 	var wanted_steer := controls.steer * steer_limit if stats.steering != null else 0.0
 	steer_angle = move_toward(steer_angle, wanted_steer, STEER_RATE * MAX_STEER * dt)
 
@@ -504,15 +505,15 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 		var v_lat := v.dot(side)
 		w.spin += v_long / w.radius * dt
 
-		# Tire forces. Sideways the tire tries to stop all slip in one step;
-		# along its heading it drives, brakes and rolls. Then the lot is
+		# Tire forces. Sideways, the tire tries to stop all slip in one step.
+		# Along its heading it drives, brakes and rolls. Then all of that is
 		# capped by how much grip this tire has under this load, which is
 		# where wide tires earn their extra drag.
 		var stop_force := share / dt
 		var f_lat := -v_lat * stop_force * 0.5
 		var f_long := drive_per_wheel if w.driven else 0.0
-		# Grass and the like grip less and drag more than the road. The
-		# ground says how, through its "grip" and "drag" metadata.
+		# Grass and dirt grip less and drag more than the road. The ground
+		# says how much through its "grip" and "drag" metadata.
 		var ground: Object = hit.get("collider")
 		var grip_here: float = ground.get_meta("grip", 1.0) if ground != null else 1.0
 		var drag_here: float = ground.get_meta("drag", 1.0) if ground != null else 1.0
@@ -531,9 +532,8 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 		state.apply_force(heading * tire.x, contact + up * height - origin)
 		applied += normal * load + side * tire.y + heading * tire.x
 
-	# Air: drag from everything facing forward, and downforce from any wings.
-	# Sticky road. The world pulls everything down already, so this cancels
-	# that and pulls toward the road instead.
+	# Sticky road. Gravity already pulls everything down, so this cancels that
+	# and pulls toward the road instead.
 	var needed := STICK_SPEED if up.y > -0.1 else STICK_SPEED_OVERHEAD
 	if sticky_wheels >= 2 and speed > needed:
 		stick_up = sticky_up.normalized()
@@ -547,9 +547,10 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 		state.apply_central_force(pull)
 		applied += pull
 		# Turn the kart to lie flat on the road, and damp its roll firmly and
-		# its pitch lightly. Round a loop the kart has to keep pitching over,
-		# and damping that as hard as roll held it back from the curve; up a
-		# wall ride it needs a little, or it bounces off as the road rises.
+		# its pitch lightly. On a loop the kart has to keep pitching over, and
+		# damping pitch as hard as roll held it back from following the curve.
+		# On a wall ride it needs a little, or it bounces off as the road
+		# rises.
 		var tilt := up.cross(stick_up)
 		var forward := -basis.z
 		var roll := forward * state.angular_velocity.dot(forward)
@@ -557,6 +558,7 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 		var want := tilt * STICK_ALIGN - roll * STICK_ALIGN_DAMP - pitch * STICK_PITCH_DAMP
 		state.apply_torque(state.inverse_inertia_tensor.inverse() * want)
 
+	# Air drag from everything facing forward, and downforce from any wings.
 	var air := 0.5 * KartStats.AIR_DENSITY
 	var drag := -state.linear_velocity * speed * air * drag_area
 	var downforce := -up * air * lift_area * forward_speed * forward_speed
@@ -571,12 +573,12 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 
 ## Works out how hard the kart was just knocked and which parts took it.
 ## Any part hit harder than it can take comes off in the next
-## _physics_process, since shapes can't change in the middle of a step.
+## _physics_process, because shapes can't change in the middle of a step.
 ##
-## How hard comes from the kart's change of speed since last step, less what
-## its own engine, tires, air and gravity did. The physics engine's own
-## contact impulses came out at well under half the real knock, so they're
-## only used to share it out between the parts that were touching something.
+## The size of the knock is the kart's change of speed since the last step,
+## minus what its own engine, tires, air and gravity did. The physics engine's
+## own contact impulses came out at well under half the real knock, so I only
+## use them to share it out between the parts that were touching something.
 func _feel_knocks(state: PhysicsDirectBodyState3D) -> void:
 	var count := state.get_contact_count()
 	for part in _impact.keys():
@@ -600,7 +602,7 @@ func _feel_knocks(state: PhysicsDirectBodyState3D) -> void:
 		# Contacts that report nothing still count for a little, so a part
 		# can't dodge a crash just because the engine missed it.
 		var weight := state.get_contact_impulse(i).length() + 0.01
-		# Hit by another kart's ram plate: that counts for a lot more.
+		# A hit from another kart's ram plate counts for a lot more.
 		var other: Object = state.get_contact_collider_object(i)
 		if other is Kart and other.rammed_with(state.get_contact_collider_position(i)):
 			weight *= RAM_KNOCK
@@ -630,7 +632,7 @@ func _driver_mass() -> float:
 
 static var _default_driver: CharacterDesign
 
-## Who drives when nobody's been chosen: the same plain racer every time.
+## Who drives when nobody's been picked. It's the same plain racer every time.
 static func default_driver() -> CharacterDesign:
 	if _default_driver == null:
 		_default_driver = CharacterDesign.load_file("res://data/characters/roster/racer.json")
@@ -685,7 +687,7 @@ func can_use(slot: int) -> bool:
 	return studs >= int(list[slot][1].get("cost", 0))
 
 
-## Uses the gadget on this button, if there are studs enough. It's its own
+## Uses the gadget on this button, if there are enough studs. It's its own
 ## step so that in a network game the server can decide and tell everyone.
 func use_gadget(slot: int) -> bool:
 	if not can_use(slot):
@@ -717,8 +719,8 @@ func add_studs(count: int) -> void:
 	studs = clampi(studs + count, 0, MOST_STUDS)
 
 
-## Did this point, in the world, hit the front of this kart where its ram
-## plate is? Anything level with the plate or ahead of it counts, since the
+## Whether this point (in the world) hit the front of this kart where its ram
+## plate is. Anything level with the plate or ahead of it counts, because the
 ## chassis under it is flush with it and takes the hit just as often.
 func rammed_with(point: Vector3) -> bool:
 	if stats == null:
@@ -730,8 +732,8 @@ func rammed_with(point: Vector3) -> bool:
 	return false
 
 
-## Knocked by a fired brick: one part comes off, from the outside in, unless
-## a shield is up.
+## When a fired brick hits, one part comes off, working from the outside in,
+## unless a shield is up.
 func knock_off_a_part() -> void:
 	if shield_left > 0.0 or stats == null:
 		return

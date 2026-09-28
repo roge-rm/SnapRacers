@@ -1,13 +1,13 @@
 class_name TrackPath
 extends RefCounted
 
-## A whole track: its pieces clicked together one after another, and the line
-## down the middle of the road that they make.
+## A whole track. It's the pieces clicked together one after another, and the
+## line down the middle of the road that they make.
 ##
-## The line is kept as samples about a metre apart, each with which way is
+## I keep the line as samples about a metre apart, each with which way is
 ## forward, up and right there (so banking and hills come along with it).
-## Racing uses it for everything: where each kart is round the lap, which way
-## the AI should head, and where to put a kart back after a reset.
+## Racing uses it for everything, like where each kart is around the lap,
+## which way the AI should head, and where to put a kart back after a reset.
 
 const SAMPLE := 1.0
 const KERB := 1.0
@@ -28,7 +28,7 @@ var pieces: Array[TrackPiece] = []
 var start := Transform3D.IDENTITY
 ## Where each piece starts, in the world.
 var piece_starts: Array[Transform3D] = []
-## Whether the last piece comes back round to meet the first.
+## Whether the last piece comes back around to meet the first.
 var closes := false
 
 var points := PackedVector3Array()
@@ -94,7 +94,7 @@ func build() -> void:
 			var flat_up := flat_right.cross(forward)
 			var lean := piece.bank_at(t)
 			var up := flat_up * cos(lean) + flat_right * sin(lean)
-			# Banked road leans up from its low edge rather than round its
+			# Banked road leans up from its low edge instead of around its
 			# middle, so the inside edge stays at road height instead of
 			# sinking into the ground.
 			var rise := (width * 0.5 + KERB) * absf(sin(lean))
@@ -161,8 +161,8 @@ func solid_at(offset: float) -> bool:
 	return solids[_index_before(offset)]
 
 
-## The road's own frame here: -Z along the track, Y up off the road and X to
-## the right.
+## The road's own frame here, with -Z along the track, Y up off the road and X
+## to the right.
 func frame_at(offset: float) -> Transform3D:
 	var forward := forward_at(offset)
 	var up := up_at(offset)
@@ -172,7 +172,7 @@ func frame_at(offset: float) -> Transform3D:
 
 ## How far along the track a position is. With a hint (where it was a moment
 ## ago) it only looks nearby, so a kart on a bridge isn't mistaken for one on
-## the road underneath, or the other way round.
+## the road underneath, or the other way around.
 func offset_of(position: Vector3, hint := -1.0, window := 60.0) -> float:
 	var count := points.size()
 	var first := 0
@@ -188,7 +188,7 @@ func offset_of(position: Vector3, hint := -1.0, window := 60.0) -> float:
 		if d < best_distance:
 			best_distance = d
 			best = k
-	# Slide along the segment either side of the nearest sample.
+	# Slide along the segment on either side of the nearest sample.
 	var result := distances[best]
 	var best_along := INF
 	for side in [-1, 1]:
@@ -204,7 +204,7 @@ func offset_of(position: Vector3, hint := -1.0, window := 60.0) -> float:
 
 
 ## How sharply the track bends here, as one over the corner's radius. Hills
-## count as well as turns, since both matter for how fast a kart can take
+## count as well as turns, because both matter for how fast a kart can take
 ## them.
 func curvature_at(offset: float, span := 6.0) -> float:
 	var a := forward_at(offset - span * 0.5)
@@ -213,13 +213,13 @@ func curvature_at(offset: float, span := 6.0) -> float:
 
 
 ## How sharply the track turns left or right here, ignoring hills and
-## loops, as one over the corner's radius. This is what limits how fast a kart can go
-## round.
+## loops, as one over the corner's radius. This is what limits how fast a
+## kart can get around.
 func bend_at(offset: float, span := 6.0) -> float:
 	var a := forward_at(offset - span * 0.5)
 	var b := forward_at(offset + span * 0.5)
-	# Measured across the road itself, so the way a loop curls over the top
-	# doesn't count as a bend but a wall ride does.
+	# It's measured across the road itself, so the way a loop curls over the
+	# top doesn't count as a bend but a wall ride does.
 	var up := up_at(offset)
 	a = (a - up * a.dot(up)).normalized()
 	b = (b - up * b.dot(up)).normalized()
@@ -234,8 +234,8 @@ func place_at(offset: float, lift := 0.6) -> Transform3D:
 	return frame
 
 
-## Grid spots behind the start line: two columns, staggered, first place at
-## the front.
+## Grid spots behind the start line, in two staggered columns with first
+## place at the front.
 func grid_slot(index: int) -> Transform3D:
 	var offset := length - 8.0 - index * 5.0
 	var frame := place_at(offset, 0.05)
@@ -253,9 +253,9 @@ func grip_and_drag(surface: String) -> Array:
 func clashes(clearance := 5.0) -> Array:
 	var out := []
 	var step := 4
-	# Road, kerbs and a half-metre wall each side. Anything closer than that
-	# and the walls would overlap. (A loop's way in and way out sit 1 m apart
-	# wall to wall, which is fine.)
+	# Road, curbs and a half metre wall on each side. Any closer than that and
+	# the walls would overlap. (A loop's way in and way out sit 1 m apart wall
+	# to wall, which is fine.)
 	var reach := width + 2.0 * KERB + 1.0
 	var skip := int(ceil(reach * 2.0 / SAMPLE))
 	var count := points.size()

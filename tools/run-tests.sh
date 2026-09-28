@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-# Runs every headless test. Exits non-zero if any of them fail or crash.
-# --fixed-fps lets them run flat out rather than in real time, with physics
-# still stepping 1/60 s at a time. Each gets five minutes, so a test that
-# hangs fails instead of holding everything up.
+# Runs every headless test, and exits with an error if any of them fail or
+# crash. --fixed-fps lets them run as fast as they can instead of in real
+# time, with physics still stepping 1/60 s at a time. Each one gets five
+# minutes, so a test that hangs fails instead of holding everything up.
 set -uo pipefail
 
 cd "$(dirname "$0")/.."
@@ -10,7 +10,7 @@ GODOT="tools/godot/Godot_v4.7.2-stable_linux.x86_64"
 "$GODOT" --headless --path . --import > /dev/null 2>&1
 
 status=0
-for test in "-s tests/drive_test.gd" "-s tests/design_test.gd" "-s tests/damage_test.gd" "-s tests/track_test.gd" "res://tests/garage_test.tscn" "-s tests/loop_test.gd" "-s tests/gadget_test.gd" "-s tests/character_test.gd" "res://tests/menu_test.tscn" "res://tests/race_test.tscn -- brickyard" "res://tests/race_test.tscn -- loopworks"; do
+for test in "-s tests/drive_test.gd" "-s tests/design_test.gd" "-s tests/damage_test.gd" "-s tests/track_test.gd" "res://tests/garage_test.tscn" "-s tests/loop_test.gd" "-s tests/gadget_test.gd" "-s tests/character_test.gd" "res://tests/menu_test.tscn" "res://tests/split_test.tscn" "res://tests/race_test.tscn -- brickyard" "res://tests/race_test.tscn -- loopworks"; do
 	echo "== $test"
 	# shellcheck disable=SC2086
 	if ! timeout 300 "$GODOT" --headless --fixed-fps 60 --path . $test 2>&1 | grep -E "^  (ok|FAIL)|passed|failed|ERROR"; then

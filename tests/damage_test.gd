@@ -1,8 +1,8 @@
 extends SceneTree
 
 ## Crashes karts into a wall and checks what breaks. A gentle bump shouldn't
-## cost anything, a flat-out crash should knock parts off, and a reset should
-## put them all back.
+## cost anything, a crash at full speed should knock parts off, and a reset
+## should put them all back.
 ##
 ## Run it with:
 ##   tools/godot/Godot_v4.7.2-stable_linux.x86_64 --headless --path . -s tests/damage_test.gd

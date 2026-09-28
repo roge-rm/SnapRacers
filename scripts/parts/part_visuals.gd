@@ -124,9 +124,9 @@ static func make_driver() -> Node3D:
 	return driver
 
 
-## Makes a part see-through, and red when it can't go where it is. This
-## swaps the materials rather than drawing a tint on top, because overlays
-## didn't show up on the phone.
+## Makes a part see-through, and red when it can't go where it is. I swap the
+## materials instead of drawing a tint on top, because overlays didn't show up
+## on the phone.
 static func set_ghost(node: Node, fits: bool) -> void:
 	_tint(node, func(base: StandardMaterial3D) -> StandardMaterial3D:
 		return _variant(base.albedo_color if fits else Color("#ff2a1a"), 0.55))
@@ -171,8 +171,8 @@ static func material(color: Color) -> StandardMaterial3D:
 	if not _materials.has(key):
 		var m := StandardMaterial3D.new()
 		m.albedo_color = color
-		# Plastic: a soft sheen, not a mirror. Flat tops facing the sky looked
-		# pale blue when this was glossier.
+		# Plastic has a soft sheen, not a mirror shine. Flat tops facing the sky
+		# looked pale blue when this was glossier.
 		m.roughness = 0.55
 		m.metallic_specular = 0.35
 		_materials[key] = m

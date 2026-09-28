@@ -1,15 +1,15 @@
 class_name MeshKit
 extends RefCounted
 
-## Shapes for character models that primitives don't cover: boxes with
-## rounded edges (optionally narrower at the top, for a torso), tubes bent
-## round an arc (a mouth, a visor band), and C-shaped hands. They're all made
-## once for each set of numbers and shared.
+## Shapes for character models that Godot's primitives don't cover. There are
+## boxes with rounded edges (which can be narrower at the top, for a torso),
+## tubes bent around an arc (for a mouth or a visor band), and C shaped hands.
+## Each one is made once for each set of numbers and then shared.
 
 static var _cache: Dictionary = {}
 
 
-## A box with rounded edges and corners, `radius` round. `taper` narrows the
+## A box with rounded edges and corners, rounded to `radius`. `taper` narrows the
 ## top face to that fraction of the bottom's width, like a minifig torso.
 static func rounded_box(size: Vector3, radius: float, taper := 1.0, steps := 5) -> ArrayMesh:
 	var key := "box %s %s %s %s" % [size, radius, taper, steps]
@@ -96,7 +96,7 @@ static func _fix_winding(mesh: ArrayMesh) -> void:
 
 
 ## A round tube bent along an arc in the XY plane, from `from` to `to`
-## radians (0 is +X, going round toward +Y).
+## radians (0 is +X, going around toward +Y).
 static func arc_tube(radius: float, thickness: float, from: float, to: float, steps := 16, sides := 8) -> ArrayMesh:
 	var key := "arc %s %s %s %s" % [radius, thickness, from, to]
 	if _cache.has(key):
@@ -141,13 +141,13 @@ static func arc_tube(radius: float, thickness: float, from: float, to: float, st
 	return mesh
 
 
-## A shape turned on a lathe: `profile` is (distance out, height) points from
-## bottom to top, spun round the Y axis. Only the part of the turn from `from`
-## to `to` (radians, 0 at -Z, going round toward +X) is made, which is how an
-## open-face helmet leaves room for the face. Normals come from the profile,
-## so the result is smooth. Texture coordinates run round it with the front
-## (-Z) in the middle of the texture, and from top to bottom, which is how a
-## face gets printed on a head.
+## A shape turned on a lathe. `profile` is (distance out, height) points from
+## bottom to top, spun around the Y axis. Only the part of the turn from
+## `from` to `to` (radians, 0 at -Z, going around toward +X) is made, which is
+## how an open face helmet leaves room for the face. Normals come from the
+## profile, so the result is smooth. Texture coordinates run around it with
+## the front (-Z) in the middle of the texture, and from top to bottom, which
+## is how a face gets printed on a head.
 static func lathe(profile: PackedVector2Array, sides := 32, from := 0.0, to := TAU) -> ArrayMesh:
 	var key := "lathe %s %s %s %s" % [profile, sides, from, to]
 	if _cache.has(key):
@@ -208,6 +208,6 @@ static func rounded_cylinder(radius: float, height: float, round := 0.02, sides 
 	return lathe(profile, sides)
 
 
-## A minifig hand: a thick C shape, open toward -Y, sized to grip a rim.
+## A minifig hand. It's a thick C shape, open toward -Y, sized to grip a rim.
 static func hand(size := 0.05) -> ArrayMesh:
 	return arc_tube(size, size * 0.45, deg_to_rad(-40.0), deg_to_rad(220.0), 14, 8)

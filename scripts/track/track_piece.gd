@@ -1,7 +1,7 @@
 class_name TrackPiece
 extends RefCounted
 
-## One piece of track, the way it sits in its own space: it starts at the
+## One piece of track, the way it sits in its own space. It starts at the
 ## origin heading toward -Z, and `exit()` says where the next piece clicks on.
 ##
 ## Everything lines up on a grid of tiles 16 m square, with heights in levels
@@ -28,31 +28,32 @@ var wall_left := true
 var wall_right := true
 ## A bend with a dirt patch inside it that you can cut across.
 var cut := false
-## Which way a loop steps across as it goes round: 1 right, -1 left.
+## Which way a loop steps across as it goes around, 1 for right and -1 for
+## left.
 var side := 1
 ## Road you stick to at speed, like the inside of a loop or a steep wall.
 var sticky := false
 
-# The loop: a run-in, the loop and a run-out. The loop tightens gradually on
-# the way in and eases off on the way out, like a real one, instead of
+# The loop has a run in, the loop itself and a run out. It tightens gradually
+# on the way in and eases off on the way out like a real one, instead of
 # snapping from straight to a circle (which slammed karts into the road). It
-# steps one tile across as it goes round, so the road coming out never runs
+# steps one tile across as it goes around, so the road coming out never runs
 # into the road going in.
-const LOOP_ARC := 80.0 # length of road round the loop itself, in metres
-const LOOP_EASE := 0.2 # fraction of it spent tightening up, and easing off
+const LOOP_ARC := 80.0 # length of road around the loop itself, in metres
+const LOOP_EASE := 0.2 # how much of it is spent tightening up, and easing off
 const LOOP_IN := 16.0
 const LOOP_STEP := TILE
 const LOOP_SAMPLES := 400
 
-## The loop's shape in its own plane, worked out once: for every step round
-## it, (height, distance along, how far it has turned).
+## The loop's shape in its own plane, worked out once. For every step around
+## it there's (height, distance along, how far it has turned).
 static var _loop_shape := PackedVector3Array()
 
 ## Bends banked steeper than this are wall rides, and stick.
 const STICKY_BANK := deg_to_rad(40.0)
 
-# The jump: a kicker, a gap and a landing ramp, in metres along the piece.
-# The landing starts with a short run-up from the ground, so a kart that
+# The jump has a kicker, a gap and a landing ramp, in metres along the piece.
+# The landing starts with a short run up from the ground, so a kart that
 # falls short into the gap can drive up it instead of hitting a wall.
 const KICKER_END := 16.0
 const KICKER_HEIGHT := 1.5
@@ -173,7 +174,7 @@ static func _loop_profile() -> PackedVector3Array:
 	var step := LOOP_ARC / LOOP_SAMPLES
 	var ease := func(u: float) -> float:
 		return smoothstep(0.0, LOOP_EASE, u) * smoothstep(0.0, LOOP_EASE, 1.0 - u)
-	# Scale the bend so the loop turns exactly once all the way round.
+	# Scale the bend so the loop turns exactly once all the way around.
 	var total := 0.0
 	for i in LOOP_SAMPLES:
 		total += ease.call((i + 0.5) / LOOP_SAMPLES) * step
@@ -222,8 +223,8 @@ func _loop_point(t: float) -> Vector3:
 
 
 ## Which way is up off the road here, before any banking, in the piece's
-## space. It's straight up everywhere except round a loop, where it points
-## in toward the middle.
+## space. It's straight up everywhere except on a loop, where it points in
+## toward the middle.
 func up(t: float) -> Vector3:
 	if type != "loop":
 		return Vector3.UP

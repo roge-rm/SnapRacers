@@ -1,7 +1,7 @@
 class_name ChaseCamera
 extends Camera3D
 
-## Follows a kart from behind and a little above. It swings round to follow
+## Follows a kart from behind and a little above. It swings around to follow
 ## the way the kart is actually moving, so a slide looks like a slide.
 
 @export var distance := 5.5
@@ -10,7 +10,7 @@ extends Camera3D
 @export var follow := 6.0
 
 var target: Node3D
-## Which way is up for the camera. It follows the kart round loops and up
+## Which way is up for the camera. It follows the kart around loops and up
 ## walls, and settles back to straight up afterwards.
 var _up := Vector3.UP
 
@@ -26,9 +26,9 @@ func _physics_process(delta: float) -> void:
 	var wanted_up := Vector3.UP
 	if target is Kart and target.sticking:
 		wanted_up = target.global_basis.y.normalized()
-	# Lerped rather than slerped: slerp between two all-but-equal directions
-	# works out a rotation axis from almost nothing, and Godot complains it
-	# isn't normalised.
+	# I lerp this instead of using slerp. Slerp between two almost equal
+	# directions works out a rotation axis from almost nothing, and Godot
+	# complains that it isn't normalised.
 	var blended := _up.lerp(wanted_up, 1.0 - exp(-4.0 * delta))
 	if blended.length_squared() > 0.0001:
 		_up = blended.normalized()

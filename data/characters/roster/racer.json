@@ -1,6 +1,6 @@
 {
 	"name": "Racer",
-	"_comment": "The driver you start with: steady, sensible, medium weight.",
+	"_comment": "The driver you start with. Steady, sensible and medium weight.",
 	"head": { "style": "smile", "color": "#f2cd37" },
 	"headgear": { "style": "racing_helmet", "color": "#f2f2f2" },
 	"torso": { "style": "racing_suit", "color": "#0d69ab" },

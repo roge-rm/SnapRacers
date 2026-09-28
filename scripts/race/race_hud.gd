@@ -1,15 +1,18 @@
 class_name RaceHud
 extends Control
 
-## What you see during a race: your place and lap in the top left, the clock
-## in the middle, the countdown, the odd message, and the results once you've
-## finished.
+## What you see during a race. Your place and lap are in the top left and the
+## clock is in the middle, with the countdown, a message now and then, and the
+## results once you've finished. In split screen each player has one of these
+## in their half.
 
 signal again_pressed
 signal garage_pressed
 signal menu_pressed
 
 var race: Race
+## Whose race this shows.
+var me: Race.Racer
 
 var _place: Label
 var _lap: Label
@@ -107,11 +110,10 @@ static func clock(seconds: float) -> String:
 
 
 func _process(delta: float) -> void:
-	if race == null or race.player == null:
+	if race == null or me == null:
 		return
 	_fps.visible = Game.show_fps()
 	_fps.text = "%d fps" % Engine.get_frames_per_second()
-	var me := race.player
 	_place.text = "%s / %d" % [ordinal(race.place_of(me)), race.racers.size()]
 	_lap.text = "Lap %d / %d" % [me.progress.current_lap(), race.track.laps]
 	if me.progress.finished:
@@ -133,7 +135,7 @@ func _process(delta: float) -> void:
 		text += "\nlast lap %s" % clock(me.progress.lap_times[-1])
 	_clock.text = text
 
-	# The countdown, then GO for a moment.
+	# The countdown, then GO! for a moment.
 	if race.time < 0.0:
 		_big.text = str(ceili(-race.time))
 		_big.modulate.a = 1.0

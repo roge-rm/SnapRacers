@@ -7,7 +7,8 @@ extends RigidBody3D
 
 const LIFETIME := 6.0
 const SHRINK_TIME := 0.6
-## Phones don't want hundreds of these, so the oldest go first past this.
+## Phones can't handle hundreds of these, so past this many the oldest go
+## first.
 const MOST_AT_ONCE := 40
 
 static var _alive: Array[Debris] = []

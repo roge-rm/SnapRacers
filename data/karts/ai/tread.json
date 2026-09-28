@@ -1,6 +1,6 @@
 {
 	"name": "Tread",
-	"_comment": "Heavy, with big back wheels. Slow to get going and hard to knock about. Carries a ram plate and a brick dropper.",
+	"_comment": "Heavy, with big back wheels. Slow to get going and hard to knock around. Carries a ram plate and a brick dropper.",
 	"parts": [
 		{ "id": "plate_6x10", "at": [7, 2, 7], "rot": 0 },
 		{ "id": "wheel_small", "at": [6, 0, 8], "rot": 0 },

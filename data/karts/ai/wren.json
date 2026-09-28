@@ -1,6 +1,6 @@
 {
 	"name": "Wren",
-	"_comment": "Light, with narrow tyres all round for less drag. Carries a magnet and a spring.",
+	"_comment": "Light, with narrow tires all around for less drag. Carries a magnet and a spring.",
 	"parts": [
 		{ "id": "plate_6x10", "at": [7, 2, 7], "rot": 0 },
 		{ "id": "wheel_small", "at": [6, 0, 8], "rot": 0 },

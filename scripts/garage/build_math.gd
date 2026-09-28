@@ -1,10 +1,10 @@
 class_name BuildMath
 extends RefCounted
 
-## The garage's maths, kept apart from anything on screen so it can be tested
-## on its own: where a ray from the camera lands on the kart or the floor, and
-## where a new part goes for that spot. Everything here is in grid units
-## (studs across, plates up, studs along).
+## The garage's math, kept apart from anything on screen so it can be tested
+## on its own. It works out where a ray from the camera lands on the kart or
+## the floor, and where a new part goes for that spot. Everything here is in
+## grid units (studs across, plates up, studs along).
 
 
 class Hit:
@@ -47,8 +47,8 @@ static func ray_box(origin: Vector3, dir: Vector3, box: AABB) -> Array:
 	return [t_in, normal]
 
 
-## The first thing a ray from the camera hits: a part, or the floor of the
-## build area.
+## The first thing a ray from the camera hits, which is either a part or the
+## floor of the build area.
 static func cast(design: KartDesign, origin: Vector3, dir: Vector3) -> Hit:
 	var hit := Hit.new()
 	for i in design.parts.size():
@@ -72,7 +72,7 @@ static func cast(design: KartDesign, origin: Vector3, dir: Vector3) -> Hit:
 
 ## Where a part of this size goes when it's put down on this spot. On top of
 ## something it sits on it, under something it hangs from it, and against a
-## side it butts up to it, centred on the spot each time.
+## side it butts up against it. It's centred on the spot each time.
 static func placement(hit: Hit, size: Vector3i) -> Vector3i:
 	var p := hit.point
 	var at := Vector3i(
@@ -97,8 +97,8 @@ static func placement(hit: Hit, size: Vector3i) -> Vector3i:
 
 
 ## The nearest spot to `at` where the part fits and is held on, or `at` itself
-## if there's nowhere close. Fingers are big and studs are small, so being a
-## stud or two out shouldn't stop a part going down. It tries sliding a
+## if there's nowhere close. Fingers are big and studs are small, so being off
+## by a stud or two shouldn't stop a part from going down. It tries sliding a
 ## little first, then stacking higher.
 static func nearest_spot(design: KartDesign, id: String, at: Vector3i, rot: int) -> Vector3i:
 	var best := at

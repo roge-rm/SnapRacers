@@ -9,7 +9,7 @@ extends RefCounted
 ## so going back and forth never gains anything.
 ##
 ## Karts start the race behind the line, so the first time over it starts
-## lap one rather than finishing a lap.
+## lap one instead of finishing a lap.
 
 const QUARTERS := 4
 
@@ -33,7 +33,7 @@ func _init(length: float, laps_needed: int, start_offset: float) -> void:
 	offset = start_offset
 
 
-## How far round the whole race this kart has got, in metres. Karts are
+## How far around the whole race this kart has gotten, in metres. Karts are
 ## placed by this.
 func distance() -> float:
 	return laps * track_length + offset
@@ -50,7 +50,7 @@ func update(new_offset: float, time: float) -> void:
 	var half := track_length * 0.5
 	var quarter := int(new_offset / track_length * QUARTERS) % QUARTERS
 	if new_offset - offset < -half:
-		# Wrapped forward over the start line.
+		# It went forward over the start line.
 		if laps == -1 or _quarters_seen.size() >= QUARTERS - 1:
 			if laps >= 0:
 				lap_times.append(time - _lap_started)
@@ -61,12 +61,12 @@ func update(new_offset: float, time: float) -> void:
 				finished = true
 				finish_time = time
 		else:
-			# Over the line without going round: it doesn't count, and it
-			# doesn't cost anything either.
+			# It crossed the line without going around the lap. That doesn't
+			# count, and it doesn't cost anything either.
 			pass
 	elif new_offset - offset > half:
-		# Backed over the start line. Undo the lap it started, and treat the
-		# quarters behind as seen so driving forward again gives it back.
+		# It backed over the start line. Undo the lap it started, and treat the
+		# quarters behind as seen, so driving forward again gives it back.
 		laps -= 1
 		for q in range(1, QUARTERS):
 			_quarters_seen[q] = true

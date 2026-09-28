@@ -2,19 +2,20 @@ class_name CharacterRig
 extends Node3D
 
 ## A driver's model, built from a CharacterDesign, and the thing that poses
-## it. It's a minifig: a round head with its face printed on, a flat-fronted
-## torso narrower at the shoulders, hips, two leg blocks with feet sticking
-## out the front, and short arms with C-shaped hands.
+## it. It's a minifig. It has a round head with its face printed on, a flat
+## fronted torso that's narrower at the shoulders, hips, two leg blocks with
+## feet sticking out the front, and short arms with C shaped hands.
 ##
 ## It moves the way a minifig does, too. The legs only hinge at the hips, so
-## sitting down they stick straight out in front. The arms are rigid, with the
-## minifig's fixed bend at the elbow, and only swing at the shoulder; the
-## hands twist at the wrist. To hold a steering wheel each arm swings to
-## whichever angle brings its hand closest to the rim, which on a wheel sat
-## where a minifig can reach it is right on it.
+## when it sits down they stick straight out in front. The arms are rigid,
+## with the minifig's fixed bend at the elbow, and they only swing at the
+## shoulder. The hands twist at the wrist. To hold a steering wheel, each arm
+## swings to whichever angle brings its hand closest to the rim. When the
+## wheel sits where a minifig can reach it, that's right on the rim.
 ##
-## The origin is where the driver sits: the middle of the bottom of the hips.
-## They face -Z. Standing up, the feet are FEET_BELOW under the origin.
+## The origin is where the driver sits, in the middle of the bottom of the
+## hips. They face -Z. When they're standing, the feet are FEET_BELOW under the
+## origin.
 
 const HIPS_TOP := 0.08
 const TORSO_HEIGHT := 0.34
@@ -30,8 +31,8 @@ const LEG_X := 0.095
 const LEG_LENGTH := 0.3
 const FEET_BELOW := LEG_LENGTH
 
-# The arm: shoulder to elbow straight down, then the forearm bent forward and
-# a little inward, and the hand beyond the wrist.
+# The arm goes straight down from the shoulder to the elbow, then the forearm
+# bends forward and a little inward, and the hand is past the wrist.
 const SHOULDER_Y := HIPS_TOP + TORSO_HEIGHT - 0.045
 const UPPER_ARM := 0.14
 const FOREARM := 0.12
@@ -74,7 +75,8 @@ func grip(left: Vector3, right: Vector3, left_along := Vector3.BACK, right_along
 	_swing_arm(1, right, right_along)
 
 
-## Hands resting: on the thighs when sitting, down by the sides when standing.
+## Rests the hands on the thighs when sitting, or down by the sides when
+## standing.
 func rest_hands() -> void:
 	if seated:
 		grip(Vector3(-0.15, 0.16, -0.2), Vector3(0.15, 0.16, -0.2), Vector3.FORWARD, Vector3.FORWARD)
@@ -112,7 +114,7 @@ func _swing_arm(side: int, target: Vector3, along: Vector3) -> void:
 	var pivot := shoulder(side)
 	var reach := _grip_local[side]
 	var want := target - pivot
-	# Swinging about X only moves the hand round in the Y-Z plane.
+	# Swinging about X only moves the hand around in the Y-Z plane.
 	var angle := atan2(want.z, want.y) - atan2(reach.z, reach.y)
 	var swing := Basis(Vector3.RIGHT, angle)
 	_arm[side].transform = Transform3D(swing, pivot)
@@ -156,7 +158,7 @@ func _add(parent: Node3D, mesh: Mesh, colour: Color, at := Vector3.ZERO, turn :=
 	return node
 
 
-## A flat piece of printing on a surface: a thin rounded tile.
+## A flat piece of printing on a surface, made as a thin rounded tile.
 func _print(parent: Node3D, size: Vector2, colour: Color, at: Vector3, turn := Basis.IDENTITY) -> void:
 	_add(parent, MeshKit.rounded_box(Vector3(size.x, size.y, 0.006), 0.003), colour, at, turn)
 
@@ -199,7 +201,7 @@ func _build_hips_and_legs() -> void:
 		var length := LEG_LENGTH * top_share
 		var rest := LEG_LENGTH - length
 		if seated:
-			# Straight out in front, like a minifig sitting down, feet up.
+			# Straight out in front with the feet up, like a minifig sitting down.
 			_add(self, MeshKit.rounded_box(Vector3(width, 0.13, length + 0.01), 0.02), colour, Vector3(x, 0.065, -length * 0.5))
 			if rest > 0.0:
 				_add(self, MeshKit.rounded_box(Vector3(width * 0.97, 0.125, rest), 0.02), bottom_colour, Vector3(x, 0.065, -length - rest * 0.5))
@@ -327,8 +329,8 @@ func _build_headgear() -> void:
 			_add(_head, _cylinder(0.097, 0.097, 0.03, 28), Color("#c4281c"), Vector3(0.0, top + 0.03, 0.0))
 
 
-## A minifig helmet: a dome over the top, coming down round the back and
-## sides but open at the front so the face shows.
+## A minifig helmet. It's a dome over the top that comes down around the back
+## and sides, but it's open at the front so the face shows.
 func _open_helmet_shell(colour: Color, deep: bool) -> void:
 	var r := HEAD_RADIUS + 0.022
 	var top := HEAD_HEIGHT * 0.5
@@ -345,8 +347,8 @@ func _open_helmet_shell(colour: Color, deep: bool) -> void:
 	if deep:
 		var sides := PackedVector2Array([Vector2(r - 0.004, -0.075), Vector2(r, -0.03), Vector2(r, 0.05)])
 		var guard := MeshInstance3D.new()
-		# From just past one cheek round the back to the other, leaving the
-		# face clear.
+		# It goes from just past one cheek around the back to the other, leaving
+		# the face clear.
 		guard.mesh = MeshKit.lathe(sides, 40, deg_to_rad(62.0), deg_to_rad(298.0))
 		guard.material_override = material
 		_head.add_child(guard)

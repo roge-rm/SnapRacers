@@ -46,8 +46,8 @@ func _on_hit(body: Node) -> void:
 		return
 	if body is Kart:
 		_spent = true
-		# The hit arrives mid physics step, when shapes can't change, so the
-		# part comes off just after.
+		# The hit arrives in the middle of a physics step, when shapes can't
+		# change, so the part comes off just after.
 		body.knock_off_a_part.call_deferred()
 		queue_free()
 

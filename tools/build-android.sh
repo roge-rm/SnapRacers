@@ -4,8 +4,9 @@
 # on a reboot, so this puts the Android build template back when it's missing.
 #
 # Phones and the emulator get separate APKs, each with only the engine they
-# need, since Godot's engine library is almost all of the size (about 76 MB
-# for phones, 81 MB for the emulator; the game itself is well under 1 MB).
+# need, because Godot's engine library is almost all of the size. It's about
+# 76 MB for phones and 81 MB for the emulator, and the game itself is well
+# under 1 MB.
 #
 #   tools/build-android.sh            the phone build (arm64), copied to the drop folder
 #   tools/build-android.sh --install  the emulator build (x86_64), installed on SnapRacers_Pixel_5

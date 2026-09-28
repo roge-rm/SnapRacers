@@ -1,7 +1,7 @@
 extends SceneTree
 
 ## Builds every driver piece, checks the roster, and checks that drivers
-## really do hold the steering wheel and follow it round.
+## really do hold the steering wheel and follow it around.
 ##
 ##   tools/godot/Godot_v4.7.2-stable_linux.x86_64 --headless --fixed-fps 60 --path . -s tests/character_test.gd
 
@@ -67,7 +67,7 @@ class Runner:
 		no_wheel.parts = no_wheel.parts.filter(func(p): return PartCatalog.get_part(p.id).kind != "steering")
 		check(no_wheel.problems().has("It needs a steering wheel or handlebars in front of the seat."), "a kart with no steering wheel says so")
 
-		# Karts to drive: a heavy driver and a light one make different karts.
+		# A heavy driver and a light one make different karts.
 		var design := KartDesign.load_file("res://data/karts/starter.json")
 		kart = Kart.new()
 		kart.build(design, tread)
@@ -110,7 +110,7 @@ class Runner:
 				check(amount > 0.3, "steering right turns the front wheels (%.2f of full lock)" % amount)
 				var grips := wheel.grips(amount)
 				var left: Vector3 = wheel.global_transform * grips[0]
-				check(hand_at(rig, 0).distance_to(left) < 0.03, "and the hands follow the wheel round (%.3f m off)" % hand_at(rig, 0).distance_to(left))
+				check(hand_at(rig, 0).distance_to(left) < 0.03, "and the hands follow the wheel around (%.3f m off)" % hand_at(rig, 0).distance_to(left))
 				var straight: Vector3 = wheel.global_transform * wheel.grips(0.0)[0]
 				check(left.distance_to(straight) > 0.04, "which really has turned (the left hand moved %.2f m)" % left.distance_to(straight))
 				# Minifig arms only swing forward and back at the shoulder.

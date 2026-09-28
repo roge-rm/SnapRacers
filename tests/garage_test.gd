@@ -3,7 +3,7 @@ extends Node
 ## Uses the garage the way a player would, with pretend touches, and checks
 ## what happens to the kart.
 ##
-## It runs as a scene rather than a -s script, because the screens use the
+## It runs as a scene instead of a -s script, because the screens use the
 ## Game autoload and -s scripts can't see autoloads. Run it with:
 ##   tools/godot/Godot_v4.7.2-stable_linux.x86_64 --headless --path . res://tests/garage_test.tscn
 
@@ -23,7 +23,7 @@ func touch(pos: Vector2, pressed: bool) -> void:
 	event.index = 0
 	event.position = pos
 	event.pressed = pressed
-	# Straight to the garage: the headless window is tiny and stretched, so
+	# Go straight to the garage. The headless window is tiny and stretched, so
 	# a touch pushed through the viewport lands somewhere else.
 	garage._unhandled_input(event)
 

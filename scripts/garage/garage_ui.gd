@@ -89,7 +89,8 @@ func _ready() -> void:
 	_show_category(0)
 
 
-## Is this screen position on one of the panels rather than the 3D view?
+## Whether this screen position is on one of the panels instead of the 3D
+## view.
 func is_over_ui(pos: Vector2) -> bool:
 	if _load_popup.visible:
 		return true

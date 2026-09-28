@@ -35,8 +35,8 @@ var has_seat := false
 var seat_top := Vector3.ZERO
 ## What the driver steers with, if it's still on.
 var steering: PartInfo
-## Where the kart's origin sits on the design grid: under the middle of its
-## footprint, at the bottom.
+## Where the kart's origin sits on the design grid. It's under the middle of
+## its footprint, at the bottom.
 var origin_cell := Vector3.ZERO
 
 
@@ -120,7 +120,7 @@ static func gravity() -> float:
 
 
 ## The speed where the engine's push is used up by air and tire drag, in m/s.
-## It's an estimate: it ignores hills, wings and cornering.
+## It's an estimate that ignores hills, wings and cornering.
 func top_speed() -> float:
 	var resist_roll := rolling * mass * gravity()
 	var net := func(v: float) -> float:

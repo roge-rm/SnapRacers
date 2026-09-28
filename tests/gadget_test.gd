@@ -23,7 +23,7 @@ class Runner:
 	## The starter kart with these gadgets on it, at this spot facing -Z.
 	func kart_with(gadgets: Array, at: Vector3, swap_bumper := false) -> Kart:
 		var design := KartDesign.load_file("res://data/karts/starter.json")
-		# The starter comes with a turbo; clear it so each kart has only the
+		# The starter comes with a turbo, so clear it and each kart only has the
 		# gadgets being tried.
 		design.parts = design.parts.filter(func(p): return PartCatalog.get_part(p.id).kind != "gadget")
 		if swap_bumper:
@@ -117,7 +117,8 @@ class Runner:
 		check(karts.dropper.lost.is_empty(), "a repair kit puts them back")
 		check(karts.dropper.slowdown_left == 0.0, "without the reset slowdown")
 
-		# Magnet: a stud on a short straight track, four metres off to the side.
+		# For the magnet, put a stud on a short straight track four metres off
+		# to the side.
 		var line := TrackPath.from_dict({ "pieces": [{ "type": "straight", "length": 20 }] })
 		line.start = Transform3D(Basis.IDENTITY, Vector3(200.0, 0.0, 0.0))
 		line.build()

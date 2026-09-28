@@ -1,6 +1,6 @@
 extends SceneTree
 
-## Checks the building rules and the garage's maths with no screen.
+## Checks the building rules and the garage's math with no screen.
 ##
 ## Run it with:
 ##   tools/godot/Godot_v4.7.2-stable_linux.x86_64 --headless --path . -s tests/design_test.gd
@@ -85,8 +85,8 @@ func _initialize() -> void:
 	hit = BuildMath.cast(empty_top, Vector3(2.0, 10.0, 2.0), Vector3(0.0, -1.0, 0.0))
 	check(hit.part == -1 and hit.normal == Vector3i(0, 1, 0), "looking at empty floor hits the floor")
 
-	# Aiming a stud off still finds somewhere sensible. (9, 3, 14) would put a
-	# 2x2 brick right inside the engine.
+	# Aiming a stud off still finds a sensible spot. (9, 3, 14) would put a 2x2
+	# brick right inside the engine.
 	var near := BuildMath.nearest_spot(starter, "brick_2x2", Vector3i(9, 3, 14), 0)
 	check(starter.fits("brick_2x2", near, 0) and starter.attaches("brick_2x2", near, 0), "a spot inside the engine moves to one that works (%s)" % near)
 	check(BuildMath.nearest_spot(starter, "brick_2x2", Vector3i(7, 3, 11), 0) == Vector3i(7, 3, 11), "a spot that already works stays put")

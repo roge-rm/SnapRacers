@@ -5,20 +5,20 @@ extends Control
 ##
 ## The phone compiles each shader the first time something needs it, and that
 ## can freeze the screen for seconds. Godot's renderer for older phones can't
-## do it ahead of time, so this does it on purpose, here, where a short wait
-## is expected. Hidden under the splash it sets up a race, then the garage,
-## and lets each draw for a few frames: the road, grass, walls, pillars,
-## karts with drivers, a part knocked loose, the garage's see-through and
-## picked-out parts, all with the sun and shadows. Everything the game draws
-## gets compiled once. Godot keeps what it compiled, so after the first
-## launch this is quick.
+## do it ahead of time, so this does it on purpose here, where a short wait is
+## expected. Hidden under the splash it sets up a race, then the garage, then
+## the driver builder, and lets each one draw for a few frames. That covers
+## the road, grass, walls, pillars, karts with drivers, a part knocked loose,
+## and the garage's see through and picked out parts, all with the sun and
+## shadows. Everything the game draws gets compiled once. Godot keeps what it
+## compiled, so after the first launch this is quick.
 ##
-## It has to be drawn on the real screen. I tried small off-screen views
-## first, and they didn't help: the screen uses different versions of the
-## same shaders, so the first race still stalled.
+## It has to be drawn on the real screen. I tried small off screen views
+## first and they didn't help, because the screen uses different versions of
+## the same shaders, so the first race still stalled.
 
-## Frames each scene is drawn for. The first one does the compiling; the rest
-## catch anything that only turns up once things have moved.
+## How many frames each scene is drawn for. The first one does the compiling,
+## and the rest catch anything that only turns up once things have moved.
 const WARM_FRAMES := 6
 ## Never flash the splash up for less than this, even when it's all cached.
 const AT_LEAST := 0.8
@@ -43,7 +43,7 @@ func _ready() -> void:
 	var cover := Control.new()
 	layer.add_child(cover)
 	var column := MenuStyle.screen(cover)
-	column.add_child(MenuStyle.title("SnapRacers", "Build a kart out of bricks, then race it"))
+	column.add_child(MenuStyle.title())
 	var gap := Control.new()
 	gap.custom_minimum_size = Vector2(0.0, 36.0)
 	column.add_child(gap)
@@ -71,7 +71,7 @@ func _ready() -> void:
 	_stages = [_warm_race, _warm_garage, _warm_driver]
 	_began = Time.get_ticks_msec()
 	# Let the splash itself get on screen first, so there's something to look
-	# at while the first warm-up frames stall.
+	# at while the first warm up frames stall.
 	await get_tree().process_frame
 	await get_tree().process_frame
 	_started = true
@@ -79,7 +79,8 @@ func _ready() -> void:
 
 
 func _warm_race() -> Node:
-	var race := Race.new()
+	# Split screen draws with the same shaders, so one player will do.
+	var race := Race.new(Game.SOLO)
 	add_child(race)
 	# Knock a part off so a loose piece gets drawn too.
 	var last: Array[int] = [race.player.kart.design.parts.size() - 1]
@@ -90,7 +91,7 @@ func _warm_race() -> Node:
 func _warm_garage() -> Node:
 	var garage := Garage.new()
 	add_child(garage)
-	# Pick one part out (highlighted) and hold another (the see-through ghost).
+	# Pick one part out (highlighted) and hold another (the see through ghost).
 	garage._select(0)
 	garage._start_holding("brick_2x2")
 	return garage

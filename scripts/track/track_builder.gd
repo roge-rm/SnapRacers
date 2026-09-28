@@ -3,21 +3,21 @@ extends Node3D
 
 ## Builds the track you drive on from a TrackPath.
 ##
-## Each piece becomes one static body: its road, kerbs and the deck under
-## them, plus a low brick wall down any side that has one. It's all swept
-## along the line down the middle, so hills and banking come for free. Raised
-## road gets pillars down to the ground, cut bends get a dirt patch inside,
-## and there's a gantry over the start line.
+## Each piece becomes one static body with its road, its curbs and the deck
+## under them, plus a low brick wall down any side that has one. It's all
+## swept along the line down the middle, so hills and banking come for free.
+## Raised road gets pillars down to the ground, cut bends get a dirt patch
+## inside, and there's a gantry over the start line.
 ##
-## It's all made to look built from bricks (see BrickShaders): the road is
-## smooth tiles, the kerbs and wall tops are studded, the walls and the road's
-## edges are courses of bricks, the ground is a baseplate, and brick trees
-## stand round the outside.
+## It's all made to look like it's built from bricks (see BrickShaders). The
+## road is smooth tiles, the curbs and wall tops have studs, the walls and the
+## road's edges are courses of bricks, the ground is a baseplate, and brick
+## trees stand around the outside.
 
 const DECK := 0.6 # how thick the road is
 const WALL_HEIGHT := 1.0
 const WALL_THICKNESS := 0.5
-const LIFT := 0.02 # keeps ground-level road just above the grass
+const LIFT := 0.02 # keeps road at ground level just above the grass
 const PILLAR_EVERY := 16.0
 const PILLAR_SIZE := 1.5 # six studs square
 
@@ -66,8 +66,8 @@ func _init(path: TrackPath) -> void:
 
 func _ready() -> void:
 	# A plain standard material lit the flat road with so much sky on the
-	# phone that the asphalt came out pale blue, so the road has a shader of
-	# its own like the grass.
+	# phone that the asphalt came out pale blue, so the road has its own
+	# shader like the grass.
 	if _road_shader == null:
 		_road_shader = shader_for(BrickShaders.TRACK)
 		_grass_shader = shader_for(BrickShaders.BASEPLATE)
@@ -156,8 +156,8 @@ func _add_piece(index: int) -> void:
 	if samples.is_empty():
 		return
 	# Run on into the next piece's first sample so there's no seam. The last
-	# piece of a track that doesn't come round to the start has nothing to
-	# run on into (joining it to the start drew road right across the map).
+	# piece of a track that doesn't come back around to the start has nothing
+	# to run on into (joining it to the start drew road right across the map).
 	var last_piece := index == track.pieces.size() - 1
 	if not last_piece or track.closes:
 		samples.append((samples[-1] + 1) % track.points.size())
@@ -224,9 +224,9 @@ func _sweep(tool: SurfaceTool, a: int, b: int, from: Vector2, to: Vector2, colou
 	var at := _at(a, to)
 	var bf := _at(b, from)
 	var bt := _at(b, to)
-	# For the shader: how far along the track, and how far across (on flat
-	# edges) or up (on upright ones), in metres. The far end of the last
-	# stretch is the full length round, not back to 0.
+	# The shader needs how far along the track this is, and how far across (on
+	# flat edges) or up (on upright ones), in metres. The far end of the last
+	# stretch is the full length of the lap, not back to 0.
 	var along_a := track.distances[a]
 	var along_b := track.distances[b] if b > a else track.length
 	var upright := absf(to.y - from.y) > absf(to.x - from.x)
@@ -264,8 +264,8 @@ func _cap(tool: SurfaceTool, k: int, facing: float) -> void:
 		tool.add_vertex(points[i])
 
 
-## The dirt patch inside a cut bend: a quarter circle from the corner of the
-## bend out to the inside kerb.
+## The dirt patch inside a cut bend. It's a quarter circle from the corner of
+## the bend out to the inside curb.
 func _add_cut(index: int, piece: TrackPiece) -> void:
 	var start := track.piece_starts[index]
 	var reach := piece.radius - track.width * 0.5 - TrackPath.KERB
@@ -310,7 +310,8 @@ func _add_pillars() -> void:
 	var clear := track.width * 0.5 + TrackPath.KERB + 2.0
 	var next := 0.0
 	for k in track.points.size():
-		# Nothing under loops and wall rides: the road isn't lying flat there.
+		# Nothing goes under loops and wall rides, because the road isn't lying
+		# flat there.
 		if track.distances[k] < next or not track.solids[k] or track.ups[k].y < 0.9:
 			continue
 		var p := track.points[k]
@@ -326,7 +327,8 @@ func _add_pillars() -> void:
 		if blocked:
 			continue
 		next = track.distances[k] + PILLAR_EVERY
-		# Square to the stud grid, like everything else built on the baseplate.
+		# Lined up with the stud grid, like everything else built on the
+		# baseplate.
 		var where := Transform3D(Basis.IDENTITY, Vector3(snappedf(p.x, 0.25), bottom * 0.5, snappedf(p.z, 0.25)))
 		var shape := CollisionShape3D.new()
 		var box := BoxShape3D.new()
@@ -343,8 +345,8 @@ func _add_pillars() -> void:
 	_add_blocks(spots, colours)
 
 
-## Draws boxes in the brick-built look, all in one go. Each transform scales
-## a 1 m cube to size.
+## Draws boxes that look built from bricks, all in one go. Each transform
+## scales a 1 m cube to size.
 func _add_blocks(spots: Array[Transform3D], colours: Array[Color]) -> void:
 	var multi := MultiMesh.new()
 	multi.transform_format = MultiMesh.TRANSFORM_3D
@@ -370,7 +372,7 @@ func _add_gantry() -> void:
 	var body := StaticBody3D.new()
 	body.collision_layer = Kart.LAYER_WORLD
 	add_child(body)
-	# Square to the stud grid, like the pillars.
+	# Lined up with the stud grid, like the pillars.
 	var flat := Vector3(frame.basis.z.x, 0.0, frame.basis.z.z).normalized()
 	var turn := Basis(Vector3.UP, snappedf(atan2(flat.x, flat.z), PI * 0.5))
 	var base := Vector3(snappedf(frame.origin.x, 0.25), frame.origin.y, snappedf(frame.origin.z, 0.25))
@@ -402,7 +404,7 @@ func _add_gantry() -> void:
 	add_child(line)
 
 
-## Brick trees dotted round the outside of the track, well clear of the road
+## Brick trees dotted around the outside of the track, well clear of the road
 ## and of any short cut across a bend. The same track always gets the same
 ## trees.
 func _add_trees() -> void:

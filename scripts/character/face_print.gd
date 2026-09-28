@@ -1,14 +1,14 @@
 class_name FacePrint
 extends RefCounted
 
-## Paints a minifig face onto a texture that wraps round the head, the way a
-## real minifig's face is printed on: two black eyes with a glint, a mouth,
-## and brows or freckles or shades for some faces.
+## Paints a minifig face onto a texture that wraps around the head, the way a
+## real minifig's face is printed. It has two black eyes with a glint, a
+## mouth, and brows or freckles or shades on some faces.
 ##
 ## Each feature is a shape measured in metres on the head's surface (across
-## the face, round the curve, and up from the middle), drawn with a soft edge
+## the face, around the curve, and up from the middle), drawn with a soft edge
 ## so it stays smooth up close. Only the face itself is painted pixel by
-## pixel; the rest is filled with the skin colour in one go.
+## pixel. The rest is filled with the skin colour in one go.
 
 const WIDE := 512
 const TALL := 256
@@ -18,7 +18,7 @@ const INK := Color("#1b1b1b")
 static func paint(style: String, skin: Color, radius: float, height: float) -> ImageTexture:
 	var image := Image.create(WIDE, TALL, true, Image.FORMAT_RGBA8)
 	image.fill(skin)
-	var across := WIDE / (TAU * radius) # pixels per metre round the head
+	var across := WIDE / (TAU * radius) # pixels per metre around the head
 	var up := TALL / height # pixels per metre up it
 	var shapes := _shapes(style)
 	# Only the patch the face is in.
@@ -95,9 +95,9 @@ static func _segment(p: Vector2, a: Vector2, b: Vector2, half_width: float) -> f
 	return p.distance_to(a + ab * t) - half_width
 
 
-## A curved line: part of a circle round `centre`, from one angle to the
-## other (radians, 0 pointing right, going anticlockwise), `half_width` thick
-## either side.
+## A curved line, part of a circle around `centre` from one angle to the
+## other (in radians, 0 pointing right, going counterclockwise), `half_width`
+## thick on either side.
 static func _arc(p: Vector2, centre: Vector2, radius: float, from: float, to: float, half_width: float) -> float:
 	var q := p - centre
 	var angle := fposmod(atan2(q.y, q.x), TAU)

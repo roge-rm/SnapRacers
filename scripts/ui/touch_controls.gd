@@ -1,12 +1,19 @@
 class_name TouchControls
 extends Control
 
-## On-screen controls for a phone or tablet. Put your left thumb down anywhere
-## on the left half and slide it sideways to steer. On the right there's a big
-## gas button with the brake beside it, and a small reset button up top.
-## Sliding a finger from gas to brake works without lifting it.
+## On-screen controls for a phone or tablet. The steering stick sits in the
+## bottom left corner and never moves. Put your thumb anywhere on it and the
+## knob goes where your thumb is, so you can see how far you're steering. It
+## springs back to the middle when you let go. On the right there's a big GO
+## button with the brake beside it, the gadget buttons above them, and a
+## small reset button up top. You can slide a finger from GO to brake without
+## lifting it.
 
-const STICK_RANGE := 120.0
+## How much of the stick's travel is a small steer. I made the middle gentle
+## so small corrections are easy, and it still reaches full lock at the edge.
+const STICK_CURVE := 0.6
+## A thumb resting near the middle doesn't steer at all.
+const STICK_DEADZONE := 0.06
 
 var steer := 0.0
 var throttle := 0.0
@@ -17,8 +24,8 @@ var reset := false
 ## left alone for the button.
 var blockers: Array[Control] = []
 
-## What's on the gadget buttons above GO, set by the HUD: a name, or an
-## empty string for no button there.
+## What's on the gadget buttons above GO, set by the HUD. It's a name, or an
+## empty string when there's no button there.
 var gadget_names: Array[String] = ["", ""]
 ## Whether each gadget can be used right now (enough studs).
 var gadget_ready: Array[bool] = [false, false]
@@ -26,8 +33,8 @@ var gadget_ready: Array[bool] = [false, false]
 var _reset_tapped := false
 var _gadget_tapped: Array[bool] = [false, false]
 var _stick_finger := -1
-var _stick_origin := Vector2.ZERO
-var _stick_at := Vector2.ZERO
+## Where the knob is, from -1 (full left) to 1 (full right).
+var _knob := 0.0
 var _fingers := {} # finger index -> button name
 var _finger_at := {} # finger index -> position
 
@@ -42,9 +49,19 @@ func _notification(what: int) -> void:
 		queue_redraw()
 
 
+## The stick's middle and radius. It's the same size as Apogee's, and it
+## sits in the corner where your left thumb rests.
+func _stick() -> Array:
+	# In a split screen half it shrinks to fit next to the buttons.
+	var r := minf(minf(size.y * 0.17, size.x * 0.16), 125.0)
+	return [Vector2(r * 1.35, size.y - r * 1.35), r]
+
+
 func _buttons() -> Dictionary:
 	var s := size
-	var r := minf(s.y * 0.13, 110.0)
+	# These shrink in a narrow split screen half too, so the brake stays clear
+	# of the stick.
+	var r := minf(minf(s.y * 0.13, s.x * 0.1), 110.0)
 	var out := {
 		"gas": [Vector2(s.x - r * 1.5, s.y - r * 1.5), r],
 		"brake": [Vector2(s.x - r * 3.9, s.y - r * 1.1), r * 0.75],
@@ -79,13 +96,16 @@ func _input(event: InputEvent) -> void:
 				_reset_tapped = true
 			elif name.begins_with("gadget"):
 				_gadget_tapped[int(name.substr(6))] = true
+			var stick := _stick()
 			if name != "":
 				_fingers[event.index] = name
 				_finger_at[event.index] = event.position
-			elif event.position.x < size.x * 0.5 and _stick_finger == -1:
+			elif _stick_finger == -1 and event.position.distance_to(stick[0]) <= stick[1] * 1.5:
+				# The whole stick is the target, plus some room around it, not
+				# just the knob. Chasing a small knob with your thumb is what
+				# makes touch controls feel broken.
 				_stick_finger = event.index
-				_stick_origin = event.position
-				_stick_at = event.position
+				_move_knob(event.position)
 		else:
 			_fingers.erase(event.index)
 			_finger_at.erase(event.index)
@@ -93,13 +113,20 @@ func _input(event: InputEvent) -> void:
 				_stick_finger = -1
 	elif event is InputEventScreenDrag:
 		if event.index == _stick_finger:
-			_stick_at = event.position
+			_move_knob(event.position)
 		elif _fingers.has(event.index):
 			_finger_at[event.index] = event.position
 			var name := _button_at(event.position)
 			if name == "gas" or name == "brake":
 				_fingers[event.index] = name
 	_update()
+
+
+## Puts the knob under your thumb, as far across as it can go.
+func _move_knob(at: Vector2) -> void:
+	var stick := _stick()
+	var travel: float = stick[1] * 0.68
+	_knob = clampf((at.x - stick[0].x) / travel, -1.0, 1.0)
 
 
 ## True once for every tap on reset, however short. A quick tap can start and
@@ -118,14 +145,24 @@ func take_gadget_tap(slot: int) -> bool:
 
 
 func _update() -> void:
-	steer = 0.0
-	if _stick_finger != -1:
-		steer = clampf((_stick_at.x - _stick_origin.x) / STICK_RANGE, -1.0, 1.0)
+	if _stick_finger == -1:
+		_knob = 0.0
+	steer = stick_to_steer(_knob)
 	var held := _fingers.values()
 	throttle = 1.0 if held.has("gas") else 0.0
 	brake = 1.0 if held.has("brake") else 0.0
 	reset = held.has("reset")
 	queue_redraw()
+
+
+## How much to steer for the knob this far across. It's gentle in the middle
+## and still gets to full lock at the edge.
+static func stick_to_steer(knob: float) -> float:
+	var amount := absf(knob)
+	if amount < STICK_DEADZONE:
+		return 0.0
+	amount = inverse_lerp(STICK_DEADZONE, 1.0, amount)
+	return signf(knob) * amount * lerpf(1.0 - STICK_CURVE, 1.0, amount)
 
 
 func _draw() -> void:
@@ -152,7 +189,17 @@ func _draw() -> void:
 		var text_size := font.get_multiline_string_size(text, HORIZONTAL_ALIGNMENT_CENTER, -1, font_size)
 		var top_left := centre - text_size * 0.5 + Vector2(0.0, font_size * 0.8)
 		draw_multiline_string(font, top_left, text, HORIZONTAL_ALIGNMENT_CENTER, text_size.x, font_size, -1, Color(0, 0, 0, 0.75))
-	if _stick_finger != -1:
-		draw_arc(_stick_origin, STICK_RANGE, 0.0, TAU, 48, Color(1, 1, 1, 0.5), 3.0, true)
-		var knob := _stick_origin + Vector2(steer * STICK_RANGE, 0.0)
-		draw_circle(knob, 40.0, Color(1, 1, 1, 0.55))
+	# The stick is a faint round pad with a groove across it, a dot in the
+	# middle so you can find it, and the knob, which lights up while you're
+	# holding it.
+	var stick := _stick()
+	var middle: Vector2 = stick[0]
+	var r: float = stick[1]
+	var travel := r * 0.68
+	draw_circle(middle, r, Color(1, 1, 1, 0.16))
+	draw_arc(middle, r, 0.0, TAU, 64, Color(1, 1, 1, 0.5), 3.0, true)
+	draw_line(middle - Vector2(travel, 0.0), middle + Vector2(travel, 0.0), Color(1, 1, 1, 0.3), 6.0, true)
+	draw_circle(middle, r * 0.07, Color(1, 1, 1, 0.45))
+	var holding := _stick_finger != -1
+	var knob_colour := Color(MenuStyle.ACCENT, 0.9) if holding else Color(1, 1, 1, 0.5)
+	draw_circle(middle + Vector2(_knob * travel, 0.0), r * 0.3, knob_colour)

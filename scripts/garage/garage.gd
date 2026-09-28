@@ -9,7 +9,7 @@ extends Node3D
 ## because nothing would hold it. With nothing in hand, touch a part to pick
 ## it out, then turn, move or remove it.
 ##
-## One finger drags the view round when you're not holding anything. Two
+## One finger drags the view around when you're not holding anything. Two
 ## fingers always do, and pinching zooms. With a mouse, the right button turns
 ## the view and the wheel zooms.
 
@@ -60,7 +60,7 @@ func _ready() -> void:
 		if child is DirectionalLight3D:
 			child.light_energy = 0.8
 		elif child is WorldEnvironment:
-			# Plain white fill light rather than the blue sky's, which tinted the
+			# Plain white fill light instead of the blue sky's, which tinted the
 			# baseplate blue.
 			child.environment.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
 			child.environment.ambient_light_color = Color("#e8e8e8")
@@ -250,8 +250,8 @@ func _rebuild() -> void:
 		_parts_root.add_child(node)
 		_part_nodes.append(node)
 	if stats.has_seat:
-		# The stats put the kart's origin under the middle of it; put that back
-		# onto the grid to find the seat.
+		# The stats put the kart's origin under the middle of it, so put that
+		# back onto the grid to find the seat.
 		var rig := CharacterRig.new(Game.character, true)
 		rig.position = stats.seat_top + Grid.to_metres(stats.origin_cell)
 		_parts_root.add_child(rig)

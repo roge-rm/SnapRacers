@@ -4,9 +4,9 @@ extends Node3D
 ## Where you build your driver.
 ##
 ## They stand on a turntable in the middle, slowly turning (drag to spin them
-## yourself). Down the left are the five pieces: pick one, then a style and a
-## colour for it. On the right are their name and how heavy they've come out,
-## which is what decides their class. Everything saves as you go.
+## yourself). Down the left are the five pieces. Pick one, then pick a style
+## and a colour for it. On the right are their name and how heavy they've come
+## out, which is what decides their class. Everything saves as you go.
 
 const SPIN := 0.35 # radians a second when nobody's touching it
 const TABS := [["head", "Head"], ["headgear", "Headgear"], ["torso", "Torso"], ["arms", "Arms"], ["legs", "Legs"]]
@@ -25,7 +25,7 @@ var _tab_buttons: Array[Button] = []
 var _name_edit: LineEdit
 var _weight: Label
 var _panels: Array[Control] = []
-## Showing them sat in a seat steering, instead of standing.
+## Whether they're shown sitting in a seat and steering, instead of standing.
 var _driving := false
 var _pose_button: Button
 var _wheel: SteeringVisual
@@ -43,12 +43,12 @@ func _ready() -> void:
 			child.environment.reflected_light_source = Environment.REFLECTION_SOURCE_DISABLED
 		elif child is DirectionalLight3D:
 			child.light_energy = 0.85
-			# Close up, the hips' shadow on the legs came out as a sawtooth.
+			# Close up, the shadow of the hips on the legs came out as a sawtooth.
 			child.shadow_bias = 0.08
 			child.shadow_normal_bias = 2.5
 
 	_turntable = Node3D.new()
-	# Drivers face -Z; turn them round to face the camera to start with.
+	# Drivers face -Z, so turn them around to face the camera to start with.
 	_turntable.rotation.y = PI
 	add_child(_turntable)
 	var stand := MeshInstance3D.new()
@@ -161,7 +161,7 @@ func _build_ui() -> void:
 	back.offset_top = 24.0
 	_panels.append(back)
 
-	# Left: the pieces, their styles and colours.
+	# On the left are the pieces, with their styles and colours.
 	var left := PanelContainer.new()
 	left.add_theme_stylebox_override("panel", _panel_style())
 	root.add_child(left)
@@ -198,7 +198,7 @@ func _build_ui() -> void:
 	_swatches.add_theme_constant_override("v_separation", 8)
 	box.add_child(_swatches)
 
-	# Right: name and weight.
+	# On the right are the name and weight.
 	var right := PanelContainer.new()
 	right.add_theme_stylebox_override("panel", _panel_style())
 	root.add_child(right)
@@ -219,7 +219,7 @@ func _build_ui() -> void:
 		design.name = text.strip_edges() if text.strip_edges() != "" else "Driver"
 		Game.keep_character(design))
 	side.add_child(_name_edit)
-	side.add_child(MenuStyle.heading("Weight", "Heavier drivers make a steadier kart that's harder to knock about. Lighter ones make it quicker and twitchier."))
+	side.add_child(MenuStyle.heading("Weight", "Heavier drivers make a steadier kart that's harder to knock around. Lighter ones make it quicker and twitchier."))
 	_weight = Label.new()
 	_weight.add_theme_font_size_override("font_size", 30)
 	_weight.add_theme_color_override("font_color", MenuStyle.ACCENT)

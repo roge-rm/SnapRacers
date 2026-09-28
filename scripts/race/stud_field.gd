@@ -3,15 +3,19 @@ extends Node3D
 
 ## The loose studs along a track, which karts pick up to spend on gadgets.
 ##
-## They're laid out on their own from the track's shape: every so often a
-## row of three right across the road, so wherever you drive you get at least
-## one, and a line through the middle or along the kerb that gets two. The
-## rows shift from side to side, so which line pays best keeps changing.
-## Studs are personal: every kart collects each one for itself, so the karts
-## ahead can't take them all before you get there (which left whoever was
-## last with the fewest gadgets, the wrong way round). What you see is your
-## own: a stud you've picked up disappears for you and comes back a few
-## seconds later. A magnet picks them up from much further away.
+## They're laid out on their own from the track's shape. Every so often
+## there's a row of three right across the road, so wherever you drive you get
+## at least one, and a line through the middle or along the curb gets two. The
+## rows shift from side to side, so the line that pays best keeps changing.
+##
+## Studs are personal. Every kart collects each one for itself, so the karts
+## ahead can't take them all before you get there. (When they could, whoever
+## was last had the fewest gadgets, which is the wrong way around.) What you
+## see is your own set. A stud you've picked up disappears for you and comes
+## back a few seconds later. A magnet picks them up from much further away.
+##
+## In split screen each player's set is drawn on its own render layer (see
+## layer_of()), and each player's camera leaves out the other one's.
 
 const EVERY := 40.0 # metres between rows
 const ACROSS := [-3.0, 0.0, 3.0] # where the three studs in a row sit
@@ -20,6 +24,9 @@ const HEIGHT := 0.7
 const REACH := 1.8
 const MAGNET_REACH := 3.5 # two of the three in a row, not the whole road
 const BACK_AFTER := 6.0
+## The render layer of the first viewer's studs. The next viewer's is the one
+## after it.
+const FIRST_LAYER := 11
 
 const SPIN_SHADER := """
 shader_type spatial;
@@ -44,13 +51,14 @@ static var _shader: Shader
 
 var track: TrackPath
 var spots: Array[Transform3D] = []
-## Whose studs are shown: the kart the camera follows. The rest collect
-## unseen.
-var viewer: Kart
+## Whose studs are shown, which is the karts the cameras follow. The rest
+## collect theirs unseen. Set this before it's added to the scene.
+var viewers: Array[Kart] = []
 ## For each kart (by instance id), when each stud comes back for it.
 var _back_at := {}
 var _time := 0.0
-var _multi: MultiMesh
+## One for each viewer.
+var _multis: Array[MultiMesh] = []
 
 
 func _init(path: TrackPath) -> void:
@@ -75,7 +83,7 @@ func _ready() -> void:
 	stud.bottom_radius = 0.32
 	stud.height = 0.2
 	stud.radial_segments = 14
-	# Stood on its edge, like a coin, so it shows spinning.
+	# It stands on its edge like a coin, so you can see it spinning.
 	var turned := ArrayMesh.new()
 	var arrays := stud.get_mesh_arrays()
 	var verts: PackedVector3Array = arrays[Mesh.ARRAY_VERTEX]
@@ -89,20 +97,29 @@ func _ready() -> void:
 	arrays[Mesh.ARRAY_TANGENT] = null
 	turned.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
 
-	_multi = MultiMesh.new()
-	_multi.transform_format = MultiMesh.TRANSFORM_3D
-	_multi.mesh = turned
-	_multi.instance_count = spots.size()
-	for i in spots.size():
-		_multi.set_instance_transform(i, spots[i])
-	var draw := MultiMeshInstance3D.new()
-	draw.multimesh = _multi
 	if _shader == null:
 		_shader = TrackBuilder.shader_for(SPIN_SHADER)
 	var material := ShaderMaterial.new()
 	material.shader = _shader
-	draw.material_override = material
-	add_child(draw)
+	for v in viewers.size():
+		var multi := MultiMesh.new()
+		multi.transform_format = MultiMesh.TRANSFORM_3D
+		multi.mesh = turned
+		multi.instance_count = spots.size()
+		for i in spots.size():
+			multi.set_instance_transform(i, spots[i])
+		var draw := MultiMeshInstance3D.new()
+		draw.multimesh = multi
+		draw.material_override = material
+		if viewers.size() > 1:
+			draw.layers = 1 << (layer_of(v) - 1)
+		add_child(draw)
+		_multis.append(multi)
+
+
+## The render layer (counting from 1) that this viewer's studs are drawn on.
+static func layer_of(viewer_index: int) -> int:
+	return FIRST_LAYER + viewer_index
 
 
 ## Hands this kart any studs it's driving through, and says how many.
@@ -116,8 +133,9 @@ func collect(kart: Kart) -> int:
 			continue
 		if spots[i].origin.distance_squared_to(middle) < reach * reach:
 			back[i] = _time + BACK_AFTER
-			if kart == viewer:
-				_multi.set_instance_transform(i, spots[i].scaled_local(Vector3.ONE * 0.001))
+			var v := viewers.find(kart)
+			if v >= 0:
+				_multis[v].set_instance_transform(i, spots[i].scaled_local(Vector3.ONE * 0.001))
 			got += 1
 	return got
 
@@ -133,10 +151,9 @@ func _times_for(kart: Kart) -> PackedFloat32Array:
 
 func _physics_process(delta: float) -> void:
 	_time += delta
-	if viewer == null:
-		return
-	var back := _times_for(viewer)
-	for i in spots.size():
-		if back[i] > 0.0 and back[i] <= _time:
-			back[i] = 0.0
-			_multi.set_instance_transform(i, spots[i])
+	for v in viewers.size():
+		var back := _times_for(viewers[v])
+		for i in spots.size():
+			if back[i] > 0.0 and back[i] <= _time:
+				back[i] = 0.0
+				_multis[v].set_instance_transform(i, spots[i])

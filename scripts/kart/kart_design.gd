@@ -1,14 +1,14 @@
 class_name KartDesign
 extends RefCounted
 
-## A kart as the player built it: which parts, where they sit on the grid and
-## which way they're turned. This is what gets saved, and what gets sent to
-## other players in a network game, so it stays plain data.
+## A kart the way the player built it. It lists the parts, where they sit on
+## the grid and which way they're turned. This is what gets saved and what
+## gets sent to other players in a network game, so it stays plain data.
 ##
-## It also knows the building rules. Parts join the way real bricks do: studs
-## on top of one part press into the bottom of the part above, as long as
-## they overlap. Wheels are the exception. They have no studs and clip onto
-## the side of a part by their axle instead.
+## It also knows the building rules. Parts join the way real bricks do. The
+## studs on top of one part press into the bottom of the part above, as long
+## as they overlap. Wheels are different. They have no studs, and they clip
+## onto the side of a part by their axle instead.
 
 ## How big a kart can be, in studs across, plates high and studs long.
 const BUILD_SIZE := Vector3i(20, 30, 24)
@@ -113,7 +113,8 @@ static func is_wheel(id: String) -> bool:
 	return PartCatalog.get_part(id).get("kind", "") == "wheel"
 
 
-## Would a part here fit inside the build area without going through anything?
+## Whether a part here would fit inside the build area without going through
+## anything.
 func fits(id: String, at: Vector3i, rot: int, ignore := -1) -> bool:
 	var box := part_box(id, at, rot)
 	if box.position.x < 0 or box.position.y < 0 or box.position.z < 0:
@@ -126,22 +127,22 @@ func fits(id: String, at: Vector3i, rot: int, ignore := -1) -> bool:
 	return true
 
 
-## Do these two parts hold onto each other?
+## Whether these two parts hold onto each other.
 static func joined(id_a: String, box_a: AABB, id_b: String, box_b: AABB) -> bool:
 	var wheel_a := is_wheel(id_a)
 	var wheel_b := is_wheel(id_b)
 	if wheel_a and wheel_b:
 		return false
 	if not wheel_a and not wheel_b:
-		# Studs: one sits right on top of the other and they overlap from above.
+		# By studs, when one sits right on top of the other and they overlap.
 		var stacked := is_equal_approx(box_a.end.y, box_b.position.y) or is_equal_approx(box_b.end.y, box_a.position.y)
 		return stacked and _overlap_area(box_a, box_b, Vector3.AXIS_Y) > 0.0
-	# Axle: the wheel's flat side is against the side of the part.
+	# By an axle, when the wheel's flat side is against the side of the part.
 	var side_by_side := is_equal_approx(box_a.end.x, box_b.position.x) or is_equal_approx(box_b.end.x, box_a.position.x)
 	return side_by_side and _overlap_area(box_a, box_b, Vector3.AXIS_X) > 0.0
 
 
-## Would a part here be held on by anything? The first part always is.
+## Whether a part here would be held on by anything. The first part always is.
 func attaches(id: String, at: Vector3i, rot: int, ignore := -1) -> bool:
 	var box := part_box(id, at, rot)
 	var others := 0
@@ -168,8 +169,8 @@ func links() -> Array:
 
 
 ## Splits the kart into the groups of parts that hold together. A finished
-## kart is one group. Crashes will use this to work out what falls off with a
-## part that breaks away.
+## kart is one group. Crashes use this to work out what falls off along with
+## a part that breaks away.
 func groups() -> Array:
 	var link := links()
 	var seen := {}

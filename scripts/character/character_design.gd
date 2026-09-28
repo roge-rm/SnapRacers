@@ -1,13 +1,13 @@
 class_name CharacterDesign
 extends RefCounted
 
-## A driver as the player built them: a name, and a style and colour for each
-## of their five pieces. Like a kart design it's plain data, so it saves as a
-## small file and travels to other players in a network game.
+## A driver the way the player built them. They have a name, and a style and
+## colour for each of their five pieces. Like a kart design it's plain data,
+## so it saves as a small file and travels to other players in a network game.
 ##
-## How heavy the pieces add up to decides the driver's class, and the weight
-## goes into the kart like any other part, so a heavy driver makes a heavier,
-## steadier kart and a light one a quicker, twitchier one.
+## The weight of all their pieces decides the driver's class, and it goes into
+## the kart like any other part. A heavy driver makes a heavier, steadier kart
+## and a light one makes a quicker, twitchier one.
 
 const PIECES_PATH := "res://data/characters/pieces.json"
 const SLOTS := ["head", "headgear", "torso", "arms", "legs"]
@@ -93,7 +93,7 @@ func set_piece(slot: String, style := "", color := Color(0, 0, 0, 0)) -> void:
 	pieces[slot] = entry
 
 
-## Whether this piece has a flag set in the catalog, like bare arms or boots.
+## Whether this piece has a flag set in the catalogue, like bare arms or boots.
 func has(slot: String, flag: String) -> bool:
 	return bool(piece(slot, style_of(slot)).get(flag, false))
 
