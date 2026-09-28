@@ -149,6 +149,17 @@ static func mark(b: Button, on: bool) -> void:
 				b.add_theme_stylebox_override(state, box)
 
 
+## Back (or Quit) under a menu's buttons, the way ScorchDroid's menus end.
+static func back_at_bottom(column: Container, action: Callable, text := "Back") -> Button:
+	var gap := Control.new()
+	gap.custom_minimum_size = Vector2(0.0, 6.0)
+	column.add_child(gap)
+	var b := link(text, action)
+	b.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	column.add_child(b)
+	return b
+
+
 ## Plain accent coloured text that works like a button, for Back.
 static func link(text: String, action: Callable) -> Button:
 	var b := Button.new()

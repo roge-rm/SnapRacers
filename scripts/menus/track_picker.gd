@@ -31,6 +31,7 @@ func _ready() -> void:
 			button.custom_minimum_size.y = 84.0
 			button.set_meta("track", path)
 			column.add_child(button)
+	MenuStyle.back_at_bottom(column, go_back)
 
 
 func _start(path: String) -> void:

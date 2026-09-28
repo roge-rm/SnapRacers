@@ -39,6 +39,7 @@ func _ready() -> void:
 	_pages.append(_display_page())
 	for page in _pages:
 		column.add_child(page)
+	MenuStyle.back_at_bottom(column, Game.show_menu)
 	_show_tab(0)
 
 

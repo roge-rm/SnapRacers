@@ -92,8 +92,8 @@ func _warm_garage() -> Node:
 	var garage := Garage.new()
 	add_child(garage)
 	# Pick one part out (highlighted) and hold another (the see through ghost).
-	garage._select(0)
-	garage._start_holding("brick_2x2")
+	garage.select(0)
+	garage.start_placing("brick_2x2")
 	return garage
 
 

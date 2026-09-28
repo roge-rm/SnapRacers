@@ -19,6 +19,7 @@ func _ready() -> void:
 		button.custom_minimum_size.y = 96.0
 		button.set_meta("cup", cup.id)
 		column.add_child(button)
+	MenuStyle.back_at_bottom(column, Game.show_single_player)
 
 
 func go_back() -> void:

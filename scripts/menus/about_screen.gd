@@ -25,6 +25,7 @@ func _ready() -> void:
 		"Dan",
 	])
 	column.add_child(text)
+	MenuStyle.back_at_bottom(column, Game.show_menu)
 
 
 func go_back() -> void:

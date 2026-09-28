@@ -38,6 +38,7 @@ func _ready() -> void:
 	go.custom_minimum_size.y = 72.0
 	column.add_child(go)
 	column.add_child(MenuStyle.heading("Online", "Racing other phones over Wi-Fi or the internet is coming later"))
+	MenuStyle.back_at_bottom(column, Game.show_menu)
 	_show()
 
 
