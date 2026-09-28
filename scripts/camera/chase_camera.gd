@@ -25,8 +25,13 @@ func _physics_process(delta: float) -> void:
 		return
 	var wanted_up := Vector3.UP
 	if target is Kart and target.sticking:
-		wanted_up = target.global_basis.y
-	_up = _up.slerp(wanted_up, 1.0 - exp(-4.0 * delta)).normalized()
+		wanted_up = target.global_basis.y.normalized()
+	# Lerped rather than slerped: slerp between two all-but-equal directions
+	# works out a rotation axis from almost nothing, and Godot complains it
+	# isn't normalised.
+	var blended := _up.lerp(wanted_up, 1.0 - exp(-4.0 * delta))
+	if blended.length_squared() > 0.0001:
+		_up = blended.normalized()
 	var facing := -target.global_basis.z
 	if target is RigidBody3D and target.linear_velocity.length() > 3.0:
 		facing = facing.lerp(target.linear_velocity.normalized(), 0.5)
