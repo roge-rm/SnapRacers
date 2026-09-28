@@ -7,7 +7,7 @@ The parts you use matter, adding drag and weight and power, every piece trading 
 at least until you hit the reset button (which punishes you lightly).
 
 Race in grand prix cups against a range of AI skills or take it to the streets and race your friends with split screen or network 
-multiplayer. Race on the built in tracks or use the track editor to build your own - even asssemble your own tournaments!
+multiplayer. Race on the built in tracks or use the track editor to build your own - even assemble your own tournaments!
 
 The game is in a playable state now but there will be plenty of rough edges until they are tested out.
 
