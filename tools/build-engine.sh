@@ -10,9 +10,21 @@
 # has them. This only needs running again for a new Godot version or a change
 # to the profile.
 #
+# Everyday builds skip link time optimisation, which takes most of the time.
+# With the compile cache warm, an architecture takes about a minute without
+# it and about 13 with it. The engine comes out about 3 MB bigger without it.
+# Use --release for a build going out to people, for the smallest engine.
+#
 #   tools/build-engine.sh             arm64 for phones and x86_64 for the emulator
 #   tools/build-engine.sh arm64       just one
+#   tools/build-engine.sh --release   fully optimised, for a release
 set -euo pipefail
+
+LTO=none
+if [ "${1:-}" = "--release" ]; then
+	LTO=full
+	shift
+fi
 
 cd "$(dirname "$0")/.."
 VERSION=4.7.2
@@ -47,7 +59,7 @@ import sys
 options = {}
 exec(open(sys.argv[1]).read(), options)
 print(" ".join("%s=%s" % (k, v) for k, v in options.items() if not k.startswith("_")))
-' "$PROFILE")
+' "$PROFILE") lto=$LTO
 echo "Engine options: $OPTIONS"
 
 for arch in "${ARCHES[@]}"; do

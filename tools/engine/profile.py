@@ -7,11 +7,12 @@
 # Networking stays in, for racing online later.
 #
 # tools/build-engine.sh runs this and passes every name it sets to scons, so
-# it's plain Python. (The target, release or debug, comes from the script.)
+# it's plain Python. The target (release or debug) and link time optimisation
+# come from the script, which only does the slow full optimisation for
+# builds going out to people.
 
 production = "yes"
 optimize = "size"
-lto = "full"
 deprecated = "no"
 minizip = "no"
 

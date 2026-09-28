@@ -120,6 +120,7 @@ SnapRacers is made with the Godot Engine 4.7.2, using the Compatibility renderer
 
 ```sh
 tools/build-engine.sh             # our own cut down engine (once, and again for a new Godot)
+tools/build-engine.sh --release   # the same, fully optimised, for a release (much slower)
 tools/build-android.sh            # the phone APK (arm64)
 tools/build-android.sh --install  # the emulator APK (x86_64), installed on the running emulator
 ```
