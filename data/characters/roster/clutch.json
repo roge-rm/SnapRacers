@@ -1,0 +1,9 @@
+{
+	"name": "Clutch",
+	"_comment": "An old showman who drives like it's the last race of his life.",
+	"head": { "style": "grin", "color": "#6b4430" },
+	"headgear": { "style": "top_hat", "color": "#1b1b1b" },
+	"torso": { "style": "jacket", "color": "#3c3f44" },
+	"arms": { "style": "gloves", "color": "#f2f2f2" },
+	"legs": { "style": "boots", "color": "#1b1b1b" }
+}

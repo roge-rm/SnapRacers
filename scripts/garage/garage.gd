@@ -243,7 +243,7 @@ func _rebuild() -> void:
 	for child in _parts_root.get_children():
 		child.queue_free()
 	_part_nodes.clear()
-	var stats := KartStats.compute(design)
+	var stats := KartStats.compute(design, {}, null, Game.character.mass())
 	for i in design.parts.size():
 		var node := _part_node(design.parts[i].id, design.parts[i].rot)
 		node.position = _world_centre(design.parts[i].id, design.parts[i].at, design.parts[i].rot)
@@ -252,9 +252,17 @@ func _rebuild() -> void:
 	if stats.has_seat:
 		# The stats put the kart's origin under the middle of it; put that back
 		# onto the grid to find the seat.
-		var driver := PartVisuals.make_driver()
-		driver.position = stats.seat_top + Grid.to_metres(stats.origin_cell)
-		_parts_root.add_child(driver)
+		var rig := CharacterRig.new(Game.character, true)
+		rig.position = stats.seat_top + Grid.to_metres(stats.origin_cell)
+		_parts_root.add_child(rig)
+		# Hands on the steering wheel if there is one.
+		for i in design.parts.size():
+			if _part_nodes[i] is SteeringVisual:
+				var wheel: SteeringVisual = _part_nodes[i]
+				var grips := wheel.grips(0.0)
+				var to_rig := rig.transform.affine_inverse() * wheel.transform
+				rig.grip(to_rig * grips[0], to_rig * grips[1], to_rig.basis * grips[2], to_rig.basis * grips[3])
+				break
 	if _selected >= _part_nodes.size():
 		_selected = -1
 	if _selected != -1:

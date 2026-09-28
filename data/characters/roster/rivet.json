@@ -1,0 +1,9 @@
+{
+	"name": "Rivet",
+	"_comment": "A mechanic who built her own kart and knows exactly how to fix it.",
+	"head": { "style": "cheeky", "color": "#d9a37e" },
+	"headgear": { "style": "headband", "color": "#8a5a2b" },
+	"torso": { "style": "overalls", "color": "#0d69ab" },
+	"arms": { "style": "gloves", "color": "#8a5a2b" },
+	"legs": { "style": "trousers", "color": "#0d69ab" }
+}

@@ -12,6 +12,7 @@ func _ready() -> void:
 	column.add_child(gap)
 	column.add_child(MenuStyle.button("Race", Game.show_tracks))
 	column.add_child(MenuStyle.button("Garage", Game.show_garage))
+	column.add_child(MenuStyle.button("Driver", Game.show_driver))
 	var multiplayer_button := MenuStyle.button("Multiplayer", Callable(), "Coming later")
 	multiplayer_button.custom_minimum_size.y = 76.0
 	multiplayer_button.disabled = true

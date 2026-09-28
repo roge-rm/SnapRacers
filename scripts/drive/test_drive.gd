@@ -18,7 +18,7 @@ func _ready() -> void:
 	add_child(player) # before the kart, so its controls are fresh each tick
 
 	kart = Kart.new()
-	kart.build(Game.design)
+	kart.build(Game.design, Game.character)
 	kart.controls = player.controls
 	kart.transform = track.spawn
 	add_child(kart)

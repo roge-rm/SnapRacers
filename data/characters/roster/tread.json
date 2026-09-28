@@ -1,0 +1,9 @@
+{
+	"name": "Tread",
+	"_comment": "Big, armoured and hard to push around.",
+	"head": { "style": "determined", "color": "#a86f4c" },
+	"headgear": { "style": "hard_hat", "color": "#f2cd37" },
+	"torso": { "style": "armour", "color": "#9aa0a6" },
+	"arms": { "style": "gloves", "color": "#9aa0a6" },
+	"legs": { "style": "boots", "color": "#3c3f44" }
+}

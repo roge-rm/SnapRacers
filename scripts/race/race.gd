@@ -17,7 +17,9 @@ const FALLEN := 4.0
 const LOST := 45.0
 ## How far before a loop or wall ride a reset puts you, to build speed.
 const RUN_UP := 35.0
-const AI_NAMES_SKILL := [0.97, 0.94, 0.92, 0.9, 0.87]
+const AI_NAMES_SKILL := [0.97, 0.95, 0.93, 0.91, 0.9, 0.88, 0.86]
+## Karts in a race, you included.
+const KARTS := 8
 
 
 class Racer:
@@ -55,9 +57,10 @@ func _ready() -> void:
 
 	var files := Array(DirAccess.get_files_at(AI_KARTS)).filter(func(f): return f.ends_with(".json"))
 	files.sort()
+	files = files.slice(0, KARTS - 1)
 	for i in files.size():
 		var design := KartDesign.load_file(AI_KARTS + "/" + files[i])
-		var racer := _add_racer(design.name, design, i)
+		var racer := _add_racer(design.name, design, i, Game.roster_driver(files[i].get_basename()))
 		racer.ai = AIDriver.new()
 		racer.ai.kart = racer.kart
 		racer.ai.track = track
@@ -71,7 +74,7 @@ func _ready() -> void:
 		karts.append(racer.kart)
 
 	# You start at the back.
-	player = _add_racer(Game.player_name(), Game.design, racers.size())
+	player = _add_racer(Game.player_name(), Game.design, racers.size(), Game.character)
 	player.player = true
 	karts.append(player.kart)
 	for racer in racers:
@@ -116,11 +119,11 @@ func _ready() -> void:
 	hud.menu_pressed.connect(Game.show_menu)
 
 
-func _add_racer(racer_name: String, design: KartDesign, slot: int) -> Racer:
+func _add_racer(racer_name: String, design: KartDesign, slot: int, who: CharacterDesign) -> Racer:
 	var racer := Racer.new()
 	racer.name = racer_name
 	racer.kart = Kart.new()
-	racer.kart.build(design)
+	racer.kart.build(design, who)
 	var place := track.grid_slot(slot)
 	racer.kart.transform = place
 	racer.kart.locked = true

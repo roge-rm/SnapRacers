@@ -50,7 +50,7 @@ class Runner:
 				check(kart.forward_speed > 3.0, "pulls away in half a second (%.1f m/s)" % kart.forward_speed)
 			360:
 				top_speed = kart.forward_speed
-				check(top_speed > 18.0, "reaches a decent speed in five seconds (%.1f m/s)" % top_speed)
+				check(top_speed > 16.5, "reaches a decent speed in five seconds (%.1f m/s)" % top_speed)
 				check(absf(kart.global_position.x - 80.0) < 1.5, "drives straight (drifted %.2f m)" % (kart.global_position.x - 80.0))
 				check(up.y > 0.95, "stays level at speed (up.y %.3f)" % up.y)
 				start_yaw = kart.global_rotation.y

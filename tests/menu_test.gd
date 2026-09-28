@@ -44,8 +44,8 @@ func _ready() -> void:
 
 	var buttons := screen().find_children("*", "Button", true, false)
 	var labels := buttons.map(func(b): return b.text.get_slice("\n", 0))
-	check(labels == ["Race", "Garage", "Multiplayer", "Settings", "About"], "the menu has its buttons %s" % [labels])
-	check(buttons[2].disabled, "multiplayer isn't open yet")
+	check(labels == ["Race", "Garage", "Driver", "Multiplayer", "Settings", "About"], "the menu has its buttons %s" % [labels])
+	check(buttons[3].disabled, "multiplayer isn't open yet")
 
 	Game.show_settings()
 	await frames(2)

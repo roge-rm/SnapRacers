@@ -122,6 +122,26 @@
 			"lift_area": 0.35,
 			"color": "#f2cd37"
 		},
+		"steering_wheel": {
+			"name": "Steering wheel",
+			"kind": "steering",
+			"style": "wheel",
+			"about": "Goes in front of the seat so the driver can steer. Lose it in a crash and you can't steer until you reset.",
+			"size": [2, 5, 1],
+			"mass": 1.5,
+			"strength": 1500.0,
+			"color": "#1b1b1b"
+		},
+		"handlebars": {
+			"name": "Handlebars",
+			"kind": "steering",
+			"style": "bars",
+			"about": "Like a steering wheel, but wider, for a driver who likes to lean into it.",
+			"size": [4, 5, 1],
+			"mass": 1.5,
+			"strength": 1500.0,
+			"color": "#3c3f44"
+		},
 		"turbo": {
 			"name": "Turbo",
 			"kind": "gadget",

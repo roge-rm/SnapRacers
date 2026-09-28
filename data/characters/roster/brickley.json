@@ -1,0 +1,9 @@
+{
+	"name": "Brickley",
+	"_comment": "An all-rounder who never stops smiling under that helmet.",
+	"head": { "style": "smile", "color": "#f5c8a8" },
+	"headgear": { "style": "racing_helmet", "color": "#e36a1a" },
+	"torso": { "style": "racing_suit", "color": "#c4281c" },
+	"arms": { "style": "gloves", "color": "#3c3f44" },
+	"legs": { "style": "trousers", "color": "#3c3f44" }
+}

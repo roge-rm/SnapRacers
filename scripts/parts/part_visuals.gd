@@ -16,6 +16,8 @@ static var _stud_mesh: CylinderMesh
 static func make(def: Dictionary, extent: Vector3) -> Node3D:
 	if def.get("kind", "") == "wheel":
 		return make_wheel(def)
+	if def.get("kind", "") == "steering":
+		return SteeringVisual.new(def, extent)
 	var root := Node3D.new()
 	var mesh := MeshInstance3D.new()
 	var box := BoxMesh.new()

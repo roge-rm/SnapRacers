@@ -1,0 +1,50 @@
+{
+	"_comment": "Every piece a driver can be built from. Mass is in kg and adds up to the driver's weight, which sets their class and how the kart handles with them in it. The shapes themselves are made in scripts/character/character_rig.gd, by style name.",
+	"palette": [
+		"#f2cd37", "#f5c8a8", "#d9a37e", "#a86f4c", "#6b4430", "#8fd3f4",
+		"#c4281c", "#e36a1a", "#237841", "#4fb35f", "#0d69ab",
+		"#3a8dde", "#6c3fb5", "#d86cb0", "#f2f2f2", "#9aa0a6", "#3c3f44",
+		"#1b1b1b", "#8a5a2b"
+	],
+	"skin": ["#f2cd37", "#f5c8a8", "#d9a37e", "#a86f4c", "#6b4430", "#8fd3f4", "#4fb35f"],
+	"head": {
+		"smile": { "name": "Smile", "mass": 3.0 },
+		"grin": { "name": "Big grin", "mass": 3.0 },
+		"determined": { "name": "Determined", "mass": 3.0 },
+		"cheeky": { "name": "Cheeky", "mass": 3.0 },
+		"freckles": { "name": "Freckles", "mass": 3.0 },
+		"shades": { "name": "Shades", "mass": 3.2 }
+	},
+	"headgear": {
+		"none": { "name": "Nothing", "mass": 0.0 },
+		"racing_helmet": { "name": "Racing helmet", "mass": 3.0 },
+		"open_helmet": { "name": "Open helmet and goggles", "mass": 2.5 },
+		"cap": { "name": "Cap", "mass": 0.4 },
+		"beanie": { "name": "Bobble hat", "mass": 0.4 },
+		"hard_hat": { "name": "Hard hat", "mass": 1.5 },
+		"spiky_hair": { "name": "Spiky hair", "mass": 0.3 },
+		"ponytail": { "name": "Ponytail", "mass": 0.3 },
+		"headband": { "name": "Headband and goggles", "mass": 0.5 },
+		"top_hat": { "name": "Top hat", "mass": 1.0 }
+	},
+	"torso": {
+		"racing_suit": { "name": "Racing suit", "mass": 14.0 },
+		"jacket": { "name": "Jacket", "mass": 15.0 },
+		"overalls": { "name": "Work overalls", "mass": 15.0 },
+		"hoodie": { "name": "Hoodie", "mass": 14.0 },
+		"armour": { "name": "Armour", "mass": 22.0 },
+		"tee": { "name": "T-shirt", "mass": 12.0 }
+	},
+	"arms": {
+		"long_sleeves": { "name": "Long sleeves", "mass": 5.0 },
+		"short_sleeves": { "name": "Short sleeves", "mass": 4.0, "bare": true },
+		"gloves": { "name": "Driving gloves", "mass": 5.5, "gloves": true },
+		"mechanical": { "name": "Robot arms", "mass": 8.0, "metal": true }
+	},
+	"legs": {
+		"trousers": { "name": "Trousers", "mass": 12.0 },
+		"shorts": { "name": "Shorts", "mass": 10.0, "bare": true },
+		"boots": { "name": "Big boots", "mass": 15.0, "boots": true },
+		"skinny": { "name": "Skinny legs", "mass": 9.0, "thin": true }
+	}
+}

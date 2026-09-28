@@ -226,6 +226,7 @@ func problems() -> Array[String]:
 	var engines := 0
 	var wheels := 0
 	var gadgets := 0
+	var steering := 0
 	var lowest_wheel := 1 << 20
 	var lowest_other := 1 << 20
 	for i in parts.size():
@@ -237,6 +238,8 @@ func problems() -> Array[String]:
 				engines += 1
 			"gadget":
 				gadgets += 1
+			"steering":
+				steering += 1
 			"wheel":
 				wheels += 1
 				lowest_wheel = mini(lowest_wheel, parts[i].at.y)
@@ -249,6 +252,8 @@ func problems() -> Array[String]:
 		out.append("It needs a seat for the driver.")
 	if engines == 0:
 		out.append("It needs an engine.")
+	if steering == 0:
+		out.append("It needs a steering wheel or handlebars in front of the seat.")
 	if wheels < 3:
 		out.append("It needs at least three wheels.")
 	if gadgets > MOST_GADGETS:

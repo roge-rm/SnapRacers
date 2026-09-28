@@ -68,7 +68,7 @@ func _ready() -> void:
 	_status.add_theme_font_size_override("font_size", 18)
 	column.add_child(_status)
 
-	_stages = [_warm_race, _warm_garage]
+	_stages = [_warm_race, _warm_garage, _warm_driver]
 	_began = Time.get_ticks_msec()
 	# Let the splash itself get on screen first, so there's something to look
 	# at while the first warm-up frames stall.
@@ -96,6 +96,12 @@ func _warm_garage() -> Node:
 	return garage
 
 
+func _warm_driver() -> Node:
+	var builder := DriverBuilder.new()
+	add_child(builder)
+	return builder
+
+
 func _next_stage() -> void:
 	if _scene != null:
 		_scene.queue_free()
@@ -111,7 +117,7 @@ func _process(delta: float) -> void:
 	if not _started or _done:
 		return
 	_frames += 1
-	var stages_total := 2.0
+	var stages_total := 3.0
 	var finished := stages_total - _stages.size() - (1 if _scene != null else 0)
 	_bar.value = clampf((finished + float(_frames) / WARM_FRAMES) / stages_total, 0.0, 1.0) * 100.0
 	if _scene != null and _frames >= WARM_FRAMES:

@@ -109,6 +109,9 @@ class Wheel:
 
 
 var design: KartDesign
+## Who's driving. Their weight goes into the kart, and their model sits in
+## the seat holding the steering wheel.
+var driver: CharacterDesign
 var stats: KartStats
 var controls := KartControls.new()
 ## While locked (before a race starts) the kart holds its brakes on and
@@ -147,6 +150,8 @@ var _repair_asked := false
 var _gadget_held: Array[bool] = [false, false]
 var _gadget_wait: Array[float] = [0.0, 0.0]
 var _bubble: MeshInstance3D
+var _steering: SteeringVisual
+var _rig: CharacterRig
 var _rammed_wait := 0.0
 var slowdown_left := 0.0
 
@@ -180,12 +185,13 @@ func _init() -> void:
 ## Builds the kart whole. The wheels' jobs and springs are settled here, from
 ## the complete kart, and stay the same when parts break off. That's why a kart
 ## that loses a wheel sags onto that corner instead of balancing on the rest.
-func build(new_design: KartDesign) -> void:
+func build(new_design: KartDesign, who: CharacterDesign = null) -> void:
+	driver = who
 	design = new_design
 	lost.clear()
 	_impact.clear()
 	_breaking.clear()
-	_full = KartStats.compute(design)
+	_full = KartStats.compute(design, {}, null, _driver_mass())
 	_wheel_setup.clear()
 
 	var com := _full.center_of_mass
@@ -261,8 +267,10 @@ func _assemble() -> void:
 		remove_child(child)
 		child.queue_free()
 	wheels.clear()
+	_steering = null
+	_rig = null
 
-	stats = KartStats.compute(design, lost, _full.origin_cell)
+	stats = KartStats.compute(design, lost, _full.origin_cell, _driver_mass())
 	power = stats.power
 	max_force = stats.max_force
 	drag_area = stats.drag_area
@@ -305,11 +313,13 @@ func _assemble() -> void:
 		var look := PartVisuals.make(info.def, info.extent)
 		look.position = info.centre
 		add_child(look)
+		if look is SteeringVisual and _steering == null:
+			_steering = look
 
 	if stats.has_seat:
-		var driver := PartVisuals.make_driver()
-		driver.position = stats.seat_top
-		add_child(driver)
+		_rig = CharacterRig.new(driver if driver != null else default_driver(), true)
+		_rig.position = stats.seat_top
+		add_child(_rig)
 		# The driver takes hits too, so a roll-over lands on something.
 		var shape := CollisionShape3D.new()
 		var box := BoxShape3D.new()
@@ -425,7 +435,10 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 	forward_speed = state.linear_velocity.dot(-basis.z)
 
 	var steer_limit := MAX_STEER * lerpf(1.0, HIGH_SPEED_STEER, clampf(speed / 28.0, 0.0, 1.0))
-	steer_angle = move_toward(steer_angle, controls.steer * steer_limit, STEER_RATE * MAX_STEER * dt)
+	# No steering wheel, no steering: it's been knocked off, so the front
+	# wheels just follow along until a reset puts it back.
+	var wanted_steer := controls.steer * steer_limit if stats.steering != null else 0.0
+	steer_angle = move_toward(steer_angle, wanted_steer, STEER_RATE * MAX_STEER * dt)
 
 	# Engine and brakes. Holding the brake once the kart has stopped reverses.
 	var drive := 0.0
@@ -609,6 +622,39 @@ func _feel_knocks(state: PhysicsDirectBodyState3D) -> void:
 			_breaking.append(part)
 
 
+# The driver.
+
+func _driver_mass() -> float:
+	return driver.mass() if driver != null else KartStats.DRIVER_MASS
+
+
+static var _default_driver: CharacterDesign
+
+## Who drives when nobody's been chosen: the same plain racer every time.
+static func default_driver() -> CharacterDesign:
+	if _default_driver == null:
+		_default_driver = CharacterDesign.load_file("res://data/characters/roster/racer.json")
+	return _default_driver
+
+
+## Turns the steering wheel to match the front wheels and puts the driver's
+## hands on it. It works from steer_angle, which is part of the kart's own
+## state, so anyone watching the kart (in a network game too) sees the same.
+func _pose_driver() -> void:
+	if _rig == null:
+		return
+	var amount := steer_angle / MAX_STEER
+	_rig.look(amount)
+	if _steering == null:
+		_rig.rest_hands()
+		return
+	_steering.steer(amount)
+	var grips := _steering.grips(amount)
+	# From the steering wheel's space into the driver's.
+	var to_rig := _rig.transform.affine_inverse() * _steering.transform
+	_rig.grip(to_rig * grips[0], to_rig * grips[1], to_rig.basis * grips[2], to_rig.basis * grips[3])
+
+
 # Gadgets.
 
 ## The gadgets still on the kart, in the order they were built on, as
@@ -760,6 +806,7 @@ func _reset(state: PhysicsDirectBodyState3D) -> void:
 
 
 func _process(_delta: float) -> void:
+	_pose_driver()
 	for w in wheels:
 		w.visual.position = w.rest + Vector3.UP * (SUSPENSION_TRAVEL - w.length)
 		var turn := Basis(Vector3.UP, -steer_angle) if w.steered else Basis.IDENTITY

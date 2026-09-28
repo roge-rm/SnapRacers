@@ -10,10 +10,14 @@ extends Node
 const STARTER := "res://data/karts/starter.json"
 ## The kart you were last working on, kept between launches.
 const CURRENT_KART := "user://current_kart.json"
+## The driver you last built, kept between launches too.
+const CURRENT_DRIVER := "user://current_driver.json"
+const ROSTER := "res://data/characters/roster"
 const SETTINGS := "user://settings.cfg"
 const TRACKS := "res://data/tracks"
 
 var design: KartDesign
+var character: CharacterDesign
 ## The theme for in-game panels (the garage and the race HUD).
 var theme: Theme
 var settings := ConfigFile.new()
@@ -32,6 +36,7 @@ func _ready() -> void:
 		design = KartDesign.load_file(CURRENT_KART)
 	if design == null or design.parts.is_empty():
 		design = KartDesign.load_file(STARTER)
+	character = CharacterDesign.load_file(CURRENT_DRIVER if FileAccess.file_exists(CURRENT_DRIVER) else ROSTER + "/racer.json")
 	theme = Theme.new()
 	theme.default_font_size = 22
 
@@ -61,6 +66,10 @@ func show_tracks() -> void:
 	_swap(TrackPicker.new())
 
 
+func show_driver() -> void:
+	_swap(DriverBuilder.new())
+
+
 func show_settings() -> void:
 	_swap(SettingsScreen.new())
 
@@ -75,6 +84,11 @@ func show_about() -> void:
 func show_race(path := "") -> void:
 	if path != "":
 		track_path = path
+	# A kart that can't race (say one saved before steering wheels were
+	# needed) goes to the garage instead, which lists what's missing.
+	if not design.problems().is_empty():
+		show_garage()
+		return
 	show_loading(true)
 	await get_tree().process_frame
 	await get_tree().process_frame
@@ -87,6 +101,20 @@ func keep_design(new_design: KartDesign) -> void:
 	var file := FileAccess.open(CURRENT_KART, FileAccess.WRITE)
 	if file != null:
 		file.store_string(JSON.stringify(design.to_dict(), "\t"))
+
+
+## Keeps this as your driver, here and on disk.
+func keep_character(who: CharacterDesign) -> void:
+	character = who.duplicate_design()
+	var file := FileAccess.open(CURRENT_DRIVER, FileAccess.WRITE)
+	if file != null:
+		file.store_string(JSON.stringify(character.to_dict(), "\t"))
+
+
+## The driver for one of the AI karts, by the kart's file name.
+func roster_driver(key: String) -> CharacterDesign:
+	var path := "%s/%s.json" % [ROSTER, key]
+	return CharacterDesign.load_file(path) if FileAccess.file_exists(path) else Kart.default_driver()
 
 
 func player_name() -> String:

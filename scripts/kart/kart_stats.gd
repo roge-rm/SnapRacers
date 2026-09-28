@@ -33,6 +33,8 @@ var rolling := 0.0 # average rolling resistance of the tires
 var grip := 0.0 # average grip of the tires
 var has_seat := false
 var seat_top := Vector3.ZERO
+## What the driver steers with, if it's still on.
+var steering: PartInfo
 ## Where the kart's origin sits on the design grid: under the middle of its
 ## footprint, at the bottom.
 var origin_cell := Vector3.ZERO
@@ -41,7 +43,7 @@ var origin_cell := Vector3.ZERO
 ## Works out the stats for a design. Parts whose index is in `skip` are left
 ## out, which is how a damaged kart is worked out. Pass the origin of the
 ## undamaged kart as `fixed_origin` so the parts that are left don't shift.
-static func compute(design: KartDesign, skip := {}, fixed_origin: Variant = null) -> KartStats:
+static func compute(design: KartDesign, skip := {}, fixed_origin: Variant = null, driver_mass := DRIVER_MASS) -> KartStats:
 	var stats := KartStats.new()
 	var lo := Vector3i(1 << 20, 1 << 20, 1 << 20)
 	var hi := -lo
@@ -96,8 +98,11 @@ static func compute(design: KartDesign, skip := {}, fixed_origin: Variant = null
 				if not stats.has_seat:
 					stats.has_seat = true
 					stats.seat_top = info.centre + Vector3.UP * info.extent.y * 0.5
-					stats.mass += DRIVER_MASS
-					weighted += (stats.seat_top + Vector3.UP * 0.3) * DRIVER_MASS
+					stats.mass += driver_mass
+					weighted += (stats.seat_top + Vector3.UP * 0.3) * driver_mass
+			"steering":
+				if stats.steering == null:
+					stats.steering = info
 		for x in info.size.x:
 			for y in info.size.y:
 				frontal_cells[Vector2i(info.at.x + x, info.at.y + y)] = true
