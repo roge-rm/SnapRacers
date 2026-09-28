@@ -12,12 +12,15 @@ const TILE := 16.0
 const LEVEL := 3.0
 
 var type := "straight"
-## How many tiles long a straight, ramp, crest or jump is.
+## How many tiles long a straight, ramp, crest, jump or slant is.
 var tiles := 1
+## How many tiles a slant moves across, positive to the right.
+var across := 0
 ## -1 for a left bend, 1 for a right one, 0 for everything else.
 var turn := 0
 var radius := 0.0
-## How far a ramp climbs (or drops, if negative), in metres.
+## How far a ramp climbs (or drops, if negative), in metres. Bends and
+## slants can climb too, so a bridge can start anywhere.
 var rise := 0.0
 ## How high a crest is, in metres.
 var crest_height := 1.5
@@ -74,6 +77,7 @@ static func from_spec(spec: Dictionary) -> TrackPiece:
 			piece.radius = (size - 0.5) * TILE
 			piece.bank = deg_to_rad(float(spec.get("bank", 0.0)))
 			piece.cut = bool(spec.get("cut", false))
+			piece.rise = float(spec.get("rise", 0)) * LEVEL
 		"ramp":
 			piece.tiles = int(spec.get("length", 2))
 			piece.rise = float(spec.get("rise", 1)) * LEVEL
@@ -86,6 +90,11 @@ static func from_spec(spec: Dictionary) -> TrackPiece:
 			piece.tiles = 3
 			piece.side = -1 if str(spec.get("side", "right")) == "left" else 1
 			piece.sticky = true
+		"slant":
+			piece.tiles = maxi(int(spec.get("length", 2)), 2)
+			var shift := int(spec.get("across", 1))
+			piece.across = -absi(shift) if str(spec.get("turn", "right")) == "left" else absi(shift)
+			piece.rise = float(spec.get("rise", 0)) * LEVEL
 		_:
 			piece.type = "straight"
 			piece.tiles = int(spec.get("length", 1))
@@ -119,6 +128,8 @@ func to_spec() -> Dictionary:
 				spec["bank"] = rad_to_deg(bank)
 			if cut:
 				spec["cut"] = true
+			if rise != 0.0:
+				spec["rise"] = int(round(rise / LEVEL))
 		"ramp":
 			spec["length"] = tiles
 			spec["rise"] = int(round(rise / LEVEL))
@@ -129,6 +140,12 @@ func to_spec() -> Dictionary:
 			spec["length"] = tiles
 		"loop":
 			spec["side"] = "left" if side < 0 else "right"
+		"slant":
+			spec["length"] = tiles
+			spec["turn"] = "left" if across < 0 else "right"
+			spec["across"] = absi(across)
+			if rise != 0.0:
+				spec["rise"] = int(round(rise / LEVEL))
 	if surface != "asphalt":
 		spec["surface"] = surface
 	if not wall_left and not wall_right:
@@ -143,9 +160,15 @@ func to_spec() -> Dictionary:
 ## About how far it is along the middle of the piece, in metres.
 func path_length() -> float:
 	if type == "curve":
-		return radius * PI * 0.5
+		var arc := radius * PI * 0.5
+		return sqrt(arc * arc + rise * rise)
 	if type == "loop":
 		return LOOP_IN + LOOP_ARC + _loop_out()
+	if type == "slant":
+		var total := 0.0
+		for k in 32:
+			total += point(k / 32.0).distance_to(point((k + 1) / 32.0))
+		return total
 	var run := tiles * TILE
 	return sqrt(run * run + rise * rise)
 
@@ -156,7 +179,7 @@ func point(t: float) -> Vector3:
 	match type:
 		"curve":
 			var angle := t * PI * 0.5
-			return Vector3(turn * (radius - radius * cos(angle)), 0.0, -radius * sin(angle))
+			return Vector3(turn * (radius - radius * cos(angle)), rise * smoothstep(0.0, 1.0, t), -radius * sin(angle))
 		"ramp":
 			return Vector3(0.0, rise * smoothstep(0.0, 1.0, t), -run * t)
 		"crest":
@@ -165,7 +188,26 @@ func point(t: float) -> Vector3:
 			return Vector3(0.0, _jump_height(run * t), -run * t)
 		"loop":
 			return _loop_point(t)
+		"slant":
+			return Vector3(across * TILE * _slant_shift(t), rise * smoothstep(0.0, 1.0, t), -run * t)
 	return Vector3(0.0, 0.0, -run * t)
+
+
+# A slant runs diagonally across the grid and ends facing the way it started,
+# `across` tiles over. It eases into the diagonal and out again over about a
+# tile at each end, so a long slant is a proper diagonal straight and a short
+# one is an S bend. Real kart tracks are full of these.
+func _slant_shift(t: float) -> float:
+	var ease := clampf(1.0 / tiles, 0.15, 0.5)
+	var eased := func(u: float) -> float:
+		# How far across by `u`, with the slope easing in like sin squared.
+		if u < ease:
+			return u * 0.5 - ease / TAU * sin(TAU * u / (ease * 2.0))
+		return ease * 0.5 + (u - ease)
+	var total := 1.0 - ease
+	if t <= 0.5:
+		return eased.call(t) / total
+	return 1.0 - eased.call(1.0 - t) / total
 
 
 static func _loop_profile() -> PackedVector3Array:
@@ -272,6 +314,8 @@ func exit() -> Transform3D:
 	var end := point(1.0)
 	if type == "loop":
 		return Transform3D(Basis.IDENTITY, Vector3(side * LOOP_STEP, 0.0, -3.0 * TILE))
+	if type == "slant":
+		return Transform3D(Basis.IDENTITY, Vector3(across * TILE, rise, -tiles * TILE))
 	if type == "curve":
 		return Transform3D(Basis(Vector3.UP, -turn * PI * 0.5), end)
 	return Transform3D(Basis.IDENTITY, end)

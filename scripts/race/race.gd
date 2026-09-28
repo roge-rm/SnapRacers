@@ -53,6 +53,14 @@ var player: Racer
 ## added to the scene overrides the saved choice.
 var split := ""
 var _split_set := false
+## What kind of race this is (Game.MODE_RACE and so on).
+var mode := Game.MODE_RACE
+## Laps to finish. Practice goes on for as long as you like.
+var laps := 3
+## The course's id, for records.
+var track_id := ""
+## After a time trial, whether you set a new best time and a new best lap.
+var new_records := [false, false]
 ## Seconds since the start. It counts up from minus the countdown.
 var time := -COUNTDOWN
 var started := false
@@ -68,45 +76,67 @@ const FRAMES_BEFORE_COUNTDOWN := 10
 var _frames_drawn := 0
 
 
-func _init(mode: Variant = null) -> void:
-	if mode != null:
-		split = mode
+func _init(split_override: Variant = null) -> void:
+	if split_override != null:
+		split = split_override
 		_split_set = true
 
 
 func _ready() -> void:
+	mode = Game.mode
 	if not _split_set:
-		split = Game.split()
+		split = Game.race_split()
 	var people := 1 if split == Game.SOLO else 2
 	track = TrackPath.load_file(Game.track_path)
+	track_id = Tracks.id_of(Game.track_path)
+	laps = 1000000 if mode == Game.MODE_PRACTICE else track.laps
 	add_child(TrackBuilder.new(track))
 
-	# Player 2 takes one of the AI karts, and the AI has the rest.
-	var two := Game.player_two_kart()
-	var keys := Game.ai_kart_keys()
-	if people > 1:
-		keys.erase(two)
-	keys = keys.slice(0, KARTS - people)
-	for i in keys.size():
-		var design := KartDesign.load_file(AI_KARTS + "/" + keys[i] + ".json")
-		var racer := _add_racer(design.name, design, i, Game.roster_driver(keys[i]))
+	# Everyone who's racing, front of the grid first. The AI starts at the
+	# front and the people at the back, player 1 last of all. Time trials
+	# and practice are just you.
+	var entries := []
+	var solo := mode == Game.MODE_TIME_TRIAL or mode == Game.MODE_PRACTICE
+	if not solo:
+		# Player 2 takes one of the AI karts, and the AI has the rest.
+		var two := Game.player_two_kart()
+		var keys := Game.ai_kart_keys()
+		if people > 1:
+			keys.erase(two)
+		keys = keys.slice(0, KARTS - people)
+		for i in keys.size():
+			var design := KartDesign.load_file(AI_KARTS + "/" + keys[i] + ".json")
+			entries.append({ "name": design.name, "design": design, "who": Game.roster_driver(keys[i]), "skill": AI_NAMES_SKILL[i % AI_NAMES_SKILL.size()], "line": (i % 3 - 1) * 1.5 })
+		if people > 1:
+			entries.append({ "name": "Player 2", "design": KartDesign.load_file(AI_KARTS + "/" + two + ".json"), "who": Game.roster_driver(two), "human": 1 })
+	entries.append({ "name": Game.player_name(), "design": Game.design, "who": Game.character, "human": 0 })
+	# After the first race of a Grand Prix, the grid goes by the points so far.
+	if mode == Game.MODE_GRAND_PRIX and Game.grand_prix != null and Game.grand_prix.round > 0:
+		var order: Array = Game.grand_prix.grid_order()
+		entries.sort_custom(func(a, b) -> bool:
+			var ia := order.find(a.name)
+			var ib := order.find(b.name)
+			return (ia if ia >= 0 else 99) < (ib if ib >= 0 else 99))
+
+	for slot in entries.size():
+		var entry: Dictionary = entries[slot]
+		var racer := _add_racer(entry.name, entry.design, slot, entry.who)
+		if entry.has("human"):
+			racer.player = true
+			if entry.human == 0:
+				player = racer
+			continue
 		racer.ai = AIDriver.new()
 		racer.ai.kart = racer.kart
 		racer.ai.track = track
-		racer.ai.skill = AI_NAMES_SKILL[i % AI_NAMES_SKILL.size()]
-		racer.ai.line = (i % 3 - 1) * 1.5
+		racer.ai.skill = entry.skill
+		racer.ai.line = entry.line
 		racer.kart.controls = racer.ai.controls
 		add_child(racer.ai)
-
-	# The people start at the back, player 1 last of all.
-	if people > 1:
-		var design := KartDesign.load_file(AI_KARTS + "/" + two + ".json")
-		var second := _add_racer("Player 2", design, racers.size(), Game.roster_driver(two))
-		second.player = true
-		humans.append(second)
-	player = _add_racer(Game.player_name(), Game.design, racers.size(), Game.character)
-	player.player = true
-	humans.push_front(player)
+	humans.append(player)
+	for racer in racers:
+		if racer.player and racer != player:
+			humans.append(racer)
 
 	var karts: Array[Kart] = []
 	for racer in racers:
@@ -115,10 +145,12 @@ func _ready() -> void:
 		if racer.ai != null:
 			racer.ai.others = karts
 
-	studs = StudField.new(track)
-	for human in humans:
-		studs.viewers.append(human.kart)
-	add_child(studs)
+	# Time trials are just driving, with no studs to pick up.
+	if mode != Game.MODE_TIME_TRIAL:
+		studs = StudField.new(track)
+		for human in humans:
+			studs.viewers.append(human.kart)
+		add_child(studs)
 
 	if people == 1:
 		var layer := CanvasLayer.new()
@@ -180,7 +212,10 @@ func _add_view(racer: Racer, world_parent: Node, layer: CanvasLayer) -> void:
 	racer.hud = racer_hud
 	racer_hud.again_pressed.connect(func() -> void: Game.show_race())
 	racer_hud.garage_pressed.connect(Game.show_garage)
-	racer_hud.menu_pressed.connect(Game.show_menu)
+	racer_hud.menu_pressed.connect(leave)
+	racer_hud.next_pressed.connect(func() -> void:
+		Game.finish_grand_prix_race(standings().map(func(r): return r.name)))
+	racer_hud.courses_pressed.connect(func() -> void: Game.show_tracks(mode))
 
 
 ## Two halves of the screen, each with its own SubViewport looking at this
@@ -236,7 +271,7 @@ func _add_racer(racer_name: String, design: KartDesign, slot: int, who: Characte
 	racer.kart.transform = place
 	racer.kart.locked = true
 	racer.offset = track.offset_of(place.origin)
-	racer.progress = RaceProgress.new(track.length, track.laps, racer.offset)
+	racer.progress = RaceProgress.new(track.length, laps, racer.offset)
 	racer.kart.reset_to = func(_where: Vector3) -> Transform3D:
 		return _clear_spot(racer)
 	add_child(racer.kart)
@@ -265,7 +300,8 @@ func _physics_process(delta: float) -> void:
 		if racer.ai != null:
 			racer.ai.offset = racer.offset
 		if started:
-			kart.add_studs(studs.collect(kart))
+			if studs != null:
+				kart.add_studs(studs.collect(kart))
 			var was_done := racer.progress.finished
 			racer.progress.update(racer.offset, time)
 			if racer.player and racer.progress.finished and not was_done:
@@ -275,6 +311,8 @@ func _physics_process(delta: float) -> void:
 		var middle := track.point_at(racer.offset)
 		var below := (kart.global_position - middle).dot(track.up_at(racer.offset))
 		if kart.slowdown_left <= 0.0 and (below < -FALLEN or kart.global_position.distance_to(middle) > LOST):
+			if OS.has_environment("RACE_DEBUG"):
+				print("OFF %s at %.0f m: below %.1f, away %.1f, height %.1f" % [racer.name, racer.offset, below, kart.global_position.distance_to(middle), kart.global_position.y])
 			kart.request_reset()
 			if racer.hud != null:
 				racer.hud.flash("Back on the track")
@@ -320,6 +358,9 @@ func _clear_spot(racer: Racer) -> Transform3D:
 ## Once you're over the line the AI takes your kart home, so it doesn't just
 ## stop in everyone's way.
 func _player_finished(racer: Racer) -> void:
+	if mode == Game.MODE_TIME_TRIAL:
+		var best_lap: float = racer.progress.lap_times.min() if not racer.progress.lap_times.is_empty() else 0.0
+		new_records = Records.add_time(track_id, racer.progress.finish_time, best_lap)
 	if racer.hud != null:
 		racer.hud.show_results()
 	if racer.ai != null:
@@ -353,5 +394,20 @@ func place_of(racer: Racer) -> int:
 	return standings().find(racer) + 1
 
 
+## Back to the menu this race was started from.
+func leave() -> void:
+	match mode:
+		Game.MODE_GRAND_PRIX:
+			Game.grand_prix = null
+			Game.show_cups()
+		Game.MODE_TIME_TRIAL, Game.MODE_PRACTICE:
+			Game.show_tracks(mode)
+		_:
+			if split == Game.SOLO:
+				Game.show_menu()
+			else:
+				Game.show_multiplayer()
+
+
 func go_back() -> void:
-	Game.show_menu()
+	leave()

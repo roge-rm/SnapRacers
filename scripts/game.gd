@@ -22,7 +22,16 @@ var character: CharacterDesign
 var theme: Theme
 var settings := ConfigFile.new()
 ## The track the next race is on. Race again keeps it.
-var track_path := TRACKS + "/brickyard.json"
+var track_path := TRACKS + "/peach_pit.json"
+
+## What kind of race the next one is.
+const MODE_RACE := "race" # against the AI, one or two players (see split())
+const MODE_GRAND_PRIX := "grand_prix"
+const MODE_TIME_TRIAL := "time_trial"
+const MODE_PRACTICE := "practice"
+var mode := MODE_RACE
+## The cup being raced, while there's a Grand Prix on.
+var grand_prix: GrandPrix
 
 ## How the screen is shared in a race. SOLO is one player. SIDE_BY_SIDE is two
 ## players in landscape with half the screen each. FACE_TO_FACE is two players
@@ -73,8 +82,53 @@ func show_drive() -> void:
 	_swap(TestDrive.new())
 
 
-func show_tracks() -> void:
-	_swap(TrackPicker.new())
+func show_single_player() -> void:
+	_swap(SinglePlayerMenu.new())
+
+
+func show_multiplayer() -> void:
+	_swap(MultiplayerMenu.new())
+
+
+func show_cups() -> void:
+	_swap(CupPicker.new())
+
+
+## The course list for time trials, practice or a race against the AI.
+func show_tracks(for_mode := MODE_RACE) -> void:
+	_swap(TrackPicker.new(for_mode))
+
+
+func start_grand_prix(cup_id: String) -> void:
+	mode = MODE_GRAND_PRIX
+	grand_prix = GrandPrix.new(cup_id)
+	show_race(grand_prix.track_path())
+
+
+## Called when you move on from a Grand Prix race's results. `order` is
+## everyone's names, winner first.
+func finish_grand_prix_race(order: Array) -> void:
+	grand_prix.add_results(order)
+	_swap(GrandPrixStandings.new(grand_prix))
+
+
+func next_grand_prix_race() -> void:
+	show_race(grand_prix.track_path())
+
+
+func start_time_trial(path: String) -> void:
+	mode = MODE_TIME_TRIAL
+	show_race(path)
+
+
+func start_practice(path: String) -> void:
+	mode = MODE_PRACTICE
+	show_race(path)
+
+
+func start_race(path: String) -> void:
+	mode = MODE_RACE
+	show_race(path)
 
 
 func show_driver() -> void:
@@ -144,6 +198,12 @@ func players() -> int:
 	return 1 if split() == SOLO else 2
 
 
+## How the screen is shared in the race about to start. Only races against the
+## AI can be for two. Everything else is for one player.
+func race_split() -> String:
+	return split() if mode == MODE_RACE else SOLO
+
+
 ## Which AI kart player 2 drives, by its file name.
 func player_two_kart() -> String:
 	var key: String = settings.get_value("race", "player_two", "brickley")
@@ -197,7 +257,7 @@ func _swap(next: Node) -> void:
 	if _screen != null:
 		_screen.queue_free()
 	_screen = next
-	_set_portrait(next is Race and split() == FACE_TO_FACE)
+	_set_portrait(next is Race and race_split() == FACE_TO_FACE)
 	_host.add_child(next)
 
 

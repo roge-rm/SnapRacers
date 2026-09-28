@@ -39,6 +39,16 @@ func distance() -> float:
 	return laps * track_length + offset
 
 
+## When the lap the kart is on now started, in race time.
+func lap_started() -> float:
+	return _lap_started
+
+
+## The fastest lap so far, or 0 before the first one's done.
+func best_lap() -> float:
+	return lap_times.min() if not lap_times.is_empty() else 0.0
+
+
 ## The lap the kart is on now, counting from one, for the HUD.
 func current_lap() -> int:
 	return clampi(laps + 1, 1, laps_to_win)

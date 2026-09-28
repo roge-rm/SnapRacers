@@ -133,6 +133,22 @@ static func button(text: String, action: Callable, subtitle := "") -> Button:
 	return b
 
 
+## Lights up a button as the chosen one of a set, with accent text and an
+## outline, or puts it back to plain.
+static func mark(b: Button, on: bool) -> void:
+	var colour := ACCENT if on else Color.WHITE
+	for state in ["font_color", "font_hover_color", "font_pressed_color"]:
+		b.add_theme_color_override(state, colour)
+	for state in ["normal", "hover", "pressed"]:
+		b.remove_theme_stylebox_override(state)
+		if on:
+			var box := b.get_theme_stylebox(state).duplicate() as StyleBoxFlat
+			if box != null:
+				box.border_color = ACCENT
+				box.set_border_width_all(3)
+				b.add_theme_stylebox_override(state, box)
+
+
 ## Plain accent coloured text that works like a button, for Back.
 static func link(text: String, action: Callable) -> Button:
 	var b := Button.new()

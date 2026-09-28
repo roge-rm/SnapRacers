@@ -1,0 +1,3 @@
+Magma Mile
+width=10 laps=3 theme=volcano
+S2 R2 SL4.1 R2 R1 S1 SL3.1 L1 L1 J R2 SR2.1 SL2.1 SR2.1 R1 R1 SL4.1 SR2.1 L1 S1 L2 S2 SL2.1 R1 R2 SL2.1 S3

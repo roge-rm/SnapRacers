@@ -5,12 +5,16 @@ extends RefCounted
 
 
 ## Pass a backdrop colour for an indoor scene like the garage. The sky still
-## lights things, but you see the plain colour behind them.
-static func add_to(parent: Node, shadow_distance := 60.0, backdrop := Color.TRANSPARENT) -> void:
+## lights things, but you see the plain colour behind them. A track's theme
+## can pass its own sky colours, top and horizon, as colour strings.
+static func add_to(parent: Node, shadow_distance := 60.0, backdrop := Color.TRANSPARENT, sky_colours: Array = []) -> void:
 	var sky_material := ProceduralSkyMaterial.new()
-	sky_material.sky_top_color = Color("#3d7fd6")
-	sky_material.sky_horizon_color = Color("#b9d6f2")
-	sky_material.ground_horizon_color = Color("#b9d6f2")
+	sky_material.sky_top_color = Color(sky_colours[0]) if sky_colours.size() > 0 else Color("#3d7fd6")
+	sky_material.sky_horizon_color = Color(sky_colours[1]) if sky_colours.size() > 1 else Color("#b9d6f2")
+	sky_material.ground_horizon_color = sky_material.sky_horizon_color
+	# Below the horizon, which you only see from up high past the edge of the
+	# ground, fade to a soft grey instead of the default dark brown.
+	sky_material.ground_bottom_color = sky_material.sky_horizon_color.darkened(0.3)
 	var sky := Sky.new()
 	sky.sky_material = sky_material
 	var env := Environment.new()

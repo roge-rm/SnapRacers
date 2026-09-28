@@ -1,0 +1,60 @@
+class_name GrandPrixStandings
+extends Control
+
+## The points table between Grand Prix races, and the trophy at the end.
+
+var grand_prix: GrandPrix
+
+
+func _init(gp: GrandPrix) -> void:
+	grand_prix = gp
+
+
+func _ready() -> void:
+	var done := grand_prix.finished()
+	var races := grand_prix.track_ids().size()
+	var title: String = grand_prix.cup.name if done else "%s, after race %d of %d" % [grand_prix.cup.name, grand_prix.round, races]
+	var column := MenuStyle.page(self, title, go_back, 620.0)
+	var standings := grand_prix.standings()
+	var me := Game.player_name()
+	var place := standings.map(func(s): return s[0]).find(me) + 1
+	if done:
+		var trophy: String = CupPicker.TROPHIES.get(place, "")
+		var news := "You won the %s!" % grand_prix.cup.name if place == 1 else "You finished %s." % RaceHud.ordinal(place)
+		if trophy != "":
+			news += " That's a %s." % trophy.to_lower()
+		var banner := Label.new()
+		banner.text = news
+		banner.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		banner.add_theme_font_size_override("font_size", 30)
+		banner.add_theme_color_override("font_color", MenuStyle.ACCENT)
+		column.add_child(banner)
+		Records.add_cup_place(grand_prix.cup.id, place)
+	var table := GridContainer.new()
+	table.columns = 3
+	table.add_theme_constant_override("h_separation", 40)
+	table.add_theme_constant_override("v_separation", 6)
+	column.add_child(table)
+	for i in standings.size():
+		for text in [RaceHud.ordinal(i + 1), standings[i][0], "%d points" % standings[i][1]]:
+			var cell := Label.new()
+			cell.text = text
+			cell.add_theme_font_size_override("font_size", 24)
+			if standings[i][0] == me:
+				cell.add_theme_color_override("font_color", Color("#f2cd37"))
+			table.add_child(cell)
+	if done:
+		column.add_child(MenuStyle.button("Race another cup", func() -> void:
+			Game.grand_prix = null
+			Game.show_cups()))
+	else:
+		var next := TrackPath.load_file(grand_prix.track_path())
+		var button := MenuStyle.button("Next race", Game.next_grand_prix_race, next.name)
+		button.custom_minimum_size.y = 84.0
+		column.add_child(button)
+
+
+## Leaving here quits the cup.
+func go_back() -> void:
+	Game.grand_prix = null
+	Game.show_cups()

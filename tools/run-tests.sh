@@ -10,7 +10,7 @@ GODOT="tools/godot/Godot_v4.7.2-stable_linux.x86_64"
 "$GODOT" --headless --path . --import > /dev/null 2>&1
 
 status=0
-for test in "-s tests/drive_test.gd" "-s tests/design_test.gd" "-s tests/damage_test.gd" "-s tests/track_test.gd" "res://tests/garage_test.tscn" "-s tests/loop_test.gd" "-s tests/gadget_test.gd" "-s tests/character_test.gd" "res://tests/menu_test.tscn" "res://tests/split_test.tscn" "res://tests/race_test.tscn -- brickyard" "res://tests/race_test.tscn -- loopworks"; do
+for test in "-s tests/drive_test.gd" "-s tests/design_test.gd" "-s tests/damage_test.gd" "-s tests/track_test.gd" "res://tests/garage_test.tscn" "-s tests/loop_test.gd" "-s tests/gadget_test.gd" "-s tests/character_test.gd" "res://tests/menu_test.tscn" "res://tests/split_test.tscn" "res://tests/modes_test.tscn" "res://tests/race_test.tscn -- peach_pit" "res://tests/race_test.tscn -- launchpad_loop"; do
 	echo "== $test"
 	# shellcheck disable=SC2086
 	if ! timeout 300 "$GODOT" --headless --fixed-fps 60 --path . $test 2>&1 | grep -E "^  (ok|FAIL)|passed|failed|ERROR"; then

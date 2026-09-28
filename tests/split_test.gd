@@ -38,7 +38,7 @@ func _ready() -> void:
 		Game.settings.set_value("race", "split", mode)
 		Game.settings.set_value("race", "player_two", "pip")
 		var before := race_on_screen()
-		Game.show_race(Game.TRACKS + "/brickyard.json")
+		Game.start_race(Game.TRACKS + "/peach_pit.json")
 		var race: Race = null
 		while race == null or race == before:
 			await get_tree().process_frame

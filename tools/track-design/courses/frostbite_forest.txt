@@ -1,0 +1,3 @@
+Frostbite Forest
+width=10 laps=3 theme=frost
+S2 SR2.1 R1 SR2.1 R1 L2 SL3.1 R1 R2 S2!i SL2.1 L1 L1 S2 R2 R1 S2 L1 S1 R2 R1 SR3.1 L1 S1 L1 S3!i R1 R1 S3 S3

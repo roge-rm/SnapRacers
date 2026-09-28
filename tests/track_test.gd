@@ -17,20 +17,29 @@ func check(ok: bool, what: String) -> void:
 
 
 func _initialize() -> void:
-	for file in DirAccess.get_files_at("res://data/tracks"):
-		if not file.ends_with(".json"):
-			continue
-		var track := TrackPath.load_file("res://data/tracks/" + file)
-		print("%s: %d pieces, %.0f m a lap" % [track.name, track.pieces.size(), track.length])
+	var cups := GrandPrix.cups()
+	check(cups.size() == 4 and cups.all(func(c): return c.tracks.size() == 4), "there are four cups of four courses")
+	var ids := Tracks.all()
+	var unique := {}
+	for id in ids:
+		unique[id] = true
+	check(unique.size() == 16, "and all 16 courses are different (%d)" % unique.size())
+	var files := Array(DirAccess.get_files_at("res://data/tracks")).filter(func(f): return f.ends_with(".json"))
+	check(files.size() == 16, "every course file is in a cup (%d files)" % files.size())
+	var names := {}
+	for id in ids:
+		var track := TrackPath.load_file(Tracks.path_of(id))
+		names[track.name] = true
+		print("%s: %d pieces, %.0f m a lap, %s" % [track.name, track.pieces.size(), track.length, track.theme])
 		check(track.closes, "%s comes back around to the start" % track.name)
 		var clashes := track.clashes()
 		check(clashes.is_empty(), "%s has no road running into other road %s" % [track.name, clashes.slice(0, 3)])
-		var highest := 0.0
-		for p in track.points:
-			highest = maxf(highest, p.y)
-		check(highest > 5.0, "%s climbs (highest point %.1f m)" % [track.name, highest])
+		check(track.length > 600.0 and track.length < 1100.0, "%s is a sensible length (%.0f m)" % [track.name, track.length])
+		check(Scenery.THEMES.has(track.theme), "%s has a theme we know (%s)" % [track.name, track.theme])
+		check(track.inspired_by != "" and track.about != "", "%s says what it's based on" % track.name)
 		var stuck := track.stickies.count(true)
-		print("    %d m of it sticky" % stuck)
+		if stuck > 0:
+			print("    %d m of it sticky" % stuck)
 
 		# Save it and load it again.
 		var again := TrackPath.from_dict(track.to_dict())
@@ -47,15 +56,19 @@ func _initialize() -> void:
 			d += 7.0
 		check(worst < 1.0, "%s finds where a kart is along it (worst %.2f m out)" % [track.name, worst])
 
-	var brickyard := TrackPath.load_file("res://data/tracks/brickyard.json")
+	check(names.size() == 16, "and they all have different names")
+
+	# Dune Drift is a figure eight, like the real Dubai Kartdrome, so one bit
+	# of road has to go over the other on a bridge.
+	var dune := TrackPath.load_file(Tracks.path_of("dune_drift"))
 	var over := 0
-	for i in range(0, brickyard.points.size(), 4):
-		for j in range(i + 30, brickyard.points.size(), 4):
-			var a := brickyard.points[i]
-			var b := brickyard.points[j]
+	for i in range(0, dune.points.size(), 4):
+		for j in range(i + 30, dune.points.size(), 4):
+			var a := dune.points[i]
+			var b := dune.points[j]
 			if Vector2(a.x - b.x, a.z - b.z).length() < 4.0 and absf(a.y - b.y) > 5.0:
 				over += 1
-	check(over > 0, "the Brickyard bridge really does cross over the road below")
+	check(over > 0, "the Dune Drift bridge really does cross over the road below")
 
 	# The loop piece ends on the grid, one tile across and three along.
 	var loop := TrackPiece.from_spec({ "type": "loop", "side": "right" })

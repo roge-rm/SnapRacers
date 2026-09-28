@@ -1,0 +1,3 @@
+Pithead Park
+width=10 laps=3 theme=mine
+S3 R2 R1 SR2.1 L1 S1 L2 SL4.2 R1 SR4.1 S1 R1 S2 R2 L3b22 R1 S2 L1 SL4.1 L1 R1 R1 S1 R2 C3 S2

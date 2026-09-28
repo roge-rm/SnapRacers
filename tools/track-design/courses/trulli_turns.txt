@@ -1,0 +1,3 @@
+Trulli Turns
+width=10 laps=3 theme=trulli
+SR4.1 C3 L1 L1 SR4.1 R2 S2 SR2.1 S1 L1 S2 L1 SL4.1 S2 R1 SR4.1 R1 R2 L1 L1 S1 L2 S2 L1 SR4.1 S1

@@ -15,3 +15,13 @@
 # Crash dumps. They're named core.<pid>, because a plain "core" pattern would
 # also hide real folders.
 core.[0-9]*
+
+# The track design tools' downloaded map data and pictures, which they can
+# make again.
+/tools/track-design/*.json
+!/tools/track-design/picks.json
+/tools/track-design/*.png
+/tools/track-design/*.svg
+/tools/track-design/traced/
+/tools/track-design/courses/*.png
+/tools/track-design/__pycache__/

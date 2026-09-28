@@ -1,0 +1,30 @@
+{
+	"name": "Launchpad Loop",
+	"inspired_by": "Orlando Kart Center, Florida, USA",
+	"about": "At the space centre, where a loop sends you upside down in the shadow of the rocket.",
+	"theme": "space",
+	"laps": 3,
+	"width": 10.0,
+	"pieces": [
+		{"type": "straight", "length": 3},
+		{"type": "straight", "length": 1},
+		{"type": "loop", "side": "left"},
+		{"type": "curve", "turn": "right", "size": 1},
+		{"type": "curve", "turn": "right", "size": 2},
+		{"type": "straight", "length": 1},
+		{"type": "curve", "turn": "left", "size": 2},
+		{"type": "curve", "turn": "left", "size": 1},
+		{"type": "straight", "length": 3},
+		{"type": "curve", "turn": "left", "size": 1},
+		{"type": "slant", "turn": "right", "length": 3, "across": 1},
+		{"type": "straight", "length": 1},
+		{"type": "curve", "turn": "left", "size": 1},
+		{"type": "straight", "length": 2},
+		{"type": "slant", "turn": "right", "length": 4, "across": 1},
+		{"type": "slant", "turn": "left", "length": 4, "across": 1},
+		{"type": "straight", "length": 2},
+		{"type": "curve", "turn": "left", "size": 1},
+		{"type": "curve", "turn": "left", "size": 2},
+		{"type": "straight", "length": 3}
+	]
+}

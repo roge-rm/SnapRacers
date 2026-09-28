@@ -1,0 +1,9 @@
+{
+	"_comment": "The Grand Prix cups, easiest first. Each is four courses from data/tracks, raced in this order. Every course was traced from a real kart circuit (see each course's inspired_by).",
+	"cups": [
+		{ "id": "baseplate", "name": "Baseplate Cup", "tracks": ["peach_pit", "trulli_turns", "lemon_lake", "pithead_park"] },
+		{ "id": "axle", "name": "Axle Cup", "tracks": ["delta_dash", "bucketwheel_bend", "foundry_flats", "amber_arc"] },
+		{ "id": "gearbox", "name": "Gearbox Cup", "tracks": ["timberline", "frostbite_forest", "dune_drift", "whistlestop_woods"] },
+		{ "id": "keystone", "name": "Keystone Cup", "tracks": ["windmill_ridge", "launchpad_loop", "magma_mile", "castle_keep"] }
+	]
+}

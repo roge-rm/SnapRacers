@@ -28,22 +28,16 @@ const COLOURS := {
 	"sand": Color("#d9c38c"),
 	"ice": Color("#cfe8f2"),
 }
-const KERB_RED := Color("#d8261c")
-const KERB_WHITE := Color("#f2f2f2")
 const DECK_COLOUR := Color("#7a7f87")
 
-const WALL_COLOUR := Color("#c4281c")
-const GROUND_COLOUR := Color("#4b9f4a") # bright green
 const PILLAR_COLOUR := Color("#a3a2a4")
-const TRUNK_COLOUR := Color("#694030")
-const LEAF_COLOURS := [Color("#237841"), Color("#2c8a3f"), Color("#3f9c46")]
-const TREES := 60
-const TREE_CLEAR := 12.0 # from the edge of the road
 ## Which surface each edge of the outline is, for the shader.
 const KIND := {"road": 0.0, "kerb": 1.0, "deck": 2.0, "wall": 3.0, "walltop": 4.0}
 
 var track: TrackPath
 var _material: ShaderMaterial
+## The course's theme (see Scenery.THEMES), which sets the colours.
+var _theme: Dictionary
 
 # Each shader is made once and kept for as long as the game runs. The phone
 # compiles a shader the first time it's drawn, and a new Shader object counts
@@ -51,7 +45,6 @@ var _material: ShaderMaterial
 # every race stall on its first frame.
 static var _road_shader: Shader
 static var _grass_shader: Shader
-static var _block_shader: Shader
 
 
 static func shader_for(code: String) -> Shader:
@@ -71,23 +64,34 @@ func _ready() -> void:
 	if _road_shader == null:
 		_road_shader = shader_for(BrickShaders.TRACK)
 		_grass_shader = shader_for(BrickShaders.BASEPLATE)
-		_block_shader = shader_for(BrickShaders.BLOCK)
 	_material = ShaderMaterial.new()
 	_material.shader = _road_shader
-	SkyAndSun.add_to(self, 80.0)
+	_theme = Scenery.theme_named(track.theme)
+	SkyAndSun.add_to(self, 80.0, Color.TRANSPARENT, _theme.get("sky", []))
 	_add_grass()
 	for i in track.pieces.size():
 		_add_piece(i)
 	_add_pillars()
 	_add_gantry()
-	_add_trees()
+	# A debug switch for checking the frame rate on a device. If there's a
+	# file called noscenery in the app's data folder, the scenery is left out.
+	if OS.is_debug_build() and FileAccess.file_exists("user://noscenery"):
+		return
+	var scenery := Scenery.new(track, track.theme)
+	# Keep the dirt inside cut bends clear, since you drive across it.
+	for i in track.pieces.size():
+		var piece := track.pieces[i]
+		if piece.cut:
+			scenery.keep_clear.append([track.piece_starts[i] * Vector3(piece.turn * piece.radius, 0.0, 0.0), piece.radius])
+	add_child(scenery)
 
 
 func _add_grass() -> void:
 	var bounds := AABB(track.points[0], Vector3.ZERO)
 	for p in track.points:
 		bounds = bounds.expand(p)
-	bounds = bounds.grow(80.0)
+	# Wide enough for the scenery and the big landmarks around the outside.
+	bounds = bounds.grow(Scenery.REACH + 45.0)
 	var centre := bounds.get_center()
 	var grass: Array = track.grip_and_drag("grass")
 
@@ -107,7 +111,7 @@ func _add_grass() -> void:
 	plane.size = Vector2(bounds.size.x, bounds.size.z)
 	mesh.mesh = plane
 	mesh.position = Vector3(centre.x, 0.0, centre.z)
-	mesh.material_override = _baseplate(GROUND_COLOUR)
+	mesh.material_override = _baseplate(Color(_theme.get("ground", "#4b9f4a")))
 	body.add_child(mesh)
 	add_child(body)
 
@@ -178,9 +182,9 @@ func _add_piece(index: int) -> void:
 				"road":
 					colour = surface_colour
 				"kerb":
-					colour = KERB_RED if stripe else KERB_WHITE
+					colour = Color(_theme.curbs[0] if stripe else _theme.curbs[1])
 				"wall", "walltop":
-					colour = WALL_COLOUR
+					colour = Color(_theme.wall)
 				_:
 					colour = DECK_COLOUR
 			_sweep(tool, a, b, edge[0], edge[1], colour, KIND[edge[2]])
@@ -348,20 +352,10 @@ func _add_pillars() -> void:
 ## Draws boxes that look built from bricks, all in one go. Each transform
 ## scales a 1 m cube to size.
 func _add_blocks(spots: Array[Transform3D], colours: Array[Color]) -> void:
-	var multi := MultiMesh.new()
-	multi.transform_format = MultiMesh.TRANSFORM_3D
-	multi.use_colors = true
-	multi.mesh = BoxMesh.new()
-	multi.instance_count = spots.size()
+	var kit := SceneryKit.new()
 	for i in spots.size():
-		multi.set_instance_transform(i, spots[i])
-		multi.set_instance_color(i, colours[i])
-	var draw := MultiMeshInstance3D.new()
-	draw.multimesh = multi
-	var material := ShaderMaterial.new()
-	material.shader = _block_shader
-	draw.material_override = material
-	add_child(draw)
+		kit.boxes.append([spots[i], colours[i], SceneryKit.BRICK])
+	kit.build(self)
 
 
 ## An arch of bricks over the start line.
@@ -377,8 +371,8 @@ func _add_gantry() -> void:
 	var turn := Basis(Vector3.UP, snappedf(atan2(flat.x, flat.z), PI * 0.5))
 	var base := Vector3(snappedf(frame.origin.x, 0.25), frame.origin.y, snappedf(frame.origin.z, 0.25))
 	var blocks := [
-		[Vector3(-reach, height * 0.5, 0.0), Vector3(1.0, height, 1.0), WALL_COLOUR],
-		[Vector3(reach, height * 0.5, 0.0), Vector3(1.0, height, 1.0), WALL_COLOUR],
+		[Vector3(-reach, height * 0.5, 0.0), Vector3(1.0, height, 1.0), Color(_theme.wall)],
+		[Vector3(reach, height * 0.5, 0.0), Vector3(1.0, height, 1.0), Color(_theme.wall)],
 		[Vector3(0.0, height + 0.45, 0.0), Vector3(reach * 2.0 + 1.0, 0.9, 1.0), Color("#f2cd37")],
 	]
 	var spots: Array[Transform3D] = []
@@ -402,74 +396,3 @@ func _add_gantry() -> void:
 	line.transform = frame.translated_local(Vector3(0.0, LIFT + 0.01, 0.0))
 	line.material_override = PartVisuals.material(Color("#f2f2f2"))
 	add_child(line)
-
-
-## Brick trees dotted around the outside of the track, well clear of the road
-## and of any short cut across a bend. The same track always gets the same
-## trees.
-func _add_trees() -> void:
-	var bounds := AABB(track.points[0], Vector3.ZERO)
-	for p in track.points:
-		bounds = bounds.expand(p)
-	bounds = bounds.grow(55.0)
-	var clear := track.width * 0.5 + TrackPath.KERB + TREE_CLEAR
-	var cuts: Array[Vector3] = []
-	var cut_reach: Array[float] = []
-	for i in track.pieces.size():
-		var piece := track.pieces[i]
-		if piece.cut:
-			cuts.append(track.piece_starts[i] * Vector3(piece.turn * piece.radius, 0.0, 0.0))
-			cut_reach.append(piece.radius + 4.0)
-	var rng := RandomNumberGenerator.new()
-	rng.seed = track.points.size() * 7919 + int(track.length)
-	var body := StaticBody3D.new()
-	body.collision_layer = Kart.LAYER_WORLD
-	add_child(body)
-	var spots: Array[Transform3D] = []
-	var colours: Array[Color] = []
-	var placed: Array[Vector2] = []
-	var tries := 0
-	while placed.size() < TREES and tries < TREES * 20:
-		tries += 1
-		var at := Vector2(
-			snappedf(rng.randf_range(bounds.position.x, bounds.end.x), 0.5),
-			snappedf(rng.randf_range(bounds.position.z, bounds.end.z), 0.5))
-		if _near_track(at, clear) or placed.any(func(q: Vector2) -> bool: return q.distance_to(at) < 6.0):
-			continue
-		var in_cut := false
-		for c in cuts.size():
-			if Vector2(cuts[c].x, cuts[c].z).distance_to(at) < cut_reach[c]:
-				in_cut = true
-				break
-		if in_cut:
-			continue
-		placed.append(at)
-		var size := rng.randi_range(0, 2)
-		var trunk := 0.9 + 0.3 * size
-		var layers := [[0.5, trunk, TRUNK_COLOUR]]
-		var widths := [3.0, 2.0, 1.0] if size < 2 else [4.0, 3.0, 2.0, 1.0]
-		for w in widths.size():
-			layers.append([widths[w], 0.9, LEAF_COLOURS[(w + size) % LEAF_COLOURS.size()]])
-		var y := 0.0
-		for layer in layers:
-			var extent := Vector3(layer[0], layer[1], layer[0])
-			var where := Transform3D(Basis.IDENTITY, Vector3(at.x, y + extent.y * 0.5, at.y))
-			spots.append(where.scaled_local(extent))
-			colours.append(layer[2])
-			y += extent.y
-		var shape := CollisionShape3D.new()
-		var box := BoxShape3D.new()
-		box.size = Vector3(1.0, trunk + 0.9, 1.0)
-		shape.shape = box
-		shape.position = Vector3(at.x, box.size.y * 0.5, at.y)
-		body.add_child(shape)
-	if not spots.is_empty():
-		_add_blocks(spots, colours)
-
-
-func _near_track(at: Vector2, reach: float) -> bool:
-	for k in range(0, track.points.size(), 2):
-		var q := track.points[k]
-		if Vector2(q.x, q.z).distance_squared_to(at) < reach * reach:
-			return true
-	return false

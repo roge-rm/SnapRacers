@@ -5,10 +5,18 @@ extends Control
 ## clock is in the middle, with the countdown, a message now and then, and the
 ## results once you've finished. In split screen each player has one of these
 ## in their half.
+##
+## Time trials and practice are just you, so they show your lap times instead
+## of a place. The results offer what makes sense for the kind of race, like
+## the next race of a Grand Prix or another go at a time trial.
 
 signal again_pressed
 signal garage_pressed
 signal menu_pressed
+## Moving on to the Grand Prix standings.
+signal next_pressed
+## Back to the course list, to pick another.
+signal courses_pressed
 
 var race: Race
 ## Whose race this shows.
@@ -24,6 +32,7 @@ var _message_left := 0.0
 var _quit: Button
 var _fps: Label
 var _results: PanelContainer
+var _results_title: Label
 var _results_list: GridContainer
 ## The on-screen driving controls, hidden once you've finished.
 var touch: Control
@@ -114,10 +123,19 @@ func _process(delta: float) -> void:
 		return
 	_fps.visible = Game.show_fps()
 	_fps.text = "%d fps" % Engine.get_frames_per_second()
-	_place.text = "%s / %d" % [ordinal(race.place_of(me)), race.racers.size()]
-	_lap.text = "Lap %d / %d" % [me.progress.current_lap(), race.track.laps]
+	var practice := race.mode == Game.MODE_PRACTICE
+	var trial := race.mode == Game.MODE_TIME_TRIAL
+	if practice or trial:
+		_place.text = "Practice" if practice else "Time trial"
+	else:
+		_place.text = "%s / %d" % [ordinal(race.place_of(me)), race.racers.size()]
+	if practice:
+		_lap.text = "Lap %d" % me.progress.current_lap()
+	else:
+		_lap.text = "Lap %d / %d" % [me.progress.current_lap(), race.laps]
 	if me.progress.finished:
 		_lap.text = "Finished"
+	_studs.visible = not trial
 	_studs.text = "%d stud%s" % [me.kart.studs, "" if me.kart.studs == 1 else "s"]
 	if touch != null:
 		var buttons := me.kart.buttons()
@@ -130,9 +148,16 @@ func _process(delta: float) -> void:
 				touch.gadget_names[slot] = ""
 		touch.queue_redraw()
 	var shown := me.progress.finish_time if me.progress.finished else race.time
+	if practice:
+		# The lap you're on, since the whole session could go on for ages.
+		shown = race.time - me.progress.lap_started() if me.progress.laps >= 0 else 0.0
 	var text := clock(shown)
 	if not me.progress.lap_times.is_empty():
 		text += "\nlast lap %s" % clock(me.progress.lap_times[-1])
+	if (practice or trial) and me.progress.best_lap() > 0.0:
+		text += "\nbest lap %s" % clock(me.progress.best_lap())
+	if trial and Records.best_time(race.track_id) > 0.0 and not me.progress.finished:
+		text += "\nrecord %s" % clock(Records.best_time(race.track_id))
 	_clock.text = text
 
 	# The countdown, then GO! for a moment.
@@ -176,19 +201,28 @@ func _build_results() -> void:
 	var box := VBoxContainer.new()
 	box.add_theme_constant_override("separation", 10)
 	margin.add_child(box)
-	var title := Label.new()
-	title.text = "Results"
-	title.add_theme_font_size_override("font_size", 32)
-	box.add_child(title)
+	_results_title = Label.new()
+	_results_title.text = "Results"
+	_results_title.add_theme_font_size_override("font_size", 32)
+	box.add_child(_results_title)
 	_results_list = GridContainer.new()
-	_results_list.columns = 3
+	_results_list.columns = 4 if race.mode == Game.MODE_GRAND_PRIX else (2 if race.mode == Game.MODE_TIME_TRIAL else 3)
 	_results_list.add_theme_constant_override("h_separation", 28)
 	box.add_child(_results_list)
 	var row := HBoxContainer.new()
 	row.alignment = BoxContainer.ALIGNMENT_CENTER
 	row.add_theme_constant_override("separation", 16)
 	box.add_child(row)
-	for pair in [["Race again", again_pressed], ["Garage", garage_pressed], ["Menu", menu_pressed]]:
+	var choices := [["Race again", again_pressed], ["Garage", garage_pressed], ["Menu", menu_pressed]]
+	match race.mode:
+		Game.MODE_GRAND_PRIX:
+			choices = [["Standings", next_pressed], ["Quit cup", menu_pressed]]
+			if Game.grand_prix != null:
+				_results_title.text = "Race %d of %d" % [Game.grand_prix.round + 1, Game.grand_prix.track_ids().size()]
+		Game.MODE_TIME_TRIAL:
+			choices = [["Try again", again_pressed], ["Other course", courses_pressed], ["Menu", menu_pressed]]
+			_results_title.text = "Time trial"
+	for pair in choices:
 		var button := Button.new()
 		button.text = pair[0]
 		button.custom_minimum_size = Vector2(160, 60)
@@ -209,16 +243,33 @@ func show_results() -> void:
 
 
 func _fill_results() -> void:
-	var standings := race.standings()
-	while _results_list.get_child_count() < standings.size() * 3:
-		var cell := Label.new()
-		_results_list.add_child(cell)
-	for i in standings.size():
-		var racer: Race.Racer = standings[i]
-		var when := clock(racer.progress.finish_time) if racer.progress.finished else "racing"
-		var texts := [ordinal(i + 1), racer.name, when]
-		for column in 3:
-			var cell: Label = _results_list.get_child(i * 3 + column)
-			cell.text = texts[column]
-			cell.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT if column == 2 else HORIZONTAL_ALIGNMENT_LEFT
-			cell.add_theme_color_override("font_color", Color("#f2cd37") if racer.player else Color.WHITE)
+	var rows := []
+	var highlight := []
+	if race.mode == Game.MODE_TIME_TRIAL:
+		var records: Array = race.new_records
+		rows.append(["Time", clock(me.progress.finish_time) + ("  New record!" if records[0] else "")])
+		rows.append(["Best lap", clock(me.progress.best_lap()) + ("  New record!" if records[1] else "")])
+		for i in me.progress.lap_times.size():
+			rows.append(["Lap %d" % (i + 1), clock(me.progress.lap_times[i])])
+		rows.append(["Course record", clock(Records.best_time(race.track_id))])
+		highlight = [records[0], records[1]]
+	else:
+		var standings := race.standings()
+		for i in standings.size():
+			var racer: Race.Racer = standings[i]
+			var when := clock(racer.progress.finish_time) if racer.progress.finished else "racing"
+			var row := [ordinal(i + 1), racer.name, when]
+			if race.mode == Game.MODE_GRAND_PRIX:
+				row.append("+%d" % (GrandPrix.POINTS[i] if i < GrandPrix.POINTS.size() else 0))
+			rows.append(row)
+			highlight.append(racer.player)
+	var columns := _results_list.columns
+	while _results_list.get_child_count() < rows.size() * columns:
+		_results_list.add_child(Label.new())
+	for i in rows.size():
+		for column in columns:
+			var cell: Label = _results_list.get_child(i * columns + column)
+			cell.text = rows[i][column]
+			cell.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT if column >= 2 or (columns == 2 and column == 1) else HORIZONTAL_ALIGNMENT_LEFT
+			var gold: bool = i < highlight.size() and highlight[i]
+			cell.add_theme_color_override("font_color", Color("#f2cd37") if gold else Color.WHITE)

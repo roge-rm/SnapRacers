@@ -125,34 +125,70 @@ void fragment() {
 }
 """
 
-## For blocks built of bricks, like pillars and trees, with studs on top and
-## courses of bricks up the sides. It works in world space, so it suits things
-## lined up with the stud grid. The colour comes from the instance.
+## For everything built of bricks around the track, like pillars, trees and
+## buildings. It works in world space, so it suits things lined up with the
+## stud grid. The colour comes from the instance, and the first number of the
+## instance's custom data picks what kind of surface it is:
+##   0 bricks, with studs on top and courses of bricks up the sides
+##   1 a building, with rows of windows up the sides and a flat roof
+##   2 smooth tiles with no studs, for roofs, signs and the like
+##   3 glowing, for lava and lights
+##   4 water, smooth and shiny with slow ripples
 const BLOCK := """
 shader_type spatial;
 varying vec3 world;
 varying vec3 world_normal;
+varying flat float pattern;
 """ + COMMON + """
 void vertex() {
 	world = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
 	world_normal = normalize((MODEL_MATRIX * vec4(NORMAL, 0.0)).xyz);
+	pattern = INSTANCE_CUSTOM.x;
 }
 
 void fragment() {
 	vec3 col = pow(COLOR.rgb, vec3(2.2));
-	if (world_normal.y > 0.7) {
-		col = studs(world.xz, col);
-	} else if (world_normal.y > -0.7) {
-		// Staggered courses of 1x2 bricks.
-		float course = floor(world.y / 0.3);
-		float side = abs(world_normal.x) > abs(world_normal.z) ? world.z : world.x;
-		float along = side + mod(course, 2.0) * 0.25;
-		col *= 0.95 + 0.08 * hash(vec2(course, floor(along / 0.5)));
-		float s = max(seam(world.y, 0.3, 0.012), seam(along, 0.5, 0.012));
-		col *= 1.0 - 0.45 * s;
+	float rough = 0.8;
+	float spec = 0.25;
+	bool top = world_normal.y > 0.7;
+	bool side = !top && world_normal.y > -0.7;
+	float across = abs(world_normal.x) > abs(world_normal.z) ? world.z : world.x;
+	if (pattern < 0.5) {
+		if (top) {
+			col = studs(world.xz, col);
+		} else if (side) {
+			// Staggered courses of 1x2 bricks.
+			float course = floor(world.y / 0.3);
+			float along = across + mod(course, 2.0) * 0.25;
+			col *= 0.95 + 0.08 * hash(vec2(course, floor(along / 0.5)));
+			float s = max(seam(world.y, 0.3, 0.012), seam(along, 0.5, 0.012));
+			col *= 1.0 - 0.45 * s;
+		}
+	} else if (pattern < 1.5) {
+		if (side) {
+			// A window every metre across and every 1.5 m up.
+			vec2 cell = vec2(fract(across), fract(world.y / 1.5));
+			float glass = step(0.18, cell.x) * step(cell.x, 0.82) * step(0.25, cell.y) * step(cell.y, 0.85);
+			vec3 pane = pow(vec3(0.32, 0.45, 0.58), vec3(2.2)) * (0.8 + 0.4 * hash(floor(vec2(across, world.y / 1.5))));
+			col = mix(col, pane, glass);
+			rough = mix(rough, 0.2, glass);
+			spec = mix(spec, 0.6, glass);
+		}
+	} else if (pattern < 2.5) {
+		col *= 1.0 - 0.3 * max(seam(across, 1.0, 0.012), seam(world.y, 1.0, 0.012));
+		rough = 0.5;
+	} else if (pattern < 3.5) {
+		float flicker = 0.8 + 0.2 * sin(TIME * 2.0 + world.x * 0.4 + world.z * 0.3);
+		EMISSION = col * 1.6 * flicker;
+		rough = 0.9;
+	} else {
+		float wave = sin(world.x * 0.6 + TIME * 0.8) * sin(world.z * 0.5 - TIME * 0.6);
+		col *= 0.85 + 0.15 * wave;
+		rough = 0.12;
+		spec = 0.6;
 	}
 	ALBEDO = col;
-	ROUGHNESS = 0.8;
-	SPECULAR = 0.25;
+	ROUGHNESS = rough;
+	SPECULAR = spec;
 }
 """

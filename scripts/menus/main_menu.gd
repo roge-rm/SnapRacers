@@ -10,13 +10,10 @@ func _ready() -> void:
 	var gap := Control.new()
 	gap.custom_minimum_size = Vector2(0.0, 24.0)
 	column.add_child(gap)
-	column.add_child(MenuStyle.button("Race", Game.show_tracks))
+	column.add_child(MenuStyle.button("Single player", Game.show_single_player))
+	column.add_child(MenuStyle.button("Multiplayer", Game.show_multiplayer))
 	column.add_child(MenuStyle.button("Garage", Game.show_garage))
 	column.add_child(MenuStyle.button("Driver", Game.show_driver))
-	var multiplayer_button := MenuStyle.button("Multiplayer", Callable(), "Coming later")
-	multiplayer_button.custom_minimum_size.y = 76.0
-	multiplayer_button.disabled = true
-	column.add_child(multiplayer_button)
 	column.add_child(MenuStyle.button("Settings", Game.show_settings))
 	column.add_child(MenuStyle.button("About", Game.show_about))
 

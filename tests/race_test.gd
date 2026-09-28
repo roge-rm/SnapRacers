@@ -7,8 +7,8 @@ extends Node
 ## lets it run as fast as it can instead of in real time, with the physics
 ## still stepping 1/60 s at a time. (Speeding up Engine.time_scale makes the
 ## steps longer instead, and the suspension can't cope with that.) Pass a
-## track's file name after -- to race there instead of the Brickyard.
-##   tools/godot/Godot_v4.7.2-stable_linux.x86_64 --headless --fixed-fps 60 --path . res://tests/race_test.tscn -- loopworks
+## track's file name after -- to race there instead of Peach Pit.
+##   tools/godot/Godot_v4.7.2-stable_linux.x86_64 --headless --fixed-fps 60 --path . res://tests/race_test.tscn -- launchpad_loop
 
 const GIVE_UP := 260.0 # seconds of race time
 
@@ -29,7 +29,7 @@ func _ready() -> void:
 	var host := Node.new()
 	add_child(host)
 	Game.start(host, false)
-	var which := "brickyard"
+	var which := "peach_pit"
 	if not OS.get_cmdline_user_args().is_empty():
 		which = OS.get_cmdline_user_args()[0]
 	# One player, whatever was last picked, without saving over it.
@@ -77,7 +77,9 @@ func _physics_process(_delta: float) -> void:
 		var fewest: int = race.racers.map(func(r): return r.kart.studs_picked).min()
 		check(fewest >= 15, "every kart gets a fair share of studs (fewest %d)" % fewest)
 		var all_resets: int = resets.values().reduce(func(a, b): return a + b, 0)
-		check(all_resets <= 12, "not many resets across the whole field (%d)" % all_resets)
+		# The courses are narrow kart tracks with tight hairpins, so eight karts
+		# bump into each other now and then, most of all on the first lap.
+		check(all_resets <= 20, "not many resets across the whole field (%d)" % all_resets)
 		print("  gadgets used: %s" % [used])
 		print("  studs picked up: %s" % [race.racers.map(func(r): return "%s %d" % [r.name, r.kart.studs_picked])])
 		check(used.size() >= 2, "the AI uses more than one kind of gadget (%d kinds)" % used.size())
@@ -85,7 +87,8 @@ func _physics_process(_delta: float) -> void:
 		for racer in race.racers:
 			if racer.progress.finished:
 				fastest = minf(fastest, racer.progress.finish_time)
-		check(fastest < 150.0, "the winner takes under two and a half minutes (%.1f s)" % fastest)
+		var average := race.track.length * race.laps / fastest
+		check(average > 13.5, "the winner goes around at a good clip (%.1f s, %.1f m/s)" % [fastest, average])
 		print("All race checks passed." if failures == 0 else "%d race checks failed." % failures)
 		get_tree().quit(1 if failures > 0 else 0)
 		race = null
