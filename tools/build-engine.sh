@@ -55,12 +55,12 @@ if [ ! -x "$WORK/venv/bin/scons" ]; then
 fi
 
 # Every option the profile sets, as name=value for scons.
-OPTIONS=$(python3 -c '
+OPTIONS="$(python3 -c '
 import sys
 options = {}
 exec(open(sys.argv[1]).read(), options)
 print(" ".join("%s=%s" % (k, v) for k, v in options.items() if not k.startswith("_")))
-' "$PROFILE") lto=$LTO
+' "$PROFILE") lto=$LTO"
 echo "Engine options: $OPTIONS"
 
 for arch in "${ARCHES[@]}"; do

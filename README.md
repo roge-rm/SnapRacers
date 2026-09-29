@@ -137,7 +137,7 @@ Every course is made of track pieces snapped together on a grid, with hills, cre
 
 ## Installing
 
-There's no release yet. For now, build it yourself (see below) and sideload the APK.
+Download the APK from the [Releases](https://github.com/roge-rm/SnapRacers/releases) page and sideload it. It needs Android 8.1 or newer.
 
 ## Playing in a browser
 
