@@ -11,7 +11,7 @@ multiplayer. Race on the built in tracks or use the track editor to build your o
 
 The game is in a playable state now but there will be plenty of rough edges until they are tested out.
 
-Disclaimer: I am not a programmer and this was made using Claude Opus 5.0/5.5
+Disclaimer: I am not a great programmer and this was made using Claude Opus 5.0/5.5
 
 Cheers,<br>
 Dan
