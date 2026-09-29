@@ -101,6 +101,9 @@ func save(path := "") -> String:
 ## Every course you've saved, by path, in name order.
 static func saved() -> Array[String]:
 	var out: Array[String] = []
+	# Nothing's been saved yet, so there's no folder.
+	if not DirAccess.dir_exists_absolute(FOLDER):
+		return out
 	for file in DirAccess.get_files_at(FOLDER):
 		if file.ends_with(".json"):
 			out.append("%s/%s" % [FOLDER, file])

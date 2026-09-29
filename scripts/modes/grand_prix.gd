@@ -1,7 +1,9 @@
 class_name GrandPrix
 extends RefCounted
 
-## A Grand Prix, which is four races in a row on the courses of one cup.
+## A Grand Prix, which is the races of one cup in a row: four for the cups
+## that come with the game, and anything from 2 to 8 for a cup of your own
+## (see CupDesign).
 ##
 ## Everyone scores points for where they finish each race, and whoever has the
 ## most after the fourth race wins the cup. From the second race on, the grid
@@ -12,6 +14,7 @@ const CUPS := "res://data/grand_prix.json"
 ## Points for first place, second place and so on down to eighth.
 const POINTS := [15, 12, 10, 8, 6, 4, 2, 1]
 
+## The cup: { "id", "name", "paths": [each race's course file] }.
 var cup: Dictionary
 ## Which race of the four is next, counting from 0.
 var round := 0
@@ -40,23 +43,30 @@ static func cups() -> Array:
 	return _cups
 
 
+## One of the game's cups, with its courses' files.
 static func cup_by_id(id: String) -> Dictionary:
 	for c in cups():
 		if c.id == id:
-			return c
+			var out: Dictionary = c.duplicate()
+			out["paths"] = c.tracks.map(func(t): return Tracks.path_of(t))
+			return out
 	return {}
 
 
-func _init(cup_id := "") -> void:
-	cup = cup_by_id(cup_id)
+## A Grand Prix of one of the game's cups by its id, or of a cup like
+## CupDesign.to_cup() makes.
+func _init(which: Variant = "") -> void:
+	cup = which if which is Dictionary else cup_by_id(str(which))
 
 
+## Each race's course id, in order.
 func track_ids() -> Array:
-	return cup.get("tracks", [])
+	return cup.get("paths", []).map(func(p): return Tracks.id_of(p))
 
 
 func track_path() -> String:
-	return Tracks.path_of(track_ids()[mini(round, track_ids().size() - 1)])
+	var paths: Array = cup.get("paths", [])
+	return paths[mini(round, paths.size() - 1)]
 
 
 func finished() -> bool:

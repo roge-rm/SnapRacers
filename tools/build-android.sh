@@ -41,8 +41,15 @@ if [ ! -f "$BUILD/android/.build_version" ]; then
 fi
 
 # Our own cut down engine (see tools/build-engine.sh), when it's been built.
-# Phones get a release build of it, signed with the debug key so it can be
-# sideloaded. The emulator gets a debug build, so the debug switches work.
+# Phones get a release build of it, and the emulator gets a debug build, so
+# the debug switches work there.
+#
+# The phone build is signed with my release key, which lives beside the
+# project in ../Keys (the same layout as my other apps), so neither the
+# keystore nor its passwords can ever be committed. Without it, on a fresh
+# clone say, it's signed with the debug key instead so it can still be
+# sideloaded.
+SIGNING="../Keys/snapracers-keystore.properties"
 ABI=arm64-v8a
 KIND=release
 if [ "$PRESET" = "Android emulator" ]; then
@@ -55,9 +62,18 @@ if [ -f "$CUSTOM" ]; then
 	python3 tools/engine/swap_engine.py "$BUILD/android/build/libs/$KIND/godot-lib.template_$KIND.aar" "$ABI" "$CUSTOM"
 	if [ "$KIND" = release ]; then
 		EXPORT=--export-release
-		export GODOT_ANDROID_KEYSTORE_RELEASE_PATH="$HOME/.android/debug.keystore"
-		export GODOT_ANDROID_KEYSTORE_RELEASE_USER=androiddebugkey
-		export GODOT_ANDROID_KEYSTORE_RELEASE_PASSWORD=android
+		if [ -f "$SIGNING" ]; then
+			setting() { grep "^$1=" "$SIGNING" | head -1 | cut -d= -f2-; }
+			export GODOT_ANDROID_KEYSTORE_RELEASE_PATH="$(setting storeFile)"
+			export GODOT_ANDROID_KEYSTORE_RELEASE_USER="$(setting keyAlias)"
+			export GODOT_ANDROID_KEYSTORE_RELEASE_PASSWORD="$(setting keyPassword)"
+			echo "Signing with the release key"
+		else
+			export GODOT_ANDROID_KEYSTORE_RELEASE_PATH="$HOME/.android/debug.keystore"
+			export GODOT_ANDROID_KEYSTORE_RELEASE_USER=androiddebugkey
+			export GODOT_ANDROID_KEYSTORE_RELEASE_PASSWORD=android
+			echo "No release key in $SIGNING, so signing with the debug key"
+		fi
 	fi
 else
 	echo "Using the stock engine. Run tools/build-engine.sh for a much smaller APK."

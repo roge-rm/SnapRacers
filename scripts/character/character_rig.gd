@@ -88,6 +88,8 @@ static var _faces := {}
 ## pictures of them once they're done.
 static var _painting := {}
 static var _painted := {}
+## Faces waiting to be painted one a frame, where there are no threads.
+static var _one_at_a_time: Array[Callable] = []
 ## How many lively rigs are about. When the last one goes, anything still
 ## being painted is waited for, since Godot crashes on quitting with a task
 ## that's never been waited for.
@@ -215,8 +217,10 @@ func _exit_tree() -> void:
 	if _lively_count <= 0:
 		_lively_count = 0
 		for key in _painting:
-			WorkerThreadPool.wait_for_task_completion(_painting[key])
+			if _painting[key] != -1:
+				WorkerThreadPool.wait_for_task_completion(_painting[key])
 		_painting.clear()
+		_one_at_a_time.clear()
 		_painted.clear()
 
 
@@ -270,6 +274,8 @@ func busy_hands() -> bool:
 
 func _process(delta: float) -> void:
 	_time += delta
+	if not _one_at_a_time.is_empty():
+		_one_at_a_time.pop_front().call()
 	# Blinking every few seconds, unless they're pulling a face.
 	_mood_left -= delta
 	# A blink that starts now shows for at least a frame, however slow the
@@ -451,7 +457,8 @@ func _face_material(mood := "") -> StandardMaterial3D:
 	if mood != "":
 		if not _painted.has(key) or not _painting.has(key):
 			return _face_material()
-		WorkerThreadPool.wait_for_task_completion(_painting[key])
+		if _painting[key] != -1:
+			WorkerThreadPool.wait_for_task_completion(_painting[key])
 		_painting.erase(key)
 		_faces[key] = _new_face_material(_painted[key])
 		_painted.erase(key)
@@ -491,7 +498,13 @@ func _paint_moods() -> void:
 		if _faces.has(key) or _painting.has(key) or not FacePrint.changes(style, mood):
 			continue
 		var paint := _painter(key, style, design.skin(), design.style_of("facial_hair"), design.color_of("facial_hair"), mood)
-		_painting[key] = WorkerThreadPool.add_task(paint, false, "face " + mood)
+		# With no threads (a web page), a task would run straight away and
+		# hold everything up, so the faces are painted one a frame instead.
+		if not OS.has_feature("threads") and OS.has_feature("web"):
+			_painting[key] = -1
+			_one_at_a_time.append(paint)
+		else:
+			_painting[key] = WorkerThreadPool.add_task(paint, false, "face " + mood)
 
 
 ## What paints one face in a mood on another thread. It's made here, away

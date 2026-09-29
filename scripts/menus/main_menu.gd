@@ -17,9 +17,12 @@ func _ready() -> void:
 	column.add_child(MenuStyle.button("Track editor", Game.show_track_editor))
 	column.add_child(MenuStyle.button("Settings", Game.show_settings))
 	column.add_child(MenuStyle.button("About", Game.show_about))
-	MenuStyle.back_at_bottom(column, go_back, "Quit")
+	# A web page can't close itself, so there it has no Quit.
+	if not OS.has_feature("web"):
+		MenuStyle.back_at_bottom(column, go_back, "Quit")
 
 
 ## Back from the menu leaves the game, the way apps usually do.
 func go_back() -> void:
-	get_tree().quit()
+	if not OS.has_feature("web"):
+		get_tree().quit()

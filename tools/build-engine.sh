@@ -17,6 +17,7 @@
 #
 #   tools/build-engine.sh             arm64 for phones and x86_64 for the emulator
 #   tools/build-engine.sh arm64       just one
+#   tools/build-engine.sh web         the engine for the web page (tools/build-web.sh)
 #   tools/build-engine.sh --release   fully optimised, for a release
 set -euo pipefail
 
@@ -63,6 +64,21 @@ print(" ".join("%s=%s" % (k, v) for k, v in options.items() if not k.startswith(
 echo "Engine options: $OPTIONS"
 
 for arch in "${ARCHES[@]}"; do
+	# The web page's engine, without threads, so it runs on any web host (a
+	# threaded one needs the host to send special headers, which GitLab
+	# Pages can't). It needs Emscripten, which is looked for in the usual
+	# place.
+	if [ "$arch" = web ]; then
+		EMSDK="${EMSDK:-$HOME/.local/share/emsdk}"
+		# shellcheck disable=SC1091
+		source "$EMSDK/emsdk_env.sh" > /dev/null 2>&1
+		echo "Building the engine for the web page"
+		(cd "$SOURCE" && "$WORK/venv/bin/scons" platform=web target=template_release threads=no $OPTIONS cache_path="$CACHE" -j"$(nproc)")
+		mkdir -p "$OUT/web"
+		cp "$SOURCE/bin/godot.web.template_release.wasm32.nothreads.zip" "$OUT/web/web_nothreads_release.zip"
+		ls -l "$OUT/web/web_nothreads_release.zip"
+		continue
+	fi
 	# Phones get the release engine. The emulator gets a debug one, so the
 	# game's debug switches (like the autopilot) work there.
 	case "$arch" in

@@ -34,6 +34,9 @@ var steering := "stick":
 		steering = value if STEERING.has(value) else "stick"
 		_stick_finger = -1
 		queue_redraw()
+## Whether they hide while a keyboard or controller is being used. Only
+## where there's a touch screen to bring them back with.
+var stand_aside := DisplayServer.is_touchscreen_available()
 var steer := 0.0
 var throttle := 0.0
 var brake := 0.0
@@ -168,6 +171,17 @@ func _button_at(pos: Vector2) -> String:
 
 
 func _input(event: InputEvent) -> void:
+	# On something with a touch screen and a keyboard or controller too (a
+	# laptop, or a phone with a controller), they step aside while you use
+	# the keys or the controller, and come back when you touch the screen.
+	if stand_aside:
+		if (event is InputEventKey or event is InputEventJoypadButton) and event.pressed and visible:
+			visible = false
+			_fingers.clear()
+			_stick_finger = -1
+			_update()
+		elif event is InputEventScreenTouch and not visible:
+			visible = true
 	if not visible:
 		return
 	if event is InputEventScreenTouch:

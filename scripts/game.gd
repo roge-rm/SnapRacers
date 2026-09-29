@@ -103,6 +103,11 @@ func show_cups() -> void:
 	_swap(CupPicker.new())
 
 
+## Make a cup of your own, or change the one in this file.
+func show_cup_builder(path := "") -> void:
+	_swap(CupBuilder.new(path))
+
+
 ## The course list for time trials, practice or a race against the AI,
 ## on your own or (from the Multiplayer menu) for two.
 func show_tracks(for_mode := MODE_RACE, alone := false) -> void:
@@ -115,9 +120,12 @@ func show_kart_picker(go: Callable, back: Callable, ai := false) -> void:
 	_swap(KartPicker.new(go, back, ai))
 
 
-func start_grand_prix(cup_id: String) -> void:
+## Starts a Grand Prix, of one of the game's cups by its id, or of a cup of
+## your own (as CupDesign.to_cup() makes it).
+func start_grand_prix(which: Variant) -> void:
 	mode = MODE_GRAND_PRIX
-	grand_prix = GrandPrix.new(cup_id)
+	came_from_editor = false
+	grand_prix = GrandPrix.new(which)
 	# Everyone keeps the same kart for the whole cup.
 	grand_prix.karts = draw_karts(ai_driver_keys())
 	grand_prix.ranks = draw_ranks(ai_driver_keys())

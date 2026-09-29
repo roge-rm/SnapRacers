@@ -54,6 +54,7 @@ func _ready() -> void:
 	await _difficulty()
 	await _time_trial()
 	await _practice()
+	await _your_cup()
 	Records.use_file(Records.FILE)
 	print("All mode checks passed." if failures == 0 else "%d mode checks failed." % failures)
 	get_tree().quit(1 if failures > 0 else 0)
@@ -205,3 +206,47 @@ func _practice() -> void:
 	await frames(2)
 	var picker := screen() as TrackPicker
 	check(picker != null and picker.mode == Game.MODE_PRACTICE, "leaving goes back to the practice course list")
+
+
+## A cup of your own: made on the Make a cup page from one of the game's
+## courses and one you've built, then raced like any other cup.
+func _your_cup() -> void:
+	var built := CourseDesign.starter()
+	built.name = "Modes Test Course"
+	built.pieces.append_array([{"type": "straight", "length": 2}, {"type": "curve", "turn": "right", "size": 2}, {"type": "straight", "length": 3}])
+	built.pieces.append_array(built.close_up())
+	var course_path := built.with_start_on_longest_straight().save()
+
+	Game.show_cup_builder()
+	await frames(2)
+	var builder: CupBuilder = screen()
+	check(builder != null and builder._save.disabled, "Make a cup starts empty, and can't be saved yet")
+	builder._name.text = "Modes Test Cup"
+	builder._name.text_changed.emit("Modes Test Cup")
+	var courses := builder.find_children("*", "Button", true, false).filter(func(b): return b.has_meta("track"))
+	courses.filter(func(b): return b.get_meta("track") == Tracks.path_of("peach_pit"))[0].pressed.emit()
+	courses.filter(func(b): return b.get_meta("track") == course_path)[0].pressed.emit()
+	check(builder.cup.races.size() == 2 and not builder._save.disabled, "adding two races makes it ready to save")
+	builder.save()
+	await frames(2)
+	var picker: CupPicker = screen()
+	var path := CupDesign.path_for("Modes Test Cup")
+	check(FileAccess.file_exists(path), "it saves as a cup of your own")
+	var listed := picker.find_children("*", "Button", true, false).filter(func(b): return b.get_meta("cup", "") == CupDesign.id_of(path))
+	check(listed.size() == 1, "and it's in the Grand Prix list under your cups")
+
+	# Racing it.
+	var cup := CupDesign.load_file(path)
+	Game.start_grand_prix(cup.to_cup(CupDesign.id_of(path)))
+	var race: Race = await wait_for(Race)
+	check(race != null and race.track.name == "Peach Pit", "it starts on its first course")
+	check(Game.grand_prix.track_ids().size() == 2, "and it's two races long")
+	Game.grand_prix.add_results(race.standings().map(func(r): return r.name))
+	check(not Game.grand_prix.finished() and TrackPath.load_file(Game.grand_prix.track_path()).name == "Modes Test Course", "the second race is on the course you built")
+	Game.grand_prix.add_results(race.standings().map(func(r): return r.name))
+	check(Game.grand_prix.finished(), "and after that the cup's done")
+	Game.grand_prix = null
+	Game.show_cups()
+	await frames(2)
+	DirAccess.remove_absolute(path)
+	DirAccess.remove_absolute(course_path)

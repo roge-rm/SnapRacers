@@ -105,6 +105,7 @@ Saving moves the start line onto your longest straight, where the grid has room,
 ### Racing
 
 - **Grand Prix:** four cups of four races each, for points and trophies. From the second race on, the leader starts at the back.
+- **Your own cups:** put 2 to 8 races together from any courses, the game's and your own, and race them as a Grand Prix with points and trophies. A cup is one file with its courses in it, so it can be shared.
 - **Single race:** one race against the AI on any course, including your own.
 - **Time trial:** race the clock on any of the sixteen courses, with your best times kept.
 - **Practice:** drive any course on your own for as long as you like.
@@ -138,6 +139,10 @@ Every course is made of track pieces snapped together on a grid, with hills, cre
 
 There's no release yet. For now, build it yourself (see below) and sideload the APK.
 
+## Playing in a browser
+
+You can play it in a browser too, at [roge-rm.gitlab.io/play/snapracers](https://roge-rm.gitlab.io/play/snapracers/). It's the same game, with the garage, the driver screen, the track editor and every kind of race, and your karts, drivers, courses and records are kept in the browser. Two players can share a keyboard or plug in controllers for split screen. It wants a browser with WebGL 2 (any recent Chrome, Edge, Firefox or Safari).
+
 ## Building
 
 SnapRacers is made with the Godot Engine 4.7.2, using the Compatibility renderer and Jolt physics. The build scripts expect a self-contained copy of Godot in `tools/godot`, which isn't in the repo:
@@ -151,7 +156,14 @@ tools/build-engine.sh             # our own cut down engine (once, and again for
 tools/build-engine.sh --release   # the same, fully optimised, for a release (much slower)
 tools/build-android.sh            # the phone APK (arm64)
 tools/build-android.sh --install  # the emulator APK (x86_64), installed on the running emulator
+tools/build-engine.sh web         # our own cut down engine for the web page
+tools/build-web.sh                # the web page, in /tmp/snapracers-build/web
+tools/build-web.sh --serve        # the same, served at http://localhost:8060 to try it
 ```
+
+The phone APK is signed with my release key, which lives outside the repository beside the project in `../Keys`, so anywhere else it's signed with the Android debug key instead.
+
+The web page is built without threads, so it runs on any web host, since a threaded page needs the host to send special headers. Its engine needs [Emscripten](https://emscripten.org), which the build looks for in `~/.local/share/emsdk` (or wherever `EMSDK` says).
 
 `tools/build-engine.sh` builds Godot from source with only what the game uses (the list is in `tools/engine/profile.py`), which makes the APK a lot smaller. It keeps Ogg Vorbis for the music. It needs the Android NDK version Godot asks for and `uv` for installing scons. The finished engine goes in `tools/godot/custom`, and the Android build puts it into the APK. Without it, the build uses the stock engine.
 
