@@ -3,9 +3,12 @@ extends Node3D
 
 ## Dresses a track with everything around it, built out of bricks.
 ##
-## Along the road there are tire stacks on the outside of the corners, a
-## grandstand and a pit building on the start straight, billboards on the
-## straights, flags at the start and marshal posts at the corners. Around it
+## Like a real kart track, the road runs out onto grass on both sides, and
+## nothing solid is put within RUNOFF of it. Where two stretches of road run
+## close, a line of soft tire stacks goes halfway across the grass between
+## them. Past the grass there's a grandstand and a pit building on the start
+## straight, billboards on the straights, flags at the start and marshal posts
+## at the corners. Around it
 ## each course has a theme (a peach farm, a coal mine, a desert city, a
 ## castle) with its own landmarks, trees and buildings, and its own colours
 ## for the ground, curbs, walls and sky.
@@ -18,6 +21,15 @@ extends Node3D
 const CELL := 4.0 # metres, for the map of how far the ground is from the road
 const REACH := 80.0 # how far out from the road scenery goes
 const MAX_FILLERS := 280
+## Grass between the edge of the road and anything you could hit.
+const RUNOFF := 10.0
+## Two stretches of road closer than this (middle to middle) get a line of
+## tire stacks between them.
+const BARRIER_REACH := 2.0 * TrackPiece.TILE
+## How far apart the stacks in a line are, and how far apart the spots
+## between the roads are worked out.
+const STACK_EVERY := 0.8
+const BARRIER_STEP := 4.0
 
 ## Each theme: ground colour, curb and wall colours, the sky, its landmarks
 ## (placed first, biggest first) and its fillers with how often each turns
@@ -127,6 +139,9 @@ var _rows := 0
 var _dist := PackedFloat32Array()
 var _near := PackedVector2Array() # the nearest road point to each cell
 var _road_clear := 10.0
+## How high the ground is at a spot (x, z), for hilly courses. It's flat
+## unless the track builder says otherwise.
+var ground: Callable = func(_x: float, _z: float) -> float: return 0.0
 var _hash := {} # 16 m cell -> track sample indices
 
 
@@ -141,7 +156,7 @@ func _init(path: TrackPath, theme_id: String) -> void:
 
 
 func _ready() -> void:
-	_road_clear = track.width * 0.5 + TrackPath.KERB + TrackBuilder.WALL_THICKNESS + 1.5
+	_road_clear = track.width * 0.5 + TrackPath.KERB + RUNOFF
 	_map_distances()
 	_hash_track()
 	if not only_landmarks:
@@ -164,7 +179,7 @@ func _ready() -> void:
 	# the road itself may be, or karts would pile into it (the walls keep
 	# them off everything else).
 	var road_edge := track.width * 0.5 + TrackPath.KERB
-	_kit.solids = _kit.solids.filter(func(s): return _distance_at(s[0].origin) < 40.0 and not _near_other_road(s[0].origin, road_edge, 0, 0.0))
+	_kit.solids = _kit.solids.filter(func(s): return _distance_at(s[0].origin) < 60.0 and not _near_other_road(s[0].origin, road_edge, 0, 0.0))
 	_kit.build(self)
 
 
@@ -287,7 +302,13 @@ static func _facing_for(dir: Vector3) -> int:
 	return 0 if dir.z > 0.0 else 2
 
 
+## The spot moved up or down onto the ground.
+func _grounded(at: Vector3) -> Vector3:
+	return Vector3(at.x, ground.call(at.x, at.z), at.z)
+
+
 func _add(prop: String, at: Vector3, facing := -1) -> void:
+	at = _grounded(at)
 	var f := facing if facing >= 0 else _facing_road(at)
 	Props.add(_kit, prop, at, _rng, f)
 	_placed.append([at, Props.ROOM.get(prop, 3.0)])
@@ -296,10 +317,9 @@ func _add(prop: String, at: Vector3, facing := -1) -> void:
 # Along the road.
 
 func _trackside() -> void:
-	var edge := track.width * 0.5 + TrackPath.KERB + TrackBuilder.WALL_THICKNESS
+	_tire_lines()
+	var edge := track.width * 0.5 + TrackPath.KERB + RUNOFF
 	_start_area(edge)
-	var tire_top := Color(theme.curbs[0])
-	var last_stack := -100.0
 	var straight_run := 0.0
 	var board_side := 1.0
 	var boards := [Color(theme.curbs[0]), Props.BLUE, Props.YELLOW, Props.GREEN, Props.WHITE]
@@ -315,20 +335,13 @@ func _trackside() -> void:
 		var flat_ground := p.y < 0.6 and track.ups[k].y > 0.95 and track.solids[k] and not track.stickies[k]
 		if absf(turn) > 0.2 and flat_ground:
 			straight_run = 0.0
-			# Tire stacks around the outside of the corner.
-			if d - last_stack > 2.2:
-				# The outside of a left turn is on the right, and the other way
-				# around.
-				var outside := signf(turn)
-				var spot := p + track.rights[k] * outside * (edge + 0.7)
-				spot.y = 0.0
-				if not _near_other_road(spot, edge + 0.4, k, 25.0):
-					Props.tire_stack(_kit, spot, tire_top if int(d / 2.2) % 2 == 0 else Props.WHITE)
-					last_stack = d
-				if int(d) % 97 == 0:
+			# The outside of a left turn is on the right, and the other way
+			# around.
+			var outside := signf(turn)
+			if int(d) % 97 == 0:
 					corners += 1
 					var post := p + track.rights[k] * outside * (edge + 4.0)
-					post.y = 0.0
+					post = _grounded(post)
 					if _free(post, 1.5) and not _near_other_road(post, edge + 3.0, k, 25.0):
 						Props.marshal_post(_kit, post, _facing_for(p - post))
 						_placed.append([post, 1.5])
@@ -336,11 +349,88 @@ func _trackside() -> void:
 			straight_run += 1.0
 			if straight_run > 30.0 and int(straight_run) % 40 == 0:
 				var spot := p + track.rights[k] * board_side * (edge + 3.5)
-				spot.y = 0.0
+				spot = _grounded(spot)
 				if _free(spot, 3.2) and not _near_other_road(spot, edge + 3.0, k, 25.0):
 					Props.billboard(_kit, spot, _facing_for(p - spot), boards[_rng.randi() % boards.size()])
 					_placed.append([spot, 3.2])
 				board_side = -board_side
+
+
+## Lines of soft tire stacks halfway across the grass wherever two stretches
+## of road at the same level run close together, like a real kart track, so
+## nobody cuts across from one to the other.
+##
+## Every few metres it looks straight out to each side for other road, a bit
+## of the lap well away from this one. Each gap is only done from the stretch
+## that comes first around the lap, so it's not lined twice.
+func _tire_lines() -> void:
+	var edge := track.width * 0.5 + TrackPath.KERB
+	var count := track.points.size()
+	var colours := [Color(theme.curbs[0]), Props.WHITE]
+	for side in [-1.0, 1.0]:
+		# The spot between the roads at each step, or INF where there's none.
+		var spots: Array[Vector3] = []
+		var next := 0.0
+		for k in count:
+			if track.distances[k] < next:
+				continue
+			next = track.distances[k] + BARRIER_STEP
+			spots.append(_between(k, side, edge))
+		var stacks := 0
+		for n in spots.size():
+			var a := spots[n]
+			var b := spots[(n + 1) % spots.size()]
+			if a == Vector3.INF or b == Vector3.INF or a.distance_to(b) > BARRIER_STEP * 2.0:
+				continue
+			var steps := maxi(1, int(a.distance_to(b) / STACK_EVERY))
+			for i in steps:
+				var at := a.lerp(b, float(i) / steps)
+				Props.barrier_stack(_kit, at, colours[(stacks / 3) % 2])
+				stacks += 1
+			_placed.append([a, 2.0])
+
+
+## The spot halfway across the grass between the road at sample `k` and other
+## road out to one side (-1 left, 1 right), or INF if there's none close.
+func _between(k: int, side: float, edge: float) -> Vector3:
+	var p := track.points[k]
+	if not track.solids[k] or track.stickies[k] or p.y > TrackBuilder.RAISED or track.ups[k].y < 0.985:
+		return Vector3.INF
+	var fwd := Vector3(track.forwards[k].x, 0.0, track.forwards[k].z).normalized()
+	var right := Vector3(track.rights[k].x, 0.0, track.rights[k].z).normalized() * side
+	var nearest := INF
+	var partner := -1
+	var looked := {}
+	var reach := 0.0
+	while reach <= BARRIER_REACH:
+		var probe := p + right * reach
+		var key := Vector2i(floori(probe.x / 16.0), floori(probe.z / 16.0))
+		reach += 8.0
+		if looked.has(key):
+			continue
+		looked[key] = true
+		for j in _hash.get(key, []):
+			var along := absf(track.distances[j] - track.distances[k])
+			if minf(along, track.length - along) < BARRIER_REACH * 1.5:
+				continue
+			var v := track.points[j] - p
+			if absf(v.y) > 2.0 or absf(v.dot(fwd)) > 6.0:
+				continue
+			var across := v.dot(right)
+			if across > edge and across < nearest:
+				nearest = across
+				partner = j
+	if partner < 0 or nearest > BARRIER_REACH or track.distances[partner] < track.distances[k]:
+		return Vector3.INF
+	var at := p + right * nearest * 0.5
+	at = _grounded(at)
+	# Not on any road (a crossing, say), or on a cut bend's dirt.
+	if _near_other_road(at, edge + 1.0, k, 0.0):
+		return Vector3.INF
+	for spot in keep_clear:
+		if Vector2(spot[0].x - at.x, spot[0].z - at.z).length() < spot[1]:
+			return Vector3.INF
+	return at
 
 
 ## Something nasty in the gap of every jump: lava by the volcano, and water
@@ -354,7 +444,7 @@ func _under_jumps() -> void:
 		var flat_forward := Vector3(track.forwards[k].x, 0.0, track.forwards[k].z).normalized()
 		var basis := Basis.looking_at(flat_forward, Vector3.UP)
 		var size := Vector3(track.width + 6.0, 0.08, 1.2)
-		var at := Vector3(p.x, 0.04, p.z)
+		var at := _grounded(p) + Vector3.UP * 0.04
 		_kit.turned_box(at, size + Vector3(1.0, 0.0, 0.0), basis, Props.BLACK if lava else Props.TAN, SceneryKit.SMOOTH)
 		_kit.turned_box(at + Vector3.UP * 0.02, size, basis, Props.LAVA if lava else Props.WATER, SceneryKit.GLOW if lava else SceneryKit.WATER)
 		_placed.append([at, 3.0])
@@ -378,7 +468,7 @@ func _start_area(edge: float) -> void:
 		if built == 2:
 			break
 		var front: Vector3 = frame.origin + right * side * (edge + 3.0) - fwd * 4.0
-		front.y = 0.0
+		front = _grounded(front)
 		if not _clear_of_other_road(front, fwd, -right * side, 32.0, 8.0, start_k):
 			continue
 		if built == 0:
@@ -390,7 +480,7 @@ func _start_area(edge: float) -> void:
 	for k in 4:
 		for side in [-1.0, 1.0]:
 			var at: Vector3 = frame.origin + fwd * (18.0 + k * 6.0) + right * side * (edge + 1.5)
-			at.y = 0.0
+			at = _grounded(at)
 			# The start straight can bend soon after the line, so check all the
 			# road, not just other bits of it.
 			if not _near_other_road(at, edge + 1.0, start_k, 0.0):
@@ -402,7 +492,7 @@ func _start_area(edge: float) -> void:
 ## every bit of road, including the start straight it faces (which isn't
 ## always straight all the way along).
 func _clear_of_other_road(front: Vector3, along: Vector3, back: Vector3, length: float, depth: float, own: int) -> bool:
-	var edge := track.width * 0.5 + TrackPath.KERB + TrackBuilder.WALL_THICKNESS + 0.5
+	var edge := track.width * 0.5 + TrackPath.KERB + RUNOFF
 	var x := -length * 0.5
 	while x <= length * 0.5:
 		for d in [0.0, depth * 0.5, depth]:

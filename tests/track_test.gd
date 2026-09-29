@@ -34,7 +34,9 @@ func _initialize() -> void:
 		check(track.closes, "%s comes back around to the start" % track.name)
 		var clashes := track.clashes()
 		check(clashes.is_empty(), "%s has no road running into other road %s" % [track.name, clashes.slice(0, 3)])
-		check(track.length > 600.0 and track.length < 1100.0, "%s is a sensible length (%.0f m)" % [track.name, track.length])
+		check(track.length > 1400.0 and track.length < 2100.0, "%s is kart sized, 1.4 to 2 km a lap (%.0f m)" % [track.name, track.length])
+		var close := _closest_stretches(track)
+		check(close > TrackPiece.TILE - 1.0, "%s keeps its stretches of road apart, for grass between them (%.0f m middle to middle)" % [track.name, close])
 		check(Scenery.THEMES.has(track.theme), "%s has a theme we know (%s)" % [track.name, track.theme])
 		check(track.inspired_by != "" and track.about != "", "%s says what it's based on" % track.name)
 		var stuck := track.stickies.count(true)
@@ -73,7 +75,7 @@ func _initialize() -> void:
 	# The loop piece ends on the grid, one tile across and three along.
 	var loop := TrackPiece.from_spec({ "type": "loop", "side": "right" })
 	var out := loop.exit().origin
-	check(out.distance_to(Vector3(16.0, 0.0, -48.0)) < 0.01, "a loop ends on the grid (%s)" % out)
+	check(out.distance_to(Vector3(TrackPiece.TILE, 0.0, -3.0 * TrackPiece.TILE)) < 0.01, "a loop ends on the grid (%s)" % out)
 	check(absf(loop.point(0.999).y) < 0.05, "and back down at road level (%.3f m)" % loop.point(0.999).y)
 	var top := 0.0
 	for i in 101:
@@ -118,3 +120,24 @@ func _initialize() -> void:
 
 	print("All track checks passed." if failures == 0 else "%d track checks failed." % failures)
 	quit(1 if failures > 0 else 0)
+
+
+## How close two stretches of road at ground level come, middle to middle,
+## leaving out the two sides of a loop and anything on a bridge above or
+## below.
+func _closest_stretches(track: TrackPath) -> float:
+	var nearest := INF
+	var count := track.points.size()
+	for i in range(0, count, 4):
+		if track.points[i].y > 0.5 or track.pieces[track.piece_of[i]].type == "loop":
+			continue
+		for j in range(i + 4, count, 4):
+			var along := track.distances[j] - track.distances[i]
+			if minf(along, track.length - along) < TrackPiece.TILE * 3.0:
+				continue
+			if track.points[j].y > 0.5 or track.pieces[track.piece_of[j]].type == "loop":
+				continue
+			var a := track.points[i]
+			var b := track.points[j]
+			nearest = minf(nearest, Vector2(a.x - b.x, a.z - b.z).length())
+	return nearest

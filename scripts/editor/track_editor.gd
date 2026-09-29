@@ -17,8 +17,8 @@ extends Node3D
 const CURRENT := "user://current_course.json"
 ## How long after the last change the full course gets built, in seconds.
 const IDLE_BUILD := 0.6
-const MIN_DISTANCE := 25.0
-const MAX_DISTANCE := 900.0
+const MIN_DISTANCE := 50.0
+const MAX_DISTANCE := 1800.0
 const ORBIT_SPEED := 0.006
 const DRAG_START := 12.0
 const GRAB_RADIUS := 90.0
@@ -47,7 +47,7 @@ var _redo: Array[Dictionary] = []
 var _camera: Camera3D
 var _yaw := 0.0
 var _pitch := deg_to_rad(-55.0)
-var _distance := 200.0
+var _distance := 400.0
 var _focus := Vector3.ZERO
 var _focus_goal := Vector3.ZERO
 var _following := false
@@ -117,7 +117,7 @@ func _ready() -> void:
 	# The course is seen from well back, so the near plane can be too. Right
 	# up close it made the grass flicker through the road from up here.
 	_camera.near = 1.0
-	_camera.far = 3000.0
+	_camera.far = 6000.0
 	add_child(_camera)
 	_camera.make_current()
 
@@ -151,6 +151,10 @@ func _ready() -> void:
 		_remember()
 		course.theme = id
 		_refresh())
+	ui.hills_chosen.connect(func(hills: float) -> void:
+		_remember()
+		course.hills = hills
+		_refresh())
 	ui.close_up_pressed.connect(close_up)
 	ui.delete_pressed.connect(delete_selected)
 	ui.add_after_pressed.connect(func() -> void:
@@ -158,7 +162,7 @@ func _ready() -> void:
 		ui.set_hint("New pieces go in after piece %d" % (selected + 1))
 		_refresh())
 	ui.surface_chosen.connect(func(surface: String) -> void: _set_on_selected("surface", surface, "asphalt"))
-	ui.edges_chosen.connect(func(edges: String) -> void: _set_on_selected("edges", edges, "walls"))
+	ui.edges_chosen.connect(func(edges: String) -> void: _set_on_selected("edges", edges, "auto"))
 	ui.deselect_pressed.connect(_select.bind(-1))
 	ui.turn_landmark_pressed.connect(func() -> void:
 		if not _holding.is_empty():

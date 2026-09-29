@@ -12,12 +12,20 @@ Writes the result in design.py's short hand.
 import json, math, os, sys
 import numpy as np
 
-TILE = 16.0
+TILE = 32.0
+WIDTH = 13
 here = os.path.dirname(os.path.abspath(__file__))
 name, scale, out = sys.argv[1], float(sys.argv[2]), sys.argv[3]
 BEAM = int(sys.argv[4]) if len(sys.argv) > 4 else 400
 REVERSE = len(sys.argv) > 5 and sys.argv[5] == "reverse"
-CLEAR = 14.0  # centre lines of two bits of road must be at least this far apart
+# The middles of two bits of road must be at least this far apart, which
+# leaves grass runoff and room for a line of tire stacks between them.
+CLEAR = TILE
+# How far the road may stray from the real line.
+STRAY = 1.4 * TILE
+# How far along the road laid so far counts as what it's joining onto, and
+# can be close.
+JOINING = int(CLEAR * 2.0 / 2.0)
 
 
 def smoothstep(e0, e1, x):
@@ -160,25 +168,25 @@ def step(b, piece):
     # Distance from each new point to the real line near where we are.
     dd = np.linalg.norm(world[:, None, :] - ref[None, :, :], axis=2)
     near = dd.min(axis=1)
-    if near.max() > 22:
+    if near.max() > STRAY:
         return None
     s_end = lo + int(np.argmin(dd[-1]))
     if s_end <= b.s + length * 0.3:
         return None
     # Don't run into road already laid (leaving out the last bit, which it
     # joins onto, and the start when it's coming home).
-    if len(b.pts) > 12:
-        old = b.pts[:-12]
-        olds = b.ss[:-12]
-        if s_end > total - 40:
-            keep = olds > 30
+    if len(b.pts) > JOINING:
+        old = b.pts[:-JOINING]
+        olds = b.ss[:-JOINING]
+        if s_end > total - CLEAR * 2.5:
+            keep = olds > CLEAR * 2.0
             old = old[keep]
         if len(old):
             dd2 = np.linalg.norm(world[:, None, :] - old[None, :, :], axis=2)
             if CROSSINGS:
                 ok = np.ones(len(world), dtype=bool)
                 for c in CROSSINGS:
-                    ok &= np.linalg.norm(world - c, axis=1) > 26.0
+                    ok &= np.linalg.norm(world - c, axis=1) > CLEAR * 1.6
                 dd2 = dd2[ok]
             if dd2.size and dd2.min() < CLEAR:
                 return None
@@ -211,7 +219,7 @@ for depth in range(160):
             nb = step(b, piece)
             if nb is None:
                 continue
-            if nb.s >= total - 48 and abs(nb.x) < 0.1 and abs(nb.y) < 0.1 and nb.hy > 0.99:
+            if nb.s >= total - 3 * TILE and abs(nb.x) < 0.1 and abs(nb.y) < 0.1 and nb.hy > 0.99:
                 done.append(nb)
                 continue
             if nb.s < total + 10:
@@ -233,5 +241,5 @@ if not done:
 best = min(done, key=lambda b: b.cost)
 print("best: %d pieces, cost %.0f" % (len(best.tokens), best.cost))
 tokens = " ".join(best.tokens)
-open(out, "w").write("%s\nwidth=10 laps=3\n%s\n" % (name, tokens))
+open(out, "w").write("%s\nwidth=%d laps=3\n%s\n" % (name, WIDTH, tokens))
 print(tokens)

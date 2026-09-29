@@ -1,22 +1,22 @@
 {
 	"name": "Slingshot",
-	"about": "A dragster with a V8 in the back. Nothing is quicker in a straight line, and nothing turns worse.",
+	"about": "A dragster with a V8 in the back and big slicks right at the tail. It's heavy and nothing turns worse, but it's quick down a straight.",
 	"parts": [
 		{"id": "plate_6x10", "at": [7, 2, 4], "rot": 0, "color": "#1b2a34"},
 		{"id": "plate_6x10", "at": [7, 2, 14], "rot": 0, "color": "#1b2a34"},
 		{"id": "wheel_tiny", "at": [6, 0, 4], "rot": 0},
 		{"id": "wheel_tiny", "at": [13, 0, 4], "rot": 0},
-		{"id": "wheel_slick", "at": [5, 0, 20], "rot": 0},
-		{"id": "wheel_slick", "at": [13, 0, 20], "rot": 0},
+		{"id": "wheel_big_slick", "at": [5, 0, 22], "rot": 0},
+		{"id": "wheel_big_slick", "at": [13, 0, 22], "rot": 0},
 		{"id": "nose_2x2", "at": [9, 3, 4], "rot": 0, "color": "#da8540"},
 		{"id": "slope_long_2x4", "at": [7, 3, 4], "rot": 0, "color": "#da8540"},
 		{"id": "slope_long_2x4", "at": [11, 3, 4], "rot": 0, "color": "#da8540"},
 		{"id": "brick_2x4", "at": [7, 3, 12], "rot": 0, "color": "#da8540"},
 		{"id": "brick_2x4", "at": [11, 3, 12], "rot": 0, "color": "#da8540"},
 		{"id": "steering_wheel", "at": [9, 3, 15], "rot": 0},
-		{"id": "bucket_seat", "at": [9, 3, 16], "rot": 0},
+		{"id": "racing_seat", "at": [9, 3, 16], "rot": 0},
 		{"id": "engine_v8", "at": [9, 3, 19], "rot": 0},
-		{"id": "turbo", "at": [7, 3, 19], "rot": 0},
+		{"id": "big_turbo", "at": [7, 3, 19], "rot": 0},
 		{"id": "rear_wing_6x2", "at": [7, 6, 21], "rot": 0, "color": "#da8540"}
 	]
 }

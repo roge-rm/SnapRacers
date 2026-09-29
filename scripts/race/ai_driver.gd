@@ -96,8 +96,11 @@ func _physics_process(delta: float) -> void:
 	_judge_bends()
 	var grip := kart.stats.cornering() * KartStats.gravity() * skill * minf(1.0, 0.6 + 0.4 * kart.stats.control) * _misjudge
 	var allowed := INF
+	# Far enough ahead to stop for any bend from the speed it's doing, and a
+	# little more, which matters now karts go well over 100 km/h.
 	var ahead := 4.0
-	while ahead <= 64.0:
+	var reach := maxf(64.0, speed * speed / (2.0 * BRAKING) + 24.0)
+	while ahead <= reach:
 		var bend := track.bend_at(offset + ahead)
 		if bend > 0.002:
 			var corner := sqrt(grip / bend)
@@ -115,6 +118,12 @@ func _physics_process(delta: float) -> void:
 		controls.throttle = 0.0
 		controls.brake = 1.0
 		controls.steer = -controls.steer
+	# Easing off going into a loop or up it is how you fall off the top, so it
+	# keeps its foot down until it's back on the flat, and brakes for the next
+	# bend after that.
+	elif _looping():
+		controls.throttle = 1.0
+		controls.brake = 0.0
 	# In a tight bend it holds its speed down firmly. Out on the road it lets
 	# it run a little over before braking.
 	elif speed > allowed + (0.4 if here > 0.05 else 1.5):
@@ -128,7 +137,17 @@ func _physics_process(delta: float) -> void:
 		controls.brake = 0.0
 
 	_stuck_check(delta, speed, up)
-	kart.push = pace * Difficulty.push_for(behind, catch_up, ease_off)
+	kart.push = pace * Difficulty.push_for(behind, catch_up, ease_off, track.length)
+
+
+## Whether it's on the way around a loop, or about to start up one.
+func _looping() -> bool:
+	var ahead := 0.0
+	while ahead <= 12.0:
+		if track.piece_type_at(offset + ahead) == "loop" and track.up_at(offset + ahead).y < 0.9:
+			return true
+		ahead += 4.0
+	return false
 
 
 ## As each bend comes up, it might get it wrong (see `mistakes`). Going in
@@ -153,7 +172,8 @@ func _dodge() -> float:
 	var half_road := track.width * 0.5 - 1.5
 	var here := (kart.global_position - track.point_at(offset)).dot(track.right_at(offset))
 	for other in others:
-		if other == kart:
+		# A kart can go mid-race, like when someone online leaves.
+		if other == kart or not is_instance_valid(other):
 			continue
 		var gap := other.global_position - kart.global_position
 		var ahead := gap.dot(facing)
@@ -212,7 +232,7 @@ func _worth_using(kind: String, speed: float) -> bool:
 			return true
 		"cannon":
 			return _nearest(3.0, 28.0, 2.2) != null
-		"dropper":
+		"dropper", "oil":
 			return _nearest(-14.0, -2.0, 4.0) != null
 		"shield":
 			return _nearest(-5.0, 5.0, 4.0) != null
@@ -230,7 +250,8 @@ func _nearest(from: float, to: float, side_room: float) -> Kart:
 	var facing := -kart.global_basis.z
 	var right := kart.global_basis.x
 	for other in others:
-		if other == kart:
+		# A kart can go mid-race, like when someone online leaves.
+		if other == kart or not is_instance_valid(other):
 			continue
 		var gap := other.global_position - kart.global_position
 		var ahead := gap.dot(facing)

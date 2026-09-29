@@ -14,14 +14,16 @@ extends RefCounted
 
 const FOLDER := "user://courses"
 ## The shortest lap worth racing, in metres.
-const SHORTEST := 300.0
+const SHORTEST := 600.0
 ## Tiles of straight road the grid needs behind the start line.
 const GRID_TILES := 2
 
 var name := "My course"
 var theme := "orchard"
 var laps := 3
-var width := 10.0
+var width := TrackPath.WIDTH
+## How much the ground rises and falls around it (see TrackPath.hills).
+var hills := 0.0
 ## Who made it, from Settings.
 var made_by := ""
 ## The pieces in order, as their specs (see TrackPiece.from_spec()).
@@ -38,7 +40,8 @@ static func from_dict(data: Dictionary) -> CourseDesign:
 	c.name = str(data.get("name", "My course"))
 	c.theme = str(data.get("theme", "orchard"))
 	c.laps = clampi(int(data.get("laps", 3)), 1, 9)
-	c.width = float(data.get("width", 10.0))
+	c.width = float(data.get("width", TrackPath.WIDTH))
+	c.hills = float(data.get("hills", 0.0))
 	c.made_by = str(data.get("made_by", ""))
 	for spec in data.get("pieces", []):
 		if spec is Dictionary:
@@ -47,15 +50,22 @@ static func from_dict(data: Dictionary) -> CourseDesign:
 		if mark is Dictionary and Props.ROOM.has(str(mark.get("prop", ""))):
 			c.landmarks.append(mark.duplicate())
 	c.start = TrackPath.start_from(data.get("start", []))
+	# One made before the tiles were kart sized comes out twice as big (see
+	# TrackPath.from_dict()).
+	var grow := TrackPath.growth(data)
+	if grow != 1.0:
+		c.width = TrackPath.WIDTH
+		c.start.origin *= Vector3(grow, 1.0, grow)
+		c.landmarks = TrackPath.grown_landmarks(c.landmarks, grow)
 	return c
 
 
 func to_dict() -> Dictionary:
 	var turns := roundi(start.basis.get_euler().y / (PI * 0.5))
 	return {
-		"name": name, "made_by": made_by, "theme": theme, "laps": laps, "width": width,
+		"name": name, "made_by": made_by, "theme": theme, "laps": laps, "width": width, "grid": TrackPiece.TILE,
 		"start": [snappedf(start.origin.x, 0.01), snappedf(start.origin.y, 0.01), snappedf(start.origin.z, 0.01), posmod(turns, 4)],
-		"pieces": pieces.duplicate(true), "landmarks": landmarks.duplicate(true),
+		"pieces": pieces.duplicate(true), "landmarks": landmarks.duplicate(true), "hills": hills,
 	}
 
 
@@ -136,8 +146,10 @@ func problems() -> Array[String]:
 
 
 func _below_ground(path: TrackPath) -> bool:
-	for p in path.points:
-		if p.y < -0.1:
+	# With hills, the ground under each point is the hill there, not the start.
+	for k in path.points.size():
+		var ground := path.grounds[k] if k < path.grounds.size() else 0.0
+		if path.points[k].y < ground - 0.1:
 			return true
 	return false
 

@@ -1,3 +1,3 @@
 Peach Pit
-width=10 laps=3 theme=orchard
-S2 L2 L1 SR2.1 L1 R2 S3 C3 S3 S1 SR4.1 L3 R1 L1 L1 SR2.1 S2 SL2.1 SL3.1 S1 S3 SL4.1 S1
+width=13 laps=3 theme=orchard hills=10
+S1 SL3.1 L1 L1 SR3.1 SL3.2 S1 SR4.1 SL4.1 S1 SR4.1 S1 C2 L1 SR3.2 L1 R1 L1 SR3.1 SL3.2 S1 SL4.1 S3 S1 SL4.1 S1

@@ -37,8 +37,8 @@ const LOOK_HEIGHT := 0.9
 const OVERHEAD_HEIGHT := 16.0
 ## How far apart the TV cameras are along the track, how far out from the
 ## middle of the road, and how high.
-const TV_SPACING := 45.0
-const TV_OUT := 7.0
+const TV_SPACING := 70.0
+const TV_OUT := 14.0
 const TV_HEIGHT := 4.5
 const ORBIT_TIME := 5.0
 const ORBIT_RADIUS := 6.0

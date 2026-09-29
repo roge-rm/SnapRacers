@@ -117,7 +117,8 @@ func _ready() -> void:
 
 func _bank() -> void:
 	var tiles := garage.ui.find_children("*", "Button", true, false).filter(func(b): return b is GarageUI.PartTile)
-	check(tiles.size() == 4, "the bank starts on the plates, wedges and all (%d)" % tiles.size())
+	var plates := PartCatalog.ids().filter(func(id): return PartCatalog.get_part(id).kind == "plate").size()
+	check(tiles.size() == plates, "the bank starts on the plates, wedges and all (%d of %d)" % [tiles.size(), plates])
 	# Every part is in one of the drawer's tabs, and every tab has something.
 	var shown := {}
 	for i in GarageUI.CATEGORIES.size():

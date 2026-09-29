@@ -22,6 +22,10 @@ var cylinders: Array = []
 var cones: Array = []
 ## [transform, size] for the boxes karts can hit.
 var solids: Array = []
+## The same for soft things like tire stacks, which karts bounce off instead
+## of stopping dead against.
+var soft: Array = []
+static var _bouncy: PhysicsMaterial
 
 
 static func material() -> ShaderMaterial:
@@ -62,6 +66,11 @@ func box(bottom: Vector3, size: Vector3, colour: Color, surface := BRICK, solid 
 	boxes.append([where.scaled_local(size), colour, surface])
 	if solid:
 		solids.append([where, size])
+
+
+## Something soft karts can hit, `size` big, centred on `where`.
+func soft_box(where: Transform3D, size: Vector3) -> void:
+	soft.append([where, size])
 
 
 ## A box turned or tipped by `basis`, for roofs, blades and the like. It's
@@ -109,6 +118,25 @@ func build(parent: Node3D) -> void:
 		draw.multimesh = multi
 		draw.material_override = material()
 		parent.add_child(draw)
+	if not soft.is_empty():
+		if _bouncy == null:
+			_bouncy = PhysicsMaterial.new()
+			_bouncy.bounce = 0.5
+			_bouncy.friction = 0.2
+		var cushion := StaticBody3D.new()
+		# On the hazard layer, which karts hit but their wheels don't ride on,
+		# or a kart would climb right up over the stacks.
+		cushion.collision_layer = Kart.LAYER_HAZARD
+		cushion.physics_material_override = _bouncy
+		cushion.set_meta("soft", true)
+		parent.add_child(cushion)
+		for thing in soft:
+			var shape := CollisionShape3D.new()
+			var b := BoxShape3D.new()
+			b.size = thing[1]
+			shape.shape = b
+			shape.transform = thing[0]
+			cushion.add_child(shape)
 	if solids.is_empty():
 		return
 	var body := StaticBody3D.new()

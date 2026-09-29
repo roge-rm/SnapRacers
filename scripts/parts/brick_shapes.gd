@@ -80,6 +80,13 @@ static func mesh(shape: String, extent: Vector3) -> Mesh:
 			made = _wing(extent, 0.0)
 		"wing_tall":
 			made = _wing(extent, extent.y - 0.08)
+		"round":
+			var round := CylinderMesh.new()
+			round.top_radius = minf(h.x, h.z)
+			round.bottom_radius = round.top_radius
+			round.height = extent.y
+			round.radial_segments = 20
+			made = round
 	if made != null:
 		# Whichever way around the faces above were written, make them all
 		# face out.
@@ -154,7 +161,7 @@ static func studs(shape: String, cells: Vector2i) -> Array[Vector2i]:
 			match shape:
 				"slope", "slope_long":
 					keep = z == cells.y - 1
-				"curve", "arch", "fairing", "screen", "nose", "wing_front", "wing_tall":
+				"curve", "arch", "fairing", "screen", "nose", "wing_front", "wing_tall", "tile":
 					keep = false
 				"wedge_left", "wedge_right":
 					var middle := Vector2(x + 0.5, z + 0.5) * Grid.STUD - Vector2(cells) * Grid.STUD * 0.5

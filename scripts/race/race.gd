@@ -23,7 +23,7 @@ const FALLEN := 4.0
 const LOST := 45.0
 ## How far before a loop or wall ride a reset puts you, so you can build up
 ## speed.
-const RUN_UP := 35.0
+const RUN_UP := 110.0
 ## Karts in a race, you included.
 const KARTS := 8
 ## How often drivers check who they've passed and who's beside them.
@@ -290,6 +290,8 @@ func _add_view(racer: Racer, world_parent: Node, layer: CanvasLayer) -> void:
 	layer.add_child(racer_hud)
 	var touch := TouchControls.new()
 	touch.visible = DisplayServer.is_touchscreen_available()
+	# Lower down in a split screen half, where there's less room.
+	touch.height = TouchControls.HEIGHT if humans.size() == 1 else TouchControls.HEIGHT_SPLIT
 	touch.steering = Game.steering(index)
 	touch.blockers.append_array(racer_hud.buttons())
 	racer_hud.add_child(touch)

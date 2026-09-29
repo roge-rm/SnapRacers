@@ -170,6 +170,8 @@ func got_event(sender: int, slot: int, kind: String, data: Variant) -> void:
 				"dropper":
 					for brick in BrickPile.drop_behind(kart):
 						race.add_child(brick)
+				"oil":
+					race.add_child(OilSlick.drop_behind(kart))
 
 
 ## The host's word that a kart's finished, and when.

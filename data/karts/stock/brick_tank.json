@@ -1,6 +1,6 @@
 {
 	"name": "Brick Tank",
-	"about": "Two layers of bricks all around, a shield and a repair kit. It takes a beating and keeps going.",
+	"about": "Two layers of bricks all around, a diesel, a shield and a repair kit. It takes a beating and keeps going.",
 	"parts": [
 		{"id": "plate_6x10", "at": [7, 2, 7], "rot": 0, "color": "#635f61"},
 		{"id": "wheel_small_wide", "at": [5, 0, 8], "rot": 0},
@@ -17,6 +17,6 @@
 		{"id": "brick_1x6", "at": [12, 3, 11], "rot": 0, "color": "#635f61"},
 		{"id": "shield", "at": [7, 6, 11], "rot": 0},
 		{"id": "repair_kit", "at": [11, 6, 11], "rot": 0},
-		{"id": "engine_twin", "at": [9, 3, 14], "rot": 0}
+		{"id": "engine_diesel", "at": [9, 3, 14], "rot": 0}
 	]
 }

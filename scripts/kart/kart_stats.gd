@@ -49,6 +49,13 @@ var parts: Array[PartInfo] = []
 var wheels: Array[PartInfo] = []
 var mass := 0.0
 var center_of_mass := Vector3.ZERO
+## Every engine's power, and every jet's thrust, times this. The parts keep
+## their own numbers against each other, and these set how quick karts are
+## overall. Top speed goes with the cube root of power, and with the square
+## root of thrust.
+const POWER_SCALE := 2.4
+const THRUST_SCALE := 1.4
+
 var power := 0.0
 var max_force := 0.0
 ## Push that doesn't go through the wheels, from jet engines, in newtons.
@@ -142,9 +149,9 @@ static func compute(design: KartDesign, skip := {}, fixed_origin: Variant = null
 				stats.grip += info.def.get("grip", 1.0)
 				offroad_total += info.def.get("offroad", 0.0)
 			"engine":
-				stats.power += info.def.get("power", 0.0)
+				stats.power += info.def.get("power", 0.0) * POWER_SCALE
 				stats.max_force += info.def.get("max_force", 0.0)
-				stats.thrust += info.def.get("thrust", 0.0)
+				stats.thrust += info.def.get("thrust", 0.0) * THRUST_SCALE
 			"wing":
 				stats.lift_area += info.def.get("lift_area", 0.0)
 			"seat":

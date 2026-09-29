@@ -85,6 +85,9 @@ func problem() -> String:
 	if races.size() < FEWEST:
 		return "A cup needs at least %d races." % FEWEST
 	for race in races:
+		# The game's own courses are raced as they are, so only yours get checked.
+		if str(race.from).begins_with(Tracks.FOLDER):
+			continue
 		if not CourseDesign.from_dict(race.course).problems().is_empty():
 			return "%s isn't finished." % str(race.course.get("name", "A course"))
 	return ""

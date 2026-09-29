@@ -198,7 +198,22 @@ static func _engine(holder: Node3D, def: Dictionary, extent: Vector3) -> void:
 		c.radial_segments = 14
 		return c
 	var along_z := Basis(Vector3.RIGHT, PI * 0.5)
+	var across := Basis(Vector3.BACK, PI * 0.5)
 	match def.get("style", "block"):
+		"pedals":
+			# No engine at all: a low frame with a chainring on it, and a crank
+			# arm each side with a pedal on the end.
+			var dark := material(Color("#3c3f44"))
+			add.call(box.call(Vector3(extent.x * 0.5, extent.y * 0.25, extent.z * 0.9)), Vector3(0.0, -h.y + extent.y * 0.125, 0.0), material(colour))
+			var middle := Vector3(0.0, -h.y + extent.y * 0.55, 0.0)
+			var ring := minf(h.y, h.z) * 0.8
+			add.call(tube.call(ring, 0.02), middle + Vector3(h.x * 0.3, 0.0, 0.0), metal, across)
+			add.call(tube.call(0.02, extent.x * 0.9), middle, metal, across)
+			for side in [-1.0, 1.0]:
+				var arm := Vector3(side * h.x * 0.75, 0.0, 0.0)
+				var tip := arm + Vector3(0.0, side * ring * 0.8, side * ring * 0.4)
+				add.call(box.call(Vector3(0.02, ring * 0.9, 0.03)), middle + (arm + tip) * 0.5, metal, Basis(Vector3.RIGHT, side * 0.46))
+				add.call(box.call(Vector3(h.x * 0.35, 0.02, 0.05)), middle + tip + Vector3(side * h.x * 0.15, 0.0, 0.0), dark)
 		"electric", "jet":
 			# A round can lying along the kart.
 			var r := minf(h.x, h.y) * 0.95

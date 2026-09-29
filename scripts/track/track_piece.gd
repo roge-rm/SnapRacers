@@ -4,11 +4,18 @@ extends RefCounted
 ## One piece of track, the way it sits in its own space. It starts at the
 ## origin heading toward -Z, and `exit()` says where the next piece clicks on.
 ##
-## Everything lines up on a grid of tiles 16 m square, with heights in levels
+## Everything lines up on a grid of tiles 32 m square, with heights in levels
 ## of 3 m. Every piece starts and ends in the middle of a tile edge, flat and
 ## level, so any piece can follow any other.
+##
+## The tiles are sized for the karts, which are about 1.6 times the size of
+## real ones. The tightest bend is a real kart hairpin at that size, and the
+## courses are as big for them as real kart circuits are for real karts.
 
-const TILE := 16.0
+const TILE := 32.0
+## The size tiles were before the courses were made kart sized. A course file
+## without a "grid" in it was made with these.
+const OLD_TILE := 16.0
 const LEVEL := 3.0
 
 var type := "straight"
@@ -27,6 +34,12 @@ var crest_height := 1.5
 ## How far a bend leans in at its middle, in radians.
 var bank := 0.0
 var surface := "asphalt"
+## Walls down each side. On "auto" there's a wall only where you'd fall off
+## (road up in the air, loops, wall rides and banked bends), and the rest runs
+## out onto the grass like a real kart track. "walls" puts them all the way
+## along, and "open" (or "left_open" or "right_open") leaves them off.
+var edges := "auto"
+## Whether each side can have a wall at all.
 var wall_left := true
 var wall_right := true
 ## A bend with a dirt patch inside it that you can cut across.
@@ -46,6 +59,10 @@ const LOOP_ARC := 80.0 # length of road around the loop itself, in metres
 const LOOP_EASE := 0.2 # how much of it is spent tightening up, and easing off
 const LOOP_IN := 16.0
 const LOOP_STEP := TILE
+## How much of that it steps across up in the air. Any more and the loop
+## twists into a corkscrew that karts fall off the top of. The rest is a
+## gentle S on the ground coming out.
+const LOOP_AIR_STEP := 18.0
 const LOOP_SAMPLES := 400
 
 ## The loop's shape in its own plane, worked out once. For every step around
@@ -98,7 +115,8 @@ static func from_spec(spec: Dictionary) -> TrackPiece:
 		_:
 			piece.type = "straight"
 			piece.tiles = int(spec.get("length", 1))
-	match str(spec.get("edges", "walls")):
+	piece.edges = str(spec.get("edges", "auto"))
+	match piece.edges:
 		"open":
 			piece.wall_left = false
 			piece.wall_right = false
@@ -106,6 +124,10 @@ static func from_spec(spec: Dictionary) -> TrackPiece:
 			piece.wall_left = false
 		"right_open":
 			piece.wall_right = false
+		"walls":
+			pass
+		_:
+			piece.edges = "auto"
 	if piece.type == "curve" and absf(piece.bank) >= STICKY_BANK:
 		piece.sticky = true
 	piece.sticky = bool(spec.get("sticky", piece.sticky))
@@ -148,13 +170,14 @@ func to_spec() -> Dictionary:
 				spec["rise"] = int(round(rise / LEVEL))
 	if surface != "asphalt":
 		spec["surface"] = surface
-	if not wall_left and not wall_right:
-		spec["edges"] = "open"
-	elif not wall_left:
-		spec["edges"] = "left_open"
-	elif not wall_right:
-		spec["edges"] = "right_open"
+	if edges != "auto" and not (cut and edges in ["left_open", "right_open"]):
+		spec["edges"] = edges
 	return spec
+
+
+## Whether the walls go all the way along, wherever the road is.
+func forced_walls() -> bool:
+	return edges == "walls"
 
 
 ## About how far it is along the middle of the piece, in metres.
@@ -257,11 +280,13 @@ func _loop_point(t: float) -> Vector3:
 	if along < LOOP_IN + LOOP_ARC:
 		var at := _loop_at(along - LOOP_IN)
 		# It steps across up in the air, in the middle of the loop, so that
-		# near the ground the way in and the way out are a whole tile apart.
-		var across := side * LOOP_STEP * smoothstep(LOOP_EASE, 1.0 - LOOP_EASE, (along - LOOP_IN) / LOOP_ARC)
+		# near the ground the way in and the way out are apart.
+		var across := side * LOOP_AIR_STEP * smoothstep(LOOP_EASE, 1.0 - LOOP_EASE, (along - LOOP_IN) / LOOP_ARC)
 		return Vector3(across, at.x, -LOOP_IN - at.y)
 	var end := shape[shape.size() - 1]
-	return Vector3(side * LOOP_STEP, 0.0, -LOOP_IN - end.y - (along - LOOP_IN - LOOP_ARC))
+	var out := along - LOOP_IN - LOOP_ARC
+	var rest := smoothstep(0.0, 1.0, out / _loop_out())
+	return Vector3(side * (LOOP_AIR_STEP + (LOOP_STEP - LOOP_AIR_STEP) * rest), 0.0, -LOOP_IN - end.y - out)
 
 
 ## Which way is up off the road here, before any banking, in the piece's

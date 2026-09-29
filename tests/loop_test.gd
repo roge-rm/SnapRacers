@@ -65,7 +65,7 @@ class Runner:
 		fast_offset = track.offset_of(fast.global_position, fast_offset, 30.0)
 		ai.offset = fast_offset
 		fast_top = maxf(fast_top, fast.global_position.y)
-		if tick == 60 * 11:
+		if tick == 60 * 20:
 			add_slow()
 		if slow != null:
 			slow_top = maxf(slow_top, slow.global_position.y)
@@ -88,7 +88,7 @@ class Runner:
 			print("L off %.1f y %.1f spd %.1f fwd %.1f stick %s grounded %d lengths %s loads %s colliding %d thr %.1f brk %.1f up %s" % [fast_offset, fast.global_position.y, fast.linear_velocity.length(), fast.forward_speed, fast.sticking, fast.wheels.filter(func(w): return w.grounded).size(), fast.wheels.map(func(w): return snappedf(w.length, 0.01)), fast.wheels.map(func(w): return int(w.load)), fast.get_contact_count(), ai.controls.throttle, ai.controls.brake, fast.global_basis.y.snapped(Vector3.ONE*0.01)])
 		if false:
 			print("t %.2f off %.1f pos %s spd %.1f thr %.1f brk %.1f steer %.2f up %s colliding %s" % [tick / 60.0, fast_offset, fast.global_position.snapped(Vector3.ONE * 0.1), fast.linear_velocity.length(), ai.controls.throttle, ai.controls.brake, ai.controls.steer, fast.global_basis.y.snapped(Vector3.ONE * 0.01), fast.get_colliding_bodies().map(func(b): return b.name)])
-		if tick == 60 * 19:
+		if tick == 60 * 28:
 			check(fast_top > 17.0, "the fast kart goes right over the top of the loop (%.1f m up)" % fast_top)
 			check(fast_offset > loop_end + 10.0, "and comes out the other side (%.0f m along, the loop ends at %.0f)" % [fast_offset, loop_end])
 			check(fast.global_basis.y.y > 0.9, "the right way up (up.y %.2f)" % fast.global_basis.y.y)

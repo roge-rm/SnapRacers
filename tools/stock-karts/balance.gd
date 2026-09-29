@@ -6,9 +6,9 @@ extends Node
 ##   tools/godot/Godot_v4.7.2-stable_linux.x86_64 --headless --fixed-fps 60 --path . res://tools/stock-karts/balance.tscn
 ## Name karts or courses after -- to only do those, like -- rocket peach_pit.
 
-const COURSES := ["peach_pit", "foundry_flats", "launchpad_loop"]
+const COURSES := ["peach_pit", "foundry_flats", "launchpad_loop", "dune_drift"]
 const LAPS := 2
-const GIVE_UP := 150.0
+const GIVE_UP := 400.0
 
 var host: Node
 var _last: Race

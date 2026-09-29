@@ -10,7 +10,18 @@ extends RefCounted
 ## which way the AI should head, and where to put a kart back after a reset.
 
 const SAMPLE := 1.0
-const KERB := 1.0
+## Room beside the road's edge line, where the kerbs go on the corners.
+const KERB := 1.5
+## How wide the road is. Eight karts race at once, and this is room for three
+## abreast through a bend with some to spare.
+const WIDTH := 13.0
+## The grid: how far back from the line first place is, how far apart each
+## place is, and how far either side of the middle the two columns are.
+const GRID_FRONT := 10.0
+const GRID_GAP := 7.0
+const GRID_ACROSS := 3.5
+## About the steepest the hills make the road, as a slope.
+const STEEPEST := 0.07
 
 ## Grip and drag for each surface, as multiples of plain road.
 const SURFACES := {
@@ -28,7 +39,11 @@ var theme := "orchard"
 var inspired_by := ""
 var about := ""
 var laps := 3
-var width := 12.0
+var width := WIDTH
+## How much the ground rises and falls around the course, top to bottom, in
+## metres. The road follows it, over gentle hills, and the pieces' own climbs
+## (ramps, bridges, crests) go on top. 0 is flat.
+var hills := 0.0
 ## Landmarks put down by hand in the track editor, as
 ## { "prop": ..., "at": [x, z], "facing": 0 to 3 }. With none, the theme
 ## picks its own.
@@ -48,7 +63,10 @@ var distances := PackedFloat32Array()
 var solids: Array[bool] = []
 var stickies: Array[bool] = []
 var piece_of := PackedInt32Array()
+## How high the hills are under each sample (see ground_height()).
+var grounds := PackedFloat32Array()
 var length := 0.0
+var _noise: FastNoiseLite
 
 
 static func load_file(path: String) -> TrackPath:
@@ -66,9 +84,18 @@ static func from_dict(data: Dictionary) -> TrackPath:
 	track.inspired_by = str(data.get("inspired_by", ""))
 	track.about = str(data.get("about", ""))
 	track.laps = int(data.get("laps", 3))
-	track.width = float(data.get("width", 12.0))
+	track.width = float(data.get("width", WIDTH))
+	track.hills = float(data.get("hills", 0.0))
 	track.landmarks = data.get("landmarks", []).duplicate(true)
 	track.start = start_from(data.get("start", []))
+	# A course made before the tiles were kart sized: its road's the same
+	# pieces, just twice as big, so where it starts and its landmarks move
+	# out to match.
+	var grow := growth(data)
+	if grow != 1.0:
+		track.width = WIDTH
+		track.start.origin *= Vector3(grow, 1.0, grow)
+		track.landmarks = grown_landmarks(track.landmarks, grow)
 	for spec in data.get("pieces", []):
 		track.pieces.append(TrackPiece.from_spec(spec))
 	track.build()
@@ -87,7 +114,44 @@ func to_dict() -> Dictionary:
 	var specs := []
 	for piece in pieces:
 		specs.append(piece.to_spec())
-	return { "name": name, "theme": theme, "inspired_by": inspired_by, "about": about, "laps": laps, "width": width, "pieces": specs }
+	var out := { "name": name, "theme": theme, "inspired_by": inspired_by, "about": about, "laps": laps, "width": width, "grid": TrackPiece.TILE, "pieces": specs }
+	if hills > 0.0:
+		out.hills = hills
+	return out
+
+
+## How high the hills are here, in metres above (or below) the start. The
+## hills are smooth and long, so the road never climbs or drops more steeply
+## than about STEEPEST, however high they are. They're the same every time for
+## a course of this name.
+func ground_height(x: float, z: float) -> float:
+	if hills <= 0.0:
+		return 0.0
+	if _noise == null:
+		_noise = FastNoiseLite.new()
+		_noise.noise_type = FastNoiseLite.TYPE_SIMPLEX_SMOOTH
+		_noise.seed = hash(name)
+		_noise.fractal_octaves = 2
+		# How far apart the hilltops are, so the slopes stay gentle.
+		var half := hills * 0.9
+		_noise.frequency = minf(STEEPEST / (half * 4.4), 1.0 / 150.0)
+	return (_noise.get_noise_2d(x, z) - _noise.get_noise_2d(start.origin.x, start.origin.z)) * hills * 0.9
+
+
+## How much bigger a course file's tiles are now than when it was made.
+static func growth(data: Dictionary) -> float:
+	return TrackPiece.TILE / float(data.get("grid", TrackPiece.OLD_TILE))
+
+
+static func grown_landmarks(marks: Array, grow: float) -> Array:
+	var out := []
+	for mark in marks:
+		var moved: Dictionary = mark.duplicate(true)
+		var at: Array = moved.get("at", [0.0, 0.0])
+		if at.size() >= 2:
+			moved.at = [float(at[0]) * grow, float(at[1]) * grow]
+		out.append(moved)
+	return out
 
 
 ## Clicks the pieces together and samples the line down the middle.
@@ -101,6 +165,7 @@ func build() -> void:
 	stickies.clear()
 	piece_of.clear()
 	piece_starts.clear()
+	grounds.clear()
 	var pose := start
 	for i in pieces.size():
 		var piece := pieces[i]
@@ -108,9 +173,12 @@ func build() -> void:
 		var steps := maxi(2, ceili(piece.path_length() / SAMPLE))
 		for k in steps:
 			var t := float(k) / steps
-			var ahead := piece.point(minf(t + 0.001, 1.0))
-			var behind := piece.point(maxf(t - 0.001, 0.0))
-			var forward := (pose.basis * (ahead - behind)).normalized()
+			var t_ahead := minf(t + 0.001, 1.0)
+			var t_behind := maxf(t - 0.001, 0.0)
+			var ahead := pose * piece.point(t_ahead) + Vector3.UP * _hill(pose, piece, t_ahead)
+			var behind := pose * piece.point(t_behind) + Vector3.UP * _hill(pose, piece, t_behind)
+			var forward := (ahead - behind).normalized()
+			var hill := _hill(pose, piece, t)
 			var base_up := (pose.basis * piece.up(t)).normalized()
 			var flat_right := forward.cross(base_up).normalized()
 			var flat_up := flat_right.cross(forward)
@@ -120,7 +188,8 @@ func build() -> void:
 			# middle, so the inside edge stays at road height instead of
 			# sinking into the ground.
 			var rise := (width * 0.5 + KERB) * absf(sin(lean))
-			points.append(pose * piece.point(t) + flat_up * rise)
+			points.append(pose * piece.point(t) + Vector3.UP * hill + flat_up * rise)
+			grounds.append(hill)
 			forwards.append(forward)
 			ups.append(up)
 			rights.append(forward.cross(up))
@@ -136,6 +205,20 @@ func build() -> void:
 		distances.append(total)
 		total += points[k].distance_to(points[(k + 1) % points.size()])
 	length = total
+
+
+## How high the hills lift the road `t` of the way through a piece. Loops and
+## jumps only lean with the hill from one end to the other, so their shape
+## stays as it was made.
+func _hill(pose: Transform3D, piece: TrackPiece, t: float) -> float:
+	if hills <= 0.0:
+		return 0.0
+	if piece.type == "loop" or piece.type == "jump":
+		var from := pose.origin
+		var to := (pose * piece.exit()).origin
+		return lerpf(ground_height(from.x, from.z), ground_height(to.x, to.z), t)
+	var p := pose * piece.point(t)
+	return ground_height(p.x, p.z)
 
 
 func _index_before(offset: float) -> int:
@@ -267,9 +350,9 @@ func place_at(offset: float, lift := 0.6) -> Transform3D:
 ## Grid spots behind the start line, in two staggered columns with first
 ## place at the front.
 func grid_slot(index: int) -> Transform3D:
-	var offset := length - 8.0 - index * 5.0
+	var offset := length - GRID_FRONT - index * GRID_GAP
 	var frame := place_at(offset, 0.05)
-	frame.origin += frame.basis.x * (-1.0 if index % 2 == 0 else 1.0) * width * 0.2
+	frame.origin += frame.basis.x * (-1.0 if index % 2 == 0 else 1.0) * GRID_ACROSS
 	return frame
 
 

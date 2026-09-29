@@ -2,13 +2,16 @@ class_name TouchControls
 extends Control
 
 ## On-screen controls for a phone or tablet. There are two ways to steer
-## (see STEERING), picked in Settings. The steering stick sits in the bottom
-## left corner and never moves. Put your thumb anywhere on it and the
-## knob goes where your thumb is, so you can see how far you're steering. It
-## springs back to the middle when you let go. On the right there's a big GO
-## button with the brake beside it, the gadget buttons above them, a small
-## reset button up top, and a look back button under it that you hold. You can slide a finger from GO to brake without
-## lifting it.
+## (see STEERING), picked in Settings. The steering stick sits on the left,
+## two fifths of the way up the screen where your thumb holds the phone (a
+## quarter of the way up in a split screen half, see HEIGHT), and never moves. Put your thumb
+## anywhere on it and the knob goes where your thumb is, so you can see how
+## far you're steering. It springs back to the middle when you let go. On the
+## right, at the same height, there's a big GO button with the brake right
+## under it and the gadget buttons up and to the left of it, and a small reset
+## button up top with a look back button under it that you hold. You can slide
+## a finger from GO down to the brake without lifting it, or up onto a gadget,
+## which uses it and keeps GO held.
 ##
 ## Instead of the stick there can be a left and a right button in that
 ## corner, which steer all the way while you hold them. You can slide your
@@ -28,6 +31,14 @@ const STICK_CURVE := 0.6
 ## A thumb resting near the middle doesn't steer at all.
 const STICK_DEADZONE := 0.06
 
+## How far up the screen the stick and GO sit, as a fraction of its height
+## from the bottom: two fifths of the way on your own, and a quarter of the way
+## up in each half of a split screen.
+const HEIGHT := 0.4
+const HEIGHT_SPLIT := 0.25
+
+## How far up this one's controls sit (see HEIGHT).
+var height := HEIGHT
 ## "stick" or "buttons" (see STEERING).
 var steering := "stick":
 	set(value):
@@ -63,6 +74,9 @@ var _fingers := {} # finger index -> button name
 var _holes: Array[Rect2] = []
 var _hole_check := 0.0
 var _finger_at := {} # finger index -> position
+## The gadget a finger holding GO has slid onto, so it's only used once each
+## time the finger gets there.
+var _slid_onto := {} # finger index -> gadget button name
 
 
 func _ready() -> void:
@@ -91,7 +105,7 @@ func _process(delta: float) -> void:
 func _stick() -> Array:
 	# In a split screen half it shrinks to fit next to the buttons.
 	var r := minf(minf(size.y * 0.17, size.x * 0.16), 125.0)
-	var stick := {"stick": [Vector2(r * 1.35, size.y - r * 1.35), r]}
+	var stick := {"stick": [Vector2(r * 1.35, _middle(r)), r]}
 	_clear_of_holes(stick, ["stick"])
 	return stick.stick
 
@@ -142,9 +156,12 @@ func _placed_buttons() -> Dictionary:
 	# These shrink in a narrow split screen half too, so the brake stays clear
 	# of the stick.
 	var r := minf(minf(s.y * 0.13, s.x * 0.1), 110.0)
+	# GO, with the brake right under it, both kept on the screen.
+	var drop := r * 1.95
+	var y := minf(_middle(r), s.y - drop - r * 0.75 - r * 0.2)
 	var out := {
-		"gas": [Vector2(s.x - r * 1.5, s.y - r * 1.5), r],
-		"brake": [Vector2(s.x - r * 3.9, s.y - r * 1.1), r * 0.75],
+		"gas": [Vector2(s.x - r * 1.5, y), r],
+		"brake": [Vector2(s.x - r * 1.5, y + drop), r * 0.75],
 		"reset": [Vector2(s.x - r * 0.9, r * 0.9), r * 0.5],
 		"look": [Vector2(s.x - r * 0.9, r * 2.2), r * 0.5],
 	}
@@ -152,13 +169,23 @@ func _placed_buttons() -> Dictionary:
 		# The left and right buttons sit where the stick would be, big enough
 		# to find without looking.
 		var arrow := minf(minf(s.y * 0.13, s.x * 0.1), 105.0)
-		out["left"] = [Vector2(arrow * 1.3, s.y - arrow * 1.3), arrow]
-		out["right"] = [Vector2(arrow * 3.75, s.y - arrow * 1.3), arrow]
+		var ay := _middle(arrow * 1.3)
+		out["left"] = [Vector2(arrow * 1.3, ay), arrow]
+		out["right"] = [Vector2(arrow * 3.75, ay), arrow]
+	# The gadgets go up and to the left of GO, where your thumb can slide
+	# onto them without letting go of it.
+	var small := r * 0.62
 	if gadget_names[0] != "":
-		out["gadget0"] = [Vector2(s.x - r * 1.3, s.y - r * 3.7), r * 0.62]
+		out["gadget0"] = [Vector2(s.x - r * 2.25, y - r * 1.9), small]
 	if gadget_names[1] != "":
-		out["gadget1"] = [Vector2(s.x - r * 3.1, s.y - r * 3.3), r * 0.62]
+		out["gadget1"] = [Vector2(s.x - r * 3.9, y - r * 1.2), small]
 	return out
+
+
+## How far down the screen the middle of the controls goes, for one this big:
+## HEIGHT of the way up, but never so low it runs off the bottom.
+func _middle(radius: float) -> float:
+	return minf(size.y * (1.0 - height), size.y - radius)
 
 
 func _button_at(pos: Vector2) -> String:
@@ -207,6 +234,7 @@ func _input(event: InputEvent) -> void:
 		else:
 			_fingers.erase(event.index)
 			_finger_at.erase(event.index)
+			_slid_onto.erase(event.index)
 			if event.index == _stick_finger:
 				_stick_finger = -1
 	elif event is InputEventScreenDrag:
@@ -216,6 +244,13 @@ func _input(event: InputEvent) -> void:
 			_finger_at[event.index] = event.position
 			var name := _button_at(event.position)
 			var was: String = _fingers[event.index]
+			# Sliding from GO onto a gadget uses it, and GO stays held.
+			if was == "gas" and name.begins_with("gadget"):
+				if _slid_onto.get(event.index, "") != name:
+					_slid_onto[event.index] = name
+					_gadget_tapped[int(name.substr(6))] = true
+			elif name != _slid_onto.get(event.index, ""):
+				_slid_onto.erase(event.index)
 			# A thumb can slide onto GO or brake, and between left and right.
 			if name == "gas" or name == "brake":
 				_fingers[event.index] = name

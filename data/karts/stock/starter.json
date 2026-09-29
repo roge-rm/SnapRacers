@@ -14,7 +14,7 @@
 		{"id": "engine_small", "at": [9, 3, 14], "rot": 0},
 		{"id": "brick_2x2", "at": [7, 3, 14], "rot": 0},
 		{"id": "brick_2x2", "at": [11, 3, 14], "rot": 0},
-		{"id": "spoiler_6", "at": [7, 6, 15], "rot": 0},
+		{"id": "ducktail", "at": [7, 6, 15], "rot": 0},
 		{"id": "turbo", "at": [9, 3, 8], "rot": 0},
 		{"id": "steering_wheel", "at": [9, 3, 10], "rot": 0}
 	]

@@ -67,8 +67,9 @@ void fragment() {
 	vec2 p = UV;
 	// It has to be rough, or the sky's reflection turns everything blue.
 	float rough = 0.8;
-	if (kind < 0.5) {
+	if (kind < 0.5 || kind > 4.5) {
 		// The road is smooth 2x4 tiles, staggered, each a little different.
+		// Its white edge lines are the same tiles, painted.
 		float row = floor(p.y / 0.5);
 		float along = p.x + mod(row, 2.0) * 0.5;
 		col *= 0.94 + 0.12 * hash(vec2(floor(along), row));
@@ -76,9 +77,11 @@ void fragment() {
 		col *= 1.0 - 0.5 * s;
 		rough = 0.85;
 	} else if (kind < 1.5) {
-		// The curbs are plates with studs.
-		col = studs(p, col);
-		col *= 1.0 - 0.45 * seam(p.x, 1.0, 0.012);
+		// The kerbs are smooth blocks with ridges across them, which catch the
+		// light, and a seam where one block meets the next.
+		float ridge = fract(p.x / 0.6);
+		col *= 0.82 + 0.28 * smoothstep(0.0, 0.5, ridge) * (1.0 - smoothstep(0.5, 1.0, ridge));
+		col *= 1.0 - 0.45 * seam(p.x, 1.2, 0.02);
 	} else if (kind < 3.5) {
 		// The walls and the road's edges are staggered courses of 1x4 bricks.
 		// Wall bricks alternate red and white.

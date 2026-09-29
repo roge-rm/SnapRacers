@@ -1,3 +1,3 @@
 Whistlestop Woods
-width=10 laps=3 theme=railway
-S1 S3 SR4.2 L1 SL3.1 L1 SL2.1 R2 S2 R1 S2 L1 L1 S2 L3 S2 R1 C3 R2 R1 S2 L2 L1 SL3.1 L3 L1 SR3.1 S2
+width=13 laps=3 theme=railway hills=14
+S1 S3 SR3.2 L1 SL4.1 L1 S1 L1 S1 R1 R1 SL2.1 R2 R1 L1 L1 L2 L3 S2 R1 S1 C2 R2 R1 S3 L1 L1 S3 L2 L3 S2

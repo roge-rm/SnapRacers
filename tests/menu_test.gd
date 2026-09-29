@@ -71,6 +71,45 @@ func _ready() -> void:
 	check(touch.steer == 1.0, "sliding across to right steers all the way right")
 	touch._input(_touch(0, spots.right[0], false))
 	check(touch.steer == 0.0, "and letting go straightens up")
+	# GO and brake halfway up the right side, with the brake right under GO,
+	# and a slide from GO onto a gadget uses it without letting go of GO.
+	touch.gadget_names = ["Turbo", ""]
+	spots = touch._buttons()
+	check(spots.gas[0].y < touch.size.y * 0.7 and spots.gas[0].y > touch.size.y * 0.5, "GO sits two fifths of the way up (%d of %d)" % [spots.gas[0].y, touch.size.y])
+	check(is_equal_approx(spots.brake[0].x, spots.gas[0].x) and spots.brake[0].y > spots.gas[0].y, "with the brake right under it")
+	check(spots.gadget0[0].y < spots.gas[0].y and spots.gadget0[0].x < spots.gas[0].x, "and the gadget up and to its left")
+	touch._input(_touch(1, spots.gas[0], true))
+	touch._input(_drag(1, spots.gadget0[0]))
+	check(touch.take_gadget_tap(0), "sliding from GO onto the gadget uses it")
+	check(touch.throttle == 1.0, "while GO stays held")
+	touch._input(_drag(1, spots.gadget0[0] + Vector2(3, 3)))
+	check(not touch.take_gadget_tap(0), "and only once while the thumb stays on it")
+	touch._input(_touch(1, spots.gadget0[0], false))
+	check(touch.throttle == 0.0, "letting go lets go of GO")
+	# On a whole phone screen, half of one side by side, and half of one face
+	# to face (which is portrait), nothing overlaps or runs off the edge.
+	touch.gadget_names = ["Turbo", "Magnet"]
+	for how in ["buttons", "stick"]:
+		touch.steering = how
+		for layout in [[Vector2(2340, 1080), TouchControls.HEIGHT], [Vector2(1170, 1080), TouchControls.HEIGHT_SPLIT], [Vector2(1080, 1170), TouchControls.HEIGHT_SPLIT]]:
+			touch.size = layout[0]
+			touch.height = layout[1]
+			var all := touch._buttons()
+			if touch.steering == "stick":
+				all.stick = touch._stick()
+			var clashes := []
+			for a in all:
+				var c: Vector2 = all[a][0]
+				var r: float = all[a][1]
+				if c.x - r < 0.0 or c.y - r < 0.0 or c.x + r > touch.size.x or c.y + r > touch.size.y:
+					clashes.append("%s off the edge" % a)
+				for b in all:
+					if str(a) < str(b) and c.distance_to(all[b][0]) < r + all[b][1]:
+						clashes.append("%s on %s" % [a, b])
+			check(clashes.is_empty(), "the controls fit on a %dx%d screen, steering with %s %s" % [touch.size.x, touch.size.y, how, clashes])
+	touch.size = Vector2(2340, 1080)
+	touch.height = TouchControls.HEIGHT
+	touch.gadget_names = ["", ""]
 	touch.steering = "stick"
 	check(not touch._buttons().has("left"), "with the stick there are no steering buttons")
 	touch.queue_free()

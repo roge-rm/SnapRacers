@@ -64,10 +64,13 @@ const SETTINGS := {
 }
 ## How far behind you (or ahead) the AI have to be, in metres, before catch
 ## up (or easing off) starts, and how much further before it's at its most.
+## They're for a lap of LAP metres, and grow with longer ones, so a gap feels
+## the same on any course.
 const CATCH_UP_FROM := 60.0
 const CATCH_UP_OVER := 150.0
 const EASE_OFF_FROM := 40.0
 const EASE_OFF_OVER := 100.0
+const LAP := 800.0
 
 
 static func name_of(level: String) -> String:
@@ -92,10 +95,11 @@ static func apply(ai: AIDriver, level: String, rank: int, field: int) -> void:
 
 
 ## How hard to push compared with usual, for an AI driver this far behind the
-## nearest person racing (negative is ahead of them).
-static func push_for(behind: float, catch_up: float, ease_off: float) -> float:
-	if behind > CATCH_UP_FROM:
-		return 1.0 + catch_up * clampf((behind - CATCH_UP_FROM) / CATCH_UP_OVER, 0.0, 1.0)
-	if -behind > EASE_OFF_FROM:
-		return 1.0 - ease_off * clampf((-behind - EASE_OFF_FROM) / EASE_OFF_OVER, 0.0, 1.0)
+## nearest person racing (negative is ahead of them), on a lap this long.
+static func push_for(behind: float, catch_up: float, ease_off: float, lap := LAP) -> float:
+	var scale := maxf(lap / LAP, 1.0)
+	if behind > CATCH_UP_FROM * scale:
+		return 1.0 + catch_up * clampf((behind - CATCH_UP_FROM * scale) / (CATCH_UP_OVER * scale), 0.0, 1.0)
+	if -behind > EASE_OFF_FROM * scale:
+		return 1.0 - ease_off * clampf((-behind - EASE_OFF_FROM * scale) / (EASE_OFF_OVER * scale), 0.0, 1.0)
 	return 1.0

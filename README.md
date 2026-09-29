@@ -47,17 +47,18 @@ The garage works like the builder in Apogee, my physics sim. The kart fills the 
 - A card in the corner shows how the kart will drive: top speed, pull, cornering, control, off-road grip, weight and drag, and it tells you where most of the drag is coming from.
 - Take it straight out for a test drive.
 
-### 57 parts
+### 100 parts
 
 | | |
 |---|---|
-| **Plates and bricks** | The frame and body, including wedge plates for a pointed nose. |
-| **Bodywork** | Slopes, long slopes, curved slopes, inverted slopes, nose cones, mudguards, wheel fairings and side pods. Put them at the front and the air slides over them, or turn them around to smooth the back. |
-| **Wheels** | Nine kinds, from tiny wheels that keep the kart low to monster wheels that go over anything. Slicks grip the road best and hate grass, knobbly tires bite into grass and dirt, and skinny bicycle wheels roll further than anything. |
-| **Engines** | Eight: small and big engines, a micro engine, an electric motor that pushes hardest from a standstill, a twin, a diesel that shoves like nothing else, a racing V8, and a jet that pushes the kart along by itself instead of through the wheels. |
-| **Cockpit** | An upright seat, a bucket seat and a lay-down seat, a steering wheel, handlebars and a yoke, and windscreens. |
-| **Wings** | A spoiler, a front wing and a big rear wing on stilts, for grip in fast corners. |
-| **Gadgets** | Turbo, spring, brick dropper, brick cannon, repair kit, shield, ram plate and magnet. You can carry two, and most of them run on studs you pick up on the track. |
+| **Plates** | Eleven, from a 1x4 to a long 6x12 chassis and a wide 8x10 one, wedge plates for a pointed nose, and a smooth tile with no studs. |
+| **Bricks** | Eleven: plain bricks from 1x1 to 2x6, a tall brick, a round brick, and a heavy ballast brick to keep the kart low. |
+| **Bodywork** | Twenty: slopes of every size, long slopes, curved slopes, inverted slopes, nose cones up to the full width of the kart, mudguards, a tail fin, wheel fairings and side pods. Put them at the front and the air slides over them, or turn them around to smooth the back. |
+| **Wheels** | Fourteen, from tiny wheels that keep the kart low to monster wheels that go over anything. Slicks in three sizes grip the road best and hate grass, knobbly and studded tires bite into grass, dirt and ice, balloon tires float over sand and kerbs, and skinny bicycle wheels roll further than anything. |
+| **Engines** | Thirteen: small and big engines, a micro engine, a rotary that revs and revs, a low flat four, a twin, a hybrid, two electric motors that push hardest from a standstill, a diesel that shoves like nothing else, a racing V8, a jet that pushes the kart along by itself, and pedals. Each one sounds different. |
+| **Cockpit** | Thirteen: an upright seat, a racing seat, a bucket seat and a lay-down seat, a steering wheel, a racing wheel, handlebars, a yoke and a tiller, and windscreens in four sizes. |
+| **Wings** | Seven: spoilers, a ducktail, front wings, and big rear wings on stilts, single and double, for grip in fast corners. |
+| **Gadgets** | Eleven: turbo and big turbo, spring and super spring, brick dropper, brick cannon, oil can, repair kit, shield, ram plate and magnet. You can carry two, and most of them run on studs you pick up on the track. |
 
 ### Air and ergonomics
 
@@ -72,21 +73,21 @@ If you'd rather not build, there are sixteen stock karts to pick from before any
 | | |
 |---|---|
 | **Starter** | A bit of everything. It's a good kart to learn on and to build from. |
-| **Featherlight** | Light and low, with tiny wheels at the front and handlebars for quick hands. |
-| **Bruiser** | A heavy slab with a diesel and a ram. |
-| **Slingshot** | A dragster with a V8 in the back. |
+| **Featherlight** | Light and low, with tiny wheels at the front, handlebars and a little rotary engine. |
+| **Bruiser** | A heavy slab with a diesel, a ram and ballast. |
+| **Slingshot** | A dragster with a V8 and a big turbo in the back. |
 | **Streamliner** | Faired in from nose to tail, with the driver lying down behind the screen. |
 | **Mudlark** | Knobbly tires and a diesel, sitting up high. |
-| **Trike** | One wheel at the front and an electric motor at the back. |
-| **Six-wheeler** | Four small wheels steering at the front. |
-| **Monster** | Monster wheels and a big engine. |
+| **Trike** | One wheel at the front and a big electric motor at the back. |
+| **Six-wheeler** | Four small wheels steering at the front, and a flat four at the back. |
+| **Monster** | Monster wheels and a hybrid engine. |
 | **Rocket** | A jet engine, slicks and wings. |
 | **Classic** | A proper go-kart: a flat frame, a little engine and handlebars. |
 | **Downforce** | Big wings front and back, and slicks. |
-| **Brick Tank** | Two layers of bricks all around, a shield and a repair kit. |
+| **Brick Tank** | Two layers of bricks all around, a diesel, a shield and a repair kit. |
 | **Sparky** | An electric all rounder with a magnet for studs. |
-| **Hot Rod** | A V8 out in front and big wheels at the back. |
-| **Soapbox** | Bicycle wheels, a nose cone and a tiny engine. |
+| **Hot Rod** | A V8 out in front and big slicks at the back. |
+| **Soapbox** | Tall thin wheels, a nose cone and a little rotary engine. |
 
 ### Drivers
 
@@ -96,9 +97,9 @@ They're brick minifigs, just a bit cuter, with bigger heads, big shiny eyes and 
 
 ### Track editor
 
-Build your own courses the way you'd put together a slot car set. Every piece you tap clicks onto the end of the road: straights, bends in three sizes, slants and S bends, humps, ramps and climbing bends for bridges, and the stunts, like the jump, the loop, wall rides, banked sweepers and bends with a shortcut across the middle. Tap a piece of road to take it out, change it to dirt, grass, sand or ice, take its walls off, or add more pieces after it.
+Build your own courses the way you'd put together a slot car set. Every piece you tap clicks onto the end of the road: straights, bends in three sizes, slants and S bends, humps, ramps and climbing bends for bridges, and the stunts, like the jump, the loop, wall rides, banked sweepers and bends with a shortcut across the middle. Tap a piece of road to take it out, change it to dirt, grass, sand or ice, give it walls or take them off, or add more pieces after it.
 
-When you've had enough, Close it up works out the fewest pieces to bring the road back around to the start without running into itself. A card in the corner says what's still stopping it being raced, like the road not closing or no straight long enough for the grid. Pick a theme for the ground, the colours and the trees, and put landmarks like windmills, castles, rockets and lighthouses wherever you want them around the course.
+When you've had enough, Close it up works out the fewest pieces to bring the road back around to the start without running into itself. A card in the corner says what's still stopping it being raced, like the road not closing or no straight long enough for the grid. Pick a theme for the ground, the colours and the trees, how hilly it is (flat, rolling or hilly), and put landmarks like windmills, castles, rockets and lighthouses wherever you want them around the course.
 
 Saving moves the start line onto your longest straight, where the grid has room, and your course joins the lists for single races, time trials, practice and two player races, with its own records. Each course is one file with everything in it, so when you host a game online, everyone gets your course.
 
@@ -138,7 +139,9 @@ Everything you hear was made from scratch for the game, by a little synthesiser 
 
 Music and effects each have their own volume in Settings.
 
-Every course is made of track pieces snapped together on a grid, with hills, crests, jumps, bridges, a loop and plenty of scenery. Each one is based on a real kart circuit.
+Every course is made of track pieces snapped together on a grid, with crests, jumps, bridges, a loop and plenty of scenery. Each one is based on a real kart circuit, and it's as big for the karts as the real one is for real karts: laps of 1.6 to 1.9 km, with a road wide enough for three karts abreast through a bend.
+
+Like a real kart track, the road runs out onto grass that slows you down, instead of walls you catch on. There are only walls where you'd fall off, like on a bridge or a wall ride. The corners have red and white kerbs you can ride over, but at speed they bounce your wheels into the air. Where two bits of road run close together, there's a line of soft tire stacks down the middle of the grass between them. The ground rolls with gentle hills that the road climbs and drops over, a little on the lakeside courses and a lot in the mountains.
 
 | Cup | Courses |
 |---|---|
@@ -216,6 +219,7 @@ They check things like:
 - the garage, the menus and every mode, including a whole Grand Prix and two players on one phone (`garage_test`, `menu_test`, `modes_test`, `split_test`)
 - every stock kart gets around a lap with the AI driving (`stock_test`)
 - whole races with eight karts, around the loop too (`race_test`)
+- the kerbs throw you in the air at speed and only rumble slowly, the grass slows you without stopping you dead, tire stacks bounce you back, and there are no walls beside the road (`runoff_test`)
 - a game over Bluetooth, with a pretend radio: players get their ids, and messages get to the host, from the host and from one player to another (`bluetooth_test`)
 - two copies of the game racing each other over the network, a race and then a cup (`tools/run-net-test.sh`)
 - the dedicated server, with one player joining like a phone and one like a web page, and its admin page's commands (`tools/run-server-test.sh`, which also works on a server running in Docker with `--running`)

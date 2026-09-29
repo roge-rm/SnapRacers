@@ -10,7 +10,7 @@
 		{"id": "slope_2x2", "at": [9, 3, 7], "rot": 0, "color": "#36aebf"},
 		{"id": "curve_2x4", "at": [7, 3, 7], "rot": 0, "color": "#36aebf"},
 		{"id": "curve_2x4", "at": [11, 3, 7], "rot": 0, "color": "#36aebf"},
-		{"id": "steering_wheel", "at": [9, 3, 10], "rot": 0},
+		{"id": "racing_wheel", "at": [9, 3, 10], "rot": 0},
 		{"id": "seat", "at": [9, 3, 11], "rot": 0},
 		{"id": "electric_motor", "at": [9, 3, 14], "rot": 0},
 		{"id": "magnet", "at": [7, 3, 14], "rot": 0},

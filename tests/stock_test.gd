@@ -6,7 +6,9 @@ extends Node
 ## goes further, and times them all on three courses.)
 ##   tools/godot/Godot_v4.7.2-stable_linux.x86_64 --headless --fixed-fps 60 --path . res://tests/stock_test.tscn
 
-const GIVE_UP := 90.0
+# A lap of Peach Pit takes them all 75 to 90 s at kart scale, so this leaves
+# room for a slow one without waiting on one that's stuck.
+const GIVE_UP := 110.0
 
 var failures := 0
 var host: Node

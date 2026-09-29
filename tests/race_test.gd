@@ -10,7 +10,9 @@ extends Node
 ## track's file name after -- to race there instead of Peach Pit.
 ##   tools/godot/Godot_v4.7.2-stable_linux.x86_64 --headless --fixed-fps 60 --path . res://tests/race_test.tscn -- launchpad_loop
 
-const GIVE_UP := 260.0 # seconds of race time
+## Race time to give up after: long enough for the whole race at no worse
+## than this average speed.
+const SLOWEST := 7.0
 
 var race: Race
 var failures := 0
@@ -82,7 +84,7 @@ func _physics_process(_delta: float) -> void:
 		if racer.progress.lap_times.size() >= 1 and not first_lap.has(racer.name):
 			first_lap[racer.name] = racer.progress.lap_times[0]
 	var everyone := race.racers.all(func(r): return r.progress.finished)
-	if everyone or race.time > GIVE_UP:
+	if everyone or race.time > race.laps * race.track.length / SLOWEST:
 		for racer in race.standings():
 			print("  %s in the %s: %s, laps %s, %d resets" % [racer.name, racer.kart.design.name, RaceHud.clock(racer.progress.finish_time) if racer.progress.finished else "didn't finish", racer.progress.lap_times.map(func(t): return snappedf(t, 0.1)), resets[racer.name]])
 		for racer in race.racers:

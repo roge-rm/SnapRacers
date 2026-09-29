@@ -28,6 +28,7 @@ signal load_chosen(path: String)
 signal name_changed(text: String)
 signal laps_changed(laps: int)
 signal theme_chosen(theme: String)
+signal hills_chosen(hills: float)
 signal close_up_pressed
 signal delete_pressed
 signal add_after_pressed
@@ -81,7 +82,12 @@ const LANDMARKS := [
 	["Pond", "pond"], ["Lava pool", "lava_pool"], ["Slag heap", "slag_heap"], ["Dune", "dune"],
 ]
 const SURFACES := [["Road", "asphalt"], ["Dirt", "dirt"], ["Grass", "grass"], ["Sand", "sand"], ["Ice", "ice"]]
-const EDGES := [["Walls", "walls"], ["Left open", "left_open"], ["Right open", "right_open"], ["Open", "open"]]
+## "Auto" has walls only where you'd fall off, and grass runoff everywhere
+## else (see TrackPiece.edges).
+const EDGES := [["Auto", "auto"], ["Walls", "walls"], ["Left open", "left_open"], ["Right open", "right_open"], ["Open", "open"]]
+## How much the ground rises and falls around the course, in metres (see
+## TrackPath.hills).
+const HILLS := [["Flat", "0"], ["Rolling", "8"], ["Hilly", "16"]]
 ## What each theme is called on its button.
 const THEME_NAMES := {
 	"orchard": "Orchard", "trulli": "Olive groves", "lake": "Lakeside", "mine": "Coal mine",
@@ -112,6 +118,7 @@ var _name_label: Label
 var _about_label: Label
 var _problems_label: Label
 var _laps_label: Label
+var _hills: Dictionary = {}
 var _close_up: Button
 var _themes: Dictionary = {}
 
@@ -182,6 +189,8 @@ func show_course(course: CourseDesign, length: float, problems: Array[String], c
 	_laps_label.text = "%d lap%s" % [course.laps, "" if course.laps == 1 else "s"]
 	for id in _themes:
 		BuilderStyle.show_swatch(_themes[id], Color(Scenery.theme_named(id).ground).darkened(0.35), id == course.theme)
+	for id in _hills:
+		MenuStyle.mark(_hills[id], is_equal_approx(float(id), course.hills))
 	_problems_label.text = "\n".join(problems.map(func(p): return "• " + p))
 	_problems_label.visible = not problems.is_empty()
 	_close_up.visible = can_close
@@ -205,7 +214,7 @@ func show_selection(index: int, spec: Dictionary) -> void:
 	var surface: String = spec.get("surface", "asphalt")
 	for id in _surfaces:
 		MenuStyle.mark(_surfaces[id], id == surface)
-	var edges: String = spec.get("edges", "walls")
+	var edges: String = spec.get("edges", "auto")
 	for id in _edges:
 		MenuStyle.mark(_edges[id], id == edges)
 
@@ -471,6 +480,13 @@ func _build_card() -> void:
 		swatch.custom_minimum_size.x = 150.0
 		grid.add_child(swatch)
 		_themes[id] = swatch
+
+	var hills_heading := Label.new()
+	hills_heading.text = "Hills"
+	hills_heading.add_theme_font_size_override("font_size", 16)
+	hills_heading.add_theme_color_override("font_color", Color(1, 1, 1, 0.7))
+	box.add_child(hills_heading)
+	box.add_child(_choices(HILLS, _hills, func(id: String) -> void: hills_chosen.emit(float(id))))
 
 	_problems_label = Label.new()
 	_problems_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART

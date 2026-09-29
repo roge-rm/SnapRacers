@@ -32,12 +32,14 @@ module_text_server_adv_enabled = "no"
 module_text_server_fb_enabled = "yes"
 module_msdfgen_enabled = "no"
 
+# Noise stays in: the hills around the courses are made with FastNoiseLite.
+
 # Everything else the game doesn't use.
 for module in [
     "astcenc", "basis_universal", "bcdec", "betsy", "bmp", "camera", "csg", "cvtt",
     "dds", "etcpak", "fbx", "glslang", "gltf", "godot_physics_2d", "godot_physics_3d",
     "gridmap", "hdr", "interactive_music", "jpg", "jsonrpc", "ktx", "lightmapper_rd",
-    "meshoptimizer", "mobile_vr", "mp3", "navigation_2d", "navigation_3d", "noise",
+    "meshoptimizer", "mobile_vr", "mp3", "navigation_2d", "navigation_3d",
     "objectdb_profiler", "openxr", "raycast", "regex", "svg", "tga", "theora",
     "tinyexr", "upnp", "vhacd", "visual_shader", "webrtc", "webxr",
     "xatlas_unwrap", "zip",

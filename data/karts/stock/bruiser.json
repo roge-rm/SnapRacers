@@ -14,7 +14,7 @@
 		{"id": "seat", "at": [9, 4, 10], "rot": 0},
 		{"id": "engine_diesel", "at": [8, 4, 12], "rot": 0},
 		{"id": "brick_dropper", "at": [11, 4, 12], "rot": 0},
-		{"id": "brick_2x2", "at": [7, 7, 7], "rot": 0, "color": "#7b2e2f"},
-		{"id": "brick_2x2", "at": [11, 7, 7], "rot": 0, "color": "#7b2e2f"}
+		{"id": "ballast", "at": [7, 7, 7], "rot": 0, "color": "#7b2e2f"},
+		{"id": "ballast", "at": [11, 7, 7], "rot": 0, "color": "#7b2e2f"}
 	]
 }

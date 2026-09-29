@@ -1,3 +1,3 @@
 Foundry Flats
-width=10 laps=3 theme=industry
-S2 L1 L1 S3 R1 R1 S3 S1 R2 R1 L1 R1 S3 J SL3.1 S3 R2 S2 R1 R1 S1 L2 S2 L1 L1 S1 R2 R2 S1 R2 L2 S3
+width=13 laps=3 theme=industry hills=2
+S2 SL2.1 S3 R1 SL2.1 S1 R1 R1 L3 L1 L1 R2 R2 SR2.1 R1 S1 L1 J S2 L1 L1 S3 S1 R1 R1 S2 S2 R2 S1 R1 S1 S3

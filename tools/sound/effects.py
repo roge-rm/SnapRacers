@@ -66,19 +66,38 @@ def engine(seed, cycle_hz, firings, body, rasp=0.3, grit=2.0, bright=4000.0, kno
     return normalise(out, 0.8)
 
 
-def electric_motor():
+def electric_motor(pitch=400, seed=71):
     """A whine with a gear mesh over it and a little whir."""
     total = RATE
     t = times(total)
     wobble = 1.0 + 0.08 * np.sin(2 * np.pi * 7 * t)
-    out = (np.sin(2 * np.pi * 400 * t) * 1.0
-           + np.sin(2 * np.pi * 800 * t) * 0.45
-           + np.sin(2 * np.pi * 1200 * t) * 0.2
-           + np.sin(2 * np.pi * 1600 * t) * 0.12) * wobble
-    whir = circular_filter(noise(total, 71), low=500.0, high=3000.0)
+    out = (np.sin(2 * np.pi * pitch * t) * 1.0
+           + np.sin(2 * np.pi * pitch * 2 * t) * 0.45
+           + np.sin(2 * np.pi * pitch * 3 * t) * 0.2
+           + np.sin(2 * np.pi * pitch * 4 * t) * 0.12) * wobble
+    whir = circular_filter(noise(total, seed), low=pitch * 1.25, high=pitch * 7.5)
     out += whir * 0.35
-    out += np.sin(2 * np.pi * 100 * t) * 0.25
+    out += np.sin(2 * np.pi * pitch / 4 * t) * 0.25
     return normalise(circular_filter(out, low=60.0, high=6000.0), 0.7)
+
+
+def hybrid():
+    """A little engine with an electric whine over it."""
+    body = engine(17, 50, [(0.0, 1.0), (0.5, 0.9)], [(150, 0.03, 1.0), (330, 0.015, 0.5), (800, 0.006, 0.2)], rasp=0.3, grit=2.0, bright=4000)
+    return normalise(body * 0.75 + electric_motor(520, 73) * 0.45, 0.72)
+
+
+def pedals():
+    """No engine at all: a chain whirring round and a tick from the cranks."""
+    total = RATE
+    t = times(total)
+    whir = circular_filter(noise(total, 91), low=900.0, high=4000.0)
+    chain = (0.5 + 0.5 * np.sin(2 * np.pi * 36 * t)) * whir
+    ticks = np.zeros(total)
+    for k in range(2):
+        start = int(total * k / 2)
+        ticks[start:start + 200] += np.exp(-np.arange(200) / 30.0) * np.sin(np.arange(200) * 0.9)
+    return normalise(chain * 0.6 + ticks * 0.8, 0.5)
 
 
 def jet():
@@ -108,6 +127,14 @@ ENGINES = {
     "engine_v8": lambda: engine(16, 24, [(0.0, 1.0), (0.22, 0.7), (0.5, 0.95), (0.75, 0.8)], [(75, 0.06, 1.0), (160, 0.035, 0.7), (330, 0.015, 0.4), (700, 0.006, 0.2)], rasp=0.3, grit=2.5, bright=3000),
     "electric_motor": electric_motor,
     "jet": jet,
+    # A rotary: three smooth, even firings every turn, and it revs high.
+    "engine_rotary": lambda: engine(18, 60, [(0.0, 1.0), (0.333, 1.0), (0.667, 1.0)], [(200, 0.02, 1.0), (450, 0.012, 0.6), (1100, 0.005, 0.3)], rasp=0.2, grit=1.5, bright=6000),
+    # A flat four, with the boxer's offbeat rumble.
+    "engine_flat4": lambda: engine(19, 26, [(0.0, 1.0), (0.2, 0.75), (0.5, 0.95), (0.72, 0.8)], [(90, 0.05, 1.0), (200, 0.03, 0.6), (450, 0.01, 0.25)], rasp=0.3, grit=2.2, bright=3200),
+    # A bigger electric motor whines lower.
+    "electric_big": lambda: electric_motor(290, 72),
+    "engine_hybrid": hybrid,
+    "pedals": pedals,
 }
 
 

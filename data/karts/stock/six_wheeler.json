@@ -1,6 +1,6 @@
 {
 	"name": "Six-wheeler",
-	"about": "Four small wheels steer at the front, so it grips like nothing else and never quite runs out of front end.",
+	"about": "Four small wheels steer at the front, so it grips like nothing else, with a low flat four at the back and oil for whoever's behind.",
 	"parts": [
 		{"id": "plate_6x10", "at": [7, 2, 4], "rot": 0, "color": "#1b2a34"},
 		{"id": "plate_2x4", "at": [7, 2, 14], "rot": 0, "color": "#1b2a34"},
@@ -17,9 +17,9 @@
 		{"id": "brick_2x4", "at": [11, 3, 12], "rot": 0, "color": "#237841"},
 		{"id": "steering_wheel", "at": [9, 3, 11], "rot": 0},
 		{"id": "seat", "at": [9, 3, 12], "rot": 0},
-		{"id": "engine_twin", "at": [9, 3, 15], "rot": 0},
-		{"id": "spoiler_6", "at": [7, 6, 15], "rot": 0, "color": "#f2cd37"},
-		{"id": "shield", "at": [7, 3, 7], "rot": 0},
+		{"id": "engine_flat4", "at": [8, 3, 16], "rot": 0},
+		{"id": "spoiler_6", "at": [7, 5, 16], "rot": 0, "color": "#f2cd37"},
+		{"id": "oil_can", "at": [7, 3, 7], "rot": 0},
 		{"id": "brick_cannon", "at": [11, 3, 7], "rot": 0}
 	]
 }

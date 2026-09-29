@@ -35,8 +35,8 @@ func _initialize() -> void:
 	check(floating.groups().size() == 2, "a floating brick is its own group")
 	check(floating.problems().has("Some parts aren't attached to the rest."), "a floating brick is reported")
 
-	# The spoiler sits on the engine and on the two 2x2 bricks either side of
-	# it. Losing the engine alone leaves it held by the bricks, but losing all
+	# The wing at the back (a ducktail) sits on the engine and on the two 2x2
+	# bricks either side of it. Losing the engine alone leaves it held by the bricks, but losing all
 	# three drops it.
 	var engine := -1
 	var spoiler := -1
@@ -45,7 +45,7 @@ func _initialize() -> void:
 		match starter.parts[i].id:
 			"engine_small":
 				engine = i
-			"spoiler_6":
+			"spoiler_6", "ducktail":
 				spoiler = i
 			"brick_2x2":
 				side_bricks.append(i)

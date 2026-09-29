@@ -72,13 +72,17 @@ for name in sys.argv[2:]:
     line, end = design["walk"](data["pieces"])
     import math
     assert math.hypot(end[0], end[1]) < 0.5 and abs(end[2]) < 0.1, name + " doesn't close after turning"
-    clashes = design["clashes"](line, len(data["pieces"]), data.get("width", 10.0))
+    clashes = design["clashes"](line, len(data["pieces"]), data.get("width", 13.0))
     assert not clashes, "%s clashes after turning: %s" % (name, clashes)
     if min(p[2] for p in line) < -0.1:
         raise SystemExit(name + " goes underground")
     where, about = INFO[name]
     ordered = {"name": data["name"], "inspired_by": where, "about": about, "theme": data.get("theme", "orchard"),
-               "laps": data.get("laps", 3), "width": data.get("width", 10.0), "pieces": data["pieces"]}
+               "laps": data.get("laps", 3), "width": data.get("width", 13.0), "grid": 32}
+    # How much the ground rises and falls around it (see TrackPath.hills).
+    if data.get("hills", 0):
+        ordered["hills"] = data["hills"]
+    ordered["pieces"] = data["pieces"]
     lines = ["{"]
     for k, v in ordered.items():
         if k == "pieces":

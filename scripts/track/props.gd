@@ -645,6 +645,13 @@ static func lighthouse(kit: SceneryKit, at: Vector3) -> void:
 
 ## A stack of old tires, the kind that lines the outside of kart track
 ## corners.
+## A tire stack in a barrier: three tires high and soft to hit.
+static func barrier_stack(kit: SceneryKit, at: Vector3, top: Color) -> void:
+	for k in 3:
+		kit.cylinder(at + Vector3.UP * k * 0.28, 0.38, 0.28, top if k == 2 else BLACK, SceneryKit.SMOOTH)
+	kit.soft_box(Transform3D(Basis.IDENTITY, at + Vector3.UP * 0.42), Vector3(0.7, 0.84, 0.7))
+
+
 static func tire_stack(kit: SceneryKit, at: Vector3, top: Color) -> void:
 	for k in 4:
 		kit.cylinder(at + Vector3.UP * k * 0.28, 0.38, 0.28, top if k == 3 else BLACK, SceneryKit.SMOOTH, k == 0)

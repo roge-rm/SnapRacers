@@ -62,8 +62,13 @@ class Runner:
 		karts.rammed = kart_with([], Vector3(40, 0.05, 92))
 		karts.bumper = kart_with([], Vector3(60, 0.05, 110))
 		karts.bumped = kart_with([], Vector3(60, 0.05, 92))
+		karts.big_turbo = kart_with(["big_turbo"], Vector3(80, 0.05, 100))
+		karts.super_spring = kart_with(["super_spring"], Vector3(-60, 0.05, 80))
+		karts.oiler = kart_with(["oil_can"], Vector3(100, 0.05, 100))
+		karts.slider = kart_with([], Vector3(120, 0.05, 60))
+		karts.gripper = kart_with([], Vector3(130, 0.05, 60))
 
-		steps = [_start, _turbo, _turbo_check, _others, _others_check, _repair_check, _ram_check]
+		steps = [_start, _turbo, _turbo_check, _others, _others_check, _repair_check, _ram_check, _oil, _oil_check]
 
 	func _start() -> int:
 		for kart in [karts.turbo, karts.plain]:
@@ -109,10 +114,16 @@ class Runner:
 		karts.gunner2.use_gadget(0)
 		karts.dropper.add_studs(10)
 		karts.dropper.use_gadget(0)
+		karts.super_spring.add_studs(10)
+		karts.super_spring.use_gadget(0)
+		karts.big_turbo.add_studs(10)
+		karts.big_turbo.use_gadget(0)
 		return 20
 
 	func _others_check() -> int:
 		check(karts.spring.global_position.y > 0.7, "a spring hops the kart up (%.2f m)" % karts.spring.global_position.y)
+		check(karts.super_spring.global_position.y > karts.spring.global_position.y + 0.3, "a super spring hops it higher (%.2f m)" % karts.super_spring.global_position.y)
+		check(karts.big_turbo.boost_left > Kart.TURBO_TIME, "a big turbo lasts longer than a plain one (%.1f s left)" % karts.big_turbo.boost_left)
 		check(karts.target.lost.size() >= 1, "a cannon brick knocks a part off the kart it hits (%d lost)" % karts.target.lost.size())
 		check(karts.shielded.lost.is_empty(), "but not off a kart with its shield up")
 		var piles := get_children().filter(func(n): return n is BrickPile).size()
@@ -144,6 +155,27 @@ class Runner:
 	func _ram_check() -> int:
 		check(karts.rammed.lost.size() > karts.bumped.lost.size(), "a ram plate knocks off more than a plain bumper (%d against %d)" % [karts.rammed.lost.size(), karts.bumped.lost.size()])
 		check(karts.rammer.lost.is_empty() or karts.rammer.lost.size() < karts.rammed.lost.size(), "and the rammer comes off better")
+		return 0
+
+	## An oil can leaves a slick behind the kart. Then one kart slides
+	## sideways across a slick while another does the same on the ground
+	## beside it.
+	func _oil() -> int:
+		karts.oiler.add_studs(10)
+		check(karts.oiler.use_gadget(0), "an oil can can be used")
+		var slicks := get_children().filter(func(n): return n is OilSlick)
+		check(slicks.size() == 1 and slicks[0].global_position.z > karts.oiler.global_position.z, "and leaves a slick behind the kart")
+		var slick := OilSlick.new()
+		add_child(slick)
+		slick.global_position = Vector3(120, 0.03, 60)
+		for kart in [karts.slider, karts.gripper]:
+			kart.linear_velocity = Vector3(6.0, 0.0, 0.0)
+		return 30
+
+	func _oil_check() -> int:
+		var slid: float = karts.slider.linear_velocity.x
+		var gripped: float = karts.gripper.linear_velocity.x
+		check(slid > gripped + 1.5, "a kart on oil keeps sliding where one off it grips (%.1f against %.1f m/s)" % [slid, gripped])
 		return 0
 
 	func _physics_process(_delta: float) -> void:

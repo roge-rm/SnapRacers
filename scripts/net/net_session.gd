@@ -26,7 +26,7 @@ signal race_begun
 signal race_over(order: Array)
 
 ## Racing uses its own number, so it can't be confused with an older game.
-const VERSION := 1
+const VERSION := 2
 const PORT := 27280
 const MOST_KARTS := 8
 ## What a host can put on.

@@ -1,3 +1,3 @@
 Launchpad Loop
-width=10 laps=3 theme=space
-S2 OL R1 R2 S1 L2 L1 S3 L1 SR3.1 S1 L1 S2 SR4.1 SL4.1 S2 L1 L2 S2 S3
+width=13 laps=3 theme=space hills=3
+SR2.1 L1 SL2.1 R1 L1 SR2.1 L2 SL3.1 S1 S1 R1 R1 S2 L1 L1 S2 L2 R1 SR2.1 L1 R1 L1 L1 S3 S3 OL R1 R1 L1 R1 R1 L1 L1 L2 S1

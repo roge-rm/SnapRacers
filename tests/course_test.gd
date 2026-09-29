@@ -75,6 +75,21 @@ func _initialize() -> void:
 	check(raced.closes and raced.landmarks.size() == 1, "and it loads as a track to race, landmarks and all")
 	DirAccess.remove_absolute(path)
 
+	# A course saved before the tiles were kart sized: the same pieces, with
+	# its start, landmarks and road all grown to match.
+	var old_file := half.to_dict()
+	old_file.erase("grid")
+	old_file.width = 10.0
+	old_file.start = [16.0, 0.0, -32.0, 1]
+	old_file.landmarks = [{"prop": "barn", "at": [40.0, 10.0], "facing": 2}]
+	var grown := CourseDesign.from_dict(old_file)
+	check(grown.width == TrackPath.WIDTH, "an old course gets today's road width (%.0f m)" % grown.width)
+	check(grown.start.origin.is_equal_approx(Vector3(32.0, 0.0, -64.0)), "and its start moves out with its bigger tiles (%s)" % grown.start.origin)
+	check(grown.landmarks[0].at == [80.0, 20.0], "and so do its landmarks (%s)" % [grown.landmarks[0].at])
+	var old_track := TrackPath.from_dict(old_file)
+	check(old_track.closes and old_track.start.origin.is_equal_approx(grown.start.origin), "and it races the same way (%s)" % old_track.start.origin)
+	check(grown.to_dict().get("grid", 0) == TrackPiece.TILE, "and it saves as a kart sized course")
+
 	print("All course checks passed." if failures == 0 else "%d course checks failed." % failures)
 	quit(1 if failures > 0 else 0)
 

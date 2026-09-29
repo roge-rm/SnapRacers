@@ -10,7 +10,9 @@ the tile grid beside the real layout.
 """
 import json, math, os, subprocess, sys
 
-TILE = 16.0
+TILE = 32.0
+# How sharply the top of a crest curves, one over its radius.
+CREST_BEND = 0.0128
 here = os.path.dirname(os.path.abspath(__file__))
 
 
@@ -106,13 +108,13 @@ def parse(text):
     """Short hand for piece lists, one token per piece:
     S3 straight, R2/L2 curve right/left (size), R2b22 banked, R2c cut,
     SR4.3/SL4.3 slant right/left 4 long 3 across, U2+1/U2-1 ramp up/down a
-    level, C2 crest, J jump, OR/OL loop. Add ^1 or ^-1 to any piece to climb
+    level, C2 crest (C2h3 for one 3 m high), J jump, OR/OL loop. Add ^1 or ^-1 to any piece to climb
     or drop a level along it, !o for open edges, !d dirt, !i ice, !s sand,
     !g grass."""
     import re
     lines = [l.split('#')[0].strip() for l in text.splitlines()]
     lines = [l for l in lines if l]
-    data = {"name": lines[0], "laps": 3, "width": 12.0, "pieces": []}
+    data = {"name": lines[0], "laps": 3, "width": 13.0, "pieces": []}
     for key, value in re.findall(r'(\w+)=(\S+)', lines[1]):
         data[key] = float(value) if key == "width" else (int(value) if value.isdigit() else value)
     for tok in " ".join(lines[2:]).split():
@@ -138,8 +140,13 @@ def parse(text):
         elif re.fullmatch(r'U(\d+)([+-]\d+)', tok):
             m = re.fullmatch(r'U(\d+)([+-]\d+)', tok)
             spec = {"type": "ramp", "length": int(m[1]), "rise": int(m[2])}
-        elif re.fullmatch(r'C(\d+)', tok):
-            spec = {"type": "crest", "length": int(tok[1:]), "height": 1.5}
+        elif re.fullmatch(r'C(\d+)(h[\d.]+)?', tok):
+            m = re.fullmatch(r'C(\d+)(h[\d.]+)?', tok)
+            # Tall enough that its top curves as sharply as the old 1.5 m
+            # humps did on 16 m tiles, so it still throws you in the air.
+            run = int(m[1]) * TILE
+            height = float(m[2][1:]) if m[2] else round(CREST_BEND * run * run / (2 * math.pi ** 2), 1)
+            spec = {"type": "crest", "length": int(m[1]), "height": height}
         elif tok == "J":
             spec = {"type": "jump"}
         elif tok in ("OR", "OL"):
@@ -173,7 +180,7 @@ def main():
     gap = math.hypot(end[0], end[1])
     length = sum(math.hypot(line[k][0] - line[k - 1][0], line[k][1] - line[k - 1][1]) for k in range(1, len(line))) + gap
     closes = gap < 0.5 and abs(end[2]) < 0.1 and end[3] == 0 and end[4] == 1
-    bad = clashes(line, len(pieces), float(data.get("width", 12)))
+    bad = clashes(line, len(pieces), float(data.get("width", 13)))
     print("%s: %.0f m, %s (gap %.1f m, height %.1f, heading %s), clashes %s" % (
         data.get("name"), length, "closes" if closes else "DOESN'T CLOSE", gap, end[2], (end[3], end[4]), bad[:8]))
     # Draw.

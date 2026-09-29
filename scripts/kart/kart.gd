@@ -77,6 +77,8 @@ const GADGET_COOLDOWN := 0.6
 ## A part's knocks add up over a few frames, because one crash lands over
 ## several physics steps. After that they fade away.
 const IMPACT_FADE := 0.5
+## Tire stacks give, so a knock against nothing but them counts this much.
+const SOFT_KNOCK := 0.35
 ## Wheels collide through a cylinder a bit smaller than the tire. It only
 ## touches the ground when the suspension is squashed hard, like a bump stop,
 ## but it still catches walls from the side.
@@ -99,10 +101,18 @@ const STICK_PITCH_DAMP := 4.0
 ## A little extra pull onto sticky road to keep all four wheels planted over
 ## bumps. On a loop the kart's own speed presses it down far harder than this.
 const STICK_PULL := 0.1
+## Kerbs have ridges this far apart. Each one a wheel rolls over kicks it up,
+## by this much for every m/s it's going, more for small wheels than big ones
+## (KERB_WHEEL is the size of wheel that gets the kick as it is). Slowly they
+## just rumble. At racing speed the wheels skip into the air and lose their
+## grip, so you'd rather keep off them.
+const KERB_RIDGE := 0.6
+const KERB_KICK := 0.024
+const KERB_WHEEL := 0.3
 ## The sound each gadget makes when it's used (see sound/fx).
 const GADGET_SOUNDS := {
 	"turbo": "fx/turbo", "spring": "fx/spring", "dropper": "fx/drop", "cannon": "fx/cannon",
-	"repair": "fx/repair", "shield": "fx/shield", "magnet": "fx/magnet",
+	"repair": "fx/repair", "shield": "fx/shield", "magnet": "fx/magnet", "oil": "fx/drop",
 }
 
 
@@ -124,6 +134,8 @@ class Wheel:
 	var grounded := false
 	var load := 0.0
 	var spin := 0.0
+	## How far it's rolled along kerbs, for counting the ridges it crosses.
+	var kerb_travel := 0.0
 	var visual: Node3D
 
 
@@ -169,6 +181,8 @@ var studs := 0
 ## Every stud picked up this race, spent or not.
 var studs_picked := 0
 var boost_left := 0.0
+## How hard the last spring used kicks (a super spring kicks harder).
+var _spring_speed := SPRING_SPEED
 var shield_left := 0.0
 var _spring_asked := false
 var _repair_asked := false
@@ -541,7 +555,7 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 	slowdown_left = maxf(slowdown_left - dt, 0.0)
 	if _spring_asked:
 		_spring_asked = false
-		state.linear_velocity += state.transform.basis.y * SPRING_SPEED
+		state.linear_velocity += state.transform.basis.y * _spring_speed
 
 	var basis := state.transform.basis
 	var up := basis.y
@@ -645,6 +659,12 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 			on_rough += 1
 		grip_here = ground_grip(grip_here, w.offroad)
 		drag_here = ground_drag(drag_here, w.offroad)
+		if ground != null and ground.get_meta("kerb", false):
+			var ridge := floori(w.kerb_travel / KERB_RIDGE)
+			w.kerb_travel += absf(v_long) * dt
+			if floori(w.kerb_travel / KERB_RIDGE) != ridge:
+				var kick := KERB_KICK * absf(v_long) * KERB_WHEEL / maxf(w.radius, 0.1)
+				state.apply_impulse(normal * share * kick, contact - origin)
 		var resist := w.rolling * load * drag_here
 		if braking:
 			resist += BRAKE_FORCE * (1.0 if locked else controls.brake) / wheels.size()
@@ -752,8 +772,12 @@ func _feel_knocks(state: PhysicsDirectBodyState3D) -> void:
 	var shares := {}
 	var total := 0.0
 	var rammed := false
+	var all_soft := true
 	var to_kart := state.transform.affine_inverse()
 	for i in count:
+		var hit: Object = state.get_contact_collider_object(i)
+		if hit == null or not hit.get_meta("soft", false):
+			all_soft = false
 		var part := part_at(to_kart * state.get_contact_local_position(i))
 		if part == -1:
 			continue
@@ -767,6 +791,8 @@ func _feel_knocks(state: PhysicsDirectBodyState3D) -> void:
 			rammed = true
 		shares[part] = shares.get(part, 0.0) + weight
 		total += weight
+	if all_soft:
+		knock *= SOFT_KNOCK
 	if sound != null:
 		sound.knocked(knock)
 	if rammed:
@@ -882,9 +908,12 @@ func use_gadget(slot: int) -> bool:
 	_gadget_wait[slot] = GADGET_COOLDOWN
 	match def.get("gadget", ""):
 		"turbo":
-			boost_left = TURBO_TIME
+			boost_left = float(def.get("time", TURBO_TIME))
 		"spring":
 			_spring_asked = true
+			_spring_speed = float(def.get("hop", SPRING_SPEED))
+		"oil":
+			get_parent().add_child(OilSlick.drop_behind(self))
 		"dropper":
 			for brick in BrickPile.drop_behind(self):
 				get_parent().add_child(brick)
