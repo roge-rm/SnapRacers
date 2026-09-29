@@ -19,3 +19,9 @@ tools/godot/Godot_v4.7.2-stable_linux.x86_64 --headless --path . -s tools/stock-
 ```
 tools/godot/Godot_v4.7.2-stable_linux.x86_64 --headless --fixed-fps 60 --path . res://tools/stock-karts/balance.tscn -- rocket peach_pit
 ```
+
+`handling.gd` checks each kart is steady at speed. On a flat stretch of road it steers hard one way with the throttle down, then flicks left and right like a lane change, and prints how far each kart slid and whether it spun. It takes about three minutes.
+
+```
+tools/godot/Godot_v4.7.2-stable_linux.x86_64 --headless --fixed-fps 60 --path . -s tools/stock-karts/handling.gd
+```

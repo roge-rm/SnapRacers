@@ -130,7 +130,7 @@ ORANGE = "#da8540"
 SILVER = "#a3a2a4"
 (kart("streamliner", "Streamliner", "Faired in from nose to tail with the driver lying down behind the screen. The fastest thing on a long straight, and a handful in the corners.")
     .add("plate_6x10", 7, 2, 6, colour=SILVER).add("plate_2x4", 9, 2, 16, colour=SILVER)
-    .wheels("wheel_small_wide", 8).wheels("wheel_small_wide", 13)
+    .wheels("wheel_small", 8).wheels("wheel_small_wide", 13)
     .pair("wheel_fairing_2", 5, 2, 6, colour="#f2f3f2")
     .add("nose_4x4", 8, 3, 6, colour="#f2f3f2")
     .add("windscreen_2", 9, 6, 9)

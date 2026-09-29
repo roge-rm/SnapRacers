@@ -40,6 +40,15 @@ const SLIDE_MARGIN := 0.95
 ## A slide smaller than this is just a kart cornering hard (see steer_limit()).
 const SMALL_SLIDE := deg_to_rad(3.0)
 const STEER_RATE := 4.0 # how fast the wheels turn, in full locks per second
+## Stability control (see _steady()). It starts working above this speed, in
+## metres a second.
+const STEADY_SPEED := 8.0
+## How much faster than its front wheels point it the kart can turn before it
+## steps in: this much of the turn, plus a little, in radians a second.
+const STEADY_LEEWAY := 0.3
+const STEADY_SLACK := 0.15
+## How quickly it takes the extra turn away, per second.
+const STEADY_RATE := 6.0
 const BRAKE_FORCE := 2800.0
 const REVERSE_FRACTION := 0.45
 ## A jet has no push through the wheels to reverse with, so every kart gets
@@ -569,10 +578,15 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 	var slide := 0.0
 	var flat_velocity := state.linear_velocity - up * state.linear_velocity.dot(up)
 	if flat_velocity.length() > 2.0:
-		slide = (-basis.z).angle_to(flat_velocity)
-		# Going backwards isn't a slide.
-		if slide > PI * 0.5:
-			slide = 0.0
+		# Which way it's going, from where it's pointing. Positive is off to
+		# the left.
+		var toward := (-basis.z).signed_angle_to(flat_velocity, up)
+		# Going backwards isn't a slide. And the extra lock is only for
+		# steering into a slide to catch it. Steering the other way, it wound
+		# on more lock as the tail stepped out, which made it step out further,
+		# until it spun.
+		if absf(toward) < PI * 0.5 and controls.steer * toward < 0.0:
+			slide = absf(toward)
 	full_lock = steer_limit(speed, slide)
 	var wanted_steer := controls.steer * full_lock if stats.steering != null else 0.0
 	# A driver who sits awkwardly or has to reach steers more slowly.
@@ -669,7 +683,16 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 		if braking:
 			resist += BRAKE_FORCE * (1.0 if locked else controls.brake) / wheels.size()
 		f_long -= signf(v_long) * minf(resist, absf(v_long) * stop_force)
-		var tire := Vector2(f_long, f_lat).limit_length(KartStats.TIRE_FRICTION * w.grip * grip_here * load)
+		var most := KartStats.TIRE_FRICTION * w.grip * grip_here * load
+		# Traction control. Holding the kart in line comes first, and the
+		# engine only gets the grip that's left over. Before, full throttle
+		# could take nearly all of the back tires' grip, so there was none left
+		# to hold the tail and a hard steer at speed swung it around.
+		if drive > 0.0 and w.driven:
+			f_lat = clampf(f_lat, -most, most)
+			var left_over := sqrt(maxf(most * most - f_lat * f_lat, 0.0))
+			f_long = minf(f_long, left_over)
+		var tire := Vector2(f_long, f_lat).limit_length(most)
 
 		state.apply_force(normal * load, contact - origin)
 		# Cornering forces act a little below the centre of mass, so it leans
@@ -732,9 +755,36 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 		state.apply_central_force(push)
 		applied += push
 
+	_steady(state, up)
 	_feel_knocks(state)
 	_last_velocity = state.linear_velocity
 	_last_applied = applied
+
+
+## Stability control, like a real car's. When the kart turns much faster than
+## its front wheels are pointing it (the tail stepping out), this turns it
+## back, the way braking one wheel would. Without it a kart held at full lock
+## at speed could turn tighter and tighter until it spun. It leaves it alone
+## in the air, on sticky road, and at low speed.
+func _steady(state: PhysicsDirectBodyState3D, up: Vector3) -> void:
+	if sticking or forward_speed < STEADY_SPEED:
+		return
+	if wheels.any(func(w: Wheel) -> bool: return not w.grounded):
+		return
+	var turning := state.angular_velocity.dot(up)
+	# How fast the front wheels would turn it if nothing slid. Steering right
+	# turns it clockwise seen from above, which is negative about up.
+	var meant := -forward_speed * tan(steer_angle) / maxf(wheelbase, 0.5)
+	var extra := turning - meant
+	# Only the part past a little leeway, and only when it's turning the same
+	# way as that extra, so it's the tail coming around and not the kart
+	# straightening up.
+	var leeway := absf(meant) * STEADY_LEEWAY + STEADY_SLACK
+	if absf(extra) <= leeway or signf(extra) != signf(turning):
+		return
+	extra -= signf(extra) * leeway
+	var inertia := (state.inverse_inertia_tensor.inverse() * up).dot(up)
+	state.apply_torque(-up * extra * inertia * STEADY_RATE)
 
 
 ## How much a tire grips on this ground, as a multiple of its grip on the

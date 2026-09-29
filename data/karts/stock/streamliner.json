@@ -4,8 +4,8 @@
 	"parts": [
 		{"id": "plate_6x10", "at": [7, 2, 6], "rot": 0, "color": "#a3a2a4"},
 		{"id": "plate_2x4", "at": [9, 2, 16], "rot": 0, "color": "#a3a2a4"},
-		{"id": "wheel_small_wide", "at": [5, 0, 8], "rot": 0},
-		{"id": "wheel_small_wide", "at": [13, 0, 8], "rot": 0},
+		{"id": "wheel_small", "at": [6, 0, 8], "rot": 0},
+		{"id": "wheel_small", "at": [13, 0, 8], "rot": 0},
 		{"id": "wheel_small_wide", "at": [5, 0, 13], "rot": 0},
 		{"id": "wheel_small_wide", "at": [13, 0, 13], "rot": 0},
 		{"id": "wheel_fairing_2", "at": [5, 2, 6], "rot": 0, "color": "#f2f3f2"},
