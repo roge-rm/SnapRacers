@@ -320,6 +320,9 @@ class DriverTile:
 	var style := ""
 
 	func _init(which: String, label: String, picked: bool) -> void:
+		# ScrollButton's own set up (the tap, and letting drags scroll the
+		# list) only happens if it's asked for.
+		super()
 		style = which
 		text = label
 		icon_alignment = HORIZONTAL_ALIGNMENT_CENTER

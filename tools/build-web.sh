@@ -25,8 +25,10 @@ if [ ! -f "$ENGINE" ]; then
 	tools/build-engine.sh web
 fi
 
-rm -rf "$OUT"
+# Emptied rather than deleted, so a server already serving it (--serve, or
+# one running from before) keeps working.
 mkdir -p "$OUT"
+find "$OUT" -mindepth 1 -delete
 "$GODOT" --headless --path . --import > /dev/null 2>&1 || true
 "$GODOT" --headless --path . --export-release "Web" "$OUT/index.html"
 
@@ -40,7 +42,7 @@ ls -l "$OUT"
 case "${1:-}" in
 	--serve)
 		echo "Serving at http://localhost:8060"
-		cd "$OUT" && python3 -m http.server 8060
+		python3 -m http.server 8060 --directory "$OUT"
 		;;
 	--publish)
 		"$SITE/publish_play.sh" snapracers "$OUT"

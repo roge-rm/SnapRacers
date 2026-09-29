@@ -259,7 +259,11 @@ func _driver() -> void:
 	await frames(1)
 	var hat := "top_hat" if builder.design.style_of("headgear") != "top_hat" else "cap"
 	var before := builder.design.style_of("headgear")
-	ui.style_chosen.emit("headgear", hat)
+	# Pressed the way a tap presses it, so the tile's own wiring is checked
+	# too. (Its set up once never ran, and taps did nothing.)
+	var hat_tile: Button = ui.find_children("*", "Button", true, false).filter(func(b): return b is DriverUI.DriverTile and b.style == hat and not b.is_queued_for_deletion())[0]
+	check(hat_tile.mouse_filter == Control.MOUSE_FILTER_PASS, "a tile lets a drag through to scroll the list")
+	hat_tile.pressed.emit()
 	check(builder.design.style_of("headgear") == hat and Game.character.style_of("headgear") == hat, "tapping a tile puts it on, and it's kept")
 	var blue := Color(CharacterDesign.palette()[3])
 	ui.colour_chosen.emit("headgear", blue)
