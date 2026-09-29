@@ -9,7 +9,8 @@
 # Android builds.
 #
 #   tools/build-web.sh            the page, in /tmp/snapracers-build/web
-#   tools/build-web.sh --serve    and serve it at http://localhost:8060 to try
+#   tools/build-web.sh --serve    and serve it over HTTPS on port 8060 to try it
+#                                 on other devices (see tools/serve_web.py)
 #   tools/build-web.sh --publish  and put it on my site at /play/snapracers
 #                                 (then commit and push the site)
 set -euo pipefail
@@ -41,8 +42,7 @@ ls -l "$OUT"
 
 case "${1:-}" in
 	--serve)
-		echo "Serving at http://localhost:8060"
-		python3 -m http.server 8060 --directory "$OUT"
+		tools/serve_web.py 8060
 		;;
 	--publish)
 		"$SITE/publish_play.sh" snapracers "$OUT"

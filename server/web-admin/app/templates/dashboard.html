@@ -1,0 +1,49 @@
+{% set show_nav = true %}{% set page = 'dashboard' %}
+{% extends "base.html" %}
+{% block body %}
+
+{# It reloads itself every few seconds. #}
+{% include "fragments/status.html" %}
+
+<section class="card">
+  <div class="card-head">
+    <h2>Who's here</h2>
+    <div class="actions">
+      <form method="post" action="/race/start" class="inline">
+        <input type="hidden" name="csrf" value="{{ csrf }}">
+        <button class="primary">Start the race now</button>
+      </form>
+      <form method="post" action="/race/lobby" class="inline"
+            onsubmit="return confirm('Stop the race and take everyone back to the lobby?')">
+        <input type="hidden" name="csrf" value="{{ csrf }}">
+        <button>Back to the lobby</button>
+      </form>
+    </div>
+  </div>
+  <p class="muted">A race starts by itself a few seconds after everyone in the lobby says they're ready.
+    Start it now to go without waiting for them.</p>
+  <div id="players" hx-get="/fragments/players" hx-trigger="every 3s" hx-swap="innerHTML">
+    {% include "fragments/players.html" %}
+  </div>
+</section>
+
+<section class="card">
+  <div class="card-head">
+    <h2>What's been happening</h2>
+    <div class="actions"><a class="button quiet" href="/logs">The whole log</a></div>
+  </div>
+  <div id="log" class="scroller" hx-get="/fragments/log?limit=40" hx-trigger="every 5s" hx-swap="innerHTML">
+    <p class="muted">Loading...</p>
+  </div>
+</section>
+
+<section class="card">
+  <div class="card-head"><h2>The server</h2></div>
+  <form method="post" action="/race/restart" class="inline"
+        onsubmit="return confirm('Restart the server? Anyone in it will have to join again.')">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <button class="danger">Restart</button>
+  </form>
+</section>
+
+{% endblock %}

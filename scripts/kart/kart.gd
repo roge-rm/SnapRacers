@@ -17,6 +17,8 @@ extends RigidBody3D
 signal was_reset
 signal parts_lost(indices: Array[int])
 signal gadget_used(kind: String)
+## Its lost parts are back on, after a reset or from a repair kit.
+signal repaired
 
 const SUSPENSION_TRAVEL := 0.12 # metres up or down from where the wheel was built
 const SUSPENSION_DAMPING := 0.55 # fraction of critical damping
@@ -175,6 +177,16 @@ var _gadget_wait: Array[float] = [0.0, 0.0]
 var _bubble: MeshInstance3D
 var _steering: SteeringVisual
 var _rig: CharacterRig
+## A kart driven on another device (or the host's AI, seen on a player's
+## device). It isn't simulated here: it's moved to where the updates say it
+## is (see NetRace), and only its looks, sound and wreckage happen here.
+var remote := false:
+	set(value):
+		remote = value
+		freeze_mode = FREEZE_MODE_KINEMATIC
+		freeze = value
+## How fast a remote kart is going, from its updates, for its wheels and sound.
+var remote_velocity := Vector3.ZERO
 ## What the kart sounds like. It stays when the kart's rebuilt.
 var sound: KartSound
 ## How much of the kart's weight is on grass or dirt right now, 0 to 1, for
@@ -487,6 +499,12 @@ func lose_parts(indices: Array[int]) -> void:
 
 
 func _physics_process(delta: float) -> void:
+	if remote:
+		# Only the shield's bubble shows, from the kart's updates.
+		shield_left = maxf(shield_left - delta, 0.0)
+		if _bubble != null:
+			_bubble.visible = shield_left > 0.0
+		return
 	boost_left = maxf(boost_left - delta, 0.0)
 	_rammed_wait = maxf(_rammed_wait - delta, 0.0)
 	shield_left = maxf(shield_left - delta, 0.0)
@@ -503,16 +521,10 @@ func _physics_process(delta: float) -> void:
 	if _repair_asked:
 		# A repair kit puts everything back on with no slowdown.
 		_repair_asked = false
-		lost.clear()
-		_impact.clear()
-		_breaking.clear()
-		_assemble()
+		repair_now()
 	elif _repair_pending:
 		_repair_pending = false
-		lost.clear()
-		_impact.clear()
-		_breaking.clear()
-		_assemble()
+		repair_now()
 	elif not _breaking.is_empty():
 		var breaking := _breaking.duplicate()
 		_breaking.clear()
@@ -990,7 +1002,42 @@ func _reset(state: PhysicsDirectBodyState3D) -> void:
 	was_reset.emit.call_deferred()
 
 
-func _process(_delta: float) -> void:
+## Puts every lost part back on.
+func repair_now() -> void:
+	var had_lost := not lost.is_empty()
+	lost.clear()
+	_impact.clear()
+	_breaking.clear()
+	_assemble()
+	if had_lost:
+		repaired.emit()
+
+
+## Where this kart is and what it's doing, to send to the other devices:
+## position, facing, velocity, steering, whether the shield's up, and studs.
+func net_state() -> PackedFloat32Array:
+	var q := global_basis.get_rotation_quaternion()
+	var p := global_position
+	var v := linear_velocity
+	return PackedFloat32Array([p.x, p.y, p.z, q.x, q.y, q.z, q.w, v.x, v.y, v.z, steer_angle, shield_left, studs])
+
+
+## Shows a remote kart as its update says, already smoothed (see NetRace).
+func show_net_state(where: Transform3D, velocity: Vector3, steer: float, shield: float, stud_count: int) -> void:
+	global_transform = where
+	remote_velocity = velocity
+	forward_speed = velocity.dot(-where.basis.z)
+	steer_angle = steer
+	if shield > 0.0 and shield_left <= 0.0:
+		_show_bubble()
+	shield_left = shield
+	studs = stud_count
+
+
+func _process(delta: float) -> void:
+	if remote:
+		for w in wheels:
+			w.spin += forward_speed / w.radius * delta
 	_pose_driver()
 	for w in wheels:
 		w.visual.position = w.rest + Vector3.UP * (SUSPENSION_TRAVEL - w.length)

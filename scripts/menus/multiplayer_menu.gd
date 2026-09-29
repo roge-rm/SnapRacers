@@ -1,11 +1,11 @@
 class_name MultiplayerMenu
 extends Control
 
-## Racing with other people. For now that's two people on one phone, sharing
-## the screen side by side (landscape, half each) or face to face (portrait,
-## with the phone flat between them), against six AI karts. Player 2 drives
-## one of the AI karts, and you pick which one here. Racing over a network is
-## coming later.
+## Racing with other people: two people on one phone, sharing the screen
+## side by side (landscape, half each) or face to face (portrait, with the
+## phone flat between them), against six AI karts, or online against people
+## on other devices. Player 2 drives one of the stock karts, and you pick
+## which one here.
 
 const LAYOUTS := [
 	[Game.SIDE_BY_SIDE, "Side by side", "Landscape, half the screen each"],
@@ -37,7 +37,10 @@ func _ready() -> void:
 	var go := MenuStyle.button("Pick a course", Game.show_tracks.bind(Game.MODE_RACE))
 	go.custom_minimum_size.y = 72.0
 	column.add_child(go)
-	column.add_child(MenuStyle.heading("Online", "Racing other phones over Wi-Fi or the internet is coming later"))
+	column.add_child(MenuStyle.heading("Online", "Race people on other phones, on the same Wi-Fi or over the internet"))
+	var online := MenuStyle.button("Host or join a game", Game.show_online)
+	online.custom_minimum_size.y = 72.0
+	column.add_child(online)
 	MenuStyle.back_at_bottom(column, Game.show_menu)
 	_show()
 

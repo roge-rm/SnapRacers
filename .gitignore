@@ -26,3 +26,6 @@ core.[0-9]*
 /tools/track-design/courses/*.png
 /tools/track-design/__pycache__/
 /tools/sound/__pycache__/
+
+# The Android network plugin, built by tools/build-plugin.sh.
+/addons/snapracers_net/bin/

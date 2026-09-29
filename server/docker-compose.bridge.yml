@@ -1,0 +1,29 @@
+# Bridge networking instead of host networking, for Docker Desktop or to map
+# the ports yourself:
+#
+#   docker compose -f docker-compose.yml -f docker-compose.bridge.yml up --build -d
+#
+# Phones won't find the server by themselves this way, because what they
+# listen for doesn't get across a bridge. Players type the address instead.
+#
+# The admin page shares the game server's network, so it can still reach its
+# control channel on 127.0.0.1, and all the ports are published on the server.
+# Set ADVERTISE_ADDRESS in .env to this machine's address, so the dashboard
+# shows players the right one.
+
+services:
+  server:
+    network_mode: bridge
+    environment:
+      SNAPRACERS_PORT: "27280"
+      SNAPRACERS_WS_PORT: "27282"
+    ports:
+      - "${GAME_PORT:-27280}:27280/udp"
+      - "${WS_PORT:-27282}:27282/tcp"
+      - "${WEB_PORT:-8080}:8080/tcp"
+
+  web:
+    network_mode: "service:server"
+    environment:
+      WEB_PORT: "8080"
+      LAN_DISCOVERY: "0"

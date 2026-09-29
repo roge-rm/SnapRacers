@@ -1,0 +1,7 @@
+{% if lines %}
+<ol class="log">
+{% for line in lines %}<li><span class="when">{{ line[1] }}</span> {{ line[2] }}</li>{% endfor %}
+</ol>
+{% else %}
+<p class="muted">Nothing yet.</p>
+{% endif %}

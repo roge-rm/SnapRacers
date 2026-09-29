@@ -1,0 +1,13 @@
+# Only the game goes into the server image, not the tools, builds or tests.
+.git
+.godot
+android
+build
+tools
+tests
+server
+art/web
+*.apk
+*.aab
+core.*
+screenshots

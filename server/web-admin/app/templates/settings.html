@@ -1,0 +1,114 @@
+{% set show_nav = true %}{% set page = 'settings' %}
+{% extends "base.html" %}
+{% block body %}
+
+{% if down %}
+<section class="card">
+  <h2>The server isn't answering</h2>
+  <p class="muted">{{ down }} I can only show its settings while it's running.</p>
+</section>
+{% else %}
+
+<form method="post" action="/settings">
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+
+  <section class="card">
+    <div class="card-head"><h2>What's raced</h2></div>
+    <p class="muted">Changes are used from the next race. A race that's going carries on as it is.</p>
+    <div class="options">
+      <div class="option">
+        <label>One race or a cup</label>
+        <div class="chips">
+          <label class="chip"><input type="radio" name="mode" value="race" {% if config.mode == 'race' %}checked{% endif %}><span>One race</span></label>
+          <label class="chip"><input type="radio" name="mode" value="cup" {% if config.mode == 'cup' %}checked{% endif %}><span>A cup</span></label>
+        </div>
+      </div>
+      <div class="option">
+        <label for="course">The course, for one race</label>
+        <select id="course" name="course">
+          {% for course in courses %}
+          <option value="{{ course.id }}" {% if course.id == config.course %}selected{% endif %}>{{ course.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="option">
+        <label for="laps">Laps, for one race</label>
+        <input id="laps" name="laps" type="number" min="1" max="9" value="{{ config.laps|int }}">
+      </div>
+      <div class="option">
+        <label for="cup">The cup</label>
+        <select id="cup" name="cup">
+          {% for cup in cups %}
+          <option value="{{ cup.id }}" {% if cup.id == config.cup %}selected{% endif %}>{{ cup.name }}</option>
+          {% endfor %}
+        </select>
+        <p class="hint">A cup's races have their own laps.</p>
+      </div>
+      <div class="option">
+        <label><input type="checkbox" name="ai" {% if config.ai %}checked{% endif %}> AI drivers in the empty places</label>
+        <p class="hint">There's room for 8 karts.</p>
+      </div>
+      <div class="option">
+        <label for="difficulty">How good the AI are</label>
+        <select id="difficulty" name="difficulty">
+          {% for value, label in difficulties %}
+          <option value="{{ value }}" {% if value == config.difficulty %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+    </div>
+  </section>
+
+  <section class="card">
+    <div class="card-head"><h2>Running it</h2></div>
+    <div class="options">
+      <div class="option">
+        <label for="name">The server's name</label>
+        <input id="name" name="name" type="text" maxlength="40" value="{{ config.name }}">
+        <p class="hint">What players see in their list of games.</p>
+      </div>
+      <div class="option">
+        <label for="start_after">Seconds to wait once everyone's ready</label>
+        <input id="start_after" name="start_after" type="number" min="0" max="600" value="{{ config.start_after|int }}">
+      </div>
+      <div class="option">
+        <label for="standings_for">Seconds to show a cup's standings</label>
+        <input id="standings_for" name="standings_for" type="number" min="0" max="600" value="{{ config.standings_for|int }}">
+      </div>
+    </div>
+  </section>
+
+  <section class="card">
+    <div class="card-head"><h2>Ports and the certificate</h2></div>
+    <p class="muted">These are only used once the server starts again. The ports have to match the
+      ones in docker-compose.yml when it's not on host networking.</p>
+    <div class="options">
+      <div class="option">
+        <label for="port">Port for phones (UDP)</label>
+        <input id="port" name="port" type="number" min="1024" max="65535" value="{{ config.port|int }}">
+      </div>
+      <div class="option">
+        <label for="ws_port">Port for web players (TCP)</label>
+        <input id="ws_port" name="ws_port" type="number" min="1024" max="65535" value="{{ config.ws_port|int }}">
+      </div>
+      <div class="option">
+        <label for="tls_cert">Certificate file</label>
+        <input id="tls_cert" name="tls_cert" type="text" value="{{ config.tls_cert }}" placeholder="/certs/fullchain.pem">
+        <p class="hint">A web page served over HTTPS can only join over a secure WebSocket, and that needs a
+          certificate browsers trust. See the README.</p>
+      </div>
+      <div class="option">
+        <label for="tls_key">Its key</label>
+        <input id="tls_key" name="tls_key" type="text" value="{{ config.tls_key }}" placeholder="/certs/privkey.pem">
+      </div>
+    </div>
+  </section>
+
+  <div class="card sticky">
+    <button class="primary">Save</button>
+    <span class="muted">Your own courses and cups go in the server's courses and cups folders.</span>
+  </div>
+</form>
+
+{% endif %}
+{% endblock %}

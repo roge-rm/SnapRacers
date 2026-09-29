@@ -246,6 +246,16 @@ func _build_results() -> void:
 		Game.MODE_TIME_TRIAL:
 			choices = [["Try again", again_pressed], ["Other course", courses_pressed], ["Menu", menu_pressed]]
 			_results_title.text = "Time trial"
+	# Online, the host moves everyone on once everyone's home, so all you can
+	# do here is leave.
+	if race.net != null:
+		choices = [["Leave", menu_pressed]]
+		var next := Label.new()
+		next.text = "The standings come up once everyone's home" if race.mode == Game.MODE_GRAND_PRIX else "Back to the lobby once everyone's home"
+		next.add_theme_font_size_override("font_size", 18)
+		next.add_theme_color_override("font_color", Color(1, 1, 1, 0.7))
+		box.add_child(next)
+		box.move_child(next, box.get_child_count() - 2)
 	for pair in choices:
 		var button := Button.new()
 		button.text = pair[0]

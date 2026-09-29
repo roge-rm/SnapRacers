@@ -1,0 +1,31 @@
+plugins {
+    id 'com.android.library'
+    id 'org.jetbrains.kotlin.android'
+}
+
+// Builds go in /tmp, like the game's own, since /home is a slow hard drive.
+layout.buildDirectory = file('/tmp/snapracers-build/plugin')
+
+android {
+    namespace 'com.rm.snapracers.net'
+    compileSdk 36
+    buildToolsVersion '36.1.0'
+
+    defaultConfig {
+        minSdk 27
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+    kotlinOptions {
+        jvmTarget = '17'
+    }
+}
+
+dependencies {
+    // The game brings Godot (and Kotlin) with it. Nothing else can be used
+    // here, because a plugin's own dependencies don't come along with it.
+    compileOnly 'org.godotengine:godot:4.7.2.stable'
+}

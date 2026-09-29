@@ -1,0 +1,24 @@
+{% if status.players %}
+<table class="players">
+  <thead><tr><th>Player</th><th>Kart</th><th>Ready</th><th></th></tr></thead>
+  <tbody>
+  {% for player in status.players %}
+    <tr>
+      <td>{{ player.name }}</td>
+      <td>{{ player.kart }}</td>
+      <td>{{ "Yes" if player.ready else "Not yet" }}</td>
+      <td class="right">
+        <form method="post" action="/race/kick" class="inline"
+              onsubmit="return confirm('Kick {{ player.name|e }}?')">
+          <input type="hidden" name="csrf" value="{{ csrf }}">
+          <input type="hidden" name="player" value="{{ player.id }}">
+          <button class="tiny danger">Kick</button>
+        </form>
+      </td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<p class="muted">Nobody's here yet.</p>
+{% endif %}

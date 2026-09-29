@@ -1,0 +1,69 @@
+# A SnapRacers dedicated server, in two containers:
+#
+#   server   the game itself with no screen, the same one the phones run.
+#            Phones join on 27280 (UDP) and web players on 27282.
+#   web      an admin page: what's raced, who's here, the log, restart.
+#
+# To start it, from this folder:
+#
+#   cp .env.example .env     and set ADMIN_PASSWORD in it
+#   docker compose up --build -d
+#
+# Then open http://<this machine>:8080.
+#
+# It's on host networking, because that's what lets phones on the same Wi-Fi
+# find it by themselves: the game shouts about itself on the local network,
+# and the admin page puts out the same NSD service a phone hosting a game
+# does. Neither gets across a Docker bridge network. On Docker Desktop, or to
+# map the ports yourself, use the bridge file too:
+#
+#   docker compose -f docker-compose.yml -f docker-compose.bridge.yml up --build -d
+#
+# All that costs is phones finding it by themselves. Players type the address.
+
+services:
+  server:
+    build:
+      context: ..
+      dockerfile: server/server.Dockerfile
+    image: snapracers-server
+    container_name: snapracers-server
+    network_mode: host
+    restart: unless-stopped
+    environment:
+      SNAPRACERS_NAME: "${SERVER_NAME:-}"
+      SNAPRACERS_PORT: "${GAME_PORT:-27280}"
+      SNAPRACERS_WS_PORT: "${WS_PORT:-27282}"
+      SNAPRACERS_TLS_CERT: "${TLS_CERT:-}"
+      SNAPRACERS_TLS_KEY: "${TLS_KEY:-}"
+    volumes:
+      # Its settings (server.json), and your own courses and cups in the
+      # courses and cups folders. Back this up and you've got the server.
+      - config:/config
+      # A certificate for web players, if you have one (see the README).
+      # - ./certs:/certs:ro
+
+  web:
+    build:
+      context: web-admin
+    image: snapracers-web
+    container_name: snapracers-web
+    network_mode: host
+    restart: unless-stopped
+    depends_on:
+      - server
+    environment:
+      ADMIN_PASSWORD: "${ADMIN_PASSWORD:?Set ADMIN_PASSWORD in .env, see .env.example}"
+      SERVER_NAME: "${SERVER_NAME:-SnapRacers server}"
+      GAME_PORT: "${GAME_PORT:-27280}"
+      WS_PORT: "${WS_PORT:-27282}"
+      WEB_PORT: "${WEB_PORT:-8080}"
+      WEB_BIND: "${WEB_BIND:-0.0.0.0}"
+      LAN_DISCOVERY: "${LAN_DISCOVERY:-1}"
+      ADVERTISE_ADDRESS: "${ADVERTISE_ADDRESS:-}"
+      # 1 only when something in front of it does HTTPS. Otherwise the sign
+      # in cookie is marked secure and the browser never sends it back.
+      HTTPS: "${HTTPS:-0}"
+
+volumes:
+  config:

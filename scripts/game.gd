@@ -53,6 +53,12 @@ var came_from_editor := false
 ## Whether a race against the AI is just you (a single race), rather than
 ## the two of you from the Multiplayer menu.
 var racing_alone := false
+## Racing with people on other devices (see NetSession).
+var net: NetSession
+## The Android network plugin, when there is one (see NetPlugin).
+var plugin: NetPlugin
+## Whether two people on this phone join an online game together.
+var online_two := false
 var _loading: CanvasLayer
 var _loading_since := 0
 var _portrait := false
@@ -68,6 +74,23 @@ func _ready() -> void:
 	theme = Theme.new()
 	theme.default_font_size = 22
 	Sounds.setup(volume(Sounds.MUSIC_BUS), volume(Sounds.EFFECTS_BUS))
+	plugin = NetPlugin.new()
+	add_child(plugin)
+	net = NetSession.new()
+	add_child(net)
+	# Wherever we are when an online game ends under us (the host left, say),
+	# it's back to the online screen, which says why.
+	net.ended.connect(func(_reason: String) -> void:
+		grand_prix = null
+		if not _screen is OnlineMenu:
+			show_online())
+
+
+## Starts as a dedicated server in `host`, with no screens of its own.
+func start_server(host: Node) -> void:
+	_host = host
+	Sounds.hushed = true
+	host.add_child(DedicatedServer.new())
 
 
 ## Starts the game in `host`. Tests skip the splash.
@@ -101,6 +124,27 @@ func show_multiplayer() -> void:
 
 func show_cups() -> void:
 	_swap(CupPicker.new())
+
+
+## Hosting or joining a game over the network.
+func show_online() -> void:
+	_swap(OnlineMenu.new())
+
+
+## The lobby of the online game we're in.
+func show_lobby() -> void:
+	_swap(Lobby.new())
+
+
+## The points between the races of a cup raced online.
+func show_net_standings() -> void:
+	_swap(GrandPrixStandings.new(grand_prix))
+
+
+## A race with nobody to show it to, for the dedicated server.
+func show_server_race(path: String) -> void:
+	track_path = path
+	_swap(Race.new(SOLO))
 
 
 ## Make a cup of your own, or change the one in this file.
@@ -235,6 +279,21 @@ func roster_driver(key: String) -> CharacterDesign:
 func player_name() -> String:
 	var name: String = settings.get_value("player", "name", "")
 	return name if name.strip_edges() != "" else "You"
+
+
+## The name other people see online. "You" would only confuse them, so
+## without a name set, it's the phone's.
+func online_name() -> String:
+	var name: String = settings.get_value("player", "name", "")
+	if name.strip_edges() != "":
+		return name
+	var model := OS.get_model_name()
+	return model if model != "" and model != "GenericDevice" else "A racer"
+
+
+## What a game this phone hosts is called, in other people's lists.
+func game_name() -> String:
+	return "%s's game" % online_name()
 
 
 ## How the screen is shared in the next race (SOLO, SIDE_BY_SIDE or

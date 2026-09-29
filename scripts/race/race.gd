@@ -78,6 +78,10 @@ var camera: RaceCamera
 ## to run out during that and start the race before you could see it.
 const FRAMES_BEFORE_COUNTDOWN := 10
 var _frames_drawn := 0
+## Over a network, the race's own part of it (see NetRace), and whether the
+## host's said go.
+var net: NetRace
+var net_go := false
 var _watch_in := 0.0
 ## The last number of the countdown that beeped.
 var _beeped := 4
@@ -101,6 +105,10 @@ func _ready() -> void:
 	laps = 1000000 if mode == Game.MODE_PRACTICE else track.laps
 	difficulty = Game.grand_prix.difficulty if mode == Game.MODE_GRAND_PRIX and Game.grand_prix != null else Game.difficulty()
 	add_child(TrackBuilder.new(track))
+
+	if Game.net.is_online() and not Game.net.setup.is_empty():
+		_ready_online()
+		return
 
 	# Everyone who's racing, front of the grid first. The AI starts at the
 	# front and the people at the back, player 1 last of all. Time trials
@@ -157,6 +165,12 @@ func _ready() -> void:
 			humans.append(racer)
 			racer.kart.sound.wind = true
 
+	_finish_setting_up(people)
+
+
+## Everything after the grid's filled: the AI's view of the other karts,
+## the studs, and each person's view.
+func _finish_setting_up(people: int) -> void:
 	var karts: Array[Kart] = []
 	for racer in racers:
 		karts.append(racer.kart)
@@ -171,6 +185,9 @@ func _ready() -> void:
 			studs.viewers.append(human.kart)
 		add_child(studs)
 
+	# A dedicated server has nobody of its own to show the race to.
+	if player == null:
+		return
 	if people == 1:
 		var layer := CanvasLayer.new()
 		add_child(layer)
@@ -189,6 +206,45 @@ func _ready() -> void:
 		add_child(driver)
 		player.ai = driver
 		player.kart.controls = driver.controls
+
+
+## A race over the network, set up from the host's list of who's in it
+## (see NetSession). Everyone's karts are made the same way on every device.
+## Ours are driven here, the host drives the AI, and the rest are remote
+## karts that follow their updates (see NetRace).
+func _ready_online() -> void:
+	var setup: Dictionary = Game.net.setup
+	laps = int(setup.laps)
+	difficulty = setup.difficulty
+	net = NetRace.new(self, Game.net)
+	var me := Game.net.my_id()
+	var mine: Array[Racer] = []
+	var entries: Array = setup.entries
+	for slot in entries.size():
+		var entry: Dictionary = entries[slot]
+		var racer := _add_racer(entry.name, KartDesign.from_dict(entry.kart), slot, CharacterDesign.from_dict(entry.driver))
+		var owner := int(entry.owner)
+		if entry.get("human", false) and owner == me:
+			racer.player = true
+			racer.set_meta("local", int(entry.local))
+			mine.append(racer)
+		elif entry.get("ai", false) and owner == me:
+			racer.ai = AIDriver.new()
+			racer.ai.kart = racer.kart
+			racer.ai.track = track
+			Difficulty.apply(racer.ai, difficulty, int(entry.rank), Game.ai_driver_keys().size())
+			racer.ai.line = float(entry.line)
+			racer.kart.controls = racer.ai.controls
+			add_child(racer.ai)
+		net.add(slot, racer, owner)
+	mine.sort_custom(func(a, b) -> bool: return a.get_meta("local") < b.get_meta("local"))
+	for racer in mine:
+		humans.append(racer)
+		racer.kart.sound.wind = true
+	player = humans[0] if not humans.is_empty() else null
+	split = Game.split() if humans.size() >= 2 else Game.SOLO
+	add_child(net)
+	_finish_setting_up(maxi(humans.size(), 1))
 
 
 ## One person's camera, HUD and controls. The camera goes under `world_parent`
@@ -318,6 +374,10 @@ func _process(_delta: float) -> void:
 
 func _physics_process(delta: float) -> void:
 	if _frames_drawn < FRAMES_BEFORE_COUNTDOWN:
+		return
+	# Over the network the countdown waits for the host, once everyone's
+	# loaded.
+	if net != null and not net_go:
 		return
 	time += delta
 	# A beep for each number of the countdown, and a higher one for GO.
@@ -488,6 +548,10 @@ func place_of(racer: Racer) -> int:
 
 ## Back to the menu this race was started from.
 func leave() -> void:
+	if Game.net.is_online():
+		Game.net.leave()
+		Game.show_multiplayer()
+		return
 	if Game.came_from_editor:
 		Game.show_track_editor()
 		return

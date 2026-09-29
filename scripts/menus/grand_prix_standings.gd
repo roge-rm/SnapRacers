@@ -2,6 +2,9 @@ class_name GrandPrixStandings
 extends Control
 
 ## The points table between Grand Prix races, and the trophy at the end.
+##
+## Online, the host moves everyone on to the next race (and back to the lobby
+## at the end), and a cup raced online doesn't count toward your trophies.
 
 var grand_prix: GrandPrix
 
@@ -30,7 +33,8 @@ func _ready() -> void:
 		banner.add_theme_font_size_override("font_size", 30)
 		banner.add_theme_color_override("font_color", MenuStyle.ACCENT)
 		column.add_child(banner)
-		Records.add_cup_place(grand_prix.cup.id, place, grand_prix.difficulty)
+		if not Game.net.is_online():
+			Records.add_cup_place(grand_prix.cup.id, place, grand_prix.difficulty)
 	var table := GridContainer.new()
 	table.columns = 3
 	table.add_theme_constant_override("h_separation", 40)
@@ -44,7 +48,14 @@ func _ready() -> void:
 			if standings[i][0] == me:
 				cell.add_theme_color_override("font_color", Color("#f2cd37"))
 			table.add_child(cell)
-	if done:
+	if Game.net.is_online():
+		if Game.net.is_host():
+			var carry_on := MenuStyle.button("Back to the lobby" if done else "Next race", Game.net.back_to_lobby if done else Game.net.next_round)
+			carry_on.custom_minimum_size.y = 84.0
+			column.add_child(carry_on)
+		else:
+			column.add_child(MenuStyle.heading("Waiting for the host to carry on"))
+	elif done:
 		column.add_child(MenuStyle.button("Race another cup", func() -> void:
 			Game.grand_prix = null
 			Game.show_cups()))
@@ -55,7 +66,11 @@ func _ready() -> void:
 		column.add_child(button)
 
 
-## Leaving here quits the cup.
+## Leaving here quits the cup (and, online, the game).
 func go_back() -> void:
 	Game.grand_prix = null
+	if Game.net.is_online():
+		Game.net.leave()
+		Game.show_multiplayer()
+		return
 	Game.show_cups()

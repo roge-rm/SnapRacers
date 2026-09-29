@@ -102,7 +102,7 @@ func _process(delta: float) -> void:
 	_jet.pitch_scale = lerpf(0.8, 1.3, _rev)
 	_jet.volume_db = lerpf(-14.0, -2.0, throttle)
 
-	var velocity := kart.linear_velocity
+	var velocity := kart.remote_velocity if kart.remote else kart.linear_velocity
 	var speed := velocity.length()
 	var grounded := 0
 	for w in kart.wheels:

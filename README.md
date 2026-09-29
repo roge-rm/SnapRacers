@@ -100,7 +100,7 @@ Build your own courses the way you'd put together a slot car set. Every piece yo
 
 When you've had enough, Close it up works out the fewest pieces to bring the road back around to the start without running into itself. A card in the corner says what's still stopping it being raced, like the road not closing or no straight long enough for the grid. Pick a theme for the ground, the colours and the trees, and put landmarks like windmills, castles, rockets and lighthouses wherever you want them around the course.
 
-Saving moves the start line onto your longest straight, where the grid has room, and your course joins the lists for single races, time trials, practice and two player races, with its own records. Each course is one file with everything in it, ready for racing online later.
+Saving moves the start line onto your longest straight, where the grid has room, and your course joins the lists for single races, time trials, practice and two player races, with its own records. Each course is one file with everything in it, so when you host a game online, everyone gets your course.
 
 ### Racing
 
@@ -112,6 +112,20 @@ Saving moves the start line onto your longest straight, where the grid has room,
 - **Two players on one phone:** side by side in landscape, or face to face in portrait with the phone flat between you and the far half turned around.
 - **Six camera views:** close and far chase, first person from your driver's eyes (with their hands on the wheel), a bumper cam, overhead, and TV cameras beside the track. The camera button goes through them and each player's last view is remembered. Hold look back to see who's coming. When you cross the line the camera circles your kart, then the TV cameras take over while the AI drives you home.
 - **Four difficulty levels** for the AI drivers, picked before a race or a cup. Easy drivers take it gently, slip up now and then and wait for you. Expert drivers are right on the limit and never let up. Trophies are kept for each level.
+
+### Online
+
+Race people on other phones, with up to eight karts and AI drivers in the empty places if the host wants them. The host picks one race or a whole cup, any course or cup, the game's or their own, and it's sent to everyone. Two players on one phone can go online together too, on a split screen.
+
+There's a way to connect for most places you'd be:
+
+- **The same Wi-Fi:** one phone hosts, and the game shows up on the others by itself.
+- **A hotspot:** with no Wi-Fi around, turn on one phone's hotspot, join it with the others and host on that phone.
+- **Wi-Fi Direct:** no router or hotspot needed. One phone hosts over Wi-Fi Direct, and the others find it with Find Wi-Fi Direct games.
+- **Bluetooth:** no Wi-Fi at all, for two or three phones. Pairing them first makes it quicker.
+- **A server:** a SnapRacers server is always there to join, on your network or on the internet, and runs races by itself. It runs in Docker with an admin page to pick what's raced. Browsers can join one too, which is the only way to race online from the web version. See [server/README.md](server/README.md).
+
+"How do I connect?" at the bottom of the online screen goes through all of it.
 
 ### Sound
 
@@ -158,8 +172,12 @@ tools/build-android.sh            # the phone APK (arm64)
 tools/build-android.sh --install  # the emulator APK (x86_64), installed on the running emulator
 tools/build-engine.sh web         # our own cut down engine for the web page
 tools/build-web.sh                # the web page, in /tmp/snapracers-build/web
-tools/build-web.sh --serve        # the same, served at http://localhost:8060 to try it
+tools/build-web.sh --serve        # the same, served over HTTPS on port 8060 to try it
+tools/build-plugin.sh             # the Android network plugin (build-android.sh does this when it's needed)
+tools/build-server.sh --run       # the dedicated server, to run on this PC (Docker's in server/)
 ```
+
+The Android network plugin, in `android-plugin`, is a little Kotlin library for the things Godot can't do on its own: finding games with NSD, Wi-Fi Direct and Bluetooth. It's built with the Gradle that comes with Godot's Android build template, and `addons/snapracers_net` puts it into the APK.
 
 The phone APK is signed with my release key, which lives outside the repository beside the project in `../Keys`, so anywhere else it's signed with the Android debug key instead.
 
@@ -198,6 +216,9 @@ They check things like:
 - the garage, the menus and every mode, including a whole Grand Prix and two players on one phone (`garage_test`, `menu_test`, `modes_test`, `split_test`)
 - every stock kart gets around a lap with the AI driving (`stock_test`)
 - whole races with eight karts, around the loop too (`race_test`)
+- a game over Bluetooth, with a pretend radio: players get their ids, and messages get to the host, from the host and from one player to another (`bluetooth_test`)
+- two copies of the game racing each other over the network, a race and then a cup (`tools/run-net-test.sh`)
+- the dedicated server, with one player joining like a phone and one like a web page, and its admin page's commands (`tools/run-server-test.sh`, which also works on a server running in Docker with `--running`)
 
 ### Stock karts and courses
 

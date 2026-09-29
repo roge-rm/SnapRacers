@@ -40,6 +40,13 @@ if [ ! -f "$BUILD/android/.build_version" ]; then
 	cat "$TEMPLATES/version.txt" > "$BUILD/android/.build_version"
 fi
 
+# The network plugin (NSD, Wi-Fi Direct and Bluetooth), built again whenever
+# it's missing or its source has changed.
+PLUGIN=addons/snapracers_net/bin/snapracers-net.aar
+if [ ! -f "$PLUGIN" ] || [ -n "$(find android-plugin -newer "$PLUGIN" -type f -print -quit)" ]; then
+	tools/build-plugin.sh
+fi
+
 # Our own cut down engine (see tools/build-engine.sh), when it's been built.
 # Phones get a release build of it, and the emulator gets a debug build, so
 # the debug switches work there.

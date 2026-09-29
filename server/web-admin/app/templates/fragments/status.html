@@ -1,0 +1,21 @@
+<div id="status" hx-get="/fragments/status" hx-trigger="every 3s" hx-swap="outerHTML" class="card status">
+  {% if status.running %}
+    <span class="dot up" title="Running"></span>
+    <div class="grid">
+      <div><dt>Server</dt><dd>{{ status.name }}</dd></div>
+      <div><dt>Now</dt><dd>{{ states.get(status.state, status.state) }}{% if status.starting_in >= 0 %}, starting in {{ status.starting_in }} s{% endif %}</dd></div>
+      <div><dt>Racing</dt><dd>{% if status.config.mode == 'cup' %}{{ status.cup }}{% else %}{{ status.course }}, {{ status.config.laps }} laps{% endif %}</dd></div>
+      <div><dt>Players</dt><dd>{{ status.players|length }} of {{ status.most }}{% if status.config.ai %}, the rest AI{% endif %}</dd></div>
+      <div><dt>Phones join at</dt><dd><code>{{ where.phones }}</code></dd></div>
+      <div><dt>Web players join at</dt><dd><code>{{ where.web }}</code></dd></div>
+      <div><dt>Up for</dt><dd>{{ status.uptime // 3600 }}h {{ (status.uptime % 3600) // 60 }}m</dd></div>
+      <div><dt>Network version</dt><dd>{{ status.version }}</dd></div>
+    </div>
+  {% else %}
+    <span class="dot down" title="Not running"></span>
+    <div>
+      <strong>The server isn't answering.</strong>
+      <p class="muted">{{ status.down or "It might be starting up or restarting." }}</p>
+    </div>
+  {% endif %}
+</div>

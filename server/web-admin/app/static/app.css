@@ -1,0 +1,124 @@
+/* The SnapRacers server admin page, in the game's menu colours. One
+   stylesheet and no framework, dark by default and light when you ask. */
+
+:root {
+  --bg: #16213a;
+  --bg2: #2b1b3d;
+  --panel: #1f2a47;
+  --ink: #eef0f8;
+  --muted: #a3a9c2;
+  --line: #34406a;
+  --accent: #b39dff;
+  --accent-ink: #16213a;
+  --danger: #ff7a6e;
+  --up: #7dd87a;
+  --down: #ff7a6e;
+  --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+@media (prefers-color-scheme: light) {
+  :root {
+    --bg: #eef0f8;
+    --bg2: #e7e1f3;
+    --panel: #ffffff;
+    --ink: #1b1f2e;
+    --muted: #5e6480;
+    --line: #d4d8e6;
+    --accent: #6c4fe0;
+    --accent-ink: #ffffff;
+    --danger: #c0392b;
+    --up: #2e8b3e;
+    --down: #c0392b;
+  }
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: linear-gradient(180deg, var(--bg), var(--bg2)) fixed;
+  color: var(--ink);
+  font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+
+main { max-width: 1000px; margin: 0 auto; padding: 16px 16px 64px; }
+
+.bar {
+  display: flex; align-items: center; gap: 20px; flex-wrap: wrap;
+  padding: 12px 16px; background: var(--panel); border-bottom: 1px solid var(--line);
+}
+.brand { font-weight: 700; text-decoration: none; color: var(--ink); }
+.brand span { display: block; font-weight: 400; font-size: 12px; color: var(--muted); }
+.bar nav { display: flex; gap: 14px; margin-left: auto; }
+.bar nav a { color: var(--muted); text-decoration: none; padding: 4px 0; border-bottom: 2px solid transparent; }
+.bar nav a:hover { color: var(--ink); }
+.bar nav a.on { color: var(--ink); border-bottom-color: var(--accent); }
+
+.card {
+  background: var(--panel); border: 1px solid var(--line); border-radius: 14px;
+  padding: 16px; margin: 0 0 16px;
+}
+.card.narrow { max-width: 380px; margin: 48px auto; }
+.card-head { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; margin-bottom: 8px; }
+.card-head h2 { margin: 0; font-size: 17px; }
+.card-head .actions { margin-left: auto; }
+
+h1 { font-size: 20px; margin: 0 0 4px; }
+.muted { color: var(--muted); }
+.hint { color: var(--muted); font-size: 13px; margin: 4px 0 0; }
+.right { text-align: right; }
+code { font-family: var(--mono); font-size: 0.92em; }
+
+.flash { padding: 10px 12px; border-radius: 10px; margin: 0 0 14px; }
+.flash.notice { background: color-mix(in srgb, var(--up) 16%, var(--panel)); border: 1px solid var(--up); }
+.flash.error { background: color-mix(in srgb, var(--danger) 16%, var(--panel)); border: 1px solid var(--danger); }
+
+button, .button {
+  font: inherit; padding: 7px 16px; border-radius: 999px; cursor: pointer;
+  border: 1px solid var(--line); background: var(--panel); color: var(--ink);
+  text-decoration: none; display: inline-block;
+}
+button:hover, .button:hover { border-color: var(--accent); }
+button.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); font-weight: 600; }
+button.danger { border-color: var(--danger); color: var(--danger); }
+button.danger:hover { background: var(--danger); color: var(--accent-ink); }
+button.quiet, .button.quiet { color: var(--muted); }
+button.tiny { padding: 3px 10px; font-size: 12px; }
+
+.inline { display: inline; }
+.actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+input[type=text], input[type=password], input[type=number], select {
+  font: inherit; padding: 6px 10px; border-radius: 8px;
+  border: 1px solid var(--line); background: var(--bg); color: var(--ink); width: 100%;
+}
+label { display: block; font-weight: 600; font-size: 14px; margin-bottom: 4px; }
+input[type=checkbox], input[type=radio] { accent-color: var(--accent); }
+
+.status { display: flex; gap: 14px; align-items: flex-start; }
+.dot { width: 12px; height: 12px; border-radius: 50%; margin-top: 5px; flex: none; }
+.dot.up { background: var(--up); }
+.dot.down { background: var(--down); }
+.status .grid { display: grid; gap: 10px 24px; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); flex: 1; }
+.status dt { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+.status dd { margin: 2px 0 0; font-weight: 600; word-break: break-word; }
+
+table.players { width: 100%; border-collapse: collapse; font-size: 14px; }
+table.players th { text-align: left; font-size: 12px; color: var(--muted); font-weight: 600; padding: 4px 8px; }
+table.players td { padding: 6px 8px; border-top: 1px solid var(--line); vertical-align: middle; }
+
+.scroller { max-height: 260px; overflow-y: auto; border: 1px solid var(--line); border-radius: 10px; padding: 8px; background: var(--bg); }
+.scroller.tall { max-height: 65vh; }
+ol.log { list-style: none; margin: 0; padding: 0; font-family: var(--mono); font-size: 12.5px; }
+ol.log li { padding: 1px 0; word-break: break-word; }
+ol.log .when { color: var(--muted); }
+
+.options { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip { display: flex; align-items: center; gap: 6px; border: 1px solid var(--line); border-radius: 999px;
+        padding: 5px 14px; font-weight: 500; cursor: pointer; margin: 0; }
+.chip:has(input:checked) { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 18%, var(--panel)); }
+
+.card.sticky { position: sticky; bottom: 12px; display: flex; gap: 12px; align-items: center; flex-wrap: wrap;
+               box-shadow: 0 4px 18px rgb(0 0 0 / .25); }
