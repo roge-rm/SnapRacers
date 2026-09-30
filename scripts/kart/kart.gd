@@ -461,6 +461,16 @@ func bumper_point() -> Vector3:
 	return Vector3(0.0, 0.3, front - 0.05)
 
 
+## How far the back of the kart is behind its middle, in metres, for the chase
+## cameras.
+func tail_length() -> float:
+	var back := 0.0
+	if stats != null:
+		for info in stats.parts:
+			back = maxf(back, info.centre.z + info.extent.z * 0.5)
+	return back
+
+
 ## Resets the kart on the next physics step, just as if the driver had
 ## pressed reset. The race uses this when a kart falls off the track.
 func request_reset() -> void:

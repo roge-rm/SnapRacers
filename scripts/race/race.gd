@@ -288,6 +288,7 @@ func _add_view(racer: Racer, world_parent: Node, layer: CanvasLayer) -> void:
 	var racer_hud := RaceHud.new()
 	racer_hud.race = self
 	racer_hud.me = racer
+	racer_hud.person = index
 	layer.add_child(racer_hud)
 	var touch := TouchControls.new()
 	touch.visible = DisplayServer.is_touchscreen_available()

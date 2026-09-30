@@ -23,6 +23,10 @@ signal camera_pressed
 var race: Race
 ## Whose race this shows.
 var me: Race.Racer
+## Which person this is, 0 for player 1, for the settings they keep.
+var person := 0
+## The little map under your place and lap.
+var map: CourseMap
 
 var _place: Label
 var _lap: Label
@@ -59,6 +63,19 @@ func _ready() -> void:
 	_studs.add_theme_color_override("font_color", Color("#f2cd37"))
 	for label in [_place, _lap, _studs]:
 		label.reparent(corner)
+	if race != null and me != null:
+		var gap := Control.new()
+		gap.custom_minimum_size.y = 12.0
+		corner.add_child(gap)
+		map = CourseMap.new()
+		map.track = race.track
+		map.you = me.kart
+		map.karts.assign(race.racers.map(func(r): return r.kart))
+		map.mode = Game.map_view(person)
+		map.changed.connect(func(mode: String) -> void:
+			Game.set_map_view(person, mode)
+			flash(CourseMap.NAMES[mode]))
+		corner.add_child(map)
 
 	_clock = _label(28)
 	_clock.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -106,7 +123,7 @@ func _ready() -> void:
 
 
 func buttons() -> Array[Control]:
-	return [_quit, _camera, _results]
+	return [_quit, _camera, _results, map] if map != null else [_quit, _camera, _results]
 
 
 func _label(size: int) -> Label:

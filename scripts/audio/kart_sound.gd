@@ -148,6 +148,9 @@ func _set_stream(player: AudioStreamPlayer3D, stream: AudioStream) -> void:
 	player.stream = stream
 	if stream != null and player.is_inside_tree() and Sounds.audible():
 		player.play()
+	# It starts paused, and _process() lets it be heard when it should be, so
+	# a kart built behind the splash screen never makes a sound.
+	player.stream_paused = true
 
 
 ## Sets a loop's loudness, 0 to 1, pausing it when it's silent so it costs

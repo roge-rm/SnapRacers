@@ -414,6 +414,16 @@ func set_camera_view(person: int, view: String) -> void:
 	set_setting("camera", "player_%d" % (person + 1), view)
 
 
+## How each person's map in the corner of a race shows (see CourseMap.MODES),
+## 0 for player 1.
+func map_view(person: int) -> String:
+	return settings.get_value("map", "player_%d" % (person + 1), "outline")
+
+
+func set_map_view(person: int, mode: String) -> void:
+	set_setting("map", "player_%d" % (person + 1), mode)
+
+
 ## The kart you race in, from your choice. In a Grand Prix it's the one you
 ## started the cup with.
 func chosen_design() -> KartDesign:

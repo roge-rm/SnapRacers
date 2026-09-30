@@ -51,6 +51,20 @@ func _ready() -> void:
 	# Get going first.
 	await physics_frames(360)
 
+	# The map in the corner, which a tap moves on to its next mode, kept for
+	# next time.
+	var map: CourseMap = race.player.hud.map
+	var was_map := Game.map_view(0)
+	check(map != null and map.mode == was_map and map.track == race.track, "there's a map of the course in the corner (%s)" % was_map)
+	var tap := InputEventMouseButton.new()
+	tap.button_index = MOUSE_BUTTON_LEFT
+	tap.pressed = true
+	map._gui_input(tap)
+	var next: String = CourseMap.MODES[(CourseMap.MODES.find(was_map) + 1) % CourseMap.MODES.size()]
+	check(map.mode == next and Game.map_view(0) == next, "tapping it goes on to the next kind of map, and it's kept (%s)" % map.mode)
+	Game.set_map_view(0, was_map)
+	map.mode = was_map
+
 	var ahead := func() -> Vector3: return -kart.global_basis.z
 	var looking := func() -> Vector3: return -camera.global_basis.z
 	var gap := func() -> Vector3: return camera.global_position - kart.global_position
