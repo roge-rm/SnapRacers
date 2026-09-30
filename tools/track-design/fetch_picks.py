@@ -8,8 +8,9 @@ track's first point (x east, y south). A pick of several ways (see
 find_lap.py) is joined into one line in the order it lists them, and a
 negative id means that way runs backwards. With --local it uses the ways
 osm_track.py already downloaded into that folder instead of asking the
-server again. A joined lap keeps where each way starts along it and its
-surface, so the tracer can tell which bits are gravel.
+server again. A joined lap keeps where each way starts along it, its
+surface and its level, so the tracer can tell which bits are gravel and which
+run over the top of others.
 """
 import json, math, os, sys, time, urllib.parse, urllib.request
 
@@ -80,14 +81,15 @@ for name in names:
             way = by_id[abs(i)]["points"]
             way = way if i > 0 else way[::-1]
             kind = by_id[abs(i)]["tags"].get("surface", "asphalt")
+            level = int(by_id[abs(i)]["tags"].get("layer", "0") or 0)
             if pts and math.dist(pts[-1], way[0]) <= GAP:
-                surfaces.append([len(pts) - 1, kind])
+                surfaces.append([len(pts) - 1, kind, level])
                 pts += way[1:]
             else:
                 # A way that the lap joins partway along starts where it joins.
                 if pts:
                     way = from_nearest(way, pts[-1])
-                surfaces.append([len(pts), kind])
+                surfaces.append([len(pts), kind, level])
                 pts += way
         # A lap that comes back onto its first way partway along, past a
         # starting grid, starts there instead.
@@ -96,11 +98,11 @@ for name in names:
             k = min(early, key=lambda k: math.dist(pts[-1], pts[k]))
             if k > 0 and math.dist(pts[-1], pts[k]) < JOIN:
                 pts = pts[k:]
-                surfaces = [[max(at - k, 0), kind] for at, kind in surfaces]
+                surfaces = [[max(s[0] - k, 0)] + s[1:] for s in surfaces]
         along = [0.0]
         for a, b in zip(pts, pts[1:]):
             along.append(along[-1] + math.dist(a, b))
-        tags = {"surfaces": [[round(along[at], 1), kind] for at, kind in surfaces]}
+        tags = {"surfaces": [[round(along[s[0]], 1)] + s[1:] for s in surfaces]}
         lines = [{"id": picks[name][0], "tags": tags, "points": pts, "length": along[-1]}]
     json.dump(lines, open(os.path.join(here, name + ".json"), "w"))
     print("%s: %d ways, %.0f m" % (name, len(lines), sum(l["length"] for l in lines)), flush=True)

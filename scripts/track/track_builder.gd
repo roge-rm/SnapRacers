@@ -42,6 +42,7 @@ const COLOURS := {
 	"asphalt": Color("#6c6e68"), # dark bluish grey, like the bricks
 	"dirt": Color("#8a6a45"),
 	"gravel": Color("#b39a74"),
+	"concrete": Color("#a0a19c"),
 	"grass": Color("#3d7a32"),
 	"sand": Color("#d9c38c"),
 	"ice": Color("#cfe8f2"),
@@ -118,7 +119,9 @@ static func piece_mesh(spec: Dictionary, width: float, theme_id: String) -> Arra
 func _ready() -> void:
 	_prepare()
 	if sky:
-		SkyAndSun.add_to(self, 80.0, Color.TRANSPARENT, _theme.get("sky", []))
+		# Indoors you see the dark of the hall behind everything, not the sky.
+		var indoor: bool = _theme.get("indoor", false)
+		SkyAndSun.add_to(self, 80.0, Color(_theme.get("backdrop", "#00000000")), _theme.get("sky", []), Color(_theme.lights) if indoor else Color.TRANSPARENT)
 	_add_grass()
 	for i in track.pieces.size():
 		_add_piece(i)
@@ -159,7 +162,8 @@ func _add_grass() -> void:
 	# Wide enough for the scenery and the big landmarks around the outside.
 	bounds = bounds.grow(Scenery.REACH + 45.0)
 	var centre := bounds.get_center()
-	var grass: Array = track.grip_and_drag("grass")
+	# Outdoors it's grass, and indoors it's the floor of the hall.
+	var grass: Array = track.grip_and_drag(_theme.get("floor", "grass"))
 
 	var body := StaticBody3D.new()
 	body.collision_layer = Kart.LAYER_WORLD

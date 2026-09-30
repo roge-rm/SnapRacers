@@ -50,6 +50,7 @@ const ROOM := {
 	"lake": 20.0, "pond": 9.0, "lava_pool": 7.0, "lighthouse": 4.0, "big_windmill": 6.0,
 	"sakura": 2.5, "pagoda": 6.0, "ferris_wheel": 16.0, "old_banking": 48.0,
 	"oast_house": 7.0, "standing_stones": 7.0, "control_tower": 5.0, "spectator_bank": 13.0,
+	"tire_pile": 3.0, "kart_row": 8.0, "viewing_deck": 12.0, "pallets": 2.5, "kart_office": 7.0,
 }
 
 
@@ -119,6 +120,11 @@ static func add(kit: SceneryKit, prop: String, at: Vector3, rng: RandomNumberGen
 		"standing_stones": standing_stones(kit, at_grid, rng)
 		"control_tower": control_tower(kit, at_grid, facing)
 		"spectator_bank": spectator_bank(kit, at_grid, facing, rng)
+		"tire_pile": tire_pile(kit, at_grid, rng)
+		"kart_row": kart_row(kit, at_grid, facing, rng)
+		"viewing_deck": viewing_deck(kit, at_grid, facing, rng)
+		"pallets": pallets(kit, at_grid, rng)
+		"kart_office": kart_office(kit, at_grid, facing)
 
 
 ## Turns an offset from a prop's middle by its facing.
@@ -753,6 +759,66 @@ static func spectator_bank(kit: SceneryKit, at: Vector3, facing: int, rng: Rando
 				_box(kit, at, Vector3(x, 0.9 + k * 0.9, -k * 1.8 + rng.randf_range(-0.3, 0.3)), Vector3(0.5, 0.9, 0.4), facing, coat, SceneryKit.SMOOTH, false)
 				_box(kit, at, Vector3(x, 1.8 + k * 0.9, -k * 1.8), Vector3(0.36, 0.36, 0.36), facing, YELLOW, SceneryKit.SMOOTH, false)
 			x += rng.randf_range(0.8, 1.4)
+
+
+# Things inside an indoor kart hall.
+
+## A heap of old tires, stacks of different heights leaning together.
+static func tire_pile(kit: SceneryKit, at: Vector3, rng: RandomNumberGenerator) -> void:
+	for k in 5:
+		var spot := at + Vector3(rng.randf_range(-1.6, 1.6), 0.0, rng.randf_range(-1.6, 1.6)).snapped(Vector3.ONE * 0.8)
+		for level in rng.randi_range(1, 5):
+			kit.cylinder(spot + Vector3.UP * level * 0.28, 0.38, 0.28, BLACK, SceneryKit.SMOOTH)
+
+
+## A row of rental karts parked nose in, waiting for the next session.
+static func kart_row(kit: SceneryKit, at: Vector3, facing: int, rng: RandomNumberGenerator) -> void:
+	var paint: Color = [RED, BLUE, YELLOW, GREEN, ORANGE][rng.randi() % 5]
+	for k in 6:
+		var spot := at + _turn(Vector3((k - 2.5) * 2.2, 0.0, 0.0), facing)
+		_box(kit, spot, Vector3(0.0, 0.2, 0.0), Vector3(1.2, 0.2, 2.0), facing, DARK_GREY, SceneryKit.SMOOTH, false)
+		_box(kit, spot, Vector3(0.0, 0.4, 0.8), Vector3(1.3, 0.35, 0.5), facing, paint, SceneryKit.SMOOTH, false)
+		_box(kit, spot, Vector3(0.0, 0.4, -0.3), Vector3(0.6, 0.6, 0.6), facing, BLACK, SceneryKit.SMOOTH, false)
+		for x in [-0.7, 0.7]:
+			for z in [-0.7, 0.7]:
+				_box(kit, spot, Vector3(x, 0.0, z), Vector3(0.3, 0.5, 0.5), facing, BLACK, SceneryKit.SMOOTH, false)
+
+
+## A raised deck for watching from, on posts, with glass along the front and
+## people leaning on it, and steps up at one end.
+static func viewing_deck(kit: SceneryKit, at: Vector3, facing: int, rng: RandomNumberGenerator) -> void:
+	var length := 18.0
+	for x in [-8.5, 0.0, 8.5]:
+		for z in [-2.5, 2.5]:
+			_box(kit, at, Vector3(x, 0.0, z), Vector3(0.6, 4.0, 0.6), facing, LIGHT_GREY)
+	_box(kit, at, Vector3(0.0, 4.0, 0.0), Vector3(length, 0.4, 6.0), facing, DARK_GREY, SceneryKit.SMOOTH, false)
+	_box(kit, at, Vector3(0.0, 4.4, 2.9), Vector3(length, 1.1, 0.15), facing, GLASS, SceneryKit.SMOOTH, false)
+	for k in 6:
+		_box(kit, at, Vector3(length * 0.5 + 0.6, k * 0.66, -2.0 + k * 0.7), Vector3(1.2, 0.66, 0.7), facing, LIGHT_GREY, SceneryKit.BRICK, false)
+	var x := -length * 0.5 + 1.0
+	while x < length * 0.5 - 1.0:
+		if rng.randf() < 0.7:
+			var coat: Color = [RED, BLUE, YELLOW, WHITE, ORANGE, GREEN, DARK_BLUE, AZURE][rng.randi() % 8]
+			_box(kit, at, Vector3(x, 4.4, 2.3), Vector3(0.5, 0.9, 0.4), facing, coat, SceneryKit.SMOOTH, false)
+			_box(kit, at, Vector3(x, 5.3, 2.3), Vector3(0.36, 0.36, 0.36), facing, YELLOW, SceneryKit.SMOOTH, false)
+		x += rng.randf_range(0.9, 1.6)
+
+
+## Pallets stacked up, the way they are at the back of a warehouse.
+static func pallets(kit: SceneryKit, at: Vector3, rng: RandomNumberGenerator) -> void:
+	for level in rng.randi_range(2, 6):
+		kit.box(at + Vector3.UP * level * 0.3, Vector3(2.0, 0.1, 2.0), TAN, SceneryKit.SMOOTH, false)
+		kit.box(at + Vector3.UP * (level * 0.3 + 0.1), Vector3(2.0, 0.2, 1.8), DARK_TAN, SceneryKit.SMOOTH, false)
+	kit.box(at, Vector3(2.0, 0.3, 2.0), DARK_TAN, SceneryKit.SMOOTH, false)
+
+
+## The office where you sign in and pick up a helmet, with big windows and a
+## glowing sign on top.
+static func kart_office(kit: SceneryKit, at: Vector3, facing: int) -> void:
+	_box(kit, at, Vector3.ZERO, Vector3(10.0, 3.3, 5.0), facing, WHITE)
+	_box(kit, at, Vector3(0.0, 0.8, 2.5), Vector3(8.0, 1.8, 0.1), facing, GLASS, SceneryKit.WINDOWS, false)
+	_box(kit, at, Vector3(0.0, 3.3, 0.0), Vector3(10.4, 0.3, 5.4), facing, DARK_GREY, SceneryKit.SMOOTH, false)
+	_box(kit, at, Vector3(0.0, 3.6, 2.2), Vector3(6.0, 1.2, 0.3), facing, YELLOW, SceneryKit.GLOW, false)
 
 
 # Things along the side of the track.

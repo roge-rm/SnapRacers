@@ -6,6 +6,7 @@
 		{ "id": "gearbox", "name": "Gearbox Cup", "tracks": ["timberline", "frostbite_forest", "dune_drift", "whistlestop_woods"], "music": "race_three" },
 		{ "id": "keystone", "name": "Keystone Cup", "tracks": ["windmill_ridge", "launchpad_loop", "magma_mile", "castle_keep"], "music": "race_four" },
 		{ "id": "legends", "name": "Legends Cup", "tracks": ["royal_run", "dry_lagoon", "sakura_swirl", "rouge_ridge"], "music": "race_legends" },
-		{ "id": "gravel", "name": "Gravel Cup", "tracks": ["menhir_meadow", "oast_hill", "devils_dust", "pine_hill_leap"], "music": "race_rally" }
+		{ "id": "gravel", "name": "Gravel Cup", "tracks": ["menhir_meadow", "oast_hill", "devils_dust", "pine_hill_leap"], "music": "race_rally" },
+		{ "id": "hangar", "name": "Hangar Cup", "tracks": ["neon_nights", "hairpin_hall", "bohemian_bends", "spark_deck"], "music": "race_indoor" }
 	]
 }

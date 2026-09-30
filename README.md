@@ -119,7 +119,7 @@ Saving moves the start line onto your longest straight, and the course joins the
 
 ### Courses
 
-Every course is based on a real circuit, with laps of 1.6 to 1.9 km and a road wide enough for three karts through a bend. Kart circuits are made as big for the karts as the real one is for real karts, and the famous race tracks in the Legends Cup are shrunk down to the same lap size. The Gravel Cup is rallycross, on real rallycross circuits that are part tarmac and part gravel. They're made of track pieces snapped together on a grid, with crests, jumps, bridges, a loop and plenty of scenery.
+Every course is based on a real circuit, with laps of 1.6 to 1.9 km and a road wide enough for three karts through a bend. Kart circuits are made as big for the karts as the real one is for real karts, and the famous race tracks in the Legends Cup are shrunk down to the same lap size. The Gravel Cup is rallycross, on real rallycross circuits that are part tarmac and part gravel. The Hangar Cup is indoors, on real indoor kart tracks made bigger, in halls with barriers all the way round, rows of lights overhead, and one that goes over itself on an upper deck. They're made of track pieces snapped together on a grid, with crests, jumps, bridges, a loop and plenty of scenery.
 
 The road runs out onto grass that slows you down, and there are only walls where you'd fall off. The corners have red and white curbs you can ride, but at speed they bounce your wheels into the air. Where two bits of road run close together there are soft tire stacks between them. The ground rolls in gentle hills, a little by the lakes and a lot in the mountains.
 
@@ -131,10 +131,11 @@ The road runs out onto grass that slows you down, and there are only walls where
 | **Keystone** | Windmill Ridge, Launchpad Loop, Magma Mile, Castle Keep |
 | **Legends** | Royal Run (Monza), Dry Lagoon (Laguna Seca), Sakura Swirl (Suzuka), Rouge Ridge (Spa) |
 | **Gravel** | Menhir Meadow (Lohéac), Oast Hill (Lydden Hill), Devil's Dust (Hell), Pine Hill Leap (Höljes) |
+| **Hangar** | Neon Nights (Kart2000 Wasserburg), Hairpin Hall (Daytona Essen), Bohemian Bends (Kart Centrum Prague), Spark Deck (TeamSport Watford) |
 
 ### Racing
 
-- **Grand Prix:** six cups of four races each, for points and trophies. From the second race on, the leader starts at the back.
+- **Grand Prix:** seven cups of four races each, for points and trophies. From the second race on, the leader starts at the back.
 - **Your own cups:** put 2 to 8 races together from any courses and race them as a Grand Prix. A cup is one file with its courses in it, so it can be shared.
 - **Single race:** one race against the AI on any course.
 - **Time trial:** race the clock, with your best times kept.

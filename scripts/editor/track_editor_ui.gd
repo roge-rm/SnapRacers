@@ -79,6 +79,9 @@ const LANDMARKS := [
 	["Ruins", "ruins"], ["Volcano", "volcano"], ["Mountain", "mountain"], ["Lake", "lake"],
 	["Pond", "pond"], ["Lava pool", "lava_pool"], ["Slag heap", "slag_heap"], ["Dune", "dune"],
 	["Ferris wheel", "ferris_wheel"], ["Pagoda", "pagoda"], ["Old banking", "old_banking"],
+	["Oast house", "oast_house"], ["Standing stones", "standing_stones"], ["Control tower", "control_tower"],
+	["Crowd on a bank", "spectator_bank"], ["Viewing deck", "viewing_deck"], ["Kart office", "kart_office"],
+	["Parked karts", "kart_row"],
 ]
 const SURFACES := [["Road", "asphalt"], ["Dirt", "dirt"], ["Gravel", "gravel"], ["Grass", "grass"], ["Sand", "sand"], ["Ice", "ice"]]
 ## "Auto" has walls only where you'd fall off, and grass runoff everywhere
@@ -94,6 +97,8 @@ const THEME_NAMES := {
 	"timber": "Mountains", "frost": "Snow", "desert": "Desert city", "railway": "Railway",
 	"windmill": "Windmills", "space": "Space centre", "volcano": "Volcano", "castle": "Castle",
 	"sakura": "Cherry blossom", "ardennes": "Forest hills", "royal_park": "Royal park", "golden_hills": "Golden hills",
+	"kent_downs": "Kent downs", "brittany": "Brittany", "varmland": "Swedish pines", "trondelag": "Norway",
+	"hall_red": "Red hall", "hall_green": "Green hall", "hall_blue": "Blue hall", "hall_neon": "Neon hall",
 }
 const DANGER := BuilderStyle.DANGER
 const DATA := BuilderStyle.DATA

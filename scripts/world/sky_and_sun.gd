@@ -6,8 +6,10 @@ extends RefCounted
 
 ## Pass a backdrop colour for an indoor scene like the garage. The sky still
 ## lights things, but you see the plain colour behind them. A track's theme
-## can pass its own sky colours, top and horizon, as colour strings.
-static func add_to(parent: Node, shadow_distance := 60.0, backdrop := Color.TRANSPARENT, sky_colours: Array = []) -> void:
+## can pass its own sky colours, top and horizon, as colour strings. Indoors,
+## pass the colour of the lights, so the soft light everywhere is that and not
+## the blue of the sky.
+static func add_to(parent: Node, shadow_distance := 60.0, backdrop := Color.TRANSPARENT, sky_colours: Array = [], lights := Color.TRANSPARENT) -> void:
 	var sky_material := ProceduralSkyMaterial.new()
 	sky_material.sky_top_color = Color(sky_colours[0]) if sky_colours.size() > 0 else Color("#3d7fd6")
 	sky_material.sky_horizon_color = Color(sky_colours[1]) if sky_colours.size() > 1 else Color("#b9d6f2")
@@ -25,6 +27,10 @@ static func add_to(parent: Node, shadow_distance := 60.0, backdrop := Color.TRAN
 		env.background_color = backdrop
 	env.ambient_light_source = Environment.AMBIENT_SOURCE_SKY
 	env.ambient_light_energy = 0.6
+	if lights.a > 0.0:
+		env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
+		env.ambient_light_color = lights
+		env.ambient_light_energy = 0.75
 	env.tonemap_mode = Environment.TONE_MAPPER_FILMIC
 	var world_env := WorldEnvironment.new()
 	world_env.environment = env

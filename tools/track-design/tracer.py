@@ -8,7 +8,9 @@ on its longest straight, facing north. Then a beam search lays pieces one at
 a time, keeping the sequences that stay closest to the real line, never let
 the road run into itself, and finish exactly back on the start facing north.
 Writes the result in design.py's short hand, with the pieces that follow
-gravel or dirt on the real circuit marked as gravel.
+gravel or dirt on the real circuit marked as gravel. Where the real lap runs
+over itself on an upper level, the road only has to keep clear of road on
+the same level, and it climbs and drops between them.
 """
 import json, math, os, sys
 import numpy as np
@@ -22,6 +24,9 @@ REVERSE = len(sys.argv) > 5 and sys.argv[5] == "reverse"
 # The middles of two bits of road must be at least this far apart, which
 # leaves grass runoff and room for a line of tire stacks between them.
 CLEAR = TILE
+# Raised road has walls instead of grass, so on an upper level it only has to
+# keep its walls apart.
+CLEAR_RAISED = 20.0
 # How far the road may stray from the real line.
 STRAY = 1.4 * TILE
 # How far along the road laid so far counts as what it's joining onto, and
@@ -88,17 +93,22 @@ def load_real():
     total = s[-1]
     ss = np.arange(0, total, 1.0)
     res = np.stack([np.interp(ss, s, pts[:, 0]), np.interp(ss, s, pts[:, 1])], axis=1)
-    # Whether each metre is loose, going the way the lap is driven.
+    # Whether each metre is loose, and which level it's on, going the way the
+    # lap is driven.
     loose = np.zeros(len(ss), dtype=bool)
-    for k, (at, kind) in enumerate(surfaces):
+    level = np.zeros(len(ss), dtype=int)
+    for k, entry in enumerate(surfaces):
+        at, kind = entry[0], entry[1]
         end = surfaces[k + 1][0] if k + 1 < len(surfaces) else total / scale
+        a, b = (at * scale, end * scale) if not REVERSE else (total - end * scale, total - at * scale)
         if kind in LOOSE:
-            a, b = (at * scale, end * scale) if not REVERSE else (total - end * scale, total - at * scale)
             loose |= (ss >= a) & (ss < b)
-    return res, total, loose
+        if len(entry) > 2:
+            level[(ss >= a) & (ss < b)] = entry[2]
+    return res, total, loose, level
 
 
-real, total, loose = load_real()
+real, total, loose, level = load_real()
 n = len(real)
 # Headings, smoothed, to find the longest straight for the start.
 d = np.roll(real, -3, axis=0) - np.roll(real, 3, axis=0)
@@ -116,6 +126,7 @@ for i in range(2 * n):
 start = best_mid % n
 real = np.roll(real, -start, axis=0)
 loose = np.roll(loose, -start)
+level = np.roll(level, -start)
 # Turn the whole circuit so its straights line up with the grid as well as
 # they can (the grid only does 90 degree bends, plus slants), then by a whole
 # number of quarter turns so the start faces north.
@@ -135,14 +146,15 @@ print("%s: %.0f m at scale %.2f, start straight %.0f m" % (name, total, scale, b
 
 
 # Where the real line crosses itself (a bridge), road can cross there too, and
-# I turn it into a bridge by hand afterwards.
+# I turn it into a bridge by hand afterwards. Where it crosses between levels
+# the levels already keep it apart, so those don't count.
 def _crossings(line):
     out = []
     m = len(line)
     for i in range(0, m - 1, 2):
         a, b = line[i], line[(i + 2) % m]
         for j in range(i + 20, m - 1, 2):
-            if (j + 20) % m < i:
+            if (j + 20) % m < i or level[i] != level[j]:
                 continue
             c, d = line[j], line[(j + 2) % m]
             def cross(o, p, q):
@@ -156,7 +168,7 @@ if CROSSINGS:
 
 
 class Beam:
-    __slots__ = ("x", "y", "hx", "hy", "s", "cost", "tokens", "pts", "ss", "spans")
+    __slots__ = ("x", "y", "hx", "hy", "s", "cost", "tokens", "pts", "ss", "spans", "lv")
 
 
 def place(b, piece):
@@ -188,14 +200,19 @@ def step(b, piece):
     s_end = lo + int(np.argmin(dd[-1]))
     if s_end <= b.s + length * 0.3:
         return None
-    # Don't run into road already laid (leaving out the last bit, which it
-    # joins onto, and the start when it's coming home).
+    # Which level this piece is on, where the real lap runs over itself.
+    lv = int(level[((b.s + s_end) // 2) % n])
+    # Don't run into road already laid on the same level (leaving out the
+    # last bit, which it joins onto, and the start when it's coming home).
     if len(b.pts) > JOINING:
         old = b.pts[:-JOINING]
         olds = b.ss[:-JOINING]
+        # A piece that climbs or drops between levels is on both.
+        before = int(b.lv[-1]) if len(b.lv) else lv
+        keep = (b.lv[:-JOINING] == lv) | (b.lv[:-JOINING] == before)
         if s_end > total - CLEAR * 2.5:
-            keep = olds > CLEAR * 2.0
-            old = old[keep]
+            keep &= olds > CLEAR * 2.0
+        old = old[keep]
         if len(old):
             dd2 = np.linalg.norm(world[:, None, :] - old[None, :, :], axis=2)
             if CROSSINGS:
@@ -203,7 +220,8 @@ def step(b, piece):
                 for c in CROSSINGS:
                     ok &= np.linalg.norm(world - c, axis=1) > CLEAR * 1.6
                 dd2 = dd2[ok]
-            if dd2.size and dd2.min() < CLEAR:
+            clear = CLEAR if min(lv, before) == 0 else CLEAR_RAISED
+            if dd2.size and dd2.min() < clear:
                 return None
     nb = Beam()
     nb.x, nb.y = end
@@ -213,6 +231,7 @@ def step(b, piece):
     nb.cost = b.cost + float((near ** 2).sum()) * 2.0 + 30.0 + penalty * 30
     nb.tokens = b.tokens + [piece[0]]
     nb.spans = b.spans + [(int(b.s), s_end)]
+    nb.lv = np.concatenate([b.lv, np.full(len(world), lv)])
     nb.pts = np.vstack([b.pts, world]) if len(b.pts) else world
     nb.ss = np.concatenate([b.ss, np.linspace(b.s, s_end, len(world))])
     return nb
@@ -225,6 +244,7 @@ b0.s = 0
 b0.cost = 0.0
 b0.tokens = []
 b0.spans = []
+b0.lv = np.zeros(0, dtype=int)
 b0.pts = np.zeros((0, 2))
 b0.ss = np.zeros(0)
 beams = [b0]
@@ -257,11 +277,15 @@ if not done:
     sys.exit(1)
 best = min(done, key=lambda b: b.cost)
 print("best: %d pieces, cost %.0f" % (len(best.tokens), best.cost))
-# A piece that follows mostly loose real road is gravel.
+# A piece that follows mostly loose real road is gravel, and a piece on a
+# different level from the one before climbs or drops to it, two game levels
+# for each real one so there's room to drive underneath.
+levels = [int(level[((a + b) // 2) % n]) for a, b in best.spans]
 marked = []
-for token, (a, b) in zip(best.tokens, best.spans):
+for k, (token, (a, b)) in enumerate(zip(best.tokens, best.spans)):
     part = loose[np.arange(a, max(b, a + 1)) % n]
-    marked.append(token + ("!v" if part.mean() > 0.5 else ""))
+    climb = (levels[k] - levels[k - 1]) * 2
+    marked.append(token + ("^%d" % climb if climb else "") + ("!v" if part.mean() > 0.5 else ""))
 tokens = " ".join(marked)
 open(out, "w").write("%s\nwidth=%d laps=3\n%s\n" % (name, WIDTH, tokens))
 print(tokens)

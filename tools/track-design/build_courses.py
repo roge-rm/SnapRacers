@@ -31,6 +31,10 @@ INFO = {
  "menhir_meadow": ("Circuit de Lohéac, Brittany, France", "Half tarmac and half gravel, among the standing stones and the crowd on the banks."),
  "pine_hill_leap": ("Höljes Motorstadion, Värmland, Sweden", "Through the pine forest and the red cottages, in and out of the gravel all the way round."),
  "devils_dust": ("Lånkebanen, Hell, Norway", "Round the tarmac by the airport, then a long twisty stretch of gravel and over the crest on the way home."),
+ "hairpin_hall": ("Daytona Kart-Center, Essen, Germany", "Hairpin after hairpin between the barriers, round and round the hall."),
+ "bohemian_bends": ("Kart Centrum, Prague, Czechia", "A tangle of tight bends that fold back on each other, under the lights."),
+ "spark_deck": ("TeamSport Karting, Watford, England", "Up onto the deck and back down under it, round a hall built on two levels."),
+ "neon_nights": ("Kart2000, Wasserburg am Inn, Germany", "Round the hall in the glow of the lights, with the crowd watching from the deck."),
 }
 def rotate_to_longest_straight(pieces):
     """Moves the start line into the longest run of straights at ground level,

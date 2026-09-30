@@ -8,7 +8,9 @@ extends Node
 ##   DISPLAY=:0 tools/godot/Godot_v4.7.2-stable_linux.x86_64 --path . res://tools/shots/course_shots.tscn -- peach_pit
 ## With "at" and a distance around the lap after the course, like
 ## -- windmill_ridge at 1083, it only takes two pictures of that spot, one
-## along the road and one from beside it.
+## along the road and one from beside it. With "fps" after the course it
+## races for ten seconds as fast as it can and says how many frames a second
+## it drew.
 
 const OUT := "/tmp/snapracers-build/shots"
 
@@ -49,6 +51,10 @@ func _ready() -> void:
 	while not race.started:
 		await get_tree().process_frame
 	await seconds(4.0)
+	if args.has("fps"):
+		await frame_rate()
+		get_tree().quit()
+		return
 	if spot >= 0.0:
 		await at_spot(spot)
 		get_tree().quit()
@@ -78,6 +84,19 @@ func move_to(where: Transform3D, offset: float, speed: float) -> void:
 	race.player.offset = fposmod(offset, race.track.length)
 	if race.player.ai != null:
 		race.player.ai.offset = race.player.offset
+
+
+## How many frames a second it draws over ten seconds of racing, as fast as
+## it can, for comparing how heavy courses are.
+func frame_rate() -> void:
+	DisplayServer.window_set_vsync_mode(DisplayServer.VSYNC_DISABLED)
+	Engine.max_fps = 0
+	await seconds(1.0)
+	var frames := Engine.get_frames_drawn()
+	var start := Time.get_ticks_msec()
+	await seconds(10.0)
+	var fps := (Engine.get_frames_drawn() - frames) * 1000.0 / (Time.get_ticks_msec() - start)
+	print("%s: %.0f fps" % [which, fps])
 
 
 func seconds(time: float) -> void:

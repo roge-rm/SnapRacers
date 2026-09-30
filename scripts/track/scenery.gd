@@ -29,10 +29,19 @@ const BARRIER_REACH := 2.0 * TrackPiece.TILE
 ## between the roads are worked out.
 const STACK_EVERY := 0.8
 const BARRIER_STEP := 4.0
+## Indoors: how far past the curbs the barriers run, how far the hall's walls
+## are from the road, and how high the roof beams are.
+const INDOOR_RUNOFF := 3.0
+const HALL_MARGIN := 40.0
+const HALL_HEIGHT := 12.0
+## How far apart the hall's roof beams and the lights along them are.
+const BEAM_EVERY := 16.0
+const LIGHT_EVERY := 12.0
 
 ## Each theme: ground colour, curb and wall colours, the sky, its landmarks
 ## (placed first, biggest first) and its fillers with how often each turns
-## up.
+## up. An indoor theme also has the colour behind everything, what the floor
+## is, and the colours of the hall and its lights.
 const THEMES := {
 	"orchard": {
 		"ground": "#4b9f4a", "curbs": ["#d8261c", "#f2f2f2"], "wall": "#c4281c",
@@ -155,6 +164,30 @@ const THEMES := {
 		"landmarks": ["control_tower", "spectator_bank", "mountain", "cabin"],
 		"fillers": {"pine": 4, "birch": 3, "rocks": 2, "cabin": 1},
 	},
+	"hall_red": {
+		"indoor": true, "backdrop": "#1a1c22", "floor": "concrete", "hall": "#e4e4e0", "lights": "#fff4d6",
+		"ground": "#9b9b99", "curbs": ["#c4281c", "#f2f3f2"], "wall": "#c4281c",
+		"landmarks": ["viewing_deck", "kart_office", "kart_row", "kart_row"],
+		"fillers": {"tire_pile": 3, "pallets": 2, "kart_row": 1},
+	},
+	"hall_green": {
+		"indoor": true, "backdrop": "#161c1a", "floor": "concrete", "hall": "#dfe6e0", "lights": "#e8f6ff",
+		"ground": "#959794", "curbs": ["#4b9f4a", "#f2f3f2"], "wall": "#237841",
+		"landmarks": ["viewing_deck", "kart_office", "kart_row"],
+		"fillers": {"tire_pile": 2, "pallets": 2, "kart_row": 1},
+	},
+	"hall_blue": {
+		"indoor": true, "backdrop": "#161a22", "floor": "concrete", "hall": "#e0e4ea", "lights": "#f4f8ff",
+		"ground": "#999a9d", "curbs": ["#0d69ab", "#f2f3f2"], "wall": "#0d69ab",
+		"landmarks": ["viewing_deck", "kart_office", "kart_row", "kart_row"],
+		"fillers": {"tire_pile": 3, "pallets": 1, "kart_row": 1},
+	},
+	"hall_neon": {
+		"indoor": true, "backdrop": "#120d1c", "floor": "concrete", "hall": "#3a3346", "lights": "#e4adc8",
+		"ground": "#7b7982", "curbs": ["#f2cd37", "#1b2a34"], "wall": "#7a3fa0",
+		"landmarks": ["viewing_deck", "kart_office", "kart_row"],
+		"fillers": {"tire_pile": 3, "pallets": 1, "kart_row": 1},
+	},
 	"golden_hills": {
 		"ground": "#a8965c", "curbs": ["#d8261c", "#f2f2f2"], "wall": "#da8540",
 		"sky": ["#3f86d6", "#e8eef2"],
@@ -181,6 +214,8 @@ var _rows := 0
 var _dist := PackedFloat32Array()
 var _near := PackedVector2Array() # the nearest road point to each cell
 var _road_clear := 10.0
+## Indoors, the hall's floor seen from above, as (x, z). Outdoors it's empty.
+var _hall := Rect2()
 ## How high the ground is at a spot (x, z), for hilly courses. It's flat
 ## unless the track builder says otherwise.
 var ground: Callable = func(_x: float, _z: float) -> float: return 0.0
@@ -201,6 +236,9 @@ func _ready() -> void:
 	_road_clear = track.width * 0.5 + TrackPath.KERB + RUNOFF
 	_map_distances()
 	_hash_track()
+	var indoor: bool = theme.get("indoor", false)
+	if indoor:
+		_hall = _hall_floor()
 	if not only_landmarks:
 		_trackside()
 		_under_jumps()
@@ -217,6 +255,8 @@ func _ready() -> void:
 			_place_landmark(lm)
 	if not only_landmarks:
 		_fill()
+		if indoor:
+			_build_hall()
 	# Only things near the road need to be solid. And nothing that ended up on
 	# the road itself may be, or karts would pile into it (the walls keep
 	# them off everything else).
@@ -360,6 +400,8 @@ func _add(prop: String, at: Vector3, facing := -1) -> void:
 
 func _trackside() -> void:
 	_tire_lines()
+	if theme.get("indoor", false):
+		_barrier_lines()
 	var edge := track.width * 0.5 + TrackPath.KERB + RUNOFF
 	_start_area(edge)
 	var straight_run := 0.0
@@ -430,6 +472,99 @@ func _tire_lines() -> void:
 				Props.barrier_stack(_kit, at, colours[(stacks / 3) % 2])
 				stacks += 1
 			_placed.append([a, 2.0])
+
+
+## Indoors, a low soft barrier runs along both sides of the road a little way
+## past the curbs, the way an indoor kart track is lined all the way round.
+## It leaves gaps where other road comes close, and on raised road, which has
+## its own walls.
+func _barrier_lines() -> void:
+	var out := track.width * 0.5 + TrackPath.KERB + INDOOR_RUNOFF
+	var colours := [Color(theme.curbs[0]), Color(theme.curbs[1])]
+	var count := track.points.size()
+	for side in [-1.0, 1.0]:
+		var last := Vector3.INF
+		var next := 0.0
+		var pieces := 0
+		for n in count + 1:
+			var k := n % count
+			if n < count and track.distances[k] < next:
+				continue
+			next = track.distances[k] + BARRIER_STEP * 0.75
+			var p := track.points[k]
+			var spot := Vector3.INF
+			if track.solids[k] and not track.stickies[k] and p.y < TrackBuilder.RAISED and track.ups[k].y > 0.95:
+				spot = _grounded(p + track.rights[k] * side * out)
+				if _near_other_road(spot, out - 0.5, k, 30.0):
+					spot = Vector3.INF
+			if spot != Vector3.INF and last != Vector3.INF and last.distance_to(spot) < BARRIER_STEP * 2.0:
+				var along := spot - last
+				var basis := Basis.looking_at(Vector3(along.x, 0.0, along.z).normalized(), Vector3.UP)
+				var size := Vector3(0.6, 0.9, along.length() + 0.3)
+				var centre := (last + spot) * 0.5 + Vector3.UP * size.y * 0.5
+				_kit.turned_box(centre, size, basis, colours[(pieces / 2) % 2], SceneryKit.SMOOTH)
+				_kit.soft_box(Transform3D(basis, centre), size)
+				pieces += 1
+			last = spot
+
+
+## The hall's floor: the course from above with room all round it.
+func _hall_floor() -> Rect2:
+	var box := Rect2(Vector2(track.points[0].x, track.points[0].z), Vector2.ZERO)
+	for p in track.points:
+		box = box.expand(Vector2(p.x, p.z))
+	return box.grow(HALL_MARGIN)
+
+
+## Whether something `room` across fits inside the hall. Outdoors there's no
+## hall and everything fits.
+func _inside_hall(at: Vector3, room: float) -> bool:
+	return _hall.size == Vector2.ZERO or _hall.grow(-room - 2.0).has_point(Vector2(at.x, at.z))
+
+
+## The hall around an indoor course: its walls with a coloured band round
+## them, posts holding it up, and roof beams across it with rows of lights
+## hanging under them. There's no roof over the top, so the sun still lights
+## the floor, and the dark past the beams looks like the roof.
+func _build_hall() -> void:
+	var r := _hall
+	var wall := Color(theme.get("hall", "#e4e4e0"))
+	var band := Color(theme.wall)
+	var light := Color(theme.get("lights", "#fff4d6"))
+	var middle := r.get_center()
+	# The four walls, each with a band along its inside.
+	var walls := [
+		[Vector3(middle.x, 0.0, r.position.y), Vector3(r.size.x + 1.0, HALL_HEIGHT, 1.0), Vector3(0.0, 0.0, 0.6)],
+		[Vector3(middle.x, 0.0, r.end.y), Vector3(r.size.x + 1.0, HALL_HEIGHT, 1.0), Vector3(0.0, 0.0, -0.6)],
+		[Vector3(r.position.x, 0.0, middle.y), Vector3(1.0, HALL_HEIGHT, r.size.y + 1.0), Vector3(0.6, 0.0, 0.0)],
+		[Vector3(r.end.x, 0.0, middle.y), Vector3(1.0, HALL_HEIGHT, r.size.y + 1.0), Vector3(-0.6, 0.0, 0.0)],
+	]
+	for w in walls:
+		_kit.box(w[0], w[1], wall, SceneryKit.BRICK, false)
+		var strip: Vector3 = w[1] * Vector3(1.0, 0.0, 1.0) - w[2].abs() * 0.8 + Vector3(0.0, 1.2, 0.0)
+		_kit.box(w[0] + w[2] + Vector3.UP * 3.0, strip, band, SceneryKit.SMOOTH, false)
+	# Posts along the long walls and a beam across from each pair, with lights
+	# along it. The beams go across the narrow way.
+	var long_x := r.size.x >= r.size.y
+	var length := r.size.x if long_x else r.size.y
+	var span := r.size.y if long_x else r.size.x
+	var along := BEAM_EVERY
+	while along < length:
+		var x := r.position.x + along if long_x else middle.x
+		var z := middle.y if long_x else r.position.y + along
+		var beam := Vector3(0.6, 1.0, span) if long_x else Vector3(span, 1.0, 0.6)
+		_kit.box(Vector3(x, HALL_HEIGHT - 1.0, z), beam, Props.DARK_GREY, SceneryKit.SMOOTH, false)
+		for end in [-0.5, 0.5]:
+			var post := Vector3(x, 0.0, z + span * end) if long_x else Vector3(x + span * end, 0.0, z)
+			post -= (Vector3(0.0, 0.0, signf(end)) if long_x else Vector3(signf(end), 0.0, 0.0)) * 1.0
+			_kit.box(post, Vector3(1.0, HALL_HEIGHT - 1.0, 1.0), Props.LIGHT_GREY, SceneryKit.BRICK, false)
+		var across := LIGHT_EVERY * 0.5
+		while across < span:
+			var at := Vector3(x, HALL_HEIGHT - 1.4, r.position.y + across) if long_x else Vector3(r.position.x + across, HALL_HEIGHT - 1.4, z)
+			var size := Vector3(0.5, 0.25, 3.0) if long_x else Vector3(3.0, 0.25, 0.5)
+			_kit.box(at, size, light, SceneryKit.GLOW, false)
+			across += LIGHT_EVERY
+		along += BEAM_EVERY
 
 
 ## The spot halfway across the grass between the road at sample `k` and other
@@ -557,7 +692,7 @@ func _place_landmark(prop: String) -> void:
 				continue
 			var c := _centre(x, y)
 			var at := Vector3(c.x, 0.0, c.y)
-			if not _free(at, room):
+			if not _free(at, room) or not _inside_hall(at, room):
 				continue
 			# Close enough to the road to be seen, with a little randomness so
 			# they don't all line up the same way.
@@ -603,6 +738,6 @@ func _fill() -> void:
 				break
 		var c := _centre(i % _cols, i / _cols)
 		var at := Vector3(c.x + _rng.randf_range(-1.0, 1.0), 0.0, c.y + _rng.randf_range(-1.0, 1.0))
-		if _free(at, Props.ROOM.get(prop, 3.0)):
+		if _free(at, Props.ROOM.get(prop, 3.0)) and _inside_hall(at, Props.ROOM.get(prop, 3.0)):
 			_add(prop, at)
 			count += 1
