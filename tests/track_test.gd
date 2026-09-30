@@ -58,6 +58,24 @@ func _initialize() -> void:
 			d += 7.0
 		check(worst < 1.0, "%s finds where a kart is along it (worst %.2f m out)" % [track.name, worst])
 
+		# The hills never come up through the road, across its whole width,
+		# banked bends and wall rides too.
+		if track.hills > 0.0:
+			var ground := Terrain.new(track, 60.0)
+			var through := 0.0
+			var where := 0.0
+			for k in range(0, track.points.size(), 2):
+				if not track.solids[k]:
+					continue
+				for s in [-6.0, -3.0, 0.0, 3.0, 6.0]:
+					var p: Vector3 = track.points[k] + track.rights[k] * s
+					var above := ground.height_at(p.x, p.z) - p.y
+					if above > through:
+						through = above
+						where = track.distances[k]
+			ground.free()
+			check(through < 0.05, "%s keeps its hills under the road (%.2f m through at %.0f m)" % [track.name, through, where])
+
 	check(names.size() == unique.size(), "and they all have different names")
 
 	# Dune Drift is a figure eight, like the real Dubai Kartdrome, so one bit

@@ -73,10 +73,49 @@ func _on_ground(k: int) -> bool:
 		and track.points[k].y - track.grounds[k] < TrackBuilder.RAISED
 
 
+## Whether the road at this sample is solid but not lying flat on the
+## ground, like a banked bend or a wall ride, which the hills have to keep
+## under.
+func _off_ground(k: int) -> bool:
+	return track.solids[k] and not _on_ground(k)
+
+
 func _work_out_heights() -> void:
-	# The nearest bit of road on the ground to every point, spread out across
-	# the grid in two sweeps from the points right beside the road (the usual
-	# trick for a distance map).
+	var edge := track.width * 0.5 + TrackPath.KERB
+	var flat := _spread(_on_ground)
+	var leaning := _spread(_off_ground)
+	var nearest: PackedInt32Array = flat[0]
+	var gap: PackedFloat32Array = flat[1]
+	var tilted: PackedInt32Array = leaning[0]
+	var tilted_gap: PackedFloat32Array = leaning[1]
+	heights.resize(cols * rows)
+	for z in rows:
+		for x in cols:
+			var i := z * cols + x
+			var at := _point(x, z)
+			var h := track.ground_height(at.x, at.y)
+			# Beside road on the ground, the ground comes up to meet its lower
+			# edge, which is the road's height unless it's starting to lean.
+			var k := nearest[i]
+			if k >= 0:
+				h = lerpf(_low_edge(k, edge), h, smoothstep(edge, edge + BLEND, gap[i]))
+			# Under and beside road that leans, the ground stays below its low
+			# edge.
+			k = tilted[i]
+			if k >= 0:
+				h = minf(h, lerpf(_low_edge(k, edge), h, smoothstep(edge, edge + BLEND, tilted_gap[i])))
+			heights[i] = h
+
+
+## Just under the lower edge of the road at this sample.
+func _low_edge(k: int, edge: float) -> float:
+	return track.points[k].y - edge * absf(track.rights[k].y) - SINK
+
+
+## The nearest road sample that `use` picks to every point of the grid, and
+## how far away it is, spread out across the grid in two sweeps from the
+## points right beside the road (the usual trick for a distance map).
+func _spread(use: Callable) -> Array:
 	var count := cols * rows
 	var nearest := PackedInt32Array()
 	nearest.resize(count)
@@ -85,7 +124,7 @@ func _work_out_heights() -> void:
 	gap.resize(count)
 	gap.fill(INF)
 	for k in track.points.size():
-		if not _on_ground(k):
+		if not use.call(k):
 			continue
 		var p := Vector2(track.points[k].x, track.points[k].z)
 		var cx := int(roundf((p.x - origin.x) / CELL))
@@ -118,19 +157,7 @@ func _work_out_heights() -> void:
 					if d < gap[i]:
 						gap[i] = d
 						nearest[i] = k
-	var edge := track.width * 0.5 + TrackPath.KERB
-	heights.resize(count)
-	for z in rows:
-		for x in cols:
-			var i := z * cols + x
-			var at := _point(x, z)
-			var hill := track.ground_height(at.x, at.y)
-			var k := nearest[i]
-			if k < 0:
-				heights[i] = hill
-				continue
-			var road := track.points[k].y - SINK
-			heights[i] = lerpf(road, hill, smoothstep(edge, edge + BLEND, gap[i]))
+	return [nearest, gap]
 
 
 func _ready() -> void:

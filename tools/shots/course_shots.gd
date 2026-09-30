@@ -6,6 +6,9 @@ extends Node
 ## the tire stacks. It needs a screen, so it runs on the computer's own display
 ## (not headless), and it saves them in /tmp/snapracers-build/shots.
 ##   DISPLAY=:0 tools/godot/Godot_v4.7.2-stable_linux.x86_64 --path . res://tools/shots/course_shots.tscn -- peach_pit
+## With "at" and a distance around the lap after the course, like
+## -- windmill_ridge at 1083, it only takes two pictures of that spot, one
+## along the road and one from beside it.
 
 const OUT := "/tmp/snapracers-build/shots"
 
@@ -23,7 +26,8 @@ func _ready() -> void:
 		which = args[0]
 	# After the course, "side" or "face" races two on one phone instead, and
 	# only takes the picture of the start.
-	var split := args[1] if args.size() > 1 else ""
+	var split := args[1] if args.size() > 1 and args[1] != "at" else ""
+	var spot := float(args[2]) if args.size() > 2 and args[1] == "at" else -1.0
 	if split != "":
 		Game.settings.set_value("race", "split", Game.SIDE_BY_SIDE if split == "side" else Game.FACE_TO_FACE)
 		Game.start_race(Game.TRACKS + "/" + which + ".json")
@@ -45,6 +49,10 @@ func _ready() -> void:
 	while not race.started:
 		await get_tree().process_frame
 	await seconds(4.0)
+	if spot >= 0.0:
+		await at_spot(spot)
+		get_tree().quit()
+		return
 	if split != "":
 		await shot(split)
 		get_tree().quit()
@@ -81,6 +89,16 @@ func shot(name: String) -> void:
 	await RenderingServer.frame_post_draw
 	get_viewport().get_texture().get_image().save_png("%s/%s_%s.png" % [OUT, which, name])
 	print("saved ", name)
+
+
+## Two pictures of the road `offset` metres around the lap, one from a little
+## behind and above it looking along it, and one from off to the side.
+func at_spot(offset: float) -> void:
+	var t := race.track
+	var eye := t.point_at(offset - 18.0) + t.up_at(offset - 18.0) * 3.0
+	await with_camera(Transform3D(Basis.IDENTITY, eye).looking_at(t.point_at(offset + 12.0), t.up_at(offset)), "at_%d" % roundi(offset))
+	var side := t.point_at(offset) + t.right_at(offset) * 28.0 + Vector3.UP * 6.0
+	await with_camera(Transform3D(Basis.IDENTITY, side).looking_at(t.point_at(offset), Vector3.UP), "at_%d_side" % roundi(offset))
 
 
 func with_camera(where: Transform3D, name: String) -> void:
