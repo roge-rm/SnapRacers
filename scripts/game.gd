@@ -106,6 +106,11 @@ func show_menu() -> void:
 	_swap(MainMenu.new())
 
 
+## The garage, the driver screen and the track editor.
+func show_editors() -> void:
+	_swap(EditorsMenu.new())
+
+
 func show_garage() -> void:
 	_swap(Garage.new())
 

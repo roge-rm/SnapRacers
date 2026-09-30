@@ -46,7 +46,16 @@ func _ready() -> void:
 
 	var buttons := screen().find_children("*", "Button", true, false)
 	var labels := buttons.map(func(b): return b.text.get_slice("\n", 0))
-	check(labels == ["Single player", "Multiplayer", "Garage", "Driver", "Track editor", "Settings", "About", "Quit"], "the menu has its buttons %s" % [labels])
+	check(labels == ["Single player", "Multiplayer", "Editors", "Settings", "About", "Quit"], "the menu has its buttons %s" % [labels])
+	# The garage, the driver screen and the track editor are all under Editors.
+	buttons.filter(func(b): return b.text.begins_with("Editors"))[0].pressed.emit()
+	await frames(2)
+	check(screen() is EditorsMenu, "Editors opens its own menu")
+	labels = screen().find_children("*", "Button", true, false).map(func(b): return b.text.get_slice("\n", 0))
+	check(labels == ["Garage", "Driver", "Track editor", "Back"], "with the editors in it %s" % [labels])
+	Game._go_back()
+	await frames(2)
+	check(screen() is MainMenu, "and back goes to the menu")
 
 	Game.show_settings()
 	await frames(2)
@@ -130,7 +139,7 @@ func _ready() -> void:
 	check(screen() is Garage and garage._holding == "", "back in the garage puts the part down first")
 	Game._go_back()
 	await frames(2)
-	check(screen() is MainMenu, "and then goes to the menu")
+	check(screen() is EditorsMenu, "and then goes to the editors")
 
 	await _driver()
 
@@ -320,5 +329,5 @@ func _driver() -> void:
 	check(builder._wheel != null, "sitting shows them at a steering wheel")
 	ui.done_pressed.emit()
 	await frames(2)
-	check(screen() is MainMenu, "Done goes back to the menu")
+	check(screen() is EditorsMenu, "Done goes back to the editors")
 	Game.keep_character(kept)

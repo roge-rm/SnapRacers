@@ -146,7 +146,7 @@ func _build_toolbar() -> void:
 	_toolbar.set_anchors_and_offsets_preset(PRESET_CENTER_TOP)
 	_toolbar.grow_horizontal = GROW_DIRECTION_BOTH
 	_toolbar.offset_top = 8.0
-	var close := IconButton.new("close", "Back to the menu")
+	var close := IconButton.new("close", "Leave the driver screen")
 	close.pressed.connect(func() -> void: done_pressed.emit())
 	_undo = IconButton.new("undo", "Undo")
 	_undo.pressed.connect(func() -> void: undo_pressed.emit())

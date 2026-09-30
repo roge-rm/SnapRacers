@@ -203,4 +203,4 @@ func _unhandled_input(event: InputEvent) -> void:
 
 func go_back() -> void:
 	Game.keep_character(design)
-	Game.show_menu()
+	Game.show_editors()

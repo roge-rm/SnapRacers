@@ -451,10 +451,10 @@ func _race() -> void:
 
 func _to_menu() -> void:
 	Game.keep_design(design)
-	Game.show_menu()
+	Game.show_editors()
 
 
-## Back stops whatever you're doing first, then goes to the menu.
+## Back stops whatever you're doing first, then goes to the editors.
 func go_back() -> void:
 	if _mode == GarageUI.Mode.PLACING:
 		cancel()

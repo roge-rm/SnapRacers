@@ -178,7 +178,7 @@ func _ready() -> void:
 
 
 func go_back() -> void:
-	Game.show_menu()
+	Game.show_editors()
 
 
 # Changing the course.

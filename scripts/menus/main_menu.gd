@@ -12,9 +12,7 @@ func _ready() -> void:
 	column.add_child(gap)
 	column.add_child(MenuStyle.button("Single player", Game.show_single_player))
 	column.add_child(MenuStyle.button("Multiplayer", Game.show_multiplayer))
-	column.add_child(MenuStyle.button("Garage", Game.show_garage))
-	column.add_child(MenuStyle.button("Driver", Game.show_driver))
-	column.add_child(MenuStyle.button("Track editor", Game.show_track_editor))
+	column.add_child(MenuStyle.button("Editors", Game.show_editors))
 	column.add_child(MenuStyle.button("Settings", Game.show_settings))
 	column.add_child(MenuStyle.button("About", Game.show_about))
 	# A web page can't close itself, so there it has no Quit.
