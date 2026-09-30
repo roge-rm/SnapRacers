@@ -55,7 +55,7 @@ var sticky := false
 # snapping from straight to a circle (which slammed karts into the road). It
 # steps one tile across as it goes around, so the road coming out never runs
 # into the road going in.
-const LOOP_ARC := 80.0 # length of road around the loop itself, in metres
+const LOOP_ARC := 110.0 # length of road around the loop itself, in metres
 const LOOP_EASE := 0.2 # how much of it is spent tightening up, and easing off
 const LOOP_IN := 16.0
 const LOOP_STEP := TILE

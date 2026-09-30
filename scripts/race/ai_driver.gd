@@ -19,6 +19,9 @@ var pace := 1.0
 ## The chance of misjudging a bend, going in too fast or too slow (see
 ## Difficulty).
 var mistakes := 0.0
+## The chance, each time it comes to a loop, that it loses its nerve on the
+## way up, backs off, and falls off it (see Difficulty).
+var loop_nerves := 0.0
 ## How often it uses a gadget when the moment's right, from 0 to 1.
 var gadget_sense := 1.0
 ## How much extra push it gets a long way behind the people racing, and how
@@ -39,6 +42,13 @@ const BACK_AFTER := 0.8
 const BACK_FOR := 1.0
 ## How far on around the track it has to get before it counts as unstuck.
 const FREE_AFTER := 6.0
+## How far ahead it looks for a loop, so it has its foot down for the whole
+## run in to it.
+const LOOP_AHEAD := 40.0
+## Before that, how far ahead of a loop it starts cornering like an expert
+## (LOOP_SKILL), so it doesn't come to the loop short of speed.
+const LOOP_RUN_IN := 90.0
+const LOOP_SKILL := 0.95
 const SEE_AHEAD := 12.0 # how far ahead it watches for karts in its way
 const KART_ROOM := 2.8 # how far to the side a kart has to be to be out of the way
 
@@ -57,6 +67,9 @@ var _rng := RandomNumberGenerator.new()
 ## more is too fast and less is too slow.
 var _bend_coming := false
 var _misjudge := 1.0
+## Whether it's on a loop, and whether it's lost its nerve on this one.
+var _on_loop := false
+var _lost_nerve := false
 ## Time left backing away from something it's stuck against.
 var _backing := 0.0
 ## Whether it's backed off already this time it got stuck.
@@ -94,7 +107,10 @@ func _physics_process(delta: float) -> void:
 	# A driver who can't steer quickly (see KartStats.control) is late into
 	# every bend, so takes them a little slower.
 	_judge_bends()
-	var grip := kart.stats.cornering() * KartStats.gravity() * skill * minf(1.0, 0.6 + 0.4 * kart.stats.control) * _misjudge
+	# With a loop coming up it takes the bends before it as well as it can, so
+	# it gets there with all the speed it needs, whatever its level.
+	var daring := maxf(skill, LOOP_SKILL) if _loop_within(LOOP_RUN_IN) else skill
+	var grip := kart.stats.cornering() * KartStats.gravity() * daring * minf(1.0, 0.6 + 0.4 * kart.stats.control) * _misjudge
 	var allowed := INF
 	# Far enough ahead to stop for any bend from the speed it's doing, and a
 	# little more, which matters now karts go well over 100 km/h.
@@ -124,6 +140,12 @@ func _physics_process(delta: float) -> void:
 	elif _looping():
 		controls.throttle = 1.0
 		controls.brake = 0.0
+		# Once the road really starts to climb is where it loses its nerve if
+		# it's going to. It lifts off and dabs the brake, and doesn't make the
+		# top.
+		if _lost_nerve and up.y < 0.7:
+			controls.throttle = 0.0
+			controls.brake = 0.5
 	# In a tight bend it holds its speed down firmly. Out on the road it lets
 	# it run a little over before braking.
 	elif speed > allowed + (0.4 if here > 0.05 else 1.5):
@@ -138,12 +160,25 @@ func _physics_process(delta: float) -> void:
 
 	_stuck_check(delta, speed, up)
 	kart.push = pace * Difficulty.push_for(behind, catch_up, ease_off, track.length)
+	# A loop needs everything the kart's got, whatever the level. Going easy on
+	# the run in, the gentler levels came up short and fell off it.
+	if _on_loop and not _lost_nerve:
+		kart.push = maxf(kart.push, 1.0)
 
 
 ## Whether it's on the way around a loop, or about to start up one.
 func _looping() -> bool:
+	var looping := _loop_within(LOOP_AHEAD)
+	if looping and not _on_loop:
+		_lost_nerve = _rng.randf() < loop_nerves
+	_on_loop = looping
+	return looping
+
+
+## Whether a loop climbs up within this far ahead, or it's already on one.
+func _loop_within(distance: float) -> bool:
 	var ahead := 0.0
-	while ahead <= 12.0:
+	while ahead <= distance:
 		if track.piece_type_at(offset + ahead) == "loop" and track.up_at(offset + ahead).y < 0.9:
 			return true
 		ahead += 4.0

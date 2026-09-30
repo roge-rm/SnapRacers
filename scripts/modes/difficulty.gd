@@ -12,6 +12,8 @@ extends RefCounted
 ## - pace: how hard they push their engines, as a fraction. Lower levels take
 ##   it easier on the straights too, not just in the bends.
 ## - mistakes: the chance of going into a bend too fast or too slow.
+## - loop_nerves: the chance of losing their nerve on the way up a loop,
+##   backing off and falling off it.
 ## - gadgets: how often they use a gadget when the moment's right, from 0 to 1.
 ## - catch_up: how much extra push they get when they're a long way behind
 ##   you, as a fraction.
@@ -27,6 +29,7 @@ const SETTINGS := {
 		"skill": [0.52, 0.62],
 		"pace": 0.7,
 		"mistakes": 0.25,
+		"loop_nerves": 0.15,
 		"gadgets": 0.3,
 		"catch_up": 0.0,
 		"ease_off": 0.3,
@@ -37,6 +40,7 @@ const SETTINGS := {
 		"skill": [0.64, 0.74],
 		"pace": 0.78,
 		"mistakes": 0.1,
+		"loop_nerves": 0.0,
 		"gadgets": 0.7,
 		"catch_up": 0.04,
 		"ease_off": 0.2,
@@ -47,6 +51,7 @@ const SETTINGS := {
 		"skill": [0.8, 0.9],
 		"pace": 0.89,
 		"mistakes": 0.02,
+		"loop_nerves": 0.0,
 		"gadgets": 1.0,
 		"catch_up": 0.06,
 		"ease_off": 0.0,
@@ -57,6 +62,7 @@ const SETTINGS := {
 		"skill": [0.95, 0.99],
 		"pace": 1.0,
 		"mistakes": 0.0,
+		"loop_nerves": 0.0,
 		"gadgets": 1.0,
 		"catch_up": 0.0,
 		"ease_off": 0.0,
@@ -89,6 +95,7 @@ static func apply(ai: AIDriver, level: String, rank: int, field: int) -> void:
 	ai.skill = lerpf(skill[1], skill[0], float(rank) / maxf(field - 1, 1))
 	ai.pace = s.pace
 	ai.mistakes = s.mistakes
+	ai.loop_nerves = s.loop_nerves
 	ai.gadget_sense = s.gadgets
 	ai.catch_up = s.catch_up
 	ai.ease_off = s.ease_off

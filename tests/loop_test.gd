@@ -21,6 +21,9 @@ class Runner:
 	var fast_stuck_frames := 0
 	var loop_end := 0.0
 	var loop_start := 0.0
+	## Parts the fast kart has lost by the time it's clear of the loop. After
+	## that it runs on to the end of the road and bumps into it.
+	var lost_on_loop := -1
 
 	func _ready() -> void:
 		track = TrackPath.from_dict({ "pieces": [
@@ -71,6 +74,8 @@ class Runner:
 			slow_top = maxf(slow_top, slow.global_position.y)
 		if fast.sticking:
 			fast_stuck_frames += 1
+		if lost_on_loop < 0 and fast_offset > loop_end + 10.0:
+			lost_on_loop = fast.lost.size()
 		if OS.has_environment("LOOP_DEBUG") and tick == 60 * 6:
 			for body in fast.get_colliding_bodies():
 				var info := []
@@ -93,7 +98,7 @@ class Runner:
 			check(fast_offset > loop_end + 10.0, "and comes out the other side (%.0f m along, the loop ends at %.0f)" % [fast_offset, loop_end])
 			check(fast.global_basis.y.y > 0.9, "the right way up (up.y %.2f)" % fast.global_basis.y.y)
 			check(fast_stuck_frames > 60, "sticking to the road on the way around (%d frames)" % fast_stuck_frames)
-			check(fast.lost.is_empty(), "without losing any parts (%d lost)" % fast.lost.size())
+			check(lost_on_loop == 0, "without losing any parts (%d lost)" % lost_on_loop)
 			check(slow_top < 12.0, "the slow kart doesn't make it around (%.1f m up at most)" % slow_top)
 			check(slow.global_position.y < 3.0, "and ends up back at the bottom (%.1f m up)" % slow.global_position.y)
 			print("All loop checks passed." if failures == 0 else "%d loop checks failed." % failures)

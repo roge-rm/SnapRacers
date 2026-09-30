@@ -24,6 +24,8 @@ const LOST := 45.0
 ## How far before a loop or wall ride a reset puts you, so you can build up
 ## speed.
 const RUN_UP := 110.0
+## How far ahead on a loop's run in it looks for the climb (see _loop_coming()).
+const LOOP_FOOT := 30.0
 ## Karts in a race, you included.
 const KARTS := 8
 ## How often drivers check who they've passed and who's beside them.
@@ -451,7 +453,7 @@ func _clear_spot(racer: Racer) -> Transform3D:
 	var start := racer.offset
 	var backed := false
 	for step in 80:
-		if track.up_at(start).y > 0.95:
+		if track.up_at(start).y > 0.95 and not _loop_coming(start):
 			break
 		start -= 2.0
 		backed = true
@@ -474,6 +476,20 @@ func _clear_spot(racer: Racer) -> Transform3D:
 				return spot
 	racer.offset = fposmod(start, track.length)
 	return track.place_at(start)
+
+
+## Whether this is the flat run in to a loop, or the foot of it where it's
+## only just starting to climb. A kart stuck there and put back where it was
+## has no speed for the loop and just falls off it again.
+func _loop_coming(offset: float) -> bool:
+	if track.piece_type_at(offset) != "loop":
+		return false
+	var ahead := 0.0
+	while ahead <= LOOP_FOOT:
+		if track.up_at(offset + ahead).y <= 0.95:
+			return true
+		ahead += 2.0
+	return false
 
 
 ## Once you're over the line the AI takes your kart home, so it doesn't just
