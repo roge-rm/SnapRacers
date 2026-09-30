@@ -1,15 +1,20 @@
 #!/usr/bin/env python3
 """Draws the raceway ways OpenStreetMap has near a place, for looking at a
-real kart circuit's shape.
+real circuit's shape. With --coaster it draws roller coaster track instead.
 
-Usage: osm_track.py <name> <lat> <lon> [radius_m]
+Usage: osm_track.py [--coaster] <name> <lat> <lon> [radius_m]
 Writes <name>.png (and <name>.json with the raw geometry in metres).
 """
 import json, math, subprocess, sys, urllib.parse, urllib.request
 
-name, lat, lon = sys.argv[1], float(sys.argv[2]), float(sys.argv[3])
-radius = int(sys.argv[4]) if len(sys.argv) > 4 else 700
-q = '[out:json][timeout:40];(way["highway"="raceway"](around:%d,%f,%f);way["sport"="karting"](around:%d,%f,%f););out geom;' % (radius, lat, lon, radius, lat, lon)
+args = [a for a in sys.argv[1:] if a != '--coaster']
+coaster = '--coaster' in sys.argv
+name, lat, lon = args[0], float(args[1]), float(args[2])
+radius = int(args[3]) if len(args) > 3 else 700
+if coaster:
+    q = '[out:json][timeout:40];way["roller_coaster"="track"](around:%d,%f,%f);out geom;' % (radius, lat, lon)
+else:
+    q = '[out:json][timeout:40];(way["highway"="raceway"](around:%d,%f,%f);way["sport"="karting"](around:%d,%f,%f););out geom;' % (radius, lat, lon, radius, lat, lon)
 data = None
 for server in ['https://overpass-api.de/api/interpreter', 'https://overpass.kumi.systems/api/interpreter']:
     try:

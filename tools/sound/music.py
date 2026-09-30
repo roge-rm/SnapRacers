@@ -433,4 +433,171 @@ def race_four():
     return render(bpm, bars, parts, wet=0.18)
 
 
-TUNES = {"menu": menu_tune, "race_one": race_one, "race_two": race_two, "race_three": race_three, "race_four": race_four}
+def race_indoor():
+    """The indoor cup, under the lights in the kart hall: tight and electronic,
+    in F sharp minor."""
+    bpm = 146
+    verse = ["F#m", "D", "A", "E", "F#m", "D", "A", "E"]
+    chorus = ["Bm", "D", "A", "E", "Bm", "D", "C#m", "C#7"]
+    breakdown = ["F#m", "D", "A", "E"]
+    chords = verse + chorus + verse + breakdown
+    a = [
+        [("F#5", 2), (".", 2), ("C#6", 2), ("A5", 2), ("F#5", 2), ("A5", 2), ("B5", 4)],
+        [("A5", 4), ("F#5", 2), ("A5", 2), ("D6", 4), ("C#6", 4)],
+        [("C#6", 2), (".", 2), ("E6", 2), ("C#6", 2), ("A5", 2), ("C#6", 2), ("E6", 4)],
+        [("B5", 6), ("G#5", 2), ("E5", 4), (".", 4)],
+        [("F#5", 2), (".", 2), ("C#6", 2), ("A5", 2), ("F#5", 2), ("A5", 2), ("C#6", 4)],
+        [("D6", 4), ("C#6", 2), ("A5", 2), ("F#6", 4), ("E6", 4)],
+        [("E6", 2), ("C#6", 2), ("A5", 2), ("E6", 4), ("C#6", 2), ("B5", 4)],
+        [("G#5", 8), ("B5", 4), ("C#6", 4)],
+    ]
+    b = [
+        [("D6", 4), ("F#6", 4), ("E6", 2), ("D6", 2), ("B5", 4)],
+        [("A5", 4), ("D6", 4), ("F#6", 4), ("A6", 4)],
+        [("E6", 6), ("C#6", 2), ("A5", 4), ("C#6", 4)],
+        [("B5", 8), ("G#5", 4), ("E5", 4)],
+        [("D6", 4), ("F#6", 4), ("B6", 4), ("A6", 2), ("F#6", 2)],
+        [("F#6", 6), ("E6", 2), ("D6", 4), ("A5", 4)],
+        [("E6", 4), ("C#6", 4), ("G#5", 4), ("C#6", 4)],
+        [("F6", 4), ("G#6", 4), ("C#6", 8)],
+    ]
+    tune = melody(16, *(a + b + a + [[(".", 16)]] * 4))
+    bars = len(chords)
+    parts = [
+        (kick, drums("x...x...x...x...", bars), 0.62, 0.0, 0.0),
+        (clap, drums("....x.......x...", bars), 0.35, -0.05, 0.15),
+        (hat, drums("..x...x...x...xo", bars), 0.3, 0.35, 0.03),
+        (bass, bassline(chords, "r.r.o.r.r.r.o.r.", 2), 0.5, 0.0, 0.0),
+        (pluck, arps(chords, 5, (0, 1, 2, 3)), 0.22, -0.4, 0.3),
+        (pad, held(chords, 3), 0.35, 0.1, 0.3),
+        (lead, tune, 0.42, 0.1, 0.25),
+    ]
+    return render(bpm, bars, parts, wet=0.14)
+
+
+def race_rally():
+    """The rallycross cup, over the gravel and the jumps: rocky and driving,
+    in G."""
+    bpm = 138
+    verse = ["G", "C", "D", "G", "Em", "C", "D", "D"]
+    chorus = ["C", "G", "D", "Em", "C", "G", "Am", "D7"]
+    breakdown = ["G", "C", "D", "G"]
+    chords = verse + chorus + verse + breakdown
+    a = [
+        [("D5", 2), ("G5", 2), ("B5", 2), ("D6", 4), ("B5", 2), ("A5", 2), ("G5", 2)],
+        [("E5", 4), ("G5", 2), ("C6", 2), ("E6", 4), ("D6", 4)],
+        [("D6", 2), ("C6", 2), ("A5", 2), ("F#5", 2), ("A5", 4), ("D6", 4)],
+        [("B5", 8), ("G5", 4), ("D5", 4)],
+        [("E5", 2), ("G5", 2), ("B5", 2), ("E6", 4), ("D6", 2), ("B5", 2), ("G5", 2)],
+        [("C6", 4), ("E6", 4), ("G6", 4), ("E6", 4)],
+        [("F#6", 6), ("E6", 2), ("D6", 4), ("A5", 4)],
+        [("D6", 8), (".", 4), ("A5", 2), ("B5", 2)],
+    ]
+    b = [
+        [("C6", 4), ("E6", 4), ("G6", 2), ("E6", 2), ("C6", 4)],
+        [("B5", 4), ("D6", 4), ("G6", 4), ("D6", 4)],
+        [("A5", 4), ("D6", 4), ("F#6", 4), ("A6", 4)],
+        [("G6", 6), ("F#6", 2), ("E6", 4), ("B5", 4)],
+        [("E6", 4), ("C6", 2), ("E6", 2), ("G6", 4), ("E6", 4)],
+        [("D6", 4), ("B5", 2), ("D6", 2), ("G6", 8)],
+        [("A6", 4), ("G6", 2), ("E6", 2), ("C6", 4), ("E6", 4)],
+        [("F#6", 4), ("D6", 4), ("A5", 4), ("C6", 4)],
+    ]
+    tune = melody(16, *(a + b + a + [[(".", 16)]] * 4))
+    bars = len(chords)
+    parts = [
+        (kick, drums("x..x..x.x..x..x.", bars), 0.6, 0.0, 0.0),
+        (snare, drums("....x.......x...", bars), 0.45, 0.05, 0.12),
+        (hat, drums("x.x.x.x.x.x.x.x.", bars), 0.25, 0.35, 0.03),
+        (bass, bassline(chords, "r.rr.r.rr.rr.5o.", 2), 0.55, 0.0, 0.0),
+        (keys, comp(chords, "x..x..x.x..x..x.", 4), 0.35, -0.35, 0.2),
+        (lead, tune, 0.45, 0.1, 0.25),
+    ]
+    return render(bpm, bars, parts, wet=0.14)
+
+
+def race_coaster():
+    """The roller coaster cup: a fairground tune, bouncy and a bit silly, in B
+    flat."""
+    bpm = 126
+    verse = ["Bb", "F", "Bb", "F", "Eb", "Bb", "F", "Bb"]
+    chorus = ["Eb", "Bb", "Cm", "F", "Eb", "Bb", "F7", "Bb"]
+    breakdown = ["Bb", "Eb", "F", "Bb"]
+    chords = verse + chorus + verse + breakdown
+    a = [
+        [("F5", 2), ("Bb5", 2), ("D6", 2), ("F6", 4), ("D6", 2), ("Bb5", 4)],
+        [("A5", 4), ("C6", 2), ("F6", 2), ("A6", 4), ("F6", 4)],
+        [("F6", 2), ("D6", 2), ("Bb5", 2), ("D6", 2), ("F6", 4), ("Bb6", 4)],
+        [("A6", 6), ("G6", 2), ("F6", 4), ("C6", 4)],
+        [("G5", 2), ("Bb5", 2), ("Eb6", 2), ("G6", 4), ("F6", 2), ("Eb6", 4)],
+        [("D6", 4), ("F6", 4), ("Bb6", 4), ("F6", 4)],
+        [("A6", 4), ("G6", 2), ("F6", 2), ("C6", 4), ("Eb6", 4)],
+        [("D6", 8), (".", 4), ("F5", 2), ("A5", 2)],
+    ]
+    b = [
+        [("G6", 4), ("Eb6", 4), ("Bb5", 4), ("G5", 4)],
+        [("F6", 6), ("D6", 2), ("Bb5", 8)],
+        [("Eb6", 4), ("C6", 2), ("Eb6", 2), ("G6", 4), ("Eb6", 4)],
+        [("F6", 4), ("A5", 4), ("C6", 4), ("F6", 4)],
+        [("Bb6", 4), ("G6", 2), ("Eb6", 2), ("G6", 4), ("Bb6", 4)],
+        [("Bb6", 6), ("A6", 2), ("F6", 4), ("D6", 4)],
+        [("Eb6", 4), ("C6", 4), ("A5", 4), ("Eb6", 4)],
+        [("D6", 12), (".", 4)],
+    ]
+    tune = melody(16, *(a + b + a + [[(".", 16)]] * 4))
+    bars = len(chords)
+    parts = [
+        (kick, drums("x.......x.......", bars), 0.55, 0.0, 0.0),
+        (snare, drums("....x.......x...", bars), 0.35, 0.05, 0.15),
+        (hat, drums("..x...x...x...x.", bars), 0.28, 0.35, 0.05),
+        (bass, bassline(chords, "r...5...r...5...", 2), 0.5, 0.0, 0.0),
+        (keys, comp(chords, "..x...x...x...x.", 4), 0.35, -0.35, 0.25),
+        (bell, tune, 0.5, 0.2, 0.3),
+        (lead, [(at, f / 2.0, n) for at, f, n in tune], 0.14, -0.1, 0.3),
+    ]
+    return render(bpm, bars, parts, wet=0.2)
+
+
+def race_legends():
+    """The famous circuits cup: a big, proud anthem, in E flat."""
+    bpm = 144
+    verse = ["Eb", "Bb", "Cm", "Ab", "Eb", "Bb", "Ab", "Bb"]
+    chorus = ["Ab", "Bb", "Gm", "Cm", "Ab", "Bb", "Fm", "Bb7"]
+    breakdown = ["Eb", "Ab", "Bb", "Eb"]
+    chords = verse + chorus + verse + breakdown
+    a = [
+        [("Eb5", 4), ("G5", 2), ("Bb5", 2), ("Eb6", 6), ("D6", 2)],
+        [("D6", 4), ("Bb5", 4), ("F5", 4), ("Bb5", 4)],
+        [("C6", 4), ("Eb6", 2), ("G6", 2), ("C6", 4), ("Bb5", 4)],
+        [("Ab5", 6), ("Bb5", 2), ("C6", 4), ("Ab5", 4)],
+        [("Bb5", 4), ("Eb6", 4), ("G6", 6), ("F6", 2)],
+        [("F6", 4), ("D6", 4), ("Bb5", 4), ("D6", 4)],
+        [("Eb6", 4), ("C6", 4), ("Ab5", 4), ("C6", 4)],
+        [("Bb5", 12), (".", 4)],
+    ]
+    b = [
+        [("C6", 4), ("Eb6", 4), ("Ab6", 4), ("G6", 2), ("F6", 2)],
+        [("F6", 6), ("D6", 2), ("Bb5", 8)],
+        [("G6", 4), ("F6", 2), ("D6", 2), ("Bb5", 4), ("D6", 4)],
+        [("Eb6", 6), ("D6", 2), ("C6", 4), ("G5", 4)],
+        [("Ab6", 4), ("G6", 2), ("Eb6", 2), ("C6", 4), ("Eb6", 4)],
+        [("F6", 4), ("Bb6", 4), ("D6", 4), ("F6", 4)],
+        [("Ab6", 4), ("F6", 4), ("C6", 4), ("Ab5", 4)],
+        [("Bb5", 4), ("D6", 4), ("F6", 4), ("Ab6", 4)],
+    ]
+    tune = melody(16, *(a + b + a + [[(".", 16)]] * 4))
+    bars = len(chords)
+    parts = [
+        (kick, drums("x...x...x...x...", bars), 0.6, 0.0, 0.0),
+        (snare, drums("....x.......x..o", bars), 0.45, 0.05, 0.15),
+        (hat, drums("x.x.x.x.x.x.x.x.", bars), 0.22, 0.35, 0.03),
+        (bass, bassline(chords, "r-r-r-r-o-o-5-5-", 2), 0.5, 0.0, 0.0),
+        (pad, held(chords, 3), 0.45, 0.0, 0.35),
+        (pluck, arps(chords, 4, (0, 1, 2, 3, 2, 1)), 0.25, -0.35, 0.3),
+        (lead, tune, 0.45, 0.1, 0.3),
+    ]
+    return render(bpm, bars, parts, wet=0.18)
+
+
+TUNES = {"menu": menu_tune, "race_one": race_one, "race_two": race_two, "race_three": race_three, "race_four": race_four,
+         "race_indoor": race_indoor, "race_rally": race_rally, "race_coaster": race_coaster, "race_legends": race_legends}

@@ -18,14 +18,14 @@ func check(ok: bool, what: String) -> void:
 
 func _initialize() -> void:
 	var cups := GrandPrix.cups()
-	check(cups.size() == 4 and cups.all(func(c): return c.tracks.size() == 4), "there are four cups of four courses")
+	check(cups.size() >= 4 and cups.all(func(c): return c.tracks.size() == 4), "there are %d cups of four courses" % cups.size())
 	var ids := Tracks.all()
 	var unique := {}
 	for id in ids:
 		unique[id] = true
-	check(unique.size() == 16, "and all 16 courses are different (%d)" % unique.size())
+	check(unique.size() == cups.size() * 4, "and all %d courses are different (%d)" % [cups.size() * 4, unique.size()])
 	var files := Array(DirAccess.get_files_at("res://data/tracks")).filter(func(f): return f.ends_with(".json"))
-	check(files.size() == 16, "every course file is in a cup (%d files)" % files.size())
+	check(files.size() == unique.size(), "every course file is in a cup (%d files)" % files.size())
 	var names := {}
 	for id in ids:
 		var track := TrackPath.load_file(Tracks.path_of(id))
@@ -58,7 +58,7 @@ func _initialize() -> void:
 			d += 7.0
 		check(worst < 1.0, "%s finds where a kart is along it (worst %.2f m out)" % [track.name, worst])
 
-	check(names.size() == 16, "and they all have different names")
+	check(names.size() == unique.size(), "and they all have different names")
 
 	# Dune Drift is a figure eight, like the real Dubai Kartdrome, so one bit
 	# of road has to go over the other on a bridge.

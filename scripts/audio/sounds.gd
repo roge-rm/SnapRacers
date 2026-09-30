@@ -41,7 +41,7 @@ const ALL := [
 	"engine/engine_diesel", "engine/engine_v8", "engine/electric_motor", "engine/jet",
 	"loop/skid", "loop/rumble", "loop/wind",
 ]
-const TUNES := ["menu", "race_one", "race_two", "race_three", "race_four"]
+const TUNES := ["menu", "race_one", "race_two", "race_three", "race_four", "race_indoor", "race_rally", "race_coaster", "race_legends"]
 
 static var _music: AudioStreamPlayer
 static var _music_name := ""
@@ -165,15 +165,13 @@ static func music_playing() -> String:
 	return _music_name
 
 
-## The race tune for a course. Each Grand Prix cup has its own, and a course
-## that isn't in a cup gets the first.
+## The race tune for a course, which is its cup's "music" (see
+## data/grand_prix.json). A course that isn't in a cup gets the first.
 static func race_tune(track_id: String) -> String:
-	var tunes := ["race_one", "race_two", "race_three", "race_four"]
-	var cups := GrandPrix.cups()
-	for i in cups.size():
-		if track_id in cups[i].get("tracks", []):
-			return tunes[i % tunes.size()]
-	return tunes[0]
+	for cup in GrandPrix.cups():
+		if track_id in cup.get("tracks", []):
+			return cup.get("music", "race_one")
+	return "race_one"
 
 
 ## The node the menu sounds and the music play from, made the first time
