@@ -34,6 +34,12 @@ const NAMES := {
 ## sits, in metres.
 const CHASE := { "chase": [1.9, 1.5], "far": [4.4, 2.7] }
 const FOLLOW := 6.0
+## How quickly the chase cameras swing around behind the kart as it turns.
+## Too slow and the kart seems late to turn in and late to straighten up.
+const SWING := 12.0
+## How much of the way the kart is moving, instead of the way it's pointing,
+## the chase cameras look along, so a slide still looks like a slide.
+const FOLLOW_SLIDE := 0.3
 const LOOK_HEIGHT := 0.9
 const OVERHEAD_HEIGHT := 16.0
 ## How far apart the TV cameras are along the track, how far out from the
@@ -182,7 +188,7 @@ func _move(delta: float, instantly := false) -> void:
 func _heading(up: Vector3) -> Vector3:
 	var facing := -target.global_basis.z
 	if target.linear_velocity.length() > 3.0:
-		facing = facing.lerp(target.linear_velocity.normalized(), 0.5)
+		facing = facing.lerp(target.linear_velocity.normalized(), FOLLOW_SLIDE)
 	facing -= up * facing.dot(up)
 	if facing.length() < 0.01:
 		return Vector3.FORWARD
@@ -206,7 +212,7 @@ func _chase(distance: float, height: float, delta: float, instantly: bool) -> vo
 	# Only where it sits around the kart eases in, and not where the kart is,
 	# so it stays the same distance behind however fast the kart goes.
 	var wanted := facing * distance * side + _up * height
-	_chase_offset = wanted if instantly else _chase_offset.lerp(wanted, 1.0 - exp(-FOLLOW * delta))
+	_chase_offset = wanted if instantly else _chase_offset.lerp(wanted, 1.0 - exp(-SWING * delta))
 	global_position = target.global_position + _chase_offset
 	var aim := target.global_position + _up * LOOK_HEIGHT
 	if _looking_back:

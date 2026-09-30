@@ -250,6 +250,9 @@ var _impact := {} # part index -> recent knocks, in newton seconds
 var _breaking: Array[int] = []
 var _last_velocity := Vector3.ZERO
 var _last_applied := Vector3.ZERO
+## The grip the driven wheels had left for driving last step, for each
+## newton of weight they carry standing still, taking the one with least.
+var _drive_room := INF
 
 
 func _init() -> void:
@@ -629,6 +632,8 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 	var sticky_wheels := 0
 	var on_rough := 0
 	var on_any := 0
+	var room := INF
+	var turned := clampf(absf(steer_angle) / maxf(full_lock, 0.001), 0.0, 1.0)
 	var share := mass / maxf(wheels.size(), 1)
 	for w in wheels:
 		var anchor := state.transform * (w.rest + Vector3.UP * SUSPENSION_TRAVEL)
@@ -705,11 +710,17 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 		var most := KartStats.TIRE_FRICTION * w.grip * grip_here * load
 		# Traction control. Holding the kart in line comes first and the engine
 		# only gets the grip that's left over, so full throttle can't use up
-		# the grip the back tires need to hold the tail.
+		# the grip the back tires need to hold the tail. With the wheels
+		# turned the outside one can push harder, which helps the kart around,
+		# but with them straight each pushes as much as the weight it carries
+		# standing still, or the kart would keep turning after the stick's let
+		# go.
 		if drive > 0.0 and w.driven:
 			f_lat = clampf(f_lat, -most, most)
 			var left_over := sqrt(maxf(most * most - f_lat * f_lat, 0.0))
-			f_long = minf(f_long, left_over)
+			var standing := w.spring * SUSPENSION_TRAVEL
+			room = minf(room, left_over / maxf(standing, 1.0))
+			f_long = minf(f_long, lerpf(minf(left_over, _drive_room * standing), left_over, turned))
 		var tire := Vector2(f_long, f_lat).limit_length(most)
 
 		state.apply_force(normal * load, contact - origin)
@@ -722,6 +733,7 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 		applied += normal * load + side * tire.y + heading * tire.x
 
 	rough = float(on_rough) / on_any if on_any > 0 else 0.0
+	_drive_room = room
 
 	# Sticky road. Gravity already pulls everything down, so this cancels that
 	# and pulls toward the road instead.

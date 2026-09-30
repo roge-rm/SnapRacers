@@ -41,7 +41,7 @@ class Runner:
 		shape.position.y = -0.5
 		ground.add_child(shape)
 		add_child(ground)
-		print("kart           speed   hard turn          lane change")
+		print("kart           speed   hard turn          lane change        cornering")
 		_next()
 
 	func _next() -> void:
@@ -62,7 +62,7 @@ class Runner:
 		target = kart.stats.top_speed() * HOW_FAST
 		phase = "settle"
 		time = 0.0
-		worst = {"turn": 0.0, "lane": 0.0}
+		worst = {"turn": 0.0, "lane": 0.0, "grip": 0.0, "quick": 0.0, "settle": 0.0}
 
 	func _slide() -> float:
 		var up := kart.global_basis.y
@@ -90,6 +90,12 @@ class Runner:
 					c.steer = 1.0
 			"turn":
 				worst.turn = maxf(worst.turn, _slide())
+				# How hard it's cornering, in g, and how quickly it turned in,
+				# as how far it's turned by a third of a second.
+				var turning := absf(kart.angular_velocity.dot(kart.global_basis.y))
+				worst.grip = maxf(worst.grip, turning * kart.linear_velocity.length() / 9.8)
+				if time <= 0.34:
+					worst.quick = rad_to_deg(absf((-kart.global_basis.z).signed_angle_to(Vector3(0.0, 0.0, -1.0), Vector3.UP)))
 				if OS.has_environment("TRACE") and Engine.get_physics_frames() % 6 == 0:
 					print("  %.1f s: %.1f m/s, slide %.1f°, yaw %.2f, lock %.1f°, wheels %s" % [time, kart.linear_velocity.length(), rad_to_deg(_slide()), kart.angular_velocity.y, rad_to_deg(kart.steer_angle), kart.wheels.map(func(w): return "%s%s%.0f" % ["D" if w.driven else "", "S" if w.steered else "", w.load])])
 				if time > 1.5:
@@ -104,6 +110,9 @@ class Runner:
 			"lane":
 				worst.lane = maxf(worst.lane, _slide())
 				c.steer = 1.0 if time < 0.4 else (-1.0 if time < 0.8 else 0.0)
+				# Once the stick's let go it should stop turning, not wobble on.
+				if time > 1.0:
+					worst.settle = maxf(worst.settle, absf(kart.angular_velocity.dot(kart.global_basis.y)))
 				if time > 2.5:
 					_report()
 					_next()
@@ -113,7 +122,7 @@ class Runner:
 		var spun_lane: bool = worst.lane > SPUN
 		results.append(spun_turn)
 		results.append(spun_lane)
-		print("%-14s %4.0f   %5.1f° %-8s   %5.1f° %s" % [kart.name, target * 3.6, rad_to_deg(worst.turn), "SPUN" if spun_turn else "", rad_to_deg(worst.lane), "SPUN" if spun_lane else ""])
+		print("%-14s %4.0f   %5.1f° %-8s   %5.1f° %-8s  %.2f g, %4.1f° in 1/3 s" % [kart.name, target * 3.6, rad_to_deg(worst.turn), "SPUN" if spun_turn else "", rad_to_deg(worst.lane), "SPUN" if spun_lane else "", worst.grip, worst.quick] + ", still turning %.0f°/s after" % rad_to_deg(worst.settle))
 
 
 func _init() -> void:
