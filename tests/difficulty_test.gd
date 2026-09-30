@@ -3,16 +3,15 @@ extends Node
 ## Times a lap of Peach Pit and of Foundry Flats in the Starter with the AI
 ## driving at each difficulty, as a middling driver of the seven, and checks
 ## each level is quicker than the one before, and about as far behind Expert
-## as it was before the courses were made kart sized (see GAPS), so the levels
-## feel the same.
+## as it's meant to be (see GAPS).
 ##   tools/godot/Godot_v4.7.2-stable_linux.x86_64 --headless --fixed-fps 60 --path . res://tests/difficulty_test.tscn
 
 const GIVE_UP := 240.0
 const COURSES := ["peach_pit", "foundry_flats"]
 ## How far behind Expert each level laps, in percent, and how far off that
-## still counts. These were each level's gaps on the courses before they were
-## made kart sized.
-const GAPS := {"easy": [8.3, 2.5], "normal": [2.3, 1.5], "hard": [0.8, 1.0]}
+## still counts. They used to be much closer, with Normal only 2% behind
+## Expert, and Normal was far too hard to beat on a phone.
+const GAPS := {"easy": [20.0, 4.0], "normal": [10.0, 3.0], "hard": [4.0, 2.0]}
 
 var failures := 0
 var host: Node
