@@ -27,6 +27,7 @@ const STEEPEST := 0.07
 const SURFACES := {
 	"asphalt": [1.0, 1.0],
 	"dirt": [0.8, 2.0],
+	"gravel": [0.82, 1.3],
 	"grass": [0.7, 5.0],
 	"sand": [0.6, 4.0],
 	"ice": [0.35, 0.8],

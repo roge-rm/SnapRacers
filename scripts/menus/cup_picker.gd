@@ -2,7 +2,7 @@ class_name CupPicker
 extends Control
 
 ## Pick which Grand Prix cup to race. Each one lists its courses and the best
-## you've done in it so far at each difficulty. The game's four cups come
+## you've done in it so far at each difficulty. The game's cups come
 ## first, then any you've made, and you can make more from here.
 
 const TROPHIES := { 1: "Gold trophy", 2: "Silver trophy", 3: "Bronze trophy" }

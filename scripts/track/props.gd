@@ -49,6 +49,7 @@ const ROOM := {
 	"volcano": 45.0, "mountain": 40.0, "castle": 26.0, "station": 14.0, "bridge": 16.0,
 	"lake": 20.0, "pond": 9.0, "lava_pool": 7.0, "lighthouse": 4.0, "big_windmill": 6.0,
 	"sakura": 2.5, "pagoda": 6.0, "ferris_wheel": 16.0, "old_banking": 48.0,
+	"oast_house": 7.0, "standing_stones": 7.0, "control_tower": 5.0, "spectator_bank": 13.0,
 }
 
 
@@ -114,6 +115,10 @@ static func add(kit: SceneryKit, prop: String, at: Vector3, rng: RandomNumberGen
 		"pagoda": pagoda(kit, at_grid)
 		"ferris_wheel": ferris_wheel(kit, at_grid, facing)
 		"old_banking": old_banking(kit, at_grid, facing)
+		"oast_house": oast_house(kit, at_grid, facing)
+		"standing_stones": standing_stones(kit, at_grid, rng)
+		"control_tower": control_tower(kit, at_grid, facing)
+		"spectator_bank": spectator_bank(kit, at_grid, facing, rng)
 
 
 ## Turns an offset from a prop's middle by its facing.
@@ -697,6 +702,57 @@ static func old_banking(kit: SceneryKit, at: Vector3, facing: int) -> void:
 		var face := Basis(along.cross(Vector3.UP).normalized(), Vector3.UP, along)
 		kit.turned_box(at + out * radius + Vector3.UP * 3.5, Vector3(0.8, 10.0, radius * PI * 0.5 / pieces + 0.2), tilt * face, LIGHT_GREY if k % 2 == 0 else Color("#bcbcbc"))
 		kit.box(at + out * (radius + 4.5), Vector3(1.2, 7.8, 1.2), DARK_GREY, SceneryKit.BRICK, false)
+
+
+## A Kent oast house: a round brick kiln with a pointed roof and a white cowl
+## on top, beside a white barn.
+static func oast_house(kit: SceneryKit, at: Vector3, facing: int) -> void:
+	var kiln := at + _turn(Vector3(-3.0, 0.0, 0.0), facing)
+	kit.cylinder(kiln, 2.4, 5.4, TERRACOTTA, SceneryKit.BRICK, true)
+	kit.cone(kiln + Vector3.UP * 5.4, 2.7, 4.8, DARK_GREY)
+	kit.cylinder(kiln + Vector3.UP * 9.6, 0.5, 1.2, WHITE, SceneryKit.SMOOTH)
+	_box(kit, kiln, Vector3(0.0, 10.4, 0.5), Vector3(1.0, 1.0, 1.2), facing, WHITE, SceneryKit.SMOOTH, false)
+	_box(kit, at, Vector3(2.4, 0.0, 0.0), Vector3(6.0, 3.6, 4.4), facing, WHITE)
+	_box(kit, at, Vector3(2.4, 0.9, 2.2), Vector3(1.6, 1.4, 0.1), facing, GLASS, SceneryKit.SMOOTH, false)
+	_roof(kit, at + _turn(Vector3(2.4, 3.6, 0.0), facing), 6.0, 4.4, deg_to_rad(40.0), facing, DARK_GREY)
+
+
+## A row of old standing stones, like the ones all over Brittany, each one
+## a different height and leaning a little.
+static func standing_stones(kit: SceneryKit, at: Vector3, rng: RandomNumberGenerator) -> void:
+	for k in 5:
+		var h := 2.6 + rng.randf() * 2.8
+		var lean := Basis(Vector3.RIGHT, rng.randf_range(-0.08, 0.08)) * Basis(Vector3.BACK, rng.randf_range(-0.1, 0.1))
+		var spot := at + Vector3((k - 2) * 2.6, h * 0.5 - 0.2, rng.randf_range(-0.6, 0.6))
+		kit.turned_box(spot, Vector3(1.1, h, 0.8), lean, [LIGHT_GREY, DARK_GREY, Color("#8a8a86")][rng.randi() % 3], SceneryKit.BRICK)
+	kit.box(at + Vector3(0.0, 0.0, 0.0), Vector3(12.0, 0.3, 2.0), OLIVE, SceneryKit.BRICK, false)
+
+
+## An airport control tower, a tall grey shaft with a glass room on top.
+static func control_tower(kit: SceneryKit, at: Vector3, facing: int) -> void:
+	kit.box(at, Vector3(3.0, 13.0, 3.0), LIGHT_GREY)
+	kit.box(at + Vector3.UP * 13.0, Vector3(5.2, 0.4, 5.2), DARK_GREY, SceneryKit.SMOOTH, false)
+	kit.box(at + Vector3.UP * 13.4, Vector3(4.8, 2.4, 4.8), GLASS, SceneryKit.WINDOWS, false)
+	kit.box(at + Vector3.UP * 15.8, Vector3(5.4, 0.4, 5.4), WHITE, SceneryKit.SMOOTH, false)
+	kit.cylinder(at + _turn(Vector3(1.4, 16.2, 1.4), facing), 0.12, 3.0, RED, SceneryKit.SMOOTH)
+	kit.cylinder(at + _turn(Vector3(1.4, 19.2, 1.4), facing), 0.3, 0.4, RED, SceneryKit.GLOW)
+
+
+## A grassy bank covered in people watching, the way rallycross crowds stand
+## on the hillsides. It steps up away from the track.
+static func spectator_bank(kit: SceneryKit, at: Vector3, facing: int, rng: RandomNumberGenerator) -> void:
+	var across := 22.0
+	var steps := 4
+	for k in steps:
+		_box(kit, at, Vector3(0.0, 0.0, -k * 1.8), Vector3(across - k * 1.2, 0.9 + k * 0.9, 1.8), facing, BRIGHT_GREEN if k % 2 == 0 else GREEN)
+		# A row of people along the top of each step.
+		var x := -across * 0.5 + 1.0
+		while x < across * 0.5 - 1.0 - k * 0.6:
+			if rng.randf() < 0.75:
+				var coat: Color = [RED, BLUE, YELLOW, WHITE, ORANGE, GREEN, DARK_BLUE, AZURE][rng.randi() % 8]
+				_box(kit, at, Vector3(x, 0.9 + k * 0.9, -k * 1.8 + rng.randf_range(-0.3, 0.3)), Vector3(0.5, 0.9, 0.4), facing, coat, SceneryKit.SMOOTH, false)
+				_box(kit, at, Vector3(x, 1.8 + k * 0.9, -k * 1.8), Vector3(0.36, 0.36, 0.36), facing, YELLOW, SceneryKit.SMOOTH, false)
+			x += rng.randf_range(0.8, 1.4)
 
 
 # Things along the side of the track.

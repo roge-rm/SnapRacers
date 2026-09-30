@@ -7,7 +7,8 @@ The real middle line (from OpenStreetMap) is scaled down, and the start is put
 on its longest straight, facing north. Then a beam search lays pieces one at
 a time, keeping the sequences that stay closest to the real line, never let
 the road run into itself, and finish exactly back on the start facing north.
-Writes the result in design.py's short hand.
+Writes the result in design.py's short hand, with the pieces that follow
+gravel or dirt on the real circuit marked as gravel.
 """
 import json, math, os, sys
 import numpy as np
@@ -63,10 +64,16 @@ for length, across in ((2, 1), (3, 1), (3, 2), (4, 1), (4, 2), (4, 3), (5, 2), (
         add("S%s%d.%d" % (letter, length, across), pts, (turn * across * TILE, length * TILE), 0)
 
 
+# OpenStreetMap surfaces that are loose, which the game makes gravel.
+LOOSE = {"gravel", "fine_gravel", "dirt", "unpaved", "ground", "compacted", "sand", "earth"}
+
+
 def load_real():
     pick = json.load(open(os.path.join(here, "picks.json")))[name]
     lines = [l for l in json.load(open(os.path.join(here, name + ".json"))) if l["id"] in pick]
     pts = [p for l in lines for p in l["points"]]
+    # Where each surface starts along the real lap (see fetch_picks.py).
+    surfaces = lines[0]["tags"].get("surfaces", []) if len(lines) == 1 else []
     pts = np.array(pts, dtype=float)
     # Screen y is down, so make y up (north) and turns keep their direction.
     pts[:, 1] = -pts[:, 1]
@@ -81,10 +88,17 @@ def load_real():
     total = s[-1]
     ss = np.arange(0, total, 1.0)
     res = np.stack([np.interp(ss, s, pts[:, 0]), np.interp(ss, s, pts[:, 1])], axis=1)
-    return res, total
+    # Whether each metre is loose, going the way the lap is driven.
+    loose = np.zeros(len(ss), dtype=bool)
+    for k, (at, kind) in enumerate(surfaces):
+        end = surfaces[k + 1][0] if k + 1 < len(surfaces) else total / scale
+        if kind in LOOSE:
+            a, b = (at * scale, end * scale) if not REVERSE else (total - end * scale, total - at * scale)
+            loose |= (ss >= a) & (ss < b)
+    return res, total, loose
 
 
-real, total = load_real()
+real, total, loose = load_real()
 n = len(real)
 # Headings, smoothed, to find the longest straight for the start.
 d = np.roll(real, -3, axis=0) - np.roll(real, 3, axis=0)
@@ -101,6 +115,7 @@ for i in range(2 * n):
         run = 0
 start = best_mid % n
 real = np.roll(real, -start, axis=0)
+loose = np.roll(loose, -start)
 # Turn the whole circuit so its straights line up with the grid as well as
 # they can (the grid only does 90 degree bends, plus slants), then by a whole
 # number of quarter turns so the start faces north.
@@ -141,7 +156,7 @@ if CROSSINGS:
 
 
 class Beam:
-    __slots__ = ("x", "y", "hx", "hy", "s", "cost", "tokens", "pts", "ss")
+    __slots__ = ("x", "y", "hx", "hy", "s", "cost", "tokens", "pts", "ss", "spans")
 
 
 def place(b, piece):
@@ -197,6 +212,7 @@ def step(b, piece):
     penalty = 4.0 if piece[0] in ("R1", "L1") else 0.0
     nb.cost = b.cost + float((near ** 2).sum()) * 2.0 + 30.0 + penalty * 30
     nb.tokens = b.tokens + [piece[0]]
+    nb.spans = b.spans + [(int(b.s), s_end)]
     nb.pts = np.vstack([b.pts, world]) if len(b.pts) else world
     nb.ss = np.concatenate([b.ss, np.linspace(b.s, s_end, len(world))])
     return nb
@@ -208,6 +224,7 @@ b0.hx, b0.hy = 0.0, 1.0
 b0.s = 0
 b0.cost = 0.0
 b0.tokens = []
+b0.spans = []
 b0.pts = np.zeros((0, 2))
 b0.ss = np.zeros(0)
 beams = [b0]
@@ -240,6 +257,11 @@ if not done:
     sys.exit(1)
 best = min(done, key=lambda b: b.cost)
 print("best: %d pieces, cost %.0f" % (len(best.tokens), best.cost))
-tokens = " ".join(best.tokens)
+# A piece that follows mostly loose real road is gravel.
+marked = []
+for token, (a, b) in zip(best.tokens, best.spans):
+    part = loose[np.arange(a, max(b, a + 1)) % n]
+    marked.append(token + ("!v" if part.mean() > 0.5 else ""))
+tokens = " ".join(marked)
 open(out, "w").write("%s\nwidth=%d laps=3\n%s\n" % (name, WIDTH, tokens))
 print(tokens)

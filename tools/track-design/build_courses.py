@@ -27,6 +27,10 @@ INFO = {
  "rouge_ridge": ("Circuit de Spa-Francorchamps, Belgium", "Down to the stream and straight back up the steep climb, then out through the forest hills of the Ardennes."),
  "royal_run": ("Autodromo Nazionale Monza, Italy", "Flat out through the royal park and past the old banking, braking hard for the chicanes."),
  "dry_lagoon": ("Laguna Seca, Monterey, California, USA", "Over the golden California hills and down the famous corkscrew drop."),
+ "oast_hill": ("Lydden Hill, Kent, England", "Down the hill past the oast houses, then off the tarmac and over the crest on the gravel."),
+ "menhir_meadow": ("Circuit de Lohéac, Brittany, France", "Half tarmac and half gravel, among the standing stones and the crowd on the banks."),
+ "pine_hill_leap": ("Höljes Motorstadion, Värmland, Sweden", "Through the pine forest and the red cottages, in and out of the gravel all the way round."),
+ "devils_dust": ("Lånkebanen, Hell, Norway", "Round the tarmac by the airport, then a long twisty stretch of gravel and over the crest on the way home."),
 }
 def rotate_to_longest_straight(pieces):
     """Moves the start line into the longest run of straights at ground level,

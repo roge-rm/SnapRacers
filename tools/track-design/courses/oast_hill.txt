@@ -1,0 +1,3 @@
+Oast Hill
+width=13 laps=3 theme=kent_downs hills=8
+S2 SL3.1 SR3.1!v S1!v R2!v C2!v R1!v SL2.1!v SR5.2!v SL4.1!v SR4.1 S2 L1 S1 S3 R1 R1 SL2.1 S3 R2 SL4.1 S2 S2

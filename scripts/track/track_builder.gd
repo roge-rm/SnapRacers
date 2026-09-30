@@ -41,6 +41,7 @@ const KERB_GRIP := 0.9
 const COLOURS := {
 	"asphalt": Color("#6c6e68"), # dark bluish grey, like the bricks
 	"dirt": Color("#8a6a45"),
+	"gravel": Color("#b39a74"),
 	"grass": Color("#3d7a32"),
 	"sand": Color("#d9c38c"),
 	"ice": Color("#cfe8f2"),

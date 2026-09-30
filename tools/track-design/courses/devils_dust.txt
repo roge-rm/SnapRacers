@@ -1,0 +1,3 @@
+Devil's Dust
+width=13 laps=3 theme=trondelag hills=7
+R3 R2 S1 SR2.1 SL2.1 L1 L1 R1 L1 R2 SL2.1 S3 S1!v R1!v S1!v R2!v SL2.1!v SL2.1!v S1!v SL4.1!v L2!v S1!v SR2.1 R1 R2 S3 C3 S1 SR3.1

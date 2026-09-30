@@ -1,0 +1,3 @@
+Menhir Meadow
+width=13 laps=3 theme=brittany hills=4
+S2!v R2 R2 L1 R1 S3 S3!v C3h3!v SR2.1!v R1!v SL2.1!v SR4.1!v L2!v S3 R1 S1 R2 S2 S2 R2 SL4.1!v L2!v SR4.1!v S2!v

@@ -134,6 +134,27 @@ const THEMES := {
 		"landmarks": ["old_banking", "villa", "lake", "villa"],
 		"fillers": {"broadleaf": 5, "cypress": 2, "bush": 2, "villa": 1},
 	},
+	"kent_downs": {
+		"ground": "#4b9f4a", "curbs": ["#d8261c", "#f2f2f2"], "wall": "#f2f3f2",
+		"landmarks": ["oast_house", "spectator_bank", "oast_house", "barn"],
+		"fillers": {"broadleaf": 4, "bush": 3, "fence": 2, "hay": 1},
+	},
+	"brittany": {
+		"ground": "#5a9a48", "curbs": ["#0d69ab", "#f2f2f2"], "wall": "#0d69ab",
+		"landmarks": ["standing_stones", "spectator_bank", "church", "standing_stones"],
+		"fillers": {"broadleaf": 3, "bush": 3, "rocks": 2, "house": 1, "pine": 1},
+	},
+	"varmland": {
+		"ground": "#3f7f3a", "curbs": ["#f2cd37", "#0d69ab"], "wall": "#7b2e2f",
+		"landmarks": ["spectator_bank", "lake", "cottage", "cottage"],
+		"fillers": {"pine": 6, "birch": 2, "rocks": 2, "cottage": 1},
+	},
+	"trondelag": {
+		"ground": "#4f8f45", "curbs": ["#d8261c", "#f2f2f2"], "wall": "#143044",
+		"sky": ["#5f8fc6", "#e8eef2"],
+		"landmarks": ["control_tower", "spectator_bank", "mountain", "cabin"],
+		"fillers": {"pine": 4, "birch": 3, "rocks": 2, "cabin": 1},
+	},
 	"golden_hills": {
 		"ground": "#a8965c", "curbs": ["#d8261c", "#f2f2f2"], "wall": "#da8540",
 		"sky": ["#3f86d6", "#e8eef2"],

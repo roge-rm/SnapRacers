@@ -80,7 +80,7 @@ const LANDMARKS := [
 	["Pond", "pond"], ["Lava pool", "lava_pool"], ["Slag heap", "slag_heap"], ["Dune", "dune"],
 	["Ferris wheel", "ferris_wheel"], ["Pagoda", "pagoda"], ["Old banking", "old_banking"],
 ]
-const SURFACES := [["Road", "asphalt"], ["Dirt", "dirt"], ["Grass", "grass"], ["Sand", "sand"], ["Ice", "ice"]]
+const SURFACES := [["Road", "asphalt"], ["Dirt", "dirt"], ["Gravel", "gravel"], ["Grass", "grass"], ["Sand", "sand"], ["Ice", "ice"]]
 ## "Auto" has walls only where you'd fall off, and grass runoff everywhere
 ## else (see TrackPiece.edges).
 const EDGES := [["Auto", "auto"], ["Walls", "walls"], ["Left open", "left_open"], ["Right open", "right_open"], ["Open", "open"]]
