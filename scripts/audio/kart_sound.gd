@@ -117,8 +117,8 @@ func _process(delta: float) -> void:
 	_set_level(_rumble, 0.0 if hushed else rumble, -4.0)
 	var gust := clampf((speed - 8.0) / 20.0, 0.0, 1.0) if wind else 0.0
 	_set_level(_wind, 0.0 if hushed else gust, -10.0)
-	_engine.stream_paused = hushed or _engine.stream == null
-	_jet.stream_paused = hushed or _jet.stream == null
+	_run(_engine, not hushed)
+	_run(_jet, not hushed)
 
 	_knock_wait = maxf(_knock_wait - delta, 0.0)
 	if _knock > BUMP and _knock_wait <= 0.0:
@@ -136,30 +136,36 @@ func _loop(stream: AudioStream, level: float) -> AudioStreamPlayer3D:
 	player.unit_size = 6.0
 	player.max_distance = 80.0
 	add_child(player)
-	if stream != null and Sounds.audible():
-		player.play()
-	player.stream_paused = true
 	return player
 
 
 func _set_stream(player: AudioStreamPlayer3D, stream: AudioStream) -> void:
 	if player.stream == stream:
 		return
+	player.stop()
 	player.stream = stream
-	if stream != null and player.is_inside_tree() and Sounds.audible():
-		player.play()
-	# It starts paused, and _process() lets it be heard when it should be, so
-	# a kart built behind the splash screen never makes a sound.
-	player.stream_paused = true
 
 
 ## Sets a loop's loudness, 0 to 1, pausing it when it's silent so it costs
 ## nothing.
 func _set_level(player: AudioStreamPlayer3D, amount: float, level: float) -> void:
+	_run(player, amount >= 0.02)
+	if amount >= 0.02:
+		player.volume_db = level + linear_to_db(amount)
+
+
+## Plays a loop or pauses it. A loop only ever starts playing once it's meant
+## to be heard, since one started and paused straight away still plays for a
+## moment, which behind the splash screen was every kart at once.
+func _run(player: AudioStreamPlayer3D, on: bool) -> void:
 	if player.stream == null:
 		return
-	if amount < 0.02:
-		player.stream_paused = true
+	if not on:
+		if player.playing:
+			player.stream_paused = true
 		return
+	if not player.playing:
+		if not Sounds.audible():
+			return
+		player.play()
 	player.stream_paused = false
-	player.volume_db = level + linear_to_db(amount)
