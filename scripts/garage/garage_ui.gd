@@ -46,12 +46,11 @@ signal name_changed(text: String)
 const CATEGORIES := [
 	["Plates", ["plate"], "plates"],
 	["Bricks", ["brick"], "bricks"],
-	["Bodywork", ["body", "fairing"], "slopes"],
+	["Bodywork", ["body", "fairing", "gadget"], "slopes"],
 	["Wheels", ["wheel"], "wheels"],
 	["Engines", ["engine"], "engines"],
 	["Cockpit", ["seat", "steering", "screen"], "extras"],
 	["Wings", ["wing"], "wings"],
-	["Gadgets", ["gadget"], "gadgets"],
 ]
 ## The colours you can paint parts, the classic brick ones.
 const PAINTS := [

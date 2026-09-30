@@ -7,15 +7,25 @@ extends RigidBody3D
 
 const SPEED := 34.0
 const LIFETIME := 2.5
+## A homing brick flies a little slower and for longer, turning this fast
+## toward its kart, in radians a second.
+const HOMING_SPEED := 30.0
+const HOMING_LIFETIME := 6.0
+const TURN := 3.0
 
 var shooter: Kart
+## The kart a homing brick is after.
+var chasing: Kart
 var _age := 0.0
 var _spent := false
 
 
-static func fire(from: Kart) -> BrickShot:
+static func fire(from: Kart, homing := false) -> BrickShot:
 	var shot := BrickShot.new()
 	shot.shooter = from
+	if homing:
+		shot.chasing = _kart_ahead(from)
+		shot.gravity_scale = 0.0
 	var forward := -from.global_basis.z
 	var up := from.global_basis.y
 	shot.transform = Transform3D(from.global_basis, from.global_position + forward * 2.0 + up * 0.7)
@@ -56,5 +66,28 @@ func _on_hit(body: Node) -> void:
 
 func _physics_process(delta: float) -> void:
 	_age += delta
-	if _age > LIFETIME:
+	if _age > (HOMING_LIFETIME if chasing != null else LIFETIME):
 		queue_free()
+		return
+	# A homing brick turns toward the kart it's after, a little at a time.
+	if chasing != null and is_instance_valid(chasing):
+		var to := chasing.global_position + chasing.global_basis.y * 0.5 - global_position
+		var heading := linear_velocity.normalized()
+		var wanted := to.normalized()
+		var turned := heading.slerp(wanted, minf(TURN * delta / maxf(heading.angle_to(wanted), 0.001), 1.0))
+		linear_velocity = turned * HOMING_SPEED
+
+
+## The kart just ahead of this one in the race, or null if it's in front. A
+## kart that isn't in a race has nobody to chase.
+static func _kart_ahead(from: Kart) -> Kart:
+	# The race is asked without naming it, since Race needs the Game autoload
+	# and the -s tests load karts without one.
+	var race = from.get_parent()
+	if race == null or not race.has_method("standings"):
+		return null
+	var order: Array = race.standings()
+	for i in order.size():
+		if order[i].kart == from:
+			return order[i - 1].kart if i > 0 else null
+	return null

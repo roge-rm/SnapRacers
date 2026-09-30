@@ -177,7 +177,7 @@ func _time_trial() -> void:
 	Game.start_time_trial(Tracks.path_of("peach_pit"))
 	var race: Race = await wait_for(Race)
 	check(race.mode == Game.MODE_TIME_TRIAL and race.racers.size() == 1, "a time trial is just you (%d karts)" % race.racers.size())
-	check(race.studs == null, "with no studs to pick up")
+	check(race.boxes == null, "with no power-ups to pick up")
 	# Pretend you've done three laps.
 	var p := race.player.progress
 	p.lap_times.assign([41.5, 39.25, 40.0])
@@ -199,7 +199,7 @@ func _practice() -> void:
 	var race: Race = await wait_for(Race)
 	check(race.mode == Game.MODE_PRACTICE and race.racers.size() == 1, "practice is just you too")
 	check(race.laps > 1000, "and it goes on for as many laps as you like")
-	check(race.studs != null, "with studs, so you can try your gadgets")
+	check(race.boxes != null, "with power-ups, so you can try them out")
 	await frames(20)
 	check(race.player.hud._place.text == "Practice", "the HUD says it's practice")
 	race.leave()

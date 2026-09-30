@@ -1,5 +1,5 @@
 {
-	"_comment": "Sizes are [studs across, plates high, studs long]. A brick is three plates high. Mass is in kg, power in watts, push and thrust in newtons. Strength is how hard a part has to be hit before it comes off, as an impulse in newton seconds (a 100 kg kart hitting a wall at 10 m/s is roughly 1000, shared between the parts that touch it). The seat never comes off, so the driver always stays in. Gadgets cost studs to use (cost 0 means always on), and a kart can carry two. Aero says how smoothly air gets past a part's front and back, as it's placed with no turn (the front is toward -Z). 1 is a flat face and smaller is smoother. Off-road is how much of the grip a tire loses on grass and dirt it keeps anyway, so 0.6 keeps most of it and a negative number loses even more. Control is how quickly the driver can steer from that seat or with that steering, as a fraction. Driver height is how many plates of the driver stick up above the seat.",
+	"_comment": "Sizes are [studs across, plates high, studs long]. A brick is three plates high. Mass is in kg, power in watts, push and thrust in newtons. Strength is how hard a part has to be hit before it comes off, as an impulse in newton seconds (a 100 kg kart hitting a wall at 10 m/s is roughly 1000, shared between the parts that touch it). The seat never comes off, so the driver always stays in. The only gadget part left is the ram plate, which is always on, since power-ups come from the boxes on the track. Aero says how smoothly air gets past a part's front and back, as it's placed with no turn (the front is toward -Z). 1 is a flat face and smaller is smoother. Off-road is how much of the grip a tire loses on grass and dirt it keeps anyway, so 0.6 keeps most of it and a negative number loses even more. Control is how quickly the driver can steer from that seat or with that steering, as a fraction. Driver height is how many plates of the driver stick up above the seat.",
 	"parts": {
 		"plate_6x10": {
 			"name": "Chassis plate 6x10",
@@ -992,72 +992,6 @@
 			"aero": { "front": 0.5, "back": 1.0 },
 			"color": "#9fd8ef"
 		},
-		"turbo": {
-			"name": "Turbo",
-			"kind": "gadget",
-			"gadget": "turbo",
-			"about": "A burst of extra push for a second and a half.",
-			"size": [2, 3, 2],
-			"mass": 4.0,
-			"strength": 900.0,
-			"cost": 3,
-			"color": "#ff8c1a"
-		},
-		"spring": {
-			"name": "Spring",
-			"kind": "gadget",
-			"gadget": "spring",
-			"about": "Hops the kart into the air, over trouble or onto a shortcut.",
-			"size": [2, 1, 2],
-			"mass": 1.5,
-			"strength": 700.0,
-			"cost": 2,
-			"color": "#f2cd37"
-		},
-		"brick_dropper": {
-			"name": "Brick dropper",
-			"kind": "gadget",
-			"gadget": "dropper",
-			"about": "Leaves a pile of loose bricks behind you for whoever's following.",
-			"size": [2, 3, 2],
-			"mass": 3.0,
-			"strength": 800.0,
-			"cost": 3,
-			"color": "#8a5a2b"
-		},
-		"brick_cannon": {
-			"name": "Brick cannon",
-			"kind": "gadget",
-			"gadget": "cannon",
-			"about": "Fires a brick straight ahead. Whoever it hits loses a part.",
-			"size": [2, 3, 4],
-			"mass": 6.0,
-			"strength": 900.0,
-			"cost": 4,
-			"color": "#6b6f76"
-		},
-		"repair_kit": {
-			"name": "Repair kit",
-			"kind": "gadget",
-			"gadget": "repair",
-			"about": "Puts back everything you've lost, without the reset slowdown.",
-			"size": [2, 3, 2],
-			"mass": 2.0,
-			"strength": 800.0,
-			"cost": 4,
-			"color": "#f2f2f2"
-		},
-		"shield": {
-			"name": "Shield",
-			"kind": "gadget",
-			"gadget": "shield",
-			"about": "For four seconds nothing can knock your parts off.",
-			"size": [2, 3, 2],
-			"mass": 2.5,
-			"strength": 800.0,
-			"cost": 4,
-			"color": "#3a8dde"
-		},
 		"ram_plate": {
 			"name": "Ram plate",
 			"kind": "gadget",
@@ -1068,52 +1002,6 @@
 			"strength": 4000.0,
 			"cost": 0,
 			"color": "#9aa0a6"
-		},
-		"magnet": {
-			"name": "Magnet",
-			"kind": "gadget",
-			"gadget": "magnet",
-			"about": "Always on. Picks up studs from much further away.",
-			"size": [2, 2, 2],
-			"mass": 2.0,
-			"strength": 800.0,
-			"cost": 0,
-			"color": "#c4281c"
-		},
-		"big_turbo": {
-			"name": "Big turbo",
-			"kind": "gadget",
-			"gadget": "turbo",
-			"time": 2.8,
-			"about": "A longer burst of extra push, nearly three seconds. It costs more studs, and it's heavy.",
-			"size": [2, 3, 3],
-			"mass": 6.0,
-			"strength": 900.0,
-			"cost": 5,
-			"color": "#ff5a1a"
-		},
-		"super_spring": {
-			"name": "Super spring",
-			"kind": "gadget",
-			"gadget": "spring",
-			"hop": 8.5,
-			"about": "Hops the kart much higher, right over another kart.",
-			"size": [2, 1, 2],
-			"mass": 2.0,
-			"strength": 700.0,
-			"cost": 3,
-			"color": "#a4bd46"
-		},
-		"oil_can": {
-			"name": "Oil can",
-			"kind": "gadget",
-			"gadget": "oil",
-			"about": "Leaves a slick of oil on the road behind you. Anyone who drives over it slides.",
-			"size": [2, 3, 2],
-			"mass": 2.5,
-			"strength": 800.0,
-			"cost": 3,
-			"color": "#1b1b1b"
 		}
 	}
 }

@@ -84,7 +84,6 @@ def kart(key, name, about):
     .add("engine_small", 9, 3, 14)
     .add("brick_2x2", 7, 3, 14).add("brick_2x2", 11, 3, 14)
     .add("ducktail", 7, 6, 15)
-    .add("turbo", 9, 3, 8)
     .add("steering_wheel", 9, 3, 10))
 
 # 2. As light as a kart can be, with the driver lying down.
@@ -96,8 +95,7 @@ BLUE = "#0d69ab"
     .add("handlebars", 8, 3, 10)
     .add("racing_seat", 9, 3, 11)
     .add("engine_rotary", 9, 3, 15)
-    .pair("curve_2x4", 7, 3, 11, colour=BLUE)
-    .add("spring", 11, 3, 15))
+    .pair("curve_2x4", 7, 3, 11, colour=BLUE))
 
 # 3. Heavy, flat fronted and hard to push around.
 RUST = "#7b2e2f"
@@ -109,7 +107,6 @@ RUST = "#7b2e2f"
     .add("steering_wheel", 9, 4, 9)
     .add("seat", 9, 4, 10)
     .add("engine_diesel", 8, 4, 12)
-    .add("brick_dropper", 11, 4, 12)
     .pair("ballast", 7, 7, 7, colour=RUST))
 
 # 4. A long dragster, with tiny wheels up front and slicks at the back.
@@ -123,7 +120,6 @@ ORANGE = "#da8540"
     .add("steering_wheel", 9, 3, 15)
     .add("racing_seat", 9, 3, 16)
     .add("engine_v8", 9, 3, 19)
-    .add("big_turbo", 7, 3, 19)
     .add("rear_wing_6x2", 7, 6, 21, colour=ORANGE))
 
 # 5. Smooth all over, for top speed.
@@ -138,8 +134,7 @@ SILVER = "#a3a2a4"
     .add("lay_down_seat", 9, 3, 11)
     .pair("curve_2x4", 7, 3, 11, colour="#f2f3f2")
     .add("engine_rotary", 9, 3, 15)
-    .add("nose_2x2", 9, 3, 18, rot=2, colour="#f2f3f2")
-    .add("turbo", 7, 3, 15))
+    .add("nose_2x2", 9, 3, 18, rot=2, colour="#f2f3f2"))
 
 # 6. For grass and dirt.
 MUD = "#694030"
@@ -147,12 +142,10 @@ MUD = "#694030"
     .add("plate_6x10", 7, 3, 7, colour=MUD)
     .wheels("wheel_knobbly", 7).wheels("wheel_knobbly", 13)
     .add("slope_4x2", 9, 4, 7, colour="#a4bd46")
-    .add("super_spring", 7, 4, 7)
     .add("steering_wheel", 9, 4, 10)
     .add("seat", 9, 4, 11)
     .pair("brick_round_2x2", 7, 4, 10, colour="#a4bd46")
-    .add("engine_diesel", 8, 4, 13)
-    .add("repair_kit", 11, 4, 13))
+    .add("engine_diesel", 8, 4, 13))
 
 # 7. Three wheels and a battery.
 TEAL = "#36aebf"
@@ -164,12 +157,10 @@ TEAL = "#36aebf"
     .add("handlebars", 8, 3, 10)
     .add("racing_seat", 9, 3, 11)
     .wheels("wheel_small", 14)
-    .add("electric_big", 9, 3, 14)
-    .add("magnet", 7, 3, 14)
-    .add("turbo", 11, 3, 14))
+    .add("electric_big", 9, 3, 14))
 
 # 8. Four little wheels steering at the front.
-(kart("six_wheeler", "Six-wheeler", "Four small wheels steer at the front, so it grips like nothing else, with a low flat four at the back and oil for whoever's behind.")
+(kart("six_wheeler", "Six-wheeler", "Four small wheels steer at the front, so it grips like nothing else, with a low flat four at the back.")
     .add("plate_6x10", 7, 2, 4, colour="#1b2a34")
     .add("plate_2x4", 7, 2, 14, colour="#1b2a34").add("plate_2x4", 9, 2, 14, colour="#1b2a34").add("plate_2x4", 11, 2, 14, colour="#1b2a34")
     .wheels("wheel_small", 4).wheels("wheel_small", 7).wheels("wheel_small_wide", 15)
@@ -178,9 +169,7 @@ TEAL = "#36aebf"
     .add("steering_wheel", 9, 3, 11)
     .add("seat", 9, 3, 12)
     .add("engine_flat4", 8, 3, 16)
-    .add("spoiler_6", 7, 5, 16, colour="#f2cd37")
-    .add("oil_can", 7, 3, 7)
-    .add("brick_cannon", 11, 3, 7))
+    .add("spoiler_6", 7, 5, 16, colour="#f2cd37"))
 
 # 9. Huge wheels.
 PURPLE = "#6b3fa0"
@@ -192,8 +181,7 @@ PURPLE = "#6b3fa0"
     .add("steering_wheel", 9, 6, 9)
     .add("seat", 9, 6, 10)
     .add("engine_hybrid", 9, 6, 12)
-    .pair("brick_2x2", 7, 6, 12, colour=PURPLE)
-    .add("super_spring", 9, 6, 15))
+    .pair("brick_2x2", 7, 6, 12, colour=PURPLE))
 
 # 10. Pushed along by a jet.
 (kart("rocket", "Rocket", "A jet engine, slicks and wings. Slow off the line, then very, very fast, and it keeps pushing on the grass.")
@@ -204,8 +192,7 @@ PURPLE = "#6b3fa0"
     .add("steering_wheel", 9, 3, 10)
     .add("racing_seat", 9, 3, 11)
     .add("jet", 9, 3, 14)
-    .add("rear_wing_6x2", 7, 6, 16, colour="#c4281c")
-    .add("shield", 11, 3, 14))
+    .add("rear_wing_6x2", 7, 6, 16, colour="#c4281c"))
 
 # 11. A proper go-kart, all frame.
 (kart("classic", "Classic", "A proper go-kart, with a flat frame, a little engine off to one side and handlebars. Light, simple and quick in the twisty bits.")
@@ -215,8 +202,7 @@ PURPLE = "#6b3fa0"
     .add("handlebars", 8, 3, 10)
     .add("bucket_seat", 9, 3, 11)
     .add("engine_small", 11, 3, 13)
-    .add("tile_2x4", 8, 3, 15, rot=1, colour="#1b1b1b")
-    .add("oil_can", 7, 3, 13))
+    .add("tile_2x4", 8, 3, 15, rot=1, colour="#1b1b1b"))
 
 # 12. Wings everywhere.
 (kart("downforce", "Downforce", "Big wings front and back, and slicks at the back. The faster it goes the harder it grips, so it flies through fast corners.")
@@ -227,13 +213,11 @@ PURPLE = "#6b3fa0"
     .add("steering_wheel", 9, 3, 10)
     .add("racing_seat", 9, 3, 11)
     .add("engine_small", 9, 3, 14)
-    .add("rear_wing_6x2", 7, 6, 15, colour="#f2cd37")
-    .add("turbo", 7, 3, 14)
-    .add("shield", 11, 3, 14))
+    .add("rear_wing_6x2", 7, 6, 15, colour="#f2cd37"))
 
 # 13. Bricks on bricks.
 GREY = "#635f61"
-(kart("brick_tank", "Brick Tank", "Two layers of bricks all around, a diesel, a shield and a repair kit. It takes a beating and keeps going.")
+(kart("brick_tank", "Brick Tank", "Two layers of bricks all around and a diesel. It takes a beating and keeps going.")
     .add("plate_6x10", 7, 2, 7, colour=GREY)
     .wheels("wheel_small_wide", 8).wheels("wheel_small_wide", 13)
     .pair("brick_2x4", 7, 3, 7, colour=GREY)
@@ -241,29 +225,23 @@ GREY = "#635f61"
     .add("steering_wheel", 9, 3, 10)
     .add("seat", 9, 3, 11)
     .pair("brick_1x6", 7, 3, 11, colour=GREY)
-    .add("shield", 7, 6, 11)
-    .add("repair_kit", 11, 6, 11)
     .add("engine_diesel", 9, 3, 14))
 
 # 14. The all rounder, with a battery.
-(kart("sparky", "Sparky", "An electric all rounder with a magnet for studs. Quick away from the line, and easy to drive.")
+(kart("sparky", "Sparky", "An electric all rounder. Quick away from the line, and easy to drive.")
     .add("plate_6x10", 7, 2, 7, colour="#f2f3f2")
     .wheels("wheel_small", 8).wheels("wheel_small_wide", 13)
     .add("slope_2x2", 9, 3, 7, colour=TEAL)
     .pair("curve_2x4", 7, 3, 7, colour=TEAL)
     .add("racing_wheel", 9, 3, 10)
     .add("seat", 9, 3, 11)
-    .add("electric_motor", 9, 3, 14)
-    .add("magnet", 7, 3, 14)
-    .add("turbo", 11, 3, 14))
+    .add("electric_motor", 9, 3, 14))
 
 # 15. Engine out front, big wheels out back.
 (kart("hot_rod", "Hot Rod", "A V8 out in front and big wheels at the back. Loud, heavy and very fast, if you can keep it pointing the right way.")
     .add("plate_6x10", 7, 2, 5, colour="#1b1b1b")
     .wheels("wheel_small", 5).wheels("wheel_big_wide", 11)
     .add("engine_v8", 9, 3, 5)
-    .add("big_turbo", 7, 3, 6)
-    .add("brick_cannon", 11, 3, 5)
     .add("steering_wheel", 9, 3, 10)
     .add("seat", 9, 3, 11)
     .pair("brick_2x4", 7, 3, 11, colour="#c4281c")
@@ -278,8 +256,7 @@ GREY = "#635f61"
     .add("racing_wheel", 9, 5, 9)
     .add("lay_down_seat", 9, 5, 10)
     .add("engine_rotary", 11, 5, 13)
-    .add("nose_2x2", 9, 5, 14, rot=2, colour="#c4281c")
-    .add("spring", 7, 5, 13))
+    .add("nose_2x2", 9, 5, 14, rot=2, colour="#c4281c"))
 
 
 if __name__ == "__main__":

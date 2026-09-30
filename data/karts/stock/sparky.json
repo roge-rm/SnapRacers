@@ -1,6 +1,6 @@
 {
 	"name": "Sparky",
-	"about": "An electric all rounder with a magnet for studs. Quick away from the line, and easy to drive.",
+	"about": "An electric all rounder. Quick away from the line, and easy to drive.",
 	"parts": [
 		{"id": "plate_6x10", "at": [7, 2, 7], "rot": 0, "color": "#f2f3f2"},
 		{"id": "wheel_small", "at": [6, 0, 8], "rot": 0},
@@ -12,8 +12,6 @@
 		{"id": "curve_2x4", "at": [11, 3, 7], "rot": 0, "color": "#36aebf"},
 		{"id": "racing_wheel", "at": [9, 3, 10], "rot": 0},
 		{"id": "seat", "at": [9, 3, 11], "rot": 0},
-		{"id": "electric_motor", "at": [9, 3, 14], "rot": 0},
-		{"id": "magnet", "at": [7, 3, 14], "rot": 0},
-		{"id": "turbo", "at": [11, 3, 14], "rot": 0}
+		{"id": "electric_motor", "at": [9, 3, 14], "rot": 0}
 	]
 }

@@ -12,7 +12,6 @@ extends RefCounted
 
 ## How big a kart can be, in studs across, plates high and studs long.
 const BUILD_SIZE := Vector3i(20, 30, 24)
-const MOST_GADGETS := 2
 ## How far above the bottom of the wheels everything else has to be, in
 ## plates, so it doesn't scrape when the springs squash.
 const CLEARANCE := 2
@@ -32,6 +31,10 @@ static func from_dict(data: Dictionary) -> KartDesign:
 	design.name = str(data.get("name", "Kart"))
 	design.about = str(data.get("about", ""))
 	for entry in data.get("parts", []):
+		# Parts the game no longer has, like the gadgets that are power-ups
+		# now, are left off.
+		if PartCatalog.get_part(str(entry.get("id", ""))).is_empty():
+			continue
 		var at: Array = entry.get("at", [0, 0, 0])
 		var part := {
 			"id": str(entry.get("id", "")),
@@ -263,7 +266,6 @@ func problems() -> Array[String]:
 	var seats := 0
 	var engines := 0
 	var wheels := 0
-	var gadgets := 0
 	var steering := 0
 	var lowest_wheel := 1 << 20
 	var lowest_other := 1 << 20
@@ -274,8 +276,6 @@ func problems() -> Array[String]:
 				seats += 1
 			"engine":
 				engines += 1
-			"gadget":
-				gadgets += 1
 			"steering":
 				steering += 1
 			"wheel":
@@ -298,8 +298,6 @@ func problems() -> Array[String]:
 			out.append("The steering has to be right in front of the seat.")
 	if wheels < 3:
 		out.append("It needs at least three wheels.")
-	if gadgets > MOST_GADGETS:
-		out.append("Only two gadgets fit on a kart.")
 	if groups().size() > 1:
 		out.append("Some parts aren't attached to the rest.")
 	for i in parts.size():

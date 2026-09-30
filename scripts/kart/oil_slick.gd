@@ -34,6 +34,7 @@ func _init() -> void:
 	collision_layer = Kart.LAYER_WORLD
 	set_meta("grip", GRIP)
 	set_meta("drag", DRAG)
+	set_meta("oil", true)
 	# Thin enough that nothing catches on its edge.
 	var shape := CollisionShape3D.new()
 	var disc := CylinderShape3D.new()

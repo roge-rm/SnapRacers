@@ -63,13 +63,22 @@ const LAYER_DEBRIS := 4
 ## dropped piles. Wheels don't ride on them.
 const LAYER_HAZARD := 8
 
-# Gadgets and studs.
-const MOST_STUDS := 10
+# Power-ups (see Powerups).
 const TURBO_TIME := 1.6
+const BIG_TURBO_TIME := 2.8
+## Each of a triple turbo's three goes.
+const TRIPLE_TURBO_TIME := 1.2
 const TURBO_FORCE := 1000.0
 const TURBO_TOP_SPEED := 1.3 # how much further past its usual top speed a turbo can push
 const SPRING_SPEED := 5.5 # upward kick from a spring, in m/s
+const SUPER_SPRING_SPEED := 8.5
 const SHIELD_TIME := 4.0
+## How long a ghost goes through karts, bricks and oil.
+const GHOST_TIME := 3.0
+## How long lightning slows the karts it hits, and how much of their push
+## they keep meanwhile.
+const ZAP_TIME := 2.0
+const ZAP_DRIVE := 0.3
 ## How much harder a ram plate hits. A knock from one counts this many times
 ## over, and a solid one (more than RAM_HIT) knocks a part straight off, since
 ## a ram usually lands on the chassis and that's too strong to break.
@@ -111,10 +120,12 @@ const STICK_PULL := 0.1
 const KERB_RIDGE := 0.6
 const KERB_KICK := 0.024
 const KERB_WHEEL := 0.3
-## The sound each gadget makes when it's used (see sound/fx).
+## The sound each power-up makes when it's used (see sound/fx).
 const GADGET_SOUNDS := {
-	"turbo": "fx/turbo", "spring": "fx/spring", "dropper": "fx/drop", "cannon": "fx/cannon",
-	"repair": "fx/repair", "shield": "fx/shield", "magnet": "fx/magnet", "oil": "fx/drop",
+	"turbo": "fx/turbo", "big_turbo": "fx/turbo", "triple_turbo": "fx/turbo",
+	"spring": "fx/spring", "super_spring": "fx/spring", "dropper": "fx/drop", "oil": "fx/drop",
+	"cannon": "fx/cannon", "homing": "fx/cannon", "repair": "fx/repair", "shield": "fx/shield",
+	"ghost": "fx/ghost", "lightning": "fx/lightning",
 }
 
 
@@ -178,11 +189,15 @@ var sticking := false
 var stick_up := Vector3.UP
 var _stick_left := 0.0
 
-## Studs picked up on the track, to spend on gadgets.
-var studs := 0
-## Every stud picked up this race, spent or not.
-var studs_picked := 0
+## The power-ups on the two gadget buttons, "" for none, and how many goes
+## each has left.
+var held: Array[String] = ["", ""]
+var held_uses: Array[int] = [0, 0]
+## Every power-up picked up this race.
+var pickups := 0
 var boost_left := 0.0
+var ghost_left := 0.0
+var zapped_left := 0.0
 ## How hard the last spring used kicks (a super spring kicks harder).
 var _spring_speed := SPRING_SPEED
 var shield_left := 0.0
@@ -520,12 +535,14 @@ func lose_parts(indices: Array[int]) -> void:
 
 
 func _physics_process(delta: float) -> void:
+	_ghost_tick(delta)
 	if remote:
 		# Only the shield's bubble shows, from the kart's updates.
 		shield_left = maxf(shield_left - delta, 0.0)
 		if _bubble != null:
 			_bubble.visible = shield_left > 0.0
 		return
+	zapped_left = maxf(zapped_left - delta, 0.0)
 	boost_left = maxf(boost_left - delta, 0.0)
 	_rammed_wait = maxf(_rammed_wait - delta, 0.0)
 	shield_left = maxf(shield_left - delta, 0.0)
@@ -603,6 +620,8 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 			drive -= controls.brake * maxf(max_force, REVERSE_PUSH) * REVERSE_FRACTION
 	if slowdown_left > 0.0:
 		drive *= RESET_SLOWDOWN
+	if zapped_left > 0.0:
+		drive *= ZAP_DRIVE
 	var drive_per_wheel := drive / maxf(_driven_count, 1)
 
 	var space := state.get_space_state()
@@ -664,6 +683,10 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 		var ground: Object = hit.get("collider")
 		var grip_here: float = ground.get_meta("grip", 1.0) if ground != null else 1.0
 		var drag_here: float = ground.get_meta("drag", 1.0) if ground != null else 1.0
+		# A ghost drives over oil as if it isn't there.
+		if ghost_left > 0.0 and ground != null and ground.get_meta("oil", false):
+			grip_here = 1.0
+			drag_here = 1.0
 		on_any += 1
 		if grip_here < 1.0:
 			on_rough += 1
@@ -842,8 +865,9 @@ func _feel_knocks(state: PhysicsDirectBodyState3D) -> void:
 			_rammed_wait = RAM_EVERY
 			Sounds.play_at.call_deferred("fx/ram", sound)
 			knock_off_a_part.call_deferred()
-	# A shield holds everything on, however hard the knock.
-	if shield_left > 0.0:
+	# A shield holds everything on, however hard the knock, and a ghost
+	# isn't really there.
+	if shield_left > 0.0 or ghost_left > 0.0:
 		return
 	for part in shares:
 		_impact[part] = _impact.get(part, 0.0) + knock * shares[part] / total
@@ -908,50 +932,60 @@ func cheer() -> void:
 		_rig.cheer()
 
 
-# Gadgets.
+# Gadgets and power-ups.
 
-## The gadgets still on the kart, in the order they were built on, as
-## [part index, part].
-func gadgets() -> Array:
-	var out := []
-	if stats == null:
-		return out
-	for info in stats.parts:
-		if info.def.kind == "gadget":
-			out.append([info.index, info.def])
-	return out
-
-
-## The gadgets that need a button (the ones that cost studs), at most two.
-func buttons() -> Array:
-	return gadgets().filter(func(g): return int(g[1].get("cost", 0)) > 0).slice(0, 2)
-
-
+## Whether the kart has a part with this always-on gadget, like "ram".
 func has_gadget(kind: String) -> bool:
-	return gadgets().any(func(g): return g[1].get("gadget", "") == kind)
+	if stats == null:
+		return false
+	return stats.parts.any(func(info): return info.def.kind == "gadget" and info.def.get("gadget", "") == kind)
+
+
+## Puts a power-up on the first free gadget button. Returns false when both
+## are full.
+func give(kind: String) -> bool:
+	for slot in Powerups.HOLD:
+		if held[slot] == "":
+			held[slot] = kind
+			held_uses[slot] = int(Powerups.ALL.get(kind, {}).get("uses", 1))
+			pickups += 1
+			Sounds.play_at("fx/powerup", sound, -2.0)
+			return true
+	return false
+
+
+## Whether both gadget buttons are full.
+func full() -> bool:
+	return not held.has("")
 
 
 func can_use(slot: int) -> bool:
-	var list := buttons()
-	if slot >= list.size() or _gadget_wait[slot] > 0.0 or locked:
-		return false
-	return studs >= int(list[slot][1].get("cost", 0))
+	return slot < held.size() and held[slot] != "" and _gadget_wait[slot] <= 0.0 and not locked
 
 
-## Uses the gadget on this button, if there are enough studs. It's its own
-## step so that in a network game the server can decide and tell everyone.
+## Uses the power-up on this button. It's its own step so that in a network
+## game each kart's own device decides, and tells everyone.
 func use_gadget(slot: int) -> bool:
 	if not can_use(slot):
 		return false
-	var def: Dictionary = buttons()[slot][1]
-	studs -= int(def.get("cost", 0))
+	var kind := held[slot]
+	held_uses[slot] -= 1
+	if held_uses[slot] <= 0:
+		held[slot] = ""
 	_gadget_wait[slot] = GADGET_COOLDOWN
-	match def.get("gadget", ""):
+	match kind:
 		"turbo":
-			boost_left = float(def.get("time", TURBO_TIME))
+			boost_left = TURBO_TIME
+		"big_turbo":
+			boost_left = BIG_TURBO_TIME
+		"triple_turbo":
+			boost_left = TRIPLE_TURBO_TIME
 		"spring":
 			_spring_asked = true
-			_spring_speed = float(def.get("hop", SPRING_SPEED))
+			_spring_speed = SPRING_SPEED
+		"super_spring":
+			_spring_asked = true
+			_spring_speed = SUPER_SPRING_SPEED
 		"oil":
 			get_parent().add_child(OilSlick.drop_behind(self))
 		"dropper":
@@ -959,23 +993,50 @@ func use_gadget(slot: int) -> bool:
 				get_parent().add_child(brick)
 		"cannon":
 			get_parent().add_child(BrickShot.fire(self))
+		"homing":
+			get_parent().add_child(BrickShot.fire(self, true))
 		"repair":
 			_repair_asked = true
 		"shield":
 			shield_left = SHIELD_TIME
 			_show_bubble()
-	var noise: String = GADGET_SOUNDS.get(def.get("gadget", ""), "")
+		"ghost":
+			start_ghost()
+	var noise: String = GADGET_SOUNDS.get(kind, "")
 	if noise != "":
 		Sounds.play_at(noise, sound)
-	gadget_used.emit(def.get("gadget", ""))
+	# Lightning is the race's to hand out (see Race), to every kart ahead.
+	gadget_used.emit(kind)
 	return true
 
 
-func add_studs(count: int) -> void:
-	if count > 0:
-		Sounds.play_at("fx/stud", sound, -4.0, randf_range(0.95, 1.1))
-	studs_picked += maxi(count, 0)
-	studs = clampi(studs + count, 0, MOST_STUDS)
+## Goes through karts, bricks and oil for a while, see-through.
+func start_ghost() -> void:
+	ghost_left = GHOST_TIME
+	_set_ghostly(true)
+
+
+## Slows the kart right down for a moment, from lightning.
+func zap() -> void:
+	if shield_left > 0.0:
+		return
+	zapped_left = ZAP_TIME
+	Sounds.play_at("fx/lightning", sound, -4.0)
+
+
+func _ghost_tick(delta: float) -> void:
+	if ghost_left <= 0.0:
+		return
+	ghost_left = maxf(ghost_left - delta, 0.0)
+	if ghost_left <= 0.0:
+		_set_ghostly(false)
+
+
+func _set_ghostly(on: bool) -> void:
+	collision_layer = 0 if on else LAYER_KARTS
+	collision_mask = LAYER_WORLD if on else LAYER_WORLD | LAYER_KARTS | LAYER_HAZARD
+	for mesh in find_children("*", "GeometryInstance3D", true, false):
+		mesh.transparency = 0.6 if on else 0.0
 
 
 ## Whether this point in the world hit the front of this kart where its ram
@@ -1083,16 +1144,16 @@ func repair_now() -> void:
 
 
 ## Where this kart is and what it's doing, to send to the other devices. That's
-## its position, facing, velocity, steering, shield and studs.
+## its position, facing, velocity, steering and shield.
 func net_state() -> PackedFloat32Array:
 	var q := global_basis.get_rotation_quaternion()
 	var p := global_position
 	var v := linear_velocity
-	return PackedFloat32Array([p.x, p.y, p.z, q.x, q.y, q.z, q.w, v.x, v.y, v.z, steer_angle, shield_left, studs])
+	return PackedFloat32Array([p.x, p.y, p.z, q.x, q.y, q.z, q.w, v.x, v.y, v.z, steer_angle, shield_left])
 
 
 ## Shows a remote kart as its update says, already smoothed (see NetRace).
-func show_net_state(where: Transform3D, velocity: Vector3, steer: float, shield: float, stud_count: int) -> void:
+func show_net_state(where: Transform3D, velocity: Vector3, steer: float, shield: float) -> void:
 	global_transform = where
 	remote_velocity = velocity
 	forward_speed = velocity.dot(-where.basis.z)
@@ -1100,7 +1161,6 @@ func show_net_state(where: Transform3D, velocity: Vector3, steer: float, shield:
 	if shield > 0.0 and shield_left <= 0.0:
 		_show_bubble()
 	shield_left = shield
-	studs = stud_count
 
 
 func _process(delta: float) -> void:

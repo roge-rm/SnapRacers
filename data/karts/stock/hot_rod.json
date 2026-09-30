@@ -8,8 +8,6 @@
 		{"id": "wheel_big_wide", "at": [5, 0, 11], "rot": 0},
 		{"id": "wheel_big_wide", "at": [13, 0, 11], "rot": 0},
 		{"id": "engine_v8", "at": [9, 3, 5], "rot": 0},
-		{"id": "big_turbo", "at": [7, 3, 6], "rot": 0},
-		{"id": "brick_cannon", "at": [11, 3, 5], "rot": 0},
 		{"id": "steering_wheel", "at": [9, 3, 10], "rot": 0},
 		{"id": "seat", "at": [9, 3, 11], "rot": 0},
 		{"id": "brick_2x4", "at": [7, 3, 11], "rot": 0, "color": "#c4281c"},

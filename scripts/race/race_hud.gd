@@ -30,7 +30,8 @@ var map: CourseMap
 
 var _place: Label
 var _lap: Label
-var _studs: Label
+## The power-ups you're holding, for when there are no touch buttons to show them.
+var _held: Label
 var _clock: Label
 var _big: Label
 var _message: Label
@@ -50,8 +51,8 @@ func _ready() -> void:
 	mouse_filter = MOUSE_FILTER_IGNORE
 	set_anchors_and_offsets_preset(PRESET_FULL_RECT)
 
-	# Your place, lap and studs, together in the top left corner so they can
-	# move out of a camera hole's way as one.
+	# Your place, lap and power-ups, together in the top left corner so they
+	# can move out of a camera hole's way as one.
 	var corner := VBoxContainer.new()
 	corner.mouse_filter = MOUSE_FILTER_IGNORE
 	corner.add_theme_constant_override("separation", -4)
@@ -59,9 +60,9 @@ func _ready() -> void:
 	corner.position = Vector2(24, 8)
 	_place = _label(56)
 	_lap = _label(28)
-	_studs = _label(28)
-	_studs.add_theme_color_override("font_color", Color("#f2cd37"))
-	for label in [_place, _lap, _studs]:
+	_held = _label(28)
+	_held.add_theme_color_override("font_color", Color("#f2cd37"))
+	for label in [_place, _lap, _held]:
 		label.reparent(corner)
 	if race != null and me != null:
 		var gap := Control.new()
@@ -122,6 +123,13 @@ func _ready() -> void:
 		safe.watch(control)
 
 
+## What's on a gadget button, with how many goes are left when there's more
+## than one, like "Triple turbo x3".
+static func held_name(kart: Kart, slot: int) -> String:
+	var name := Powerups.name_of(kart.held[slot])
+	return name + (" x%d" % kart.held_uses[slot] if kart.held_uses[slot] > 1 else "")
+
+
 func buttons() -> Array[Control]:
 	return [_quit, _camera, _results, map] if map != null else [_quit, _camera, _results]
 
@@ -176,17 +184,16 @@ func _process(delta: float) -> void:
 		_lap.text = "Lap %d / %d" % [me.progress.current_lap(), race.laps]
 	if me.progress.finished:
 		_lap.text = "Finished"
-	_studs.visible = not trial
-	_studs.text = "%d stud%s" % [me.kart.studs, "" if me.kart.studs == 1 else "s"]
+	var names := []
+	for slot in Powerups.HOLD:
+		if me.kart.held[slot] != "":
+			names.append(held_name(me.kart, slot))
+	_held.visible = not trial and not names.is_empty()
+	_held.text = "  ".join(names)
 	if touch != null:
-		var buttons := me.kart.buttons()
-		for slot in 2:
-			if slot < buttons.size():
-				var def: Dictionary = buttons[slot][1]
-				touch.gadget_names[slot] = "%s\n%d" % [def.get("name", ""), def.get("cost", 0)]
-				touch.gadget_ready[slot] = me.kart.can_use(slot)
-			else:
-				touch.gadget_names[slot] = ""
+		for slot in Powerups.HOLD:
+			touch.gadget_names[slot] = held_name(me.kart, slot).replace(" x", "\n") if me.kart.held[slot] != "" else ""
+			touch.gadget_ready[slot] = me.kart.can_use(slot)
 		touch.queue_redraw()
 	var shown := me.progress.finish_time if me.progress.finished else race.time
 	if practice:

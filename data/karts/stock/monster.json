@@ -14,7 +14,6 @@
 		{"id": "seat", "at": [9, 6, 10], "rot": 0},
 		{"id": "engine_hybrid", "at": [9, 6, 12], "rot": 0},
 		{"id": "brick_2x2", "at": [7, 6, 12], "rot": 0, "color": "#6b3fa0"},
-		{"id": "brick_2x2", "at": [11, 6, 12], "rot": 0, "color": "#6b3fa0"},
-		{"id": "super_spring", "at": [9, 6, 15], "rot": 0}
+		{"id": "brick_2x2", "at": [11, 6, 12], "rot": 0, "color": "#6b3fa0"}
 	]
 }

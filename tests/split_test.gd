@@ -1,7 +1,7 @@
 extends Node
 
 ## Two players on one phone, side by side and face to face. It checks that
-## each player gets their own view, HUD, controls and studs, that the far half
+## each player gets their own view, HUD, controls and power-up boxes, that the far half
 ## is turned around when you're face to face, and that both karts get going.
 ##
 ##   tools/godot/Godot_v4.7.2-stable_linux.x86_64 --headless --fixed-fps 60 --path . res://tests/split_test.tscn
@@ -65,10 +65,10 @@ func check_race(race: Race, mode: String) -> void:
 		check(view.get_camera_3d() == human.camera and human.camera.target == human.kart, "player %d's view follows their kart" % (i + 1))
 		check(human.hud.get_viewport() == view and human.hud.me == human, "with their own HUD in it")
 		check(human.hud.touch.get_viewport() == view, "and their own touch controls")
-		var own := StudField.layer_of(i)
-		var theirs := StudField.layer_of(1 - i)
-		check(human.camera.get_cull_mask_value(own) and not human.camera.get_cull_mask_value(theirs), "their camera shows their studs and not the other player's")
-	check(race.studs.viewers.size() == 2, "studs are kept for both")
+		var own := PowerupField.layer_of(i)
+		var theirs := PowerupField.layer_of(1 - i)
+		check(human.camera.get_cull_mask_value(own) and not human.camera.get_cull_mask_value(theirs), "their camera shows their power-up boxes and not the other player's")
+	check(race.boxes.viewers.size() == 2, "power-up boxes are kept for both")
 
 	var holders: Array = views.map(func(v): return v.get_parent())
 	if mode == Game.FACE_TO_FACE:

@@ -27,7 +27,6 @@ var mode := "outline":
 	set(value):
 		mode = value if MODES.has(value) else "outline"
 		custom_minimum_size = Vector2.ONE * (HIDDEN_SIZE if mode == "hidden" else SIZE)
-		size = custom_minimum_size
 		queue_redraw()
 
 ## The course's middle line seen from above, as (x, z), and the box around it.

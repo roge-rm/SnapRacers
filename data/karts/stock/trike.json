@@ -12,8 +12,6 @@
 		{"id": "racing_seat", "at": [9, 3, 11], "rot": 0},
 		{"id": "wheel_small", "at": [6, 0, 14], "rot": 0},
 		{"id": "wheel_small", "at": [13, 0, 14], "rot": 0},
-		{"id": "electric_big", "at": [9, 3, 14], "rot": 0},
-		{"id": "magnet", "at": [7, 3, 14], "rot": 0},
-		{"id": "turbo", "at": [11, 3, 14], "rot": 0}
+		{"id": "electric_big", "at": [9, 3, 14], "rot": 0}
 	]
 }

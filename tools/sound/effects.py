@@ -231,8 +231,9 @@ def chime(notes, gap, ring=0.3, shape="triangle"):
     return mix(*parts)
 
 
-def stud():
-    return normalise(reverb(chime(["E6", "B6"], 0.06, 0.35), 0.15, 0.4), 0.6)
+def powerup():
+    """Picking up a power-up: a quick sparkle up four notes."""
+    return normalise(reverb(chime(["C6", "E6", "G6", "C7"], 0.045, 0.3), 0.2, 0.5), 0.65)
 
 
 def beep(name, time):
@@ -330,12 +331,24 @@ def shield():
     return normalise(reverb(tone * adsr(n, 0.05, 0.1, 0.8, 0.5), 0.3, 0.6), 0.6)
 
 
-def magnet():
-    n = seconds(0.6)
-    buzz = square(120, n, 0.3, harmonics=30)
-    buzz = sweep_lowpass(buzz, ramp(n, [(0.0, 300), (0.7, 3000), (1.0, 1000)])) * adsr(n, 0.02, 0.1, 0.8, 0.2)
-    zap = sine(np.geomspace(2000, 500, seconds(0.08)), seconds(0.08)) * decay(seconds(0.08), 0.08)
-    return normalise(mix((buzz, 0.0), (zap * 0.5, 0.0)), 0.7)
+def ghost():
+    """Going ghostly: a breathy whoosh with a wobbly tone that sinks away."""
+    n = seconds(0.9)
+    t = times(n)
+    breath = bandpass(noise(n, 81), 400, 2500) * ramp(n, [(0.0, 0.0), (0.15, 0.6), (1.0, 0.0)])
+    pitch = np.geomspace(900, 300, n) * (1.0 + 0.04 * np.sin(2 * np.pi * 7 * t))
+    tone = (sine(pitch, n) + sine(pitch * 1.5, n) * 0.4) * adsr(n, 0.05, 0.1, 0.7, 0.4)
+    return normalise(reverb(breath + tone * 0.6, 0.35, 0.8), 0.6)
+
+
+def lightning():
+    """Lightning: a sharp crackle, then a low rumble."""
+    n = seconds(1.1)
+    crackle = highpass(noise(n, 82), 1500) * decay(n, 0.12)
+    for k, at in enumerate((0.0, 0.03, 0.07)):
+        crackle = crackle + highpass(noise(n, 83 + k), 2500) * np.roll(decay(n, 0.02), seconds(at)) * 0.7
+    rumble = lowpass(noise(n, 86), 180) * ramp(n, [(0.0, 0.0), (0.1, 1.0), (1.0, 0.0)]) * 2.5
+    return normalise(drive(crackle + rumble, 1.5), 0.85)
 
 
 def ram():
@@ -380,11 +393,11 @@ def nope():
 
 
 ONE_SHOTS = {
-    "bump": bump, "crash": crash, "bricks": bricks, "stud": stud,
+    "bump": bump, "crash": crash, "bricks": bricks, "powerup": powerup,
     "beep": lambda: beep("A5", 0.16), "go": lambda: beep("A6", 0.5),
     "lap": lap, "final_lap": final_lap, "finish": finish, "win": win,
     "reset": reset, "turbo": turbo, "spring": spring, "drop": drop, "cannon": cannon,
-    "hit": hit, "repair": repair, "shield": shield, "magnet": magnet, "ram": ram,
+    "hit": hit, "repair": repair, "shield": shield, "ghost": ghost, "lightning": lightning, "ram": ram,
     "click": click, "back": back, "snap": snap, "unsnap": unsnap, "pick": pick, "nope": nope,
 }
 

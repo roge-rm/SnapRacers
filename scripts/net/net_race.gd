@@ -102,7 +102,7 @@ func _physics_process(delta: float) -> void:
 
 
 func got_state(sender: int, slot: int, state: PackedFloat32Array) -> void:
-	if owners.get(slot, -1) != sender or not _updates.has(slot) or state.size() < 13:
+	if owners.get(slot, -1) != sender or not _updates.has(slot) or state.size() < 12:
 		return
 	var list: Array = _updates[slot]
 	list.append([_clock, state])
@@ -140,7 +140,7 @@ func _show(slot: int) -> void:
 		# Nothing newer yet, so it carries on the way it was going.
 		pos += vel * minf(at - before[0], GUESS_FOR)
 	var last: PackedFloat32Array = list[-1][1]
-	racers[slot].kart.show_net_state(Transform3D(Basis(rot), pos), vel, steer, last[11], int(last[12]))
+	racers[slot].kart.show_net_state(Transform3D(Basis(rot), pos), vel, steer, last[11])
 
 
 func got_event(sender: int, slot: int, kind: String, data: Variant) -> void:
@@ -164,9 +164,15 @@ func got_event(sender: int, slot: int, kind: String, data: Variant) -> void:
 				Sounds.play_at(noise, kart.sound)
 			match str(data):
 				"shield":
-					kart.show_net_state(kart.global_transform, kart.remote_velocity, kart.steer_angle, Kart.SHIELD_TIME, kart.studs)
+					kart.show_net_state(kart.global_transform, kart.remote_velocity, kart.steer_angle, Kart.SHIELD_TIME)
 				"cannon":
 					race.add_child(BrickShot.fire(kart))
+				"homing":
+					race.add_child(BrickShot.fire(kart, true))
+				"ghost":
+					kart.start_ghost()
+				"lightning":
+					race.strike_from(kart)
 				"dropper":
 					for brick in BrickPile.drop_behind(kart):
 						race.add_child(brick)

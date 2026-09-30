@@ -62,6 +62,8 @@ var controls := KartControls.new()
 
 var _stuck := 0.0
 var _think := 0.0
+## How long it's held what's on each gadget button, in seconds.
+var _held_for: Array[float] = [0.0, 0.0]
 var _rng := RandomNumberGenerator.new()
 ## Whether there's a bend coming up, and how it's misjudging it: 1 is right,
 ## more is too fast and less is too slow.
@@ -78,6 +80,9 @@ var _backed := false
 var _stuck_at := 0.0
 
 const THINK_EVERY := 0.3 # seconds between looking at its gadgets
+## After holding a power-up this long it uses it at the next moment that
+## isn't a bad one, so it has room for the next box.
+const HOLD_AT_MOST := 12.0
 
 
 func _ready() -> void:
@@ -221,24 +226,26 @@ func _dodge() -> float:
 	return 0.0
 
 
-## Every so often it looks at each gadget it can afford and uses it if the
-## moment's right. That's a turbo on a straight with no jump coming, the cannon
-## at a kart dead ahead, bricks for a kart right behind, a repair once it's
-## lost a couple of parts, a shield when someone's close and a spring to hop
-## free when it's stuck.
+## Every so often it looks at the power-ups it's holding and uses one if the
+## moment's right. That's a turbo on a straight with no jump coming, the
+## cannon at a kart dead ahead, a homing brick or lightning when anyone's
+## ahead, bricks or oil for a kart right behind, a repair once it's lost a
+## couple of parts, a shield when someone's close, a ghost to get through a
+## kart in the way and a spring to hop free when it's stuck.
 func _use_gadgets(delta: float, speed: float) -> void:
 	_think -= delta
 	if _think > 0.0:
 		return
+	for slot in Powerups.HOLD:
+		_held_for[slot] = _held_for[slot] + THINK_EVERY - _think if kart.held[slot] != "" else 0.0
 	_think = THINK_EVERY
-	# The ones that depend on the moment come first, so it doesn't spend every
-	# stud on the turbo.
-	var buttons := kart.buttons()
-	var order := range(buttons.size())
-	order.sort_custom(func(a, b): return buttons[a][1].get("gadget", "") != "turbo" and buttons[b][1].get("gadget", "") == "turbo")
-	for slot in order:
-		var kind: String = buttons[slot][1].get("gadget", "")
-		if _worth_using(kind, speed):
+	for slot in Powerups.HOLD:
+		var kind := kart.held[slot]
+		var waited := _held_for[slot] > HOLD_AT_MOST and not kind.ends_with("turbo")
+		# A turbo it's held twice as long goes on anything but a bend or a jump.
+		if kind.ends_with("turbo") and _held_for[slot] > HOLD_AT_MOST * 2.0:
+			waited = speed > 8.0 and track.bend_at(offset + 10.0) < 0.008 and track.piece_type_at(offset + 30.0) != "jump"
+		if kind != "" and (waited or _worth_using(kind, speed)):
 			# A less canny driver lets the moment pass more often.
 			if _rng.randf() > gadget_sense:
 				_think = THINK_EVERY * 4.0
@@ -249,27 +256,34 @@ func _use_gadgets(delta: float, speed: float) -> void:
 
 func _worth_using(kind: String, speed: float) -> bool:
 	match kind:
-		"turbo":
+		"turbo", "big_turbo", "triple_turbo":
 			if speed < 8.0:
 				return false
 			# Not in a bend, with one coming or before a jump it would fly off.
-			# The faster it's going, the further ahead it has to be clear, or
-			# it carries the kart wide out of a hairpin.
+			# The faster it's going and the longer the turbo, the further ahead
+			# it has to be clear, or it carries the kart wide out of a hairpin.
+			var time := Kart.BIG_TURBO_TIME if kind == "big_turbo" else Kart.TURBO_TIME
 			var ahead := -4.0
-			while ahead <= maxf(40.0, speed * Kart.TURBO_TIME * 1.5 + 15.0):
+			while ahead <= maxf(40.0, speed * time * 1.5 + 15.0):
 				if track.bend_at(offset + ahead) > 0.008 or track.piece_type_at(offset + ahead) == "jump":
 					return false
 				ahead += 4.0
 			return true
 		"cannon":
 			return _nearest(3.0, 28.0, 2.2) != null
+		"homing":
+			return _nearest(3.0, 120.0, 40.0) != null
+		"lightning":
+			return _nearest(3.0, 400.0, 400.0) != null
 		"dropper", "oil":
 			return _nearest(-14.0, -2.0, 4.0) != null
 		"shield":
 			return _nearest(-5.0, 5.0, 4.0) != null
 		"repair":
 			return kart.lost.size() >= 2
-		"spring":
+		"ghost":
+			return _nearest(2.0, 12.0, 2.5) != null or (speed < 2.0 and not kart.locked)
+		"spring", "super_spring":
 			# A hop gets it free when something's holding it up.
 			return speed < 2.0 and not kart.locked
 	return false

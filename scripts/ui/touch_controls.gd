@@ -62,7 +62,7 @@ var blockers: Array[Control] = []
 ## What's on the gadget buttons above GO, set by the HUD. It's a name, or an
 ## empty string when there's no button there.
 var gadget_names: Array[String] = ["", ""]
-## Whether each gadget can be used right now (enough studs).
+## Whether each power-up can be used right now.
 var gadget_ready: Array[bool] = [false, false]
 
 var _reset_tapped := false

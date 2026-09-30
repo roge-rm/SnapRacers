@@ -8,12 +8,10 @@
 		{"id": "wheel_knobbly", "at": [5, 0, 13], "rot": 0},
 		{"id": "wheel_knobbly", "at": [13, 0, 13], "rot": 0},
 		{"id": "slope_4x2", "at": [9, 4, 7], "rot": 0, "color": "#a4bd46"},
-		{"id": "super_spring", "at": [7, 4, 7], "rot": 0},
 		{"id": "steering_wheel", "at": [9, 4, 10], "rot": 0},
 		{"id": "seat", "at": [9, 4, 11], "rot": 0},
 		{"id": "brick_round_2x2", "at": [7, 4, 10], "rot": 0, "color": "#a4bd46"},
 		{"id": "brick_round_2x2", "at": [11, 4, 10], "rot": 0, "color": "#a4bd46"},
-		{"id": "engine_diesel", "at": [8, 4, 13], "rot": 0},
-		{"id": "repair_kit", "at": [11, 4, 13], "rot": 0}
+		{"id": "engine_diesel", "at": [8, 4, 13], "rot": 0}
 	]
 }

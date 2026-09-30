@@ -15,6 +15,7 @@ const SLOWEST := 7.0
 var race: Race
 var failures := 0
 var resets := {}
+var stopped := {}
 var first_lap := {}
 var used := {}
 ## A course the test built, to tidy away at the end.
@@ -75,12 +76,23 @@ func _ready() -> void:
 	print("%s, %.0f m a lap, %d karts" % [race.track.name, race.track.length, race.racers.size()])
 
 
-func _physics_process(_delta: float) -> void:
+func _physics_process(delta: float) -> void:
 	if race == null:
 		return
 	for racer in race.racers:
 		if racer.progress.lap_times.size() >= 1 and not first_lap.has(racer.name):
 			first_lap[racer.name] = racer.progress.lap_times[0]
+		# With RACE_DEBUG it says where a kart is that hasn't got 30 m further
+		# round in the last ten seconds.
+		if OS.has_environment("RACE_DEBUG") and race.time > 5.0 and not racer.progress.finished:
+			var round_: float = racer.progress.laps * race.track.length + racer.offset
+			var last: Array = stopped.get(racer.name, [race.time, round_])
+			if race.time - last[0] >= 10.0:
+				if round_ - last[1] < 30.0:
+					var k := race.track._index_before(racer.offset)
+					print("SLOW %s (%s) at %.0f s, %.0f m on in 10 s, at %.0f m (piece %d %s) at %s, up %s, speed %.1f" % [racer.name, racer.kart.design.name, race.time, round_ - last[1], racer.offset, race.track.piece_of[k], race.track.pieces[race.track.piece_of[k]].type, racer.kart.global_position.snapped(Vector3.ONE * 0.1), racer.kart.global_basis.y.snapped(Vector3.ONE * 0.01), racer.kart.linear_velocity.length()])
+				last = [race.time, round_]
+			stopped[racer.name] = last
 	var everyone := race.racers.all(func(r): return r.progress.finished)
 	if everyone or race.time > race.laps * race.track.length / SLOWEST:
 		for racer in race.standings():
@@ -91,15 +103,15 @@ func _physics_process(_delta: float) -> void:
 			# reset now and then is part of racing. A kart that keeps needing them
 			# isn't.
 			check(resets[racer.name] <= 6, "%s doesn't keep needing resets (%d)" % [racer.name, resets[racer.name]])
-		var fewest: int = race.racers.map(func(r): return r.kart.studs_picked).min()
-		check(fewest >= 15, "every kart gets a fair share of studs (fewest %d)" % fewest)
+		var fewest: int = race.racers.map(func(r): return r.kart.pickups).min()
+		check(fewest >= 4, "every kart picks up a fair share of power-ups (fewest %d)" % fewest)
 		var all_resets: int = resets.values().reduce(func(a, b): return a + b, 0)
 		# The courses are narrow kart tracks with tight hairpins, so eight karts
 		# bump into each other now and then, most of all on the first lap.
 		check(all_resets <= 20, "not many resets across the whole field (%d)" % all_resets)
 		print("  gadgets used: %s" % [used])
-		print("  studs picked up: %s" % [race.racers.map(func(r): return "%s %d" % [r.name, r.kart.studs_picked])])
-		check(used.size() >= 2, "the AI uses more than one kind of gadget (%d kinds)" % used.size())
+		print("  power-ups picked up: %s" % [race.racers.map(func(r): return "%s %d" % [r.name, r.kart.pickups])])
+		check(used.size() >= 4, "the AI uses all sorts of power-ups (%d kinds)" % used.size())
 		var fastest := INF
 		for racer in race.racers:
 			if racer.progress.finished:

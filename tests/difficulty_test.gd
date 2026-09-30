@@ -9,8 +9,8 @@ extends Node
 const GIVE_UP := 240.0
 const COURSES := ["peach_pit", "foundry_flats"]
 ## How far behind Expert each level laps, in percent, and how far off that
-## still counts.
-const GAPS := {"easy": [20.0, 4.0], "normal": [10.0, 3.0], "hard": [4.0, 2.0]}
+## still counts. Easy slips up at random, so its laps vary the most.
+const GAPS := {"easy": [20.0, 5.5], "normal": [10.0, 3.0], "hard": [4.0, 2.0]}
 
 var failures := 0
 var host: Node

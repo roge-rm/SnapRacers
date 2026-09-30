@@ -47,18 +47,17 @@ The garage works like the builder in Apogee, my physics sim. The kart fills the 
 - The card in the corner shows top speed, pull, cornering, control, off-road grip, weight and drag, and where most of the drag comes from.
 - Take it straight out for a test drive.
 
-### 100 parts
+### 90 parts
 
 | | |
 |---|---|
 | **Plates** | Eleven, from a 1x4 to a long 6x12 chassis and a wide 8x10, with wedge plates for a pointed nose and a smooth tile. |
 | **Bricks** | Eleven, from 1x1 to 2x6, a tall brick, a round brick and a heavy ballast brick to keep the kart low. |
-| **Bodywork** | Twenty: slopes, long slopes, curved and inverted slopes, nose cones, mudguards, a tail fin, wheel fairings and side pods. Face them forward and the air slides over them, or turn them around to smooth the back. |
+| **Bodywork** | Twenty-one: slopes, long slopes, curved and inverted slopes, nose cones, mudguards, a tail fin, wheel fairings, side pods and a ram plate that knocks other karts' parts off. Face them forward and the air slides over them, or turn them around to smooth the back. |
 | **Wheels** | Fourteen, from tiny wheels to monster wheels. Slicks grip the road best and hate grass, knobbly and studded tires bite into grass, dirt and ice, balloon tires float over sand and curbs, and skinny bicycle wheels roll the furthest. |
 | **Engines** | Thirteen: small and big engines, a micro engine, a rotary, a flat four, a twin, a hybrid, two electric motors, a diesel, a V8, a jet and pedals. Each one sounds different. |
 | **Cockpit** | Thirteen: four seats (upright, racing, bucket and lay-down), a steering wheel, a racing wheel, handlebars, a yoke, a tiller and windscreens in four sizes. |
 | **Wings** | Seven: spoilers, a ducktail, front wings and big rear wings, single and double. |
-| **Gadgets** | Eleven: turbo and big turbo, spring and super spring, brick dropper, brick cannon, oil can, repair kit, shield, ram plate and magnet. You can carry two, and most run on studs you pick up on the track. |
 
 ### Air and ergonomics
 
@@ -75,7 +74,7 @@ If you'd rather not build, you can pick one of sixteen stock karts before any ra
 | **Starter** | A bit of everything, good to learn on and to build from. |
 | **Featherlight** | Light and low, with tiny front wheels, handlebars and a little rotary engine. |
 | **Bruiser** | A heavy slab with a diesel, a ram and ballast. |
-| **Slingshot** | A dragster with a V8 and a big turbo in the back. |
+| **Slingshot** | A dragster with a V8 in the back and big slicks right at the tail. |
 | **Streamliner** | Faired in from nose to tail, with the driver lying down behind the screen. |
 | **Mudlark** | Knobbly tires and a diesel, sitting up high. |
 | **Trike** | One wheel at the front and a big electric motor at the back. |
@@ -84,10 +83,25 @@ If you'd rather not build, you can pick one of sixteen stock karts before any ra
 | **Rocket** | A jet engine, slicks and wings. |
 | **Classic** | A proper go-kart, with a flat frame, a little engine and handlebars. |
 | **Downforce** | Big wings front and back, and slicks. |
-| **Brick Tank** | Two layers of bricks all around, a diesel, a shield and a repair kit. |
-| **Sparky** | An electric all rounder with a magnet for studs. |
+| **Brick Tank** | Two layers of bricks all around and a diesel. |
+| **Sparky** | An electric all rounder, quick away from the line. |
 | **Hot Rod** | A V8 out in front and big wheels at the back. |
 | **Soapbox** | Tall thin wheels, a nose cone and a little rotary engine. |
+
+### Power-ups
+
+Every 400 m or so there's a row of power-up boxes right across the road. Drive through one and you get a power-up on one of your two gadget buttons, so you can hold two at once. What you get is random, but the further back you are the better your chances of a strong one, and the leader gets more of the ones for keeping others behind.
+
+| | |
+|---|---|
+| **Turbos** | A turbo, a big turbo that lasts longer, and a triple turbo with three goes. |
+| **Springs** | A spring hops you over trouble, and a super spring right over another kart. |
+| **Bricks and oil** | Drop a pile of bricks or a slick of oil behind you for whoever's following. |
+| **Cannon** | Fires a brick straight ahead, and a homing brick follows the road to the kart in front. Whoever it hits loses a part. |
+| **Shield** | Nothing can knock your parts off for four seconds. |
+| **Repair kit** | Puts back everything you've lost, without the reset slowdown. |
+| **Ghost** | For three seconds you go straight through karts, bricks and oil. |
+| **Lightning** | Every kart ahead of you slows right down for two seconds. |
 
 ### Drivers
 
@@ -146,7 +160,7 @@ Everything you hear was made for the game by a little synthesizer in `tools/soun
 
 - **Engines:** each kind of engine has its own sound, from the buzzy little kart engine to the clattering diesel, the burbling V8, the whining electric motor and the roaring jet. You can rev yours on the grid.
 - **Driving:** tires squeal when you slide, grass and dirt rumble, and the wind picks up as you go faster.
-- **Everything else:** knocks and crashes, bricks clattering off, every gadget, studs, the countdown, laps, the finish and the clicks in the menus and the garage.
+- **Everything else:** knocks and crashes, bricks clattering off, every power-up, the countdown, laps, the finish and the clicks in the menus and the garage.
 - **Music:** a laid back tune for the menus and a tune for each cup. I wrote them note by note and the synthesizer plays them.
 
 Music and effects each have their own volume in Settings.
@@ -215,7 +229,7 @@ They check things like:
 - a gentle bump costs nothing, a crash at full speed knocks parts off and a reset puts them back (`damage_test`)
 - every course closes into a loop without running into itself (`track_test`)
 - a fast kart sticks to the loop all the way around and a slow one drops off (`loop_test`)
-- every gadget does what it says (`gadget_test`)
+- every power-up does what it says, the boxes hand them out and the karts at the back get the strong ones more often (`gadget_test`)
 - drivers hold the steering wheel, and every hat, hairdo, beard and back piece is joined on without poking through anything (`character_test`)
 - the garage, the menus and every mode, including a whole Grand Prix and two players on one phone (`garage_test`, `menu_test`, `modes_test`, `split_test`)
 - every stock kart gets around a lap with the AI driving (`stock_test`)

@@ -2,13 +2,13 @@
 
 importer="wav"
 type="AudioStreamWAV"
-uid="uid://c8fb4cob2vi6y"
-path="res://.godot/imported/magnet.wav-f4c295acb80910cb8586b6293901f5fe.sample"
+uid="uid://bi3m8fxsly3gv"
+path="res://.godot/imported/ghost.wav-bd8c4f528692631741dda686a288e6f9.sample"
 
 [deps]
 
-source_file="res://sound/fx/magnet.wav"
-dest_files=["res://.godot/imported/magnet.wav-f4c295acb80910cb8586b6293901f5fe.sample"]
+source_file="res://sound/fx/ghost.wav"
+dest_files=["res://.godot/imported/ghost.wav-bd8c4f528692631741dda686a288e6f9.sample"]
 
 [params]
 

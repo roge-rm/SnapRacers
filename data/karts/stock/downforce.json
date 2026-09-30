@@ -12,8 +12,6 @@
 		{"id": "steering_wheel", "at": [9, 3, 10], "rot": 0},
 		{"id": "racing_seat", "at": [9, 3, 11], "rot": 0},
 		{"id": "engine_small", "at": [9, 3, 14], "rot": 0},
-		{"id": "rear_wing_6x2", "at": [7, 6, 15], "rot": 0, "color": "#f2cd37"},
-		{"id": "turbo", "at": [7, 3, 14], "rot": 0},
-		{"id": "shield", "at": [11, 3, 14], "rot": 0}
+		{"id": "rear_wing_6x2", "at": [7, 6, 15], "rot": 0, "color": "#f2cd37"}
 	]
 }

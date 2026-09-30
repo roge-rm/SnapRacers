@@ -101,7 +101,7 @@ func _ready() -> void:
 	check(garage is Garage, "the game opens in the garage")
 	garage.finger_lift = 0.0
 	var parts := garage.design.parts.size()
-	check(parts == 15, "with the starter kart in it")
+	check(parts == KartDesign.load_file("res://data/karts/stock/starter.json").parts.size(), "with the starter kart in it (%d parts)" % parts)
 	await _bank()
 	await _placing(parts)
 	await _mirror_and_paint(parts)

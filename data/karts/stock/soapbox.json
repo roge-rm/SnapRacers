@@ -12,7 +12,6 @@
 		{"id": "racing_wheel", "at": [9, 5, 9], "rot": 0},
 		{"id": "lay_down_seat", "at": [9, 5, 10], "rot": 0},
 		{"id": "engine_rotary", "at": [11, 5, 13], "rot": 0},
-		{"id": "nose_2x2", "at": [9, 5, 14], "rot": 2, "color": "#c4281c"},
-		{"id": "spring", "at": [7, 5, 13], "rot": 0}
+		{"id": "nose_2x2", "at": [9, 5, 14], "rot": 2, "color": "#c4281c"}
 	]
 }

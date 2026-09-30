@@ -71,7 +71,8 @@ var new_records := [false, false]
 var time := -COUNTDOWN
 var started := false
 
-var studs: StudField
+## The power-up boxes along the track, or null in a time trial.
+var boxes: PowerupField
 ## Player 1's.
 var hud: RaceHud
 var camera: RaceCamera
@@ -170,7 +171,7 @@ func _ready() -> void:
 
 
 ## Everything after the grid's filled: the AI's view of the other karts,
-## the studs, and each person's view.
+## the power-up boxes, and each person's view.
 func _finish_setting_up(people: int) -> void:
 	var karts: Array[Kart] = []
 	for racer in racers:
@@ -178,13 +179,17 @@ func _finish_setting_up(people: int) -> void:
 	for racer in racers:
 		if racer.ai != null:
 			racer.ai.others = karts
+		racer.kart.gadget_used.connect(func(kind: String) -> void:
+			if kind == "lightning":
+				strike_from(racer.kart))
 
-	# Time trials are just driving, with no studs to pick up.
+	# Time trials are just driving, with no power-ups to pick up.
 	if mode != Game.MODE_TIME_TRIAL:
-		studs = StudField.new(track)
+		boxes = PowerupField.new(track)
+		boxes.race = self
 		for human in humans:
-			studs.viewers.append(human.kart)
-		add_child(studs)
+			boxes.viewers.append(human.kart)
+		add_child(boxes)
 
 	# A dedicated server has nobody of its own to show the race to.
 	if player == null:
@@ -276,10 +281,10 @@ func _add_view(racer: Racer, world_parent: Node, layer: CanvasLayer) -> void:
 		Game.set_camera_view(index, which)
 		racer.hud.flash(RaceCamera.NAMES[which]))
 	if humans.size() > 1:
-		# Leave out the other players' studs.
+		# Leave out the other players' power-up boxes.
 		for other in humans.size():
 			if other != index:
-				view.set_cull_mask_value(StudField.layer_of(other), false)
+				view.set_cull_mask_value(PowerupField.layer_of(other), false)
 	world_parent.add_child(view)
 	view.make_current()
 	view.snap()
@@ -400,8 +405,8 @@ func _physics_process(delta: float) -> void:
 		if racer.ai != null:
 			racer.ai.offset = racer.offset
 		if started:
-			if studs != null:
-				kart.add_studs(studs.collect(kart))
+			if boxes != null and not kart.remote:
+				boxes.collect(kart)
 			var was_done := racer.progress.finished
 			var was_lap := racer.progress.current_lap()
 			racer.progress.update(racer.offset, time)
@@ -541,6 +546,18 @@ func _watch_the_drivers(delta: float) -> void:
 				best = gap
 				nearest = other.kart
 		racer.kart.alongside = nearest
+
+
+## Lightning from this kart slows every kart ahead of it that's driven here.
+## Over a network each device does the same for its own karts, when it hears
+## the kart used it (see NetRace).
+func strike_from(kart: Kart) -> void:
+	var order := standings()
+	for racer in order:
+		if racer.kart == kart:
+			break
+		if not racer.kart.remote:
+			racer.kart.zap()
 
 
 ## Everyone in order, with finishers by time and then the rest by how far
