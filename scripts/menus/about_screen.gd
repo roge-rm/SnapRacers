@@ -19,7 +19,7 @@ func _ready() -> void:
 		"",
 		"Race the AI on your own, with a friend on the same phone, or with people on other phones. Build your own courses and cups in the editors.",
 		"",
-		"All 16 courses are based on real kart circuits around the world, traced from OpenStreetMap map data, which is © OpenStreetMap contributors and available under the Open Database Licence.",
+		"Every course is based on a real circuit somewhere in the world, traced from OpenStreetMap map data, which is © OpenStreetMap contributors and available under the Open Database Licence.",
 		"",
 		"Made with the Godot Engine (godotengine.org), which is free and open source under the MIT licence.",
 		"",

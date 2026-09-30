@@ -22,7 +22,11 @@ INFO = {
  "windmill_ridge": ("Circuito Internacional de Zuera, Spain", "Up and over the ridges past the windmills, and a wall ride banked almost on its side."),
  "launchpad_loop": ("Orlando Kart Center, Florida, USA", "At the space centre, where a loop sends you upside down in the shadow of the rocket."),
  "magma_mile": ("Circuito Internazionale Napoli, Sarno, Italy", "In the shadow of the volcano, with a jump over the lava."),
- "castle_keep": ("New Castle Motorsports Park, Indiana, USA", "Around the castle walls and over the drawbridge, in the last race of the last cup."),
+ "castle_keep": ("New Castle Motorsports Park, Indiana, USA", "Around the castle walls and over the drawbridge, in the last race of the Keystone Cup."),
+ "sakura_swirl": ("Suzuka Circuit, Japan", "A figure eight under the cherry blossom, under the bridge and back over it, with the big wheel watching."),
+ "rouge_ridge": ("Circuit de Spa-Francorchamps, Belgium", "Down to the stream and straight back up the steep climb, then out through the forest hills of the Ardennes."),
+ "royal_run": ("Autodromo Nazionale Monza, Italy", "Flat out through the royal park and past the old banking, braking hard for the chicanes."),
+ "dry_lagoon": ("Laguna Seca, Monterey, California, USA", "Over the golden California hills and down the famous corkscrew drop."),
 }
 def rotate_to_longest_straight(pieces):
     """Moves the start line into the longest run of straights at ground level,

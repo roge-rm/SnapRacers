@@ -20,7 +20,9 @@ func _ready() -> void:
 	Game.start(host, false)
 	Game.settings.set_value("race", "split", Game.SOLO)
 	var only: Array = OS.get_cmdline_user_args()
-	var courses: Array = COURSES.filter(func(c): return only.is_empty() or only.has(c) or not only.any(func(o): return o in COURSES))
+	# Any of the game's courses can be named, not just the usual four.
+	var named: Array = only.filter(func(o): return o in Tracks.all())
+	var courses: Array = named if not named.is_empty() else COURSES
 	var karts: Array = Game.stock_keys().filter(func(k): return only.is_empty() or only.has(k) or not only.any(func(o): return Game.stock_keys().has(o)))
 	var times := {}
 	for course in courses:

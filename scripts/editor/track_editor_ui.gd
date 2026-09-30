@@ -78,6 +78,7 @@ const LANDMARKS := [
 	["Cottage", "cottage"], ["Cabin", "cabin"], ["Trullo", "trullo"], ["Hut on stilts", "stilt_hut"],
 	["Ruins", "ruins"], ["Volcano", "volcano"], ["Mountain", "mountain"], ["Lake", "lake"],
 	["Pond", "pond"], ["Lava pool", "lava_pool"], ["Slag heap", "slag_heap"], ["Dune", "dune"],
+	["Ferris wheel", "ferris_wheel"], ["Pagoda", "pagoda"], ["Old banking", "old_banking"],
 ]
 const SURFACES := [["Road", "asphalt"], ["Dirt", "dirt"], ["Grass", "grass"], ["Sand", "sand"], ["Ice", "ice"]]
 ## "Auto" has walls only where you'd fall off, and grass runoff everywhere
@@ -92,6 +93,7 @@ const THEME_NAMES := {
 	"delta": "River delta", "pit": "Open pit", "industry": "Factories", "amber": "Old town",
 	"timber": "Mountains", "frost": "Snow", "desert": "Desert city", "railway": "Railway",
 	"windmill": "Windmills", "space": "Space centre", "volcano": "Volcano", "castle": "Castle",
+	"sakura": "Cherry blossom", "ardennes": "Forest hills", "royal_park": "Royal park", "golden_hills": "Golden hills",
 }
 const DANGER := BuilderStyle.DANGER
 const DATA := BuilderStyle.DATA

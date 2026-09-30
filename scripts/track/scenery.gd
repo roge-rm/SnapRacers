@@ -118,6 +118,28 @@ const THEMES := {
 		"landmarks": ["castle", "lake", "tower", "tower"],
 		"fillers": {"tent": 3, "broadleaf": 3, "castle_wall": 1, "house": 1},
 	},
+	"sakura": {
+		"ground": "#4b9f4a", "curbs": ["#d8261c", "#f2f2f2"], "wall": "#c4281c",
+		"landmarks": ["ferris_wheel", "pagoda", "lake", "pagoda"],
+		"fillers": {"sakura": 5, "pine": 2, "bush": 2, "house": 1},
+	},
+	"ardennes": {
+		"ground": "#3f7a3a", "curbs": ["#d8261c", "#f2f2f2"], "wall": "#237841",
+		"sky": ["#6f9bd0", "#dde6ee"],
+		"landmarks": ["mountain", "church", "cottage", "cabin"],
+		"fillers": {"pine": 6, "broadleaf": 3, "cottage": 1, "rocks": 1},
+	},
+	"royal_park": {
+		"ground": "#4b9f4a", "curbs": ["#d8261c", "#f2f2f2"], "wall": "#c4281c",
+		"landmarks": ["old_banking", "villa", "lake", "villa"],
+		"fillers": {"broadleaf": 5, "cypress": 2, "bush": 2, "villa": 1},
+	},
+	"golden_hills": {
+		"ground": "#a8965c", "curbs": ["#d8261c", "#f2f2f2"], "wall": "#da8540",
+		"sky": ["#3f86d6", "#e8eef2"],
+		"landmarks": ["mountain", "mountain", "barn", "house"],
+		"fillers": {"broadleaf": 4, "rocks": 3, "bush": 2, "fence": 1},
+	},
 }
 
 var track: TrackPath

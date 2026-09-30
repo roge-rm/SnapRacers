@@ -48,6 +48,7 @@ const ROOM := {
 	"headframe": 9.0, "slag_heap": 14.0, "excavator": 22.0, "rocket": 14.0, "radar": 5.0,
 	"volcano": 45.0, "mountain": 40.0, "castle": 26.0, "station": 14.0, "bridge": 16.0,
 	"lake": 20.0, "pond": 9.0, "lava_pool": 7.0, "lighthouse": 4.0, "big_windmill": 6.0,
+	"sakura": 2.5, "pagoda": 6.0, "ferris_wheel": 16.0, "old_banking": 48.0,
 }
 
 
@@ -109,6 +110,10 @@ static func add(kit: SceneryKit, prop: String, at: Vector3, rng: RandomNumberGen
 		"pond": water(kit, at_grid, 8.0, rng)
 		"lava_pool": lava_pool(kit, at_grid, rng)
 		"lighthouse": lighthouse(kit, at_grid)
+		"sakura": broadleaf(kit, at_grid, rng, [PINK, Color("#f0c4d8")][rng.randi() % 2])
+		"pagoda": pagoda(kit, at_grid)
+		"ferris_wheel": ferris_wheel(kit, at_grid, facing)
+		"old_banking": old_banking(kit, at_grid, facing)
 
 
 ## Turns an offset from a prop's middle by its facing.
@@ -639,6 +644,59 @@ static func lighthouse(kit: SceneryKit, at: Vector3) -> void:
 		kit.cylinder(at + Vector3.UP * k * 2.4, 2.0 - k * 0.12, 2.4, RED if k % 2 == 0 else WHITE, SceneryKit.BRICK, k == 0)
 	kit.cylinder(at + Vector3.UP * 14.4, 1.2, 1.6, YELLOW, SceneryKit.GLOW)
 	kit.cone(at + Vector3.UP * 16.0, 1.5, 1.8, DARK_GREY)
+
+
+## A pagoda, red with wide dark roofs, a little smaller at each storey.
+static func pagoda(kit: SceneryKit, at: Vector3) -> void:
+	var y := 0.0
+	for k in 4:
+		var w := 7.0 - k * 1.3
+		kit.box(at + Vector3.UP * y, Vector3(w - 1.6, 2.2, w - 1.6), RED, SceneryKit.BRICK, k == 0)
+		kit.box(at + Vector3.UP * (y + 2.2), Vector3(w + 1.2, 0.3, w + 1.2), DARK_GREY, SceneryKit.SMOOTH, false)
+		kit.box(at + Vector3.UP * (y + 2.5), Vector3(w - 0.6, 0.3, w - 0.6), DARK_GREY, SceneryKit.SMOOTH, false)
+		y += 2.8
+	kit.cylinder(at + Vector3.UP * y, 0.15, 3.0, YELLOW, SceneryKit.SMOOTH)
+
+
+## A big Ferris wheel on an A frame, with cars in all sorts of colours
+## around the rim. It stands side on to the way it faces.
+static func ferris_wheel(kit: SceneryKit, at: Vector3, facing: int) -> void:
+	var radius := 14.0
+	var hub := at + Vector3.UP * (radius + 2.0)
+	var across := _turn(Vector3.RIGHT, facing)
+	var axle := _turn(Vector3.BACK, facing)
+	for side in [-1.0, 1.0]:
+		for lean in [-1.0, 1.0]:
+			var foot: Vector3 = at + axle * side * 2.5 + across * lean * 6.0
+			var leg: Vector3 = hub + axle * side * 2.5 - foot
+			kit.turned_box(foot + leg * 0.5, Vector3(0.5, leg.length(), 0.5), Basis(Quaternion(Vector3.UP, leg.normalized())), WHITE)
+	kit.turned_cylinder(hub, 0.8, 6.0, Basis(Quaternion(Vector3.UP, axle)), LIGHT_GREY)
+	var colours := [RED, YELLOW, BLUE, GREEN, ORANGE, AZURE, PINK, WHITE]
+	var cars := 16
+	for k in cars:
+		var a := TAU * k / cars
+		var out := across * cos(a) + Vector3.UP * sin(a)
+		var tangent := across * -sin(a) + Vector3.UP * cos(a)
+		# The rim, one straight piece to the next car, and a spoke to it.
+		var chord := 2.0 * radius * sin(PI / cars)
+		kit.turned_box(hub + out * radius * cos(PI / cars) + tangent * chord * 0.5, Vector3(0.4, chord, 0.4), Basis(Quaternion(Vector3.UP, tangent.normalized())), WHITE)
+		kit.turned_box(hub + out * radius * 0.5, Vector3(0.2, radius, 0.2), Basis(Quaternion(Vector3.UP, out.normalized())), LIGHT_GREY)
+		kit.box(hub + out * radius - Vector3.UP * 2.2, Vector3(1.6, 1.6, 1.6), colours[k % colours.size()], SceneryKit.SMOOTH, false)
+
+
+## A stretch of steep old concrete banking, a quarter of a big circle, like
+## the old oval that still stands in the park at Monza.
+static func old_banking(kit: SceneryKit, at: Vector3, facing: int) -> void:
+	var radius := 42.0
+	var pieces := 18
+	for k in pieces:
+		var a := PI * 0.5 * (k + 0.5) / pieces
+		var out := _turn(Vector3(cos(a), 0.0, sin(a)), facing)
+		var along := _turn(Vector3(-sin(a), 0.0, cos(a)), facing)
+		var tilt := Basis(along, deg_to_rad(55.0))
+		var face := Basis(along.cross(Vector3.UP).normalized(), Vector3.UP, along)
+		kit.turned_box(at + out * radius + Vector3.UP * 3.5, Vector3(0.8, 10.0, radius * PI * 0.5 / pieces + 0.2), tilt * face, LIGHT_GREY if k % 2 == 0 else Color("#bcbcbc"))
+		kit.box(at + out * (radius + 4.5), Vector3(1.2, 7.8, 1.2), DARK_GREY, SceneryKit.BRICK, false)
 
 
 # Things along the side of the track.

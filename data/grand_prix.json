@@ -4,6 +4,7 @@
 		{ "id": "baseplate", "name": "Baseplate Cup", "tracks": ["peach_pit", "trulli_turns", "lemon_lake", "pithead_park"], "music": "race_one" },
 		{ "id": "axle", "name": "Axle Cup", "tracks": ["delta_dash", "bucketwheel_bend", "foundry_flats", "amber_arc"], "music": "race_two" },
 		{ "id": "gearbox", "name": "Gearbox Cup", "tracks": ["timberline", "frostbite_forest", "dune_drift", "whistlestop_woods"], "music": "race_three" },
-		{ "id": "keystone", "name": "Keystone Cup", "tracks": ["windmill_ridge", "launchpad_loop", "magma_mile", "castle_keep"], "music": "race_four" }
+		{ "id": "keystone", "name": "Keystone Cup", "tracks": ["windmill_ridge", "launchpad_loop", "magma_mile", "castle_keep"], "music": "race_four" },
+		{ "id": "legends", "name": "Legends Cup", "tracks": ["royal_run", "dry_lagoon", "sakura_swirl", "rouge_ridge"], "music": "race_legends" }
 	]
 }

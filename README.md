@@ -105,7 +105,7 @@ Saving moves the start line onto your longest straight, and the course joins the
 
 ### Courses
 
-Every course is based on a real kart circuit, at the same size for the karts as the real one is for real karts: laps of 1.6 to 1.9 km, with a road wide enough for three karts through a bend. They're made of track pieces snapped together on a grid, with crests, jumps, bridges, a loop and plenty of scenery.
+Every course is based on a real circuit, with laps of 1.6 to 1.9 km and a road wide enough for three karts through a bend. Kart circuits are made as big for the karts as the real one is for real karts, and the famous race tracks in the Legends Cup are shrunk down to the same lap size. They're made of track pieces snapped together on a grid, with crests, jumps, bridges, a loop and plenty of scenery.
 
 The road runs out onto grass that slows you down, and there are only walls where you'd fall off. The corners have red and white curbs you can ride, but at speed they bounce your wheels into the air. Where two bits of road run close together there are soft tire stacks between them. The ground rolls in gentle hills, a little by the lakes and a lot in the mountains.
 
@@ -115,6 +115,7 @@ The road runs out onto grass that slows you down, and there are only walls where
 | **Axle** | Delta Dash, Bucketwheel Bend, Foundry Flats, Amber Arc |
 | **Gearbox** | Timberline, Frostbite Forest, Dune Drift, Whistlestop Woods |
 | **Keystone** | Windmill Ridge, Launchpad Loop, Magma Mile, Castle Keep |
+| **Legends** | Royal Run (Monza), Dry Lagoon (Laguna Seca), Sakura Swirl (Suzuka), Rouge Ridge (Spa) |
 
 ### Racing
 
@@ -227,7 +228,7 @@ They check things like:
 
 ### Stock karts and courses
 
-`tools/stock-karts` builds the stock karts and times them against each other, and `tools/track-design` turns real kart circuits into track pieces. Each has its own README.
+`tools/stock-karts` builds the stock karts and times them against each other, and `tools/track-design` turns real circuits into track pieces. Each has its own README.
 
 ---
 
