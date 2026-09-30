@@ -70,9 +70,9 @@ static func parse_address(text: String) -> Array:
 	return [address, port if port > 0 else NetSession.PORT]
 
 
-## This device's addresses that others could reach it on, best first: a
+## This device's addresses that others could reach it on, best first, with a
 ## normal Wi-Fi network, then a hotspot this phone is running, then Wi-Fi
-## Direct's own (the way ScorchDroid ranks them).
+## Direct's own.
 static func my_addresses() -> Array[String]:
 	var out: Array[String] = []
 	for address in IP.get_local_addresses():

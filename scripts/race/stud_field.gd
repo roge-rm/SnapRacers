@@ -3,16 +3,15 @@ extends Node3D
 
 ## The loose studs along a track, which karts pick up to spend on gadgets.
 ##
-## They're laid out on their own from the track's shape. Every so often
-## there's a row of three right across the road, so wherever you drive you get
-## at least one, and a line through the middle or along the curb gets two. The
-## rows shift from side to side, so the line that pays best keeps changing.
+## They're laid out from the track's shape. Every so often there's a row of
+## three right across the road, so wherever you drive you get at least one, and
+## a line through the middle or along the curb gets two. The rows shift from
+## side to side, so the line that pays best keeps changing.
 ##
-## Studs are personal. Every kart collects each one for itself, so the karts
-## ahead can't take them all before you get there. (When they could, whoever
-## was last had the fewest gadgets, which is the wrong way around.) What you
-## see is your own set. A stud you've picked up disappears for you and comes
-## back a few seconds later. A magnet picks them up from much further away.
+## Every kart collects each stud for itself, so the karts ahead can't take them
+## all before you get there. What you see is your own set. A stud you've picked
+## up disappears for you and comes back a few seconds later, and a magnet picks
+## them up from much further away.
 ##
 ## In split screen each player's set is drawn on its own render layer (see
 ## layer_of()), and each player's camera leaves out the other one's.

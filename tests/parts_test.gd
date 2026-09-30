@@ -93,7 +93,7 @@ func _init() -> void:
 	var too_far := base([]).duplicate_design()
 	too_far.parts[5].at = Vector3i(9, 3, 7)
 	too_far.parts[0].at = Vector3i(7, 2, 6)
-	check(too_far.problems().has("The driver can't reach the steering. It has to be right in front of the seat."), "steering out of reach is a problem %s" % [too_far.problems()])
+	check(too_far.problems().has("The steering has to be right in front of the seat."), "steering out of reach is a problem %s" % [too_far.problems()])
 	var bars := base([]).duplicate_design()
 	bars.parts[5] = { "id": "handlebars", "at": Vector3i(8, 3, 10), "rot": 0 }
 	check(KartStats.compute(bars).control > upright.control, "handlebars steer quicker than a wheel")

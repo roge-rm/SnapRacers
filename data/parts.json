@@ -171,7 +171,7 @@
 			"mass": 1.0,
 			"strength": 600.0,
 			"aero": { "front": 0.4, "back": 1.0 },
-			"about": "A smooth curved slope with no studs, like the bonnet of a sports car.",
+			"about": "A smooth curved slope with no studs, like the hood of a sports car.",
 			"color": "#c4281c"
 		},
 		"curve_4x4": {
@@ -737,7 +737,7 @@
 			"name": "Big slick",
 			"kind": "wheel",
 			"tread": "slick",
-			"about": "A big racing slick. Lots of grip, and it doesn't mind a kerb.",
+			"about": "A big racing slick. Lots of grip, and it doesn't mind a curb.",
 			"size": [2, 8, 4],
 			"mass": 6.5,
 			"strength": 1300.0,
@@ -767,7 +767,7 @@
 			"name": "Balloon tire",
 			"kind": "wheel",
 			"tread": "road",
-			"about": "Big and soft. It floats over sand and grass, and bumps over kerbs without a bounce, but it's slow on the road.",
+			"about": "Big and soft. It floats over sand and grass, and bumps over curbs without a bounce, but it's slow on the road.",
 			"size": [3, 9, 4],
 			"mass": 8.0,
 			"strength": 1400.0,

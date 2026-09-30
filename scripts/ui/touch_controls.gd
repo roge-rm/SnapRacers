@@ -1,21 +1,22 @@
 class_name TouchControls
 extends Control
 
-## On-screen controls for a phone or tablet. There are two ways to steer
-## (see STEERING), picked in Settings. The steering stick sits on the left,
-## two fifths of the way up the screen where your thumb holds the phone (a
-## quarter of the way up in a split screen half, see HEIGHT), and never moves. Put your thumb
-## anywhere on it and the knob goes where your thumb is, so you can see how
-## far you're steering. It springs back to the middle when you let go. On the
-## right, at the same height, there's a big GO button with the brake right
-## under it and the gadget buttons up and to the left of it, and a small reset
-## button up top with a look back button under it that you hold. You can slide
-## a finger from GO down to the brake without lifting it, or up onto a gadget,
-## which uses it and keeps GO held.
+## On-screen controls for a phone or tablet, with two ways to steer (see
+## STEERING) picked in Settings.
 ##
-## Instead of the stick there can be a left and a right button in that
-## corner, which steer all the way while you hold them. You can slide your
-## thumb from one to the other without lifting it, the same as GO and brake.
+## The steering stick sits on the left, two fifths of the way up the screen
+## where your thumb holds the phone (a quarter in a split screen half, see
+## HEIGHT). Put your thumb anywhere on it and the knob goes where your thumb
+## is, and it springs back to the middle when you let go. On the right at the
+## same height is a big GO button with the brake right under it and the gadget
+## buttons up and to the left, and a small reset button up top with a look back
+## button under it that you hold. You can slide a finger from GO down to the
+## brake without lifting it, or up onto a gadget, which uses it and keeps GO
+## held.
+##
+## Instead of the stick there can be a left and a right button that steer all
+## the way while you hold them, and you can slide your thumb from one to the
+## other.
 
 ## They all keep clear of a camera hole. They move in groups (the steering,
 ## the pedals and gadgets, and reset with look back), each group sliding
@@ -100,8 +101,7 @@ func _process(delta: float) -> void:
 		queue_redraw()
 
 
-## The stick's middle and radius. It's the same size as Apogee's, and it
-## sits in the corner where your left thumb rests.
+## The stick's middle and radius, in the corner where your left thumb rests.
 func _stick() -> Array:
 	# In a split screen half it shrinks to fit next to the buttons.
 	var r := minf(minf(size.y * 0.17, size.x * 0.16), 125.0)
@@ -182,8 +182,8 @@ func _placed_buttons() -> Dictionary:
 	return out
 
 
-## How far down the screen the middle of the controls goes, for one this big:
-## HEIGHT of the way up, but never so low it runs off the bottom.
+## How far down the screen the middle of the controls goes, for one this big.
+## It's HEIGHT of the way up, but never so low it runs off the bottom.
 func _middle(radius: float) -> float:
 	return minf(size.y * (1.0 - height), size.y - radius)
 
@@ -226,9 +226,8 @@ func _input(event: InputEvent) -> void:
 				_fingers[event.index] = name
 				_finger_at[event.index] = event.position
 			elif steering == "stick" and _stick_finger == -1 and event.position.distance_to(stick[0]) <= stick[1] * 1.5:
-				# The whole stick is the target, plus some room around it, not
-				# just the knob. Chasing a small knob with your thumb is what
-				# makes touch controls feel broken.
+				# The whole stick is the target, plus some room around it, so
+				# you never have to chase the knob with your thumb.
 				_stick_finger = event.index
 				_move_knob(event.position)
 		else:

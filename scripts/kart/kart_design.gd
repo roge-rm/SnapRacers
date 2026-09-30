@@ -1,15 +1,14 @@
 class_name KartDesign
 extends RefCounted
 
-## A kart the way the player built it. It lists the parts, where they sit on
-## the grid and which way they're turned. This is what gets saved and what
-## gets sent to other players in a network game, so it stays plain data.
+## A kart as the player built it, with its parts, where they sit on the grid
+## and which way they're turned. It's what gets saved and sent to other
+## players, so it stays plain data.
 ##
-## It also knows the building rules. Parts join the way real bricks do. The
-## studs on top of one part press into the bottom of the part above, as long
-## as they overlap. Wheels are different. They have no studs, and they clip
-## onto the side of a part by their axle instead. Fairings and side pods clip
-## onto the side the same way.
+## It also knows the building rules. Parts join the way real bricks do, with
+## the studs on top of one pressing into the bottom of the part above where
+## they overlap. Wheels, fairings and side pods clip onto the side of a part
+## instead.
 
 ## How big a kart can be, in studs across, plates high and studs long.
 const BUILD_SIZE := Vector3i(20, 30, 24)
@@ -296,7 +295,7 @@ func problems() -> Array[String]:
 	elif seats > 0:
 		var gap := steering_gap()
 		if gap == -1 or gap > KartStats.MOST_REACH:
-			out.append("The driver can't reach the steering. It has to be right in front of the seat.")
+			out.append("The steering has to be right in front of the seat.")
 	if wheels < 3:
 		out.append("It needs at least three wheels.")
 	if gadgets > MOST_GADGETS:
@@ -309,7 +308,7 @@ func problems() -> Array[String]:
 				out.append("Two parts are inside each other.")
 				return out
 	if wheels > 0 and lowest_other < lowest_wheel + CLEARANCE:
-		out.append("Something hangs down too low and would scrape along the ground. Everything but the wheels needs two plates of room underneath.")
+		out.append("Something hangs too low. Everything but the wheels needs two plates of room underneath.")
 	return out
 
 

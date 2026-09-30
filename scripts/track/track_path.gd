@@ -10,7 +10,7 @@ extends RefCounted
 ## which way the AI should head, and where to put a kart back after a reset.
 
 const SAMPLE := 1.0
-## Room beside the road's edge line, where the kerbs go on the corners.
+## Room beside the road's edge line, where the curbs go on the corners.
 const KERB := 1.5
 ## How wide the road is. Eight karts race at once, and this is room for three
 ## abreast through a bend with some to spare.
@@ -88,9 +88,8 @@ static func from_dict(data: Dictionary) -> TrackPath:
 	track.hills = float(data.get("hills", 0.0))
 	track.landmarks = data.get("landmarks", []).duplicate(true)
 	track.start = start_from(data.get("start", []))
-	# A course made before the tiles were kart sized: its road's the same
-	# pieces, just twice as big, so where it starts and its landmarks move
-	# out to match.
+	# A course made before the tiles were kart sized has the same pieces twice
+	# as big, so where it starts and its landmarks move out to match.
 	var grow := growth(data)
 	if grow != 1.0:
 		track.width = WIDTH
@@ -366,9 +365,9 @@ func grip_and_drag(surface: String) -> Array:
 func clashes(clearance := 5.0) -> Array:
 	var out := []
 	var step := 4
-	# Road, curbs and a half metre wall on each side. Any closer than that and
-	# the walls would overlap. (A loop's way in and way out sit 1 m apart wall
-	# to wall, which is fine.)
+	# Road, curbs and a half metre wall on each side. Any closer and the walls
+	# would overlap. A loop's way in and way out sit 1 m apart wall to wall,
+	# which is fine.
 	var reach := width + 2.0 * KERB + 1.0
 	var skip := int(ceil(reach * 2.0 / SAMPLE))
 	var count := points.size()

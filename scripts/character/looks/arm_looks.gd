@@ -1,12 +1,11 @@
 class_name ArmLooks
 extends RefCounted
 
-## An arm: one piece from the rounded shoulder down to the minifig's fixed
-## bend at the elbow and on to the wrist, then the C shaped hand. Sleeves and
-## the like are printed on it in their own colours, the way a real minifig's
-## are. How long the sleeves
-## are, what's on the hands and any extras (cuffs, bracers, pads, a watch)
-## come from the arms piece's settings in pieces.json.
+## An arm, one piece from the rounded shoulder down to the fixed bend at the
+## elbow and on to the wrist, then the C shaped hand. Sleeves and the like are
+## printed on it in their own colours, the way a real minifig's are. How long
+## the sleeves are, what's on the hands and extras like cuffs, bracers, pads or
+## a watch come from the arms piece's settings in pieces.json.
 
 const WHITE := Color("#f2f2f2")
 const DARK := Color("#3c3f44")
@@ -47,7 +46,7 @@ static func build(rig: CharacterRig, arm: Node3D, hand: Node3D, side: int, elbow
 	if d.setting("arms", "gauntlet", "") == "white":
 		fore = WHITE
 
-	# The forearm's own space: +Y back up the arm toward the elbow.
+	# The forearm's own space, with +Y back up the arm toward the elbow.
 	var y := -dir
 	var x := (Vector3.RIGHT - y * Vector3.RIGHT.dot(y)).normalized()
 	var fore_basis := Basis(x, y, x.cross(y))
@@ -75,9 +74,8 @@ static func build(rig: CharacterRig, arm: Node3D, hand: Node3D, side: int, elbow
 		rig.add(arm, rig.box(Vector3(0.088, 0.03, 0.093), 0.014), c.darkened(0.15), along.call(0.01), fore_basis)
 
 	# A band around the arm, `at` along the forearm (or up the upper arm when
-	# negative), in a colour. The arm's so rounded it's nearly round, so a
-	# band is a short round tube around it. A square one stuck out at its
-	# corners.
+	# negative), in a colour. The arm's nearly round, so a band is a short
+	# round tube around it.
 	var band := func(at: float, colour: Color, thick := 0.014, bulk := 0.006) -> void:
 		var radius := 0.045 + bulk * 0.5
 		if at >= 0.0:

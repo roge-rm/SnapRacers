@@ -1,13 +1,11 @@
 extends Node
 
-## Runs a whole race with the AI driving every kart, yours included, and
-## checks that everyone gets around without getting stuck.
+## Runs a whole race with the AI driving every kart, yours included, and checks
+## that everyone gets around without getting stuck.
 ##
-## It runs as a scene because the race uses the Game autoload. --fixed-fps
-## lets it run as fast as it can instead of in real time, with the physics
-## still stepping 1/60 s at a time. (Speeding up Engine.time_scale makes the
-## steps longer instead, and the suspension can't cope with that.) Pass a
-## track's file name after -- to race there instead of Peach Pit.
+## It runs as a scene because the race uses the Game autoload. --fixed-fps lets
+## it run as fast as it can with the physics still stepping 1/60 s at a time.
+## Pass a track's file name after -- to race there instead of Peach Pit.
 ##   tools/godot/Godot_v4.7.2-stable_linux.x86_64 --headless --fixed-fps 60 --path . res://tests/race_test.tscn -- launchpad_loop
 
 ## Race time to give up after: long enough for the whole race at no worse

@@ -1,11 +1,10 @@
 class_name Lobby
 extends Control
 
-## An online game before (and between) races. Everyone in it is listed with
-## their kart. The host picks what's raced: one race or a cup, which course
-## or cup (the game's or their own, sent to everyone), how many laps, and
-## whether AI drivers fill the empty places. Everyone says they're ready, and
-## the host starts it.
+## An online game before and between races. Everyone in it is listed with their
+## kart. The host picks one race or a cup, which course or cup (the game's or
+## their own, sent to everyone), how many laps and whether AI drivers fill the
+## empty places. Everyone says they're ready and the host starts it.
 
 var _status: Label
 var _people: VBoxContainer

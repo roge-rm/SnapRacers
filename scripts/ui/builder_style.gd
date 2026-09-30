@@ -1,13 +1,13 @@
 class_name BuilderStyle
 extends RefCounted
 
-## The look shared by the garage and the driver screen, which are both laid
-## out like the builder in Apogee: whatever you're building fills the screen
-## and every panel floats over it on its own dark, see-through backing.
+## The look shared by the garage, the driver screen and the track editor.
+## Whatever you're building fills the screen and every panel floats over it on
+## its own dark, see-through backing.
 
-# Apogee's colours: its accent (the same as the menus'), red for danger and
-# for things that are wrong, blue for numbers, and the see-through black
-# behind panels.
+# The colours, with the accent (the same as the menus'), red for danger and for
+# things that are wrong, blue for numbers and the see-through black behind
+# panels.
 const DANGER := Color("#ff6b6b")
 const DATA := Color("#7fd8ff")
 const SCRIM := Color(0, 0, 0, 0.65)
@@ -30,7 +30,7 @@ static func scrim(radius := 12, alpha := 0.65) -> StyleBoxFlat:
 	return style
 
 
-## A word button like Apogee's actions: bold capitals in a colour, no box.
+## A word button, bold capitals in a colour with no box.
 static func word(text: String, colour: Color, action: Callable) -> Button:
 	var button := Button.new()
 	button.text = text.to_upper()
@@ -65,7 +65,7 @@ static func chip(button: Button, text: String) -> void:
 	button.add_theme_color_override("font_disabled_color", Color(1, 1, 1, 0.35))
 
 
-## A pill button with a coloured fill, like Apogee's launch button.
+## A pill button with a coloured fill.
 static func pill(text: String, fill: Color, ink: Color, action: Callable, height := 56.0) -> Button:
 	var button := Button.new()
 	button.text = text.to_upper()

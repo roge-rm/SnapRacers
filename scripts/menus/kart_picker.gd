@@ -1,10 +1,10 @@
 class_name KartPicker
 extends Control
 
-## Pick a kart before a race: the one you built in the garage, or any of the
-## stock karts. In a race against the AI you pick how good they are here too. Each card has a picture of the kart, what it's like, and bars
-## for how it compares with the rest. Tap one to pick it, then Race. It
-## remembers what you picked last time.
+## Pick a kart before a race, either the one you built in the garage or one of
+## the stock karts. In a race against the AI you pick how good they are here
+## too. Each card has a picture of the kart, a line about it and bars for how
+## it compares with the rest. It remembers what you picked last time.
 
 const COLUMNS := 3
 ## A card's size. Buttons don't grow to fit what's put inside them, so it's
@@ -37,9 +37,8 @@ func _ready() -> void:
 	_pictures.ready_for.connect(_show_picture)
 	add_child(_pictures)
 
-	# What you're racing in, and the button to go. They stay put above the
-	# cards as you scroll through them, in the page's outer column (the one
-	# that holds the title and the scrolling part).
+	# What you're racing in and the button to go, which stay put above the
+	# cards as you scroll, in the page's outer column.
 	var top := HBoxContainer.new()
 	top.add_theme_constant_override("separation", 20)
 	var outer: VBoxContainer = column.get_parent().get_parent().get_parent()

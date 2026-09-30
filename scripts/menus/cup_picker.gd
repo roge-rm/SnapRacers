@@ -18,7 +18,7 @@ func _ready() -> void:
 		button.set_meta("cup", cup.id)
 		column.add_child(button)
 
-	column.add_child(MenuStyle.heading("Your cups", "Put together from any courses, the game's and yours"))
+	column.add_child(MenuStyle.heading("Your cups"))
 	for path in CupDesign.saved():
 		var mine := CupDesign.load_file(path)
 		if mine == null or mine.problem() != "":
@@ -50,9 +50,8 @@ static func _line(names: Array, id: String) -> String:
 	return line
 
 
-## What starts a cup of yours once a kart's picked. Its courses are put out
-## to race then, and it's made here, away from this screen, which is gone
-## by then.
+## What starts a cup of yours once a kart's picked. Its courses are put out to
+## race then, and it's made here because this screen is gone by then.
 static func _starter(mine: CupDesign, id: String) -> Callable:
 	return func() -> void: Game.start_grand_prix(mine.to_cup(id))
 

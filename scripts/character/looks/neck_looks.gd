@@ -1,10 +1,10 @@
 class_name NeckLooks
 extends RefCounted
 
-## What's around the neck: scarves, ties, necklaces, collars and the like, in
-## the neck piece's colour. There's only a little room between the top of
-## the torso and the bottom of the head, so collars are flattened rings that
-## fit in it, and anything bigger hangs on the front of the chest.
+## What's around the neck, like scarves, ties, necklaces and collars, in the
+## neck piece's colour. There's only a little room between the torso and the
+## head, so collars are flattened rings and anything bigger hangs on the front
+## of the chest.
 
 const WHITE := Color("#f2f2f2")
 const GOLD := Color("#c9a227")

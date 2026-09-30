@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-# Builds the web page, so the game can be played in a browser, like Apogee.
-# It's the same game with the same saves kept in the browser, just without
-# threads, so it runs on any web host (a threaded page needs the host to send
-# special headers, which GitLab Pages can't).
+# Builds the web page, so the game can be played in a browser. It's the same
+# game with its saves kept in the browser, just without threads, so it runs on
+# any web host (a threaded page needs the host to send special headers, which
+# GitLab Pages can't).
 #
 # It uses our own cut down engine for the web (tools/build-engine.sh web),
 # building it first if it isn't there. Everything goes in /tmp, like the

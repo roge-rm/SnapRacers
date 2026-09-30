@@ -1,8 +1,7 @@
 class_name SettingsScreen
 extends Control
 
-## Settings, split into tabs the way ScorchDroid does it. Everything saves as
-## soon as you change it.
+## Settings, in tabs. Everything saves as soon as you change it.
 
 const TABS := ["Player", "Controls", "Sound", "Display"]
 
@@ -58,7 +57,7 @@ func _show_tab(index: int) -> void:
 func _player_page() -> Control:
 	var page := VBoxContainer.new()
 	page.add_theme_constant_override("separation", 10)
-	page.add_child(MenuStyle.heading("Name", "Shown in the race results, and to everyone else in a network game"))
+	page.add_child(MenuStyle.heading("Name", "Shown in the results and to other players online"))
 	var name_edit := LineEdit.new()
 	name_edit.placeholder_text = "You"
 	name_edit.max_length = 20
@@ -71,7 +70,7 @@ func _player_page() -> Control:
 func _controls_page() -> Control:
 	var page := VBoxContainer.new()
 	page.add_theme_constant_override("separation", 10)
-	page.add_child(MenuStyle.heading("Steering", "On a touch screen, steer with the stick, or with a left and a right button that steer all the way while you hold them"))
+	page.add_child(MenuStyle.heading("Touch steering"))
 	for person in 2:
 		var row := HBoxContainer.new()
 		row.add_theme_constant_override("separation", 10)
@@ -98,7 +97,7 @@ func _controls_page() -> Control:
 func _sound_page() -> Control:
 	var page := VBoxContainer.new()
 	page.add_theme_constant_override("separation", 10)
-	for bus in [[Sounds.MUSIC_BUS, "Music", "The tunes in the menus and the races"], [Sounds.EFFECTS_BUS, "Effects", "Engines, crashes, gadgets and clicks"]]:
+	for bus in [[Sounds.MUSIC_BUS, "Music", ""], [Sounds.EFFECTS_BUS, "Effects", ""]]:
 		var row := HBoxContainer.new()
 		row.add_theme_constant_override("separation", 20)
 		page.add_child(row)
@@ -119,7 +118,7 @@ func _display_page() -> Control:
 	page.add_theme_constant_override("separation", 10)
 	var row := HBoxContainer.new()
 	page.add_child(row)
-	var heading := MenuStyle.heading("Show frame rate", "A small fps counter in the corner while you drive")
+	var heading := MenuStyle.heading("Show frame rate")
 	heading.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	row.add_child(heading)
 	var toggle := CheckButton.new()

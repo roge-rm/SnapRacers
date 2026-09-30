@@ -473,7 +473,7 @@ func race_ready(net_race: NetRace) -> void:
 		_race_loaded.rpc_id(1)
 
 
-# While racing. The race's own NetRace does the work; these just carry it.
+# While racing. The race's own NetRace does the work, and these just carry it.
 
 @rpc("any_peer", "unreliable_ordered")
 func kart_state(slot: int, state: PackedFloat32Array) -> void:

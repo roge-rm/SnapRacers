@@ -1,13 +1,13 @@
 class_name CupDesign
 extends RefCounted
 
-## A Grand Prix cup of your own: a name and 2 to 8 races, raced in order,
-## on the game's courses and ones you've built.
+## A Grand Prix cup of your own, with a name and 2 to 8 races in order on the
+## game's courses and ones you've built.
 ##
-## It's saved as one file in user://cups with every course in it, so it can
-## be sent to other players as it is. The game's own courses are raced from
-## the game. Yours are raced from the copy in the cup, so changing a course
-## later doesn't change a cup you've already made with it.
+## It's saved as one file in user://cups with every course in it, so it can be
+## sent to other players as it is. The game's own courses are raced from the
+## game, and yours from the copy in the cup, so changing a course later doesn't
+## change a cup you've already made with it.
 
 const FOLDER := "user://cups"
 ## Where the courses in a cup are put to be raced.
@@ -97,9 +97,9 @@ func course_names() -> Array:
 	return races.map(func(r): return str(r.course.get("name", "Course")))
 
 
-## The cup the way a Grand Prix wants it: { "id", "name", "paths" }. The
-## game's courses are raced from the game, and yours are written out from
-## the cup to be raced.
+## The cup the way a Grand Prix wants it, as { "id", "name", "paths" }. The
+## game's courses are raced from the game, and yours are written out from the
+## cup to be raced.
 func to_cup(id: String) -> Dictionary:
 	DirAccess.make_dir_recursive_absolute(PLAYING)
 	var paths := []
@@ -116,6 +116,6 @@ func to_cup(id: String) -> Dictionary:
 	return {"id": id, "name": name, "paths": paths}
 
 
-## A cup's id, for its trophies: "mine_" and its file name.
+## A cup's id for its trophies, which is "mine_" and its file name.
 static func id_of(path: String) -> String:
 	return "mine_" + path.get_file().get_basename()

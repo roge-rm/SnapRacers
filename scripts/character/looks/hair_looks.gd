@@ -2,16 +2,15 @@ class_name HairLooks
 extends RefCounted
 
 ## Hair, in its own colour. Most hair is a dome over the top of the head and a
-## band that comes down around the back and sides, like a minifig's hair
-## piece, with extras like spikes, buns and tails.
+## band down around the back and sides, like a minifig's hair piece, with
+## extras like spikes, buns and tails.
 ##
-## Under a hat that covers the top of the head, only what hangs below the
-## hat shows: the band below the hat's edge and anything like a tail. That
-## way hair never pokes through a hat.
+## Under a hat that covers the top of the head, only the band below the hat's
+## edge and anything like a tail shows, so hair never pokes through a hat.
 ##
-## Long and braided beards hang below the chin too, and they're made here as
-## well, in the facial hair's colour. The rest of any facial hair is printed
-## on the face (see FacePrint).
+## Long and braided beards hang below the chin, and they're made here too in
+## the facial hair's colour. The rest of any facial hair is printed on the face
+## (see FacePrint).
 
 ## How far out from the head each style's dome is, or -1 for none.
 const DOMES := {

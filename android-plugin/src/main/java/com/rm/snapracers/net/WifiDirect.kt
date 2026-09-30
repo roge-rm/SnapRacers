@@ -18,8 +18,7 @@ import android.os.Looper
 import android.util.Log
 
 /**
- * Racing with no router, no hotspot and no internet, over Wi-Fi Direct. It's
- * ScorchDroid's WifiDirectTransport, with everything it learned the hard way.
+ * Racing with no router, no hotspot and no internet, over Wi-Fi Direct.
  *
  * Wi-Fi Direct makes a real network between the phones. The phone that owns
  * the group is at a fixed address (192.168.49.1, usually), and the others get
@@ -27,11 +26,10 @@ import android.util.Log
  * Wi-Fi, and this is only how phones find each other and get into the group.
  *
  * The host makes its own group instead of waiting to be asked, so it's always
- * the owner, with the address others need. The catch: a phone that owns a
- * group can't join anyone else's. Asking to connect from inside a group sends
- * an invitation instead of joining, so two phones that have both hosted just
- * invite each other until they give up. Groups also outlive the game and even
- * the app. So [join] leaves this phone's own group first.
+ * the owner, with the address others need. A phone that owns a group can't
+ * join anyone else's, since asking to connect from inside a group sends an
+ * invitation instead, and groups outlive the game and even the app. So [join]
+ * leaves this phone's own group first.
  *
  * Everything here runs on the main thread.
  */

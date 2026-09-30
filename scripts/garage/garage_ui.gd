@@ -1,23 +1,19 @@
 class_name GarageUI
 extends Control
 
-## The garage's panels, laid out like the builder in Apogee. The kart fills
-## the screen and every panel floats over it on its own dark, see-through
-## backing.
+## The garage's panels. The kart fills the screen and every panel floats over
+## it on its own dark, see-through backing.
 ##
-## Across the top is a row of round tool buttons: leave, undo, redo, mirror,
-## paint, the camera views and the file menu. Down the left is the parts
-## drawer, with a rail of tabs and a picture of each part. Drag one out onto
-## the kart, or tap it and it appears on the kart. The drawer slides away by
-## itself while you've got a part in hand or picked out, and a little handle
-## at the edge brings it back. In the top right is one line of how the kart
-## will drive, which opens into the whole card.
+## Across the top is a row of round tool buttons for leaving, undo, redo,
+## mirror, paint, the camera views and the file menu. Down the left is the
+## parts drawer, with a rail of tabs and a picture of each part. The drawer
+## slides away while you've got a part in hand or picked out, and a little
+## handle at the edge brings it back. In the top right is one line of how the
+## kart will drive, which opens into the whole card.
 ##
-## A part in hand shows in a chip under the toolbar, and the controls for
-## putting it where you want it are in the bottom right: arrows to nudge it a
-## stud at a time, up and down a plate, turn, and place. Tap a part on the
-## kart and its actions pop up beside it. Race and test drive are along the
-## bottom.
+## A part in hand shows in a chip under the toolbar, with the arrows, up and
+## down, turn and place in the bottom right. Tap a part on the kart and its
+## actions pop up beside it. Race and test drive are along the bottom.
 
 signal part_chosen(id: String)
 ## A part dragged out of the drawer. `finger` is the touch index, or -1 for
@@ -271,8 +267,8 @@ func toast(text: String) -> void:
 	_toast_left = 2.0
 
 
-## The line over the race button: a message for a moment after something
-## happens, otherwise what's wrong with the kart, or a hint.
+## The line over the race button. It shows a message for a moment after
+## something happens, otherwise what's wrong with the kart, or a hint.
 func _show_status() -> void:
 	if _toast_left > 0.0:
 		return
@@ -307,7 +303,7 @@ func _build_toolbar() -> void:
 	_undo.pressed.connect(func() -> void: undo_pressed.emit())
 	_redo = IconButton.new("redo", "Redo")
 	_redo.pressed.connect(func() -> void: redo_pressed.emit())
-	_mirror = IconButton.new("mirror", "Mirror: put parts down on both sides at once")
+	_mirror = IconButton.new("mirror", "Mirror parts onto both sides")
 	_mirror.pressed.connect(func() -> void: mirror_toggled.emit(not _mirror_on))
 	_paint = IconButton.new("paint", "Paint")
 	_paint.pressed.connect(func() -> void: paint_toggled.emit(_mode != Mode.PAINTING))
@@ -737,7 +733,7 @@ func _open_load() -> void:
 		_load_list.add_child(MenuStyle.heading("Your karts"))
 		for path in saved:
 			_load_list.add_child(_load_button(KartDesign.load_file(path).name, path))
-	_load_list.add_child(MenuStyle.heading("Stock karts", "Load one to race it as it is, or to build from."))
+	_load_list.add_child(MenuStyle.heading("Stock karts"))
 	for key in Game.stock_keys():
 		var design := Game.stock_kart(key)
 		_load_list.add_child(_load_button(design.name, "%s/%s.json" % [Game.STOCK, key]))

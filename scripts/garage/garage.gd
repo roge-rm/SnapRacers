@@ -3,23 +3,19 @@ extends Node3D
 
 ## Where you build your kart.
 ##
-## Drag a part from the bank onto the kart, or tap it in the bank and it shows
-## up on the kart. Either way it's a see-through preview until you put it
-## down, green where it fits and red where it doesn't. Drag it or tap where it
-## should go to move it roughly, then use the arrows to nudge it a stud at a
-## time (they follow the camera, so right is always right on the screen), Up
-## and Down to move it a plate at a time, and Turn. Place puts it down and
-## leaves you holding another, so you can put down a row.
+## Drag a part from the drawer onto the kart, or tap it and it shows up on the
+## kart as a see-through preview, green where it fits and red where it doesn't.
+## Drag it or tap where it goes, then nudge it with the arrows (a stud at a
+## time, and right is always right on the screen), Up and Down for a plate at a
+## time, and Turn. Place puts it down and leaves you holding another, so you
+## can put down a row.
 ##
-## Tap a part on the kart to pick it out, then move, turn, copy or delete it.
-## With Mirror on, anything you put down, delete or paint on one side happens
-## on the other side too, so wheels and pods go on in pairs. Paint mode colours
-## whatever part you tap.
+## Tap a part on the kart to move, turn, copy or delete it. With Mirror on,
+## anything you put down, delete or paint happens on the other side too. Paint
+## mode colours whatever part you tap.
 ##
-## One finger turns the view around the kart and two fingers slide it and zoom.
-## The buttons over the view jump to the front, side, top or an angle, and Fit
-## brings the whole kart into view. With a mouse, the right button turns the
-## view, the middle button slides it and the wheel zooms.
+## One finger turns the view and two fingers slide and zoom it. With a mouse
+## the right button turns it, the middle button slides it and the wheel zooms.
 
 const ORBIT_SPEED := 0.006
 const DRAG_START := 14.0 # pixels a finger has to move before it counts as a drag
@@ -88,8 +84,8 @@ func _ready() -> void:
 		if child is DirectionalLight3D:
 			child.light_energy = 0.8
 		elif child is WorldEnvironment:
-			# Plain white fill light instead of the blue sky's, which tinted the
-			# baseplate blue.
+			# Plain white fill light, since the blue sky's tints the baseplate
+			# blue.
 			child.environment.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
 			child.environment.ambient_light_color = Color("#e8e8e8")
 			child.environment.ambient_light_energy = 0.45
@@ -274,7 +270,7 @@ func place() -> void:
 		if twin.at != entry.at and design.fits(twin.id, twin.at, twin.rot) and design.attaches(twin.id, twin.at, twin.rot):
 			design.parts.append(twin)
 	if not _moving.is_empty():
-		# A part that was being moved is done: pick it out where it landed.
+		# A part that was being moved is done, so pick it out where it landed.
 		_moving = {}
 		_stop_placing()
 		_selected = placed
@@ -708,7 +704,7 @@ func _input(event: InputEvent) -> void:
 		_aim_ghost(pos - Vector2(0.0, finger_lift))
 	if released:
 		_bank_finger = NO_DRAG
-		# Let go back over the bank: never mind.
+		# Let go back over the drawer, so never mind.
 		if ui.is_over_bank(pos):
 			cancel()
 

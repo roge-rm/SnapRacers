@@ -1,11 +1,10 @@
 class_name MeshKit
 extends RefCounted
 
-## Shapes for character models that Godot's primitives don't cover. There are
-## boxes with rounded edges (which can be narrower at the top, for a torso),
-## tubes bent around an arc (for a mouth or a visor band), one piece arms and
-## C shaped hands.
-## Each one is made once for each set of numbers and then shared.
+## Shapes for character models that Godot's primitives don't cover, like boxes
+## with rounded edges (which can be narrower at the top, for a torso), tubes
+## bent around an arc, one piece arms and C shaped hands. Each one is made once
+## for each set of numbers and then shared.
 
 static var _cache: Dictionary = {}
 
@@ -96,13 +95,13 @@ static func fix_winding(mesh: ArrayMesh) -> void:
 	mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
 
 
-## A minifig arm as one piece: from a rounded shoulder at `top` straight down
-## to the elbow at `elbow`, around a smooth bend, and along `dir` to a flat
-## end at `end`, all in the arm's own space. It's a tube with a rounded
-## square cross section, and only the stretch from `from` to `to` metres
-## along it is made, so an arm printed in two colours (a sleeve, say) is two
-## meshes that meet exactly. arm_length says how long the whole arm is, and
-## arm_elbow how far along the middle of the bend is.
+## A minifig arm as one piece, from a rounded shoulder at `top` straight down
+## to the elbow at `elbow`, around a smooth bend and along `dir` to a flat end
+## at `end`, all in the arm's own space. It's a tube with a rounded square
+## cross section, and only the stretch from `from` to `to` metres along it is
+## made, so an arm printed in two colours is two meshes that meet exactly.
+## arm_length is how long the whole arm is and arm_elbow how far along the
+## middle of the bend is.
 static func arm(top: Vector3, elbow: Vector3, end: Vector3, from := 0.0, to := INF) -> ArrayMesh:
 	var key := "arm %s %s %s %s %s" % [top, elbow, end, from, to]
 	if _cache.has(key):
@@ -353,11 +352,10 @@ static func rounded_cylinder(radius: float, height: float, round := 0.02, sides 
 	return lathe(profile, sides)
 
 
-## A minifig hand. It's a thick C shape, open toward -Y, sized to grip a rim.
-## A minifig's C shaped hand: a thick ring with flat faces front and back,
-## softly rounded edges and a gap to grip through. The hole runs along Z, and
-## the ring goes around from `from` to `to` in the XY plane like arc_tube(),
-## so the gap is centred on -Y.
+## A minifig hand, a thick C shape with flat faces front and back, softly
+## rounded edges and a gap to grip through. The hole runs along Z, and the ring
+## goes around from `from` to `to` in the XY plane like arc_tube(), so the gap
+## is centred on -Y.
 static func hand(size := 0.05, from := deg_to_rad(-50.0), to := deg_to_rad(230.0)) -> ArrayMesh:
 	var key := "hand %s %s %s" % [size, from, to]
 	if _cache.has(key):

@@ -6,11 +6,10 @@ import android.net.nsd.NsdServiceInfo
 import android.util.Log
 
 /**
- * Finding games on the same Wi-Fi with NSD (mDNS), the way ScorchDroid's
- * LanDiscovery does. A phone hosting a game puts out a `_snapracers._udp`
- * service, and so does the dedicated server's admin page (see
- * server/web-admin/app/discovery.py). It only finds games: the racing itself
- * is ENet, to the address this turns up.
+ * Finding games on the same Wi-Fi with NSD (mDNS). A phone hosting a game
+ * puts out a `_snapracers._udp` service, and so does the dedicated server's
+ * admin page (see server/web-admin/app/discovery.py). It only finds games, and
+ * the racing itself is ENet to the address this turns up.
  *
  * Everything here runs on the main thread.
  */

@@ -142,8 +142,8 @@ def parse(text):
             spec = {"type": "ramp", "length": int(m[1]), "rise": int(m[2])}
         elif re.fullmatch(r'C(\d+)(h[\d.]+)?', tok):
             m = re.fullmatch(r'C(\d+)(h[\d.]+)?', tok)
-            # Tall enough that its top curves as sharply as the old 1.5 m
-            # humps did on 16 m tiles, so it still throws you in the air.
+            # Tall enough that its top curves as sharply as a 1.5 m hump on a
+            # 16 m tile, so it still throws you in the air.
             run = int(m[1]) * TILE
             height = float(m[2][1:]) if m[2] else round(CREST_BEND * run * run / (2 * math.pi ** 2), 1)
             spec = {"type": "crest", "length": int(m[1]), "height": height}

@@ -35,7 +35,7 @@ const END_AFTER := 4.0
 var race: Race
 var session: NetSession
 var setup: Dictionary
-## Each kart's slot: the Racer, and who drives it.
+## Each kart's slot, with the Racer and who drives it.
 var racers := {}
 var owners := {}
 ## Updates for each remote kart: [when it came, state].
@@ -82,7 +82,7 @@ func _ready() -> void:
 	session.race_ready(self)
 
 
-## The host says go: the countdown starts.
+## The host says go, and the countdown starts.
 func go() -> void:
 	race.net_go = true
 
@@ -183,7 +183,7 @@ func got_finish(slot: int, time: float) -> void:
 	progress.finish_time = time
 
 
-## Someone's left: their karts go.
+## Someone's left, so their karts go.
 func forget(peer: int) -> void:
 	for slot in owners.keys():
 		if owners[slot] != peer:

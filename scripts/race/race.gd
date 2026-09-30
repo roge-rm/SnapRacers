@@ -75,9 +75,8 @@ var studs: StudField
 ## Player 1's.
 var hud: RaceHud
 var camera: RaceCamera
-## The countdown waits until this many frames have been drawn. The first
-## frames can stall for seconds while shaders compile, and the countdown used
-## to run out during that and start the race before you could see it.
+## The countdown waits until this many frames have been drawn, since the first
+## frames can stall for seconds while shaders compile.
 const FRAMES_BEFORE_COUNTDOWN := 10
 var _frames_drawn := 0
 ## Over a network, the race's own part of it (see NetRace), and whether the
@@ -446,10 +445,9 @@ func _physics_process(delta: float) -> void:
 func _clear_spot(racer: Racer) -> Transform3D:
 	var room := 3.5
 	var across := [0.0, -3.0, 3.0, -4.5, 4.5]
-	# Never put a kart back on a loop or a wall ride. Go back to where the road
-	# lies flat before it, and then a run up further than that, because they
-	# need speed and a kart put back right at the foot of a loop just falls off
-	# it again.
+	# A kart is never put back on a loop or a wall ride. It goes back to where
+	# the road lies flat before it, then RUN_UP further, so it has the speed
+	# for another go.
 	var start := racer.offset
 	var backed := false
 	for step in 80:
@@ -470,17 +468,16 @@ func _clear_spot(racer: Racer) -> Transform3D:
 					clear = false
 					break
 			if clear:
-				# The kart's been moved, so the race has to know where it is now,
-				# or it goes looking for it where it was and resets it again.
+				# The kart's been moved, so the race has to know where it is
+				# now, or it looks for it where it was and resets it again.
 				racer.offset = fposmod(start - back, track.length)
 				return spot
 	racer.offset = fposmod(start, track.length)
 	return track.place_at(start)
 
 
-## Whether this is the flat run in to a loop, or the foot of it where it's
-## only just starting to climb. A kart stuck there and put back where it was
-## has no speed for the loop and just falls off it again.
+## Whether this is the flat run in to a loop, or its foot where it's only
+## starting to climb. A kart put back there has no speed for the loop.
 func _loop_coming(offset: float) -> bool:
 	if track.piece_type_at(offset) != "loop":
 		return false

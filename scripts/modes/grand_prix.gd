@@ -1,14 +1,12 @@
 class_name GrandPrix
 extends RefCounted
 
-## A Grand Prix, which is the races of one cup in a row: four for the cups
-## that come with the game, and anything from 2 to 8 for a cup of your own
-## (see CupDesign).
+## A Grand Prix, the races of one cup in a row. That's four for the game's cups
+## and 2 to 8 for a cup of your own (see CupDesign).
 ##
 ## Everyone scores points for where they finish each race, and whoever has the
-## most after the fourth race wins the cup. From the second race on, the grid
-## starts in reverse order of the points so far, so the leader starts at the
-## back and has to fight their way through again.
+## most after the last race wins the cup. From the second race on the grid
+## starts in reverse order of the points, so the leader starts at the back.
 
 const CUPS := "res://data/grand_prix.json"
 ## Points for first place, second place and so on down to eighth.
@@ -16,7 +14,7 @@ const POINTS := [15, 12, 10, 8, 6, 4, 2, 1]
 
 ## The cup: { "id", "name", "paths": [each race's course file] }.
 var cup: Dictionary
-## Which race of the four is next, counting from 0.
+## Which race of the cup is next, counting from 0.
 var round := 0
 ## Points so far, by racer name.
 var points := {}

@@ -4,20 +4,19 @@ extends Node
 ## Keeps controls out from under a camera hole (a display cutout).
 ##
 ## The game draws right to the edges of the screen, hole and all, so anything
-## sitting where the hole is can't be seen or tapped. Add one of these to a
-## screen and watch() the controls along its edges. Each one steps out of the
-## hole's way by as little as it can: a panel as tall (or wide) as the screen
-## gets shorter at the end the hole's at, and anything smaller slides along
-## or down just past it. If there's no hole they stay where they were put.
+## where the hole is can't be seen or tapped. Add one of these to a screen and
+## watch() the controls along its edges. Each one steps out of the hole's way
+## by as little as it can. A panel as tall or wide as the screen gets shorter
+## at the end the hole's at, and anything smaller slides along or down just
+## past it. With no hole they stay where they were put.
 ##
 ## A hole partway down a side (where a phone's top middle hole ends up in
 ## landscape) would leave a tall panel only half its height, so a panel that
 ## can wraps around it instead. Its rows and columns given to flow() leave a
-## gap where the hole is, so a row of buttons carries on past it, and
-## anything beside them only moves over as far as it has to.
+## gap where the hole is, so a row of buttons carries on past it.
 ##
-## The phone can be turned either way up in landscape, which moves the hole
-## to the other side, so it keeps checking.
+## The phone can be turned either way up in landscape, which moves the hole to
+## the other side, so it keeps checking.
 
 ## How far clear of the hole to keep, in the UI's own units.
 const CLEAR := 6.0

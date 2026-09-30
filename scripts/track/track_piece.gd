@@ -51,10 +51,8 @@ var side := 1
 var sticky := false
 
 # The loop has a run in, the loop itself and a run out. It tightens gradually
-# on the way in and eases off on the way out like a real one, instead of
-# snapping from straight to a circle (which slammed karts into the road). It
-# steps one tile across as it goes around, so the road coming out never runs
-# into the road going in.
+# on the way in and eases off on the way out, and steps one tile across as it
+# goes around so the road coming out never runs into the road going in.
 const LOOP_ARC := 110.0 # length of road around the loop itself, in metres
 const LOOP_EASE := 0.2 # how much of it is spent tightening up, and easing off
 const LOOP_IN := 16.0
@@ -320,9 +318,9 @@ func _jump_height(x: float) -> float:
 func bank_at(t: float) -> float:
 	if type != "curve":
 		return 0.0
-	# Eases in and out, so the road never starts rolling (or, since banked
-	# road leans up from its low edge, climbing) all at once. A sudden start
-	# threw karts into the air on the way onto a wall ride.
+	# Eases in and out, so the road never starts rolling (or climbing, since
+	# banked road leans up from its low edge) all at once, which would throw
+	# karts into the air.
 	return bank * pow(sin(PI * t), 2.0) * turn
 
 

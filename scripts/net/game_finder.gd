@@ -5,10 +5,9 @@ extends Node
 ##
 ## A host says it's there every second with a little broadcast on the local
 ## network, and anyone looking listens for them. This works on phones,
-## computers and the dedicated server alike. On Android, NSD (like ScorchDroid
-## uses) finds games too, through the SnapRacers plugin, and both lists are
-## merged, since to a player it's all one list. A web page can't do either,
-## so it's given an address instead.
+## computers and the dedicated server alike. On Android, NSD finds games too
+## through the SnapRacers plugin, and both lists are merged into one. A web
+## page can't do either, so it's given an address instead.
 ##
 ## A game played on your own advertises nothing.
 

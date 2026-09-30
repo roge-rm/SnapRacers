@@ -90,7 +90,7 @@ static func set_volume(bus: String, volume: float) -> void:
 	if index == -1:
 		return
 	AudioServer.set_bus_mute(index, volume <= 0.001)
-	# Squared, so the slider feels even: halfway sounds about half as loud.
+	# Squared, so the slider feels even and halfway sounds about half as loud.
 	AudioServer.set_bus_volume_db(index, linear_to_db(maxf(volume * volume, 0.0001)))
 
 
@@ -165,7 +165,7 @@ static func music_playing() -> String:
 	return _music_name
 
 
-## The race tune for a course: each Grand Prix cup has its own, and a course
+## The race tune for a course. Each Grand Prix cup has its own, and a course
 ## that isn't in a cup gets the first.
 static func race_tune(track_id: String) -> String:
 	var tunes := ["race_one", "race_two", "race_three", "race_four"]

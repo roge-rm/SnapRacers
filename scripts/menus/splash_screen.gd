@@ -1,21 +1,19 @@
 class_name SplashScreen
 extends Control
 
-## The loading screen when the game starts, and the reason it exists.
+## The loading screen when the game starts.
 ##
-## The phone compiles each shader the first time something needs it, and that
-## can freeze the screen for seconds. Godot's renderer for older phones can't
-## do it ahead of time, so this does it on purpose here, where a short wait is
-## expected. Hidden under the splash it sets up a race, then the garage, then
-## the driver builder, and lets each one draw for a few frames. That covers
-## the road, grass, walls, pillars, karts with drivers, a part knocked loose,
-## and the garage's see through and picked out parts, all with the sun and
-## shadows. Everything the game draws gets compiled once. Godot keeps what it
-## compiled, so after the first launch this is quick.
+## The phone compiles each shader the first time something needs it, which can
+## freeze the screen for seconds, and Godot's renderer for older phones can't
+## do it ahead of time. So hidden under the splash this sets up a race, then
+## the garage, then the driver builder, and lets each one draw for a few
+## frames. That covers the road, grass, walls, pillars, karts with drivers, a
+## part knocked loose and the garage's see-through and picked out parts, all
+## with the sun and shadows. Godot keeps what it compiled, so after the first
+## launch this is quick.
 ##
-## It has to be drawn on the real screen. I tried small off screen views
-## first and they didn't help, because the screen uses different versions of
-## the same shaders, so the first race still stalled.
+## It has to draw on the real screen, which uses different versions of the same
+## shaders than views off the screen do.
 
 ## How many frames each scene is drawn for. The first one does the compiling,
 ## and the rest catch anything that only turns up once things have moved.

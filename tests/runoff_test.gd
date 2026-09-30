@@ -1,9 +1,9 @@
 extends SceneTree
 
-## The edges of the road, the way a real kart track has them: bumpy kerbs on
-## the corners that throw you into the air at speed, grass that slows you down
-## without stopping you dead, and soft tire stacks you bounce off. It builds a
-## little course of hairpins and straights, and drives the Starter over each.
+## The edges of the road, with bumpy curbs on the corners that throw you into
+## the air at speed, grass that slows you down without stopping you dead, and
+## soft tire stacks you bounce off. It builds a little course of hairpins and
+## straights and drives the Starter over each.
 ##
 ## Run it with:
 ##   tools/godot/Godot_v4.7.2-stable_linux.x86_64 --headless --fixed-fps 60 --path . -s tests/runoff_test.gd
@@ -62,7 +62,7 @@ func _run() -> void:
 	for child in builder.get_children():
 		if child is StaticBody3D and child.get_meta("kerb", false):
 			kerbs.append(child)
-	check(kerbs.size() >= 4, "the hairpins have kerbs, inside and out (%d)" % kerbs.size())
+	check(kerbs.size() >= 4, "the hairpins have curbs, inside and out (%d)" % kerbs.size())
 	# Nothing sticks up beside the road at ground level: a ray just above the
 	# road, out across the edge, hits nothing.
 	var space := world.get_world_3d().direct_space_state
@@ -75,7 +75,7 @@ func _run() -> void:
 				walls += 1
 	check(walls == 0, "there are no walls beside the road at ground level (%d)" % walls)
 
-	# Riding a kerb, fast and then slowly. It's a long straight one out on the
+	# Riding a curb, fast and then slowly. It's a long straight one out on the
 	# grass, with the kart's right hand wheels on it and nothing steering.
 	var strip := StaticBody3D.new()
 	strip.collision_layer = Kart.LAYER_WORLD
@@ -90,9 +90,9 @@ func _run() -> void:
 	for speed: float in [22.0, 3.0]:
 		var airborne := await ride_kerb(Vector3(-80.75, 0.35, 60.0), speed)
 		if speed > 10.0:
-			check(airborne > 0.1, "riding a kerb at %d m/s throws the wheels into the air (%.2f of the time)" % [speed, airborne])
+			check(airborne > 0.1, "riding a curb at %d m/s throws the wheels into the air (%.2f of the time)" % [speed, airborne])
 		else:
-			check(airborne < 0.03, "at %d m/s a kerb only rumbles (%.2f of the time in the air)" % [speed, airborne])
+			check(airborne < 0.03, "at %d m/s a curb only rumbles (%.2f of the time in the air)" % [speed, airborne])
 
 	# Running wide onto the grass at speed, and coasting.
 	var off := track.frame_at(40.0)

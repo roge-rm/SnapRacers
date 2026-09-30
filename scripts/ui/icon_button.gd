@@ -1,9 +1,9 @@
 class_name IconButton
 extends Button
 
-## A round button with a small picture drawn on it, like the tool buttons in
-## Apogee's builder. The pictures are drawn with lines instead of coming from
-## an icon font, so they look the same everywhere the game runs.
+## A round button with a small picture drawn on it. The pictures are drawn with
+## lines instead of coming from an icon font, so they look the same everywhere
+## the game runs.
 ##
 ## A toggle one lights up in the accent colour while it's on.
 

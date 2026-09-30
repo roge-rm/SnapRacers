@@ -1,6 +1,6 @@
 {
 	"name": "Classic",
-	"about": "A proper go-kart: a flat frame, a little engine off to one side and handlebars. Light, simple and quick in the twisty bits.",
+	"about": "A proper go-kart, with a flat frame, a little engine off to one side and handlebars. Light, simple and quick in the twisty bits.",
 	"parts": [
 		{"id": "plate_6x10", "at": [7, 2, 7], "rot": 0, "color": "#f2cd37"},
 		{"id": "wheel_small", "at": [6, 0, 8], "rot": 0},

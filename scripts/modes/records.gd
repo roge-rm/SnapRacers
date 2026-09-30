@@ -61,8 +61,8 @@ static func add_cup_place(cup_id: String, place: int, level := Difficulty.DEFAUL
 	return false
 
 
-## Cups finished before there were difficulty levels were on Normal, so
-## Normal keeps using the plain cup id.
+## Normal keeps using the plain cup id, which is where cups finished before
+## there were difficulty levels are kept.
 static func _cup_key(cup_id: String, level: String) -> String:
 	return cup_id if level == Difficulty.DEFAULT else "%s %s" % [cup_id, level]
 

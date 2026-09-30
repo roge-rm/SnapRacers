@@ -77,7 +77,7 @@ void fragment() {
 		col *= 1.0 - 0.5 * s;
 		rough = 0.85;
 	} else if (kind < 1.5) {
-		// The kerbs are smooth blocks with ridges across them, which catch the
+		// The curbs are smooth blocks with ridges across them, which catch the
 		// light, and a seam where one block meets the next.
 		float ridge = fract(p.x / 0.6);
 		col *= 0.82 + 0.28 * smoothstep(0.0, 0.5, ridge) * (1.0 - smoothstep(0.5, 1.0, ridge));

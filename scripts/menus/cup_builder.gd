@@ -1,8 +1,8 @@
 class_name CupBuilder
 extends Control
 
-## Make a Grand Prix cup of your own, or change one: give it a name and pick
-## its races, in order, from the game's courses and the ones you've built.
+## Make a Grand Prix cup of your own or change one, with a name and its races
+## in order, from the game's courses and the ones you've built.
 
 var path := ""
 var cup: CupDesign
@@ -34,7 +34,7 @@ func _ready() -> void:
 		_show())
 	column.add_child(_name)
 
-	column.add_child(MenuStyle.heading("Races", "Raced in this order, from %d to %d of them" % [CupDesign.FEWEST, CupDesign.MOST]))
+	column.add_child(MenuStyle.heading("Races", "%d to %d, raced in order" % [CupDesign.FEWEST, CupDesign.MOST]))
 	_list = VBoxContainer.new()
 	_list.add_theme_constant_override("separation", 6)
 	column.add_child(_list)
@@ -51,7 +51,7 @@ func _ready() -> void:
 	if path != "":
 		row.add_child(MenuStyle.link("Delete it", func() -> void: _delete_dialog.popup_centered()))
 
-	column.add_child(MenuStyle.heading("Add a race", "Tap a course to add it to the end"))
+	column.add_child(MenuStyle.heading("Add a race"))
 	for game_cup in GrandPrix.cups():
 		for id in game_cup.tracks:
 			column.add_child(_course_button(Tracks.path_of(id)))
@@ -120,7 +120,7 @@ func save() -> void:
 		return
 	var old := path
 	path = cup.save()
-	# Renamed: the old file goes, so there aren't two.
+	# When it's renamed the old file goes, so there aren't two.
 	if old != "" and old != path:
 		DirAccess.remove_absolute(old)
 	Game.show_cups()

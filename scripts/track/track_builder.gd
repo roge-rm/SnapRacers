@@ -3,18 +3,17 @@ extends Node3D
 
 ## Builds the track you drive on from a TrackPath.
 ##
-## Each piece becomes one static body with its road and the deck under it.
-## It's all swept along the line down the middle, so hills and banking come
-## for free. Like a real kart track, the road has white lines down its edges
-## and runs out onto the grass, with bumpy kerbs on the corners (see Kerbs).
-## Only where you'd fall off (raised road, loops, wall rides and banked bends)
-## is there a shoulder and a low brick wall. Raised road gets pillars down to
-## the ground, cut bends get a dirt patch inside, and there's a gantry over
-## the start line.
+## Each piece becomes one static body with its road and the deck under it, all
+## swept along the line down the middle, so hills and banking come for free.
+## The road has white lines down its edges and runs out onto the grass, with
+## bumpy curbs on the corners. Only where you'd fall off (raised road, loops,
+## wall rides and banked bends) is there a shoulder and a low brick wall.
+## Raised road gets pillars down to the ground, cut bends get a dirt patch
+## inside, and there's a gantry over the start line.
 ##
 ## It's all made to look like it's built from bricks (see BrickShaders). The
 ## road is smooth tiles, the curbs and wall tops have studs, the walls and the
-## road's edges are courses of bricks, the ground is a baseplate, and brick
+## road's edges are courses of bricks, the ground is a baseplate and brick
 ## trees stand around the outside.
 
 const DECK := 0.6 # how thick the road is
@@ -29,14 +28,14 @@ const LINE_COLOUR := Color("#f2f2f2")
 ## Road higher than this above the ground gets walls, so you can't drive off
 ## the edge of it.
 const RAISED := 0.5
-## Kerbs: how tight a corner has to be to get them (one over its radius), how
-## high their ridged top is, how long each red or white block is, and how
-## short a run of kerb is worth putting down.
+## Curbs. How tight a corner has to be to get them (one over its radius), how
+## high their ridged top is, how long each red or white block is, and the
+## shortest run of curb worth putting down.
 const KERB_BEND := 1.0 / 150.0
 const KERB_HEIGHT := 0.1
 const KERB_BLOCK := 1.2
 const KERB_SHORTEST := 6
-## Kerbs get less grip than the road, besides the bumping (see Kart).
+## Curbs get less grip than the road, besides the bumping (see Kart).
 const KERB_GRIP := 0.9
 
 const COLOURS := {
@@ -64,10 +63,9 @@ var terrain: Terrain
 ## The course's theme (see Scenery.THEMES), which sets the colours.
 var _theme: Dictionary
 
-# Each shader is made once and kept for as long as the game runs. The phone
-# compiles a shader the first time it's drawn, and a new Shader object counts
-# as new even with the same code, so building them fresh for every race made
-# every race stall on its first frame.
+# Each shader is made once and kept while the game runs, since the phone
+# compiles a shader the first time it's drawn and a new Shader object counts as
+# new even with the same code.
 static var _road_shader: Shader
 static var _grass_shader: Shader
 static var _shared_material: ShaderMaterial
@@ -84,9 +82,8 @@ func _init(path: TrackPath) -> void:
 
 
 func _prepare() -> void:
-	# A plain standard material lit the flat road with so much sky on the
-	# phone that the asphalt came out pale blue, so the road has its own
-	# shader like the grass.
+	# The road has its own shader like the grass, since a plain standard
+	# material comes out pale blue on the phone.
 	if _road_shader == null:
 		_road_shader = shader_for(BrickShaders.TRACK)
 		_grass_shader = shader_for(BrickShaders.BASEPLATE)
@@ -281,7 +278,7 @@ func _piece_mesh(index: int) -> ArrayMesh:
 		return null
 	# Run on into the next piece's first sample so there's no seam. The last
 	# piece of a track that doesn't come back around to the start has nothing
-	# to run on into (joining it to the start drew road right across the map).
+	# to run on into.
 	var last_piece := index == track.pieces.size() - 1
 	if not last_piece or track.closes:
 		samples.append((samples[-1] + 1) % track.points.size())
@@ -439,13 +436,12 @@ func _add_cut(index: int, piece: TrackPiece) -> void:
 	add_child(body)
 
 
-## The red and white kerbs on the corners, like a real kart track has: one on
-## the inside of each corner around its middle, and one on the outside where
-## it comes out. They're low with ridged tops, so you can drive over them, but
-## at speed the ridges bounce the wheels into the air (see Kart), which is why
-## you'd rather keep off them.
+## The red and white curbs on the corners, one on the inside of each corner
+## around its middle and one on the outside where it comes out. They're low
+## with ridged tops, so you can drive over them, but at speed the ridges bounce
+## the wheels into the air (see Kart).
 ##
-## The corners are found from the line down the middle rather than from the
+## The corners are found from the line down the middle instead of from the
 ## pieces, so a slant's kinks get them and so does any course built in the
 ## editor. Road with walls gets none, and nor does the inside of a cut bend.
 func _add_kerbs() -> void:
@@ -496,7 +492,7 @@ func _add_kerbs() -> void:
 		_kerb_run(kerb[0], kerb[1])
 
 
-## One run of kerb down one side (1 right, -1 left), where the road allows.
+## One run of curb down one side (1 right, -1 left), where the road allows.
 func _kerb_run(samples: Array, side: int) -> void:
 	var usable: Array[int] = []
 	for k in samples:
@@ -522,8 +518,8 @@ func _add_kerb(run: Array, side: int) -> void:
 	var outer := (half + TrackPath.KERB) * side
 	var ramp := (half + 0.3) * side
 	var top := (half + TrackPath.KERB - 0.2) * side
-	# Across the kerb: up a little ramp from the road, the ridged top, and down
-	# to the grass. Listed so each edge faces up and out.
+	# Across the curb, up a little ramp from the road, over the ridged top and
+	# down to the grass, listed so each edge faces up and out.
 	var across := [
 		[Vector2(inner, 0.0), Vector2(ramp, KERB_HEIGHT)],
 		[Vector2(ramp, KERB_HEIGHT), Vector2(top, KERB_HEIGHT)],

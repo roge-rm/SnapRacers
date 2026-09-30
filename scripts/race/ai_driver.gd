@@ -103,9 +103,8 @@ func _physics_process(delta: float) -> void:
 	controls.steer = clampf(-angle / kart.full_lock * 1.2, -1.0, 1.0)
 
 	# For speed, find the slowest it needs to be for anything coming up, with
-	# room to brake.
-	# A driver who can't steer quickly (see KartStats.control) is late into
-	# every bend, so takes them a little slower.
+	# room to brake. A driver who can't steer quickly (see KartStats.control)
+	# takes every bend a little slower.
 	_judge_bends()
 	# With a loop coming up it takes the bends before it as well as it can, so
 	# it gets there with all the speed it needs, whatever its level.
@@ -113,7 +112,7 @@ func _physics_process(delta: float) -> void:
 	var grip := kart.stats.cornering() * KartStats.gravity() * daring * minf(1.0, 0.6 + 0.4 * kart.stats.control) * _misjudge
 	var allowed := INF
 	# Far enough ahead to stop for any bend from the speed it's doing, and a
-	# little more, which matters now karts go well over 100 km/h.
+	# little more.
 	var ahead := 4.0
 	var reach := maxf(64.0, speed * speed / (2.0 * BRAKING) + 24.0)
 	while ahead <= reach:
@@ -135,13 +134,13 @@ func _physics_process(delta: float) -> void:
 		controls.brake = 1.0
 		controls.steer = -controls.steer
 	# Easing off going into a loop or up it is how you fall off the top, so it
-	# keeps its foot down until it's back on the flat, and brakes for the next
+	# keeps its foot down until it's back on the flat and brakes for the next
 	# bend after that.
 	elif _looping():
 		controls.throttle = 1.0
 		controls.brake = 0.0
 		# Once the road really starts to climb is where it loses its nerve if
-		# it's going to. It lifts off and dabs the brake, and doesn't make the
+		# it's going to. It lifts off and dabs the brake and doesn't make the
 		# top.
 		if _lost_nerve and up.y < 0.7:
 			controls.throttle = 0.0
@@ -160,8 +159,7 @@ func _physics_process(delta: float) -> void:
 
 	_stuck_check(delta, speed, up)
 	kart.push = pace * Difficulty.push_for(behind, catch_up, ease_off, track.length)
-	# A loop needs everything the kart's got, whatever the level. Going easy on
-	# the run in, the gentler levels came up short and fell off it.
+	# A loop needs everything the kart's got, whatever the level.
 	if _on_loop and not _lost_nerve:
 		kart.push = maxf(kart.push, 1.0)
 
@@ -224,18 +222,17 @@ func _dodge() -> float:
 
 
 ## Every so often it looks at each gadget it can afford and uses it if the
-## moment's right. That's a turbo on a straight with no jump coming, the cannon at a kart dead
-## ahead, bricks for a kart right behind, a repair once it's lost a couple of
-## parts, a shield when someone's close, and a spring to hop free when it's
-## stuck.
+## moment's right. That's a turbo on a straight with no jump coming, the cannon
+## at a kart dead ahead, bricks for a kart right behind, a repair once it's
+## lost a couple of parts, a shield when someone's close and a spring to hop
+## free when it's stuck.
 func _use_gadgets(delta: float, speed: float) -> void:
 	_think -= delta
 	if _think > 0.0:
 		return
 	_think = THINK_EVERY
-	# The ones that depend on the moment come first, so a kart with a turbo
-	# doesn't spend every stud on it and have none left when the moment
-	# comes.
+	# The ones that depend on the moment come first, so it doesn't spend every
+	# stud on the turbo.
 	var buttons := kart.buttons()
 	var order := range(buttons.size())
 	order.sort_custom(func(a, b): return buttons[a][1].get("gadget", "") != "turbo" and buttons[b][1].get("gadget", "") == "turbo")
@@ -255,10 +252,9 @@ func _worth_using(kind: String, speed: float) -> bool:
 		"turbo":
 			if speed < 8.0:
 				return false
-			# Not in a bend or with one coming, or a jump, which it would fly
-			# right off. The faster it's going, the further ahead it has to be
-			# clear. Fired on the way out of a hairpin, it carried the kart
-			# wide into the barrier.
+			# Not in a bend, with one coming or before a jump it would fly off.
+			# The faster it's going, the further ahead it has to be clear, or
+			# it carries the kart wide out of a hairpin.
 			var ahead := -4.0
 			while ahead <= maxf(40.0, speed * Kart.TURBO_TIME * 1.5 + 15.0):
 				if track.bend_at(offset + ahead) > 0.008 or track.piece_type_at(offset + ahead) == "jump":
@@ -297,8 +293,8 @@ func _nearest(from: float, to: float, side_room: float) -> Kart:
 
 func _stuck_check(delta: float, speed: float, up: Vector3) -> void:
 	# It's stuck against something, or on its back. Upside down only counts
-	# when it isn't meant to be, so not at the top of a loop. It only counts
-	# as free again once it's got a little further around the track.
+	# when it isn't meant to be, so not at the top of a loop. It's free again
+	# once it's a little further around the track.
 	var upside_down := up.y < 0.3 and not kart.sticking
 	if not kart.locked and (speed < 1.5 or upside_down):
 		if _stuck == 0.0:

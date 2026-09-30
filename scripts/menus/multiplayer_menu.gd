@@ -37,7 +37,7 @@ func _ready() -> void:
 	var go := MenuStyle.button("Pick a course", Game.show_tracks.bind(Game.MODE_RACE))
 	go.custom_minimum_size.y = 72.0
 	column.add_child(go)
-	column.add_child(MenuStyle.heading("Online", "Race people on other phones, on the same Wi-Fi or over the internet"))
+	column.add_child(MenuStyle.heading("Online"))
 	var online := MenuStyle.button("Host or join a game", Game.show_online)
 	online.custom_minimum_size.y = 72.0
 	column.add_child(online)

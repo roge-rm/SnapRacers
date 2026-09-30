@@ -1,32 +1,27 @@
 class_name CharacterRig
 extends Node3D
 
-## A driver's model, built from a CharacterDesign, and the thing that poses
-## it. It's a minifig. It has a round head with its face printed on, a flat
-## fronted torso that's narrower at the shoulders, hips, two leg blocks with
-## feet sticking out the front, and short arms with C shaped hands.
+## A driver's model, built from a CharacterDesign, and the thing that poses it.
+## It's a minifig, with a round head with its face printed on, a flat fronted
+## torso that's narrower at the shoulders, hips, two leg blocks with feet
+## sticking out the front and short arms with C shaped hands. What each piece
+## looks like is in scripts/character/looks, one file for each kind.
 ##
-## This is the skeleton, and the helpers the pieces are made with. What each
-## piece looks like is in scripts/character/looks, one file for each kind.
+## It's a little cuter than a real minifig, with a bigger head, more rounded
+## blocks, shiny plastic and a face with big shiny eyes and rosy cheeks.
 ##
-## It's a little cuter than a real minifig: the head is a bit bigger, the
-## blocks are more rounded, the plastic is shiny, and the face has big shiny
-## eyes and rosy cheeks.
+## It moves the way a minifig does. The legs only hinge at the hips, so sitting
+## they stick straight out in front. The arms are rigid with a fixed bend at
+## the elbow and only swing at the shoulder, and the hands twist at the wrist.
+## To hold a steering wheel each arm swings to the angle that brings its hand
+## closest to the rim.
 ##
-## It moves the way a minifig does, too. The legs only hinge at the hips, so
-## when it sits down they stick straight out in front. The arms are rigid,
-## with the minifig's fixed bend at the elbow, and they only swing at the
-## shoulder. The hands twist at the wrist. To hold a steering wheel, each arm
-## swings to whichever angle brings its hand closest to the rim. When the
-## wheel sits where a minifig can reach it, that's right on the rim.
-##
-## A lively one (in a race or on the driver screen) blinks, pulls faces,
-## looks at karts that come up beside it and cheers when it wins. Standing,
-## it fidgets, looks around and waves now and then. Pictures stay still.
+## A lively one (in a race or on the driver screen) blinks, pulls faces, looks
+## at karts beside it and cheers when it wins, and standing it fidgets, looks
+## around and waves now and then. Pictures stay still.
 ##
 ## The origin is where the driver sits, in the middle of the bottom of the
-## hips. They face -Z. When they're standing, the feet are FEET_BELOW under the
-## origin.
+## hips, and they face -Z. Standing, the feet are FEET_BELOW under the origin.
 
 const HIPS_TOP := 0.08
 const TORSO_HEIGHT := 0.34
@@ -55,8 +50,8 @@ const FOREARM := 0.12
 const ELBOW_BEND := deg_to_rad(35.0)
 const FOREARM_IN := 0.25
 const HAND_SIZE := 0.045
-## Where domes over the head (hair, helmets, hoods) start: where the flat top
-## of the head starts to round over, above the eyebrows.
+## Where domes over the head (hair, helmets and hoods) start, which is where
+## the flat top of the head starts to round over, above the eyebrows.
 const DOME_BASE := HEAD_HEIGHT * 0.5 - 0.035
 
 var design: CharacterDesign
@@ -104,7 +99,7 @@ var _mood_left := 0.0
 var _blink_in := 0.0
 var _blink_left := 0.0
 var _rng := RandomNumberGenerator.new()
-## Where the head turns: with the steering, toward a kart alongside, or
+## Where the head turns, with the steering, toward a kart alongside, or
 ## (standing) at whatever's caught their eye.
 var _steer_look := 0.0
 var _glance := 0.0
@@ -224,7 +219,7 @@ func _exit_tree() -> void:
 		_painted.clear()
 
 
-## Pulls a face for a while: one of FacePrint.MOODS.
+## Pulls a face for a while, one of FacePrint.MOODS.
 func feel(mood: String, seconds := 1.5) -> void:
 	if not lively or not FacePrint.changes(design.style_of("head"), mood):
 		return
@@ -251,8 +246,8 @@ func hop() -> void:
 
 
 ## The lights that go with the toy plastic, for somewhere a driver's shown
-## close up: a cool light from the other side from the sun, and a warm one
-## from behind that picks out their edges.
+## close up. There's a cool light from the other side from the sun and a warm
+## one from behind that picks out their edges.
 static func add_toy_lights(parent: Node) -> void:
 	var fill := DirectionalLight3D.new()
 	fill.rotation_degrees = Vector3(-20.0, -140.0, 0.0)
@@ -444,12 +439,12 @@ func _build_head() -> void:
 	HeadgearLooks.build(self)
 
 
-## The head's material, with the face and any facial hair printed on, in a
-## mood or its own look. Each is painted once and kept.
+## The head's material, with the face and any facial hair printed on, in a mood
+## or its own look. Each is painted once and kept.
 ##
 ## Painting a face takes long enough to hitch a race on a phone, so the moods
 ## are painted on other threads (see _paint_moods), and until one's ready the
-## face just stays as it is.
+## face stays as it is.
 func _face_material(mood := "") -> StandardMaterial3D:
 	var key := _face_key(mood)
 	if _faces.has(key):
@@ -550,7 +545,7 @@ static func mat(colour: Color, metallic := 0.0) -> StandardMaterial3D:
 	return _materials[key]
 
 
-## Toy plastic: a clear shiny coat and a soft glow around the edges.
+## Toy plastic, with a clear shiny coat and a soft glow around the edges.
 static func _make_toy(m: StandardMaterial3D) -> void:
 	m.rim_enabled = true
 	m.rim = 0.25
@@ -623,10 +618,10 @@ static func pointing(direction: Vector3) -> Basis:
 	return Basis(x, y, x.cross(y))
 
 
-## A shell around the head, `extra` out from it: a dome over the top (unless
-## `dome` is false) and a band that comes down to `bottom` from `from` to `to`
-## (radians, 0 at the front, going around toward the right), up to `band_top`.
-## Helmets, hoods and hair are made of these.
+## A shell around the head, `extra` out from it, with a dome over the top
+## (unless `dome` is false) and a band that comes down to `bottom` from `from`
+## to `to` (radians, 0 at the front, going around toward the right), up to
+## `band_top`. Helmets, hoods and hair are made of these.
 func shell(colour: Color, extra: float, from: float, to: float, bottom: float, dome := true, band_top := DOME_BASE, metallic := 0.0) -> void:
 	var r := HEAD_RADIUS + extra
 	var material := mat(colour, metallic).duplicate() as StandardMaterial3D

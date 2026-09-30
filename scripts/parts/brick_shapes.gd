@@ -1,15 +1,14 @@
 class_name BrickShapes
 extends RefCounted
 
-## Meshes for the parts that aren't plain boxes: slopes, curves, nose cones,
-## wedge plates, mudguards, fairings, windscreens and wings. They keep to the
+## Meshes for the parts that aren't plain boxes, like slopes, curves, nose
+## cones, wedge plates, mudguards, fairings, windscreens and wings, in the
 ## shapes real bricks come in.
 ##
 ## Every shape is made facing forward (its sloped or rounded end toward -Z),
-## centred on its own origin and filling its box `extent`. The part is turned
-## afterwards. Most of them are a side view pushed out across the width, which
-## is how most real slopes are shaped anyway. Each one is made once for each
-## size and then shared.
+## centred on its own origin and filling its box `extent`, and the part is
+## turned afterwards. Most of them are a side view pushed out across the width.
+## Each one is made once for each size and then shared.
 
 ## How tall the little upright lip at the bottom of a slope is.
 const LIP := 0.035
@@ -214,7 +213,7 @@ static func _wedge(extent: Vector3, right: bool) -> ArrayMesh:
 	return tool.commit()
 
 
-## A nose cone: a rounded tunnel across the back half, closing to a rounded
+## A nose cone, a rounded tunnel across the back half closing to a rounded
 ## point at the front, flat underneath.
 static func _nose(extent: Vector3) -> ArrayMesh:
 	var tool := SurfaceTool.new()
@@ -272,7 +271,7 @@ static func _nose(extent: Vector3) -> ArrayMesh:
 	return tool.commit()
 
 
-## A wing: an aerofoil across the full width with an end plate at each side.
+## A wing, an aerofoil across the full width with an end plate at each side.
 ## `lift` raises it up on two stilts from the bottom of its box.
 static func _wing(extent: Vector3, lift: float) -> ArrayMesh:
 	var h := extent * 0.5

@@ -1,10 +1,10 @@
 class_name TorsoLooks
 extends RefCounted
 
-## The torso: the minifig's flat fronted block, narrower at the shoulders, in
-## the torso's colour, with its style printed on the front the way a real
-## minifig's is. Anything raised, like a belt buckle or a control panel, sits
-## on the surface and never sinks into it.
+## The torso, a flat fronted block narrower at the shoulders, in the torso's
+## colour, with its style printed on the front the way a real minifig's is.
+## Anything raised, like a belt buckle or a control panel, sits on the surface
+## and never sinks into it.
 
 const WHITE := Color("#f2f2f2")
 const GOLD := Color("#c9a227")
@@ -79,7 +79,6 @@ static func build(rig: CharacterRig) -> void:
 					button.call(GOLD, 0.075 * s, y + 0.07 - k * 0.07, 0.008)
 		"tank_top":
 			# Bare shoulders and a scooped neck.
-			# A scooped neck.
 			rig.add(up, MeshKit.rounded_box(Vector3(0.15, 0.1, 0.006), 0.04), d.skin(), Vector3(0.0, top - 0.035, -R.TORSO_DEPTH * 0.5 - 0.002))
 		"flowery":
 			var flowers := [[-0.1, y + 0.08, WHITE], [0.06, y + 0.11, Color("#f2cd37")], [0.1, y - 0.02, WHITE], [-0.04, y - 0.06, Color("#d86cb0")], [0.0, y + 0.02, Color("#f2cd37")], [-0.12, y - 0.1, Color("#d86cb0")], [0.12, y - 0.11, WHITE]]

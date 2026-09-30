@@ -1,13 +1,13 @@
 class_name SteeringVisual
 extends Node3D
 
-## What the driver steers with: a wheel on a column, handlebars, or a yoke
-## (a wheel with its top cut off, so it tucks in under a windscreen). It
-## turns with the kart's steering and says where the driver's hands go on it,
-## so they can follow it around.
+## What the driver steers with, a wheel on a column, handlebars or a yoke (a
+## wheel with its top cut off, so it tucks in under a windscreen). It turns
+## with the kart's steering and says where the driver's hands go on it, so they
+## can follow it around.
 ##
-## It sits in its part's box, with the wheel tilted up toward the driver
-## behind it (+Z).
+## It sits in its part's box, with the wheel tilted up toward the driver behind
+## it (+Z).
 
 ## How far the wheel turns at full lock. Any further and the driver's hands
 ## would have to reach right over the top of it.

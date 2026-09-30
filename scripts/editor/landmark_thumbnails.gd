@@ -1,10 +1,10 @@
 class_name LandmarkThumbnails
 extends Node
 
-## Takes a little picture of each landmark for the track editor's drawer,
-## the same way the garage takes pictures of its parts: each one is built on
-## its own in a small view off the screen and drawn once. The pictures are
-## kept for as long as the game runs.
+## Takes a little picture of each landmark for the track editor's drawer, the
+## same way the garage does its parts. Each one is built on its own in a small
+## view off the screen and drawn once, and the pictures are kept while the game
+## runs.
 
 signal ready_for(prop: String, picture: Texture2D)
 

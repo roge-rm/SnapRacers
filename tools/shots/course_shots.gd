@@ -1,10 +1,10 @@
 extends Node
 
-## Takes pictures of a course the way you'd see it racing, for checking how
-## it looks without a phone: the pack of eight after the start, the whole
-## course from above, a kart riding a kerb, a kart run wide onto the grass,
-## and the tire stacks. It needs a screen, so it's run on the computer's own
-## display (not headless), and it saves them in /tmp/snapracers-build/shots.
+## Takes pictures of a course the way you'd see it racing, for checking how it
+## looks without a phone. There's the pack of eight after the start, the whole
+## course from above, a kart riding a curb, a kart run wide onto the grass and
+## the tire stacks. It needs a screen, so it runs on the computer's own display
+## (not headless), and it saves them in /tmp/snapracers-build/shots.
 ##   DISPLAY=:0 tools/godot/Godot_v4.7.2-stable_linux.x86_64 --path . res://tools/shots/course_shots.tscn -- peach_pit
 
 const OUT := "/tmp/snapracers-build/shots"
@@ -131,7 +131,7 @@ func on_grass() -> void:
 	await with_camera(Transform3D(Basis.IDENTITY, eye).looking_at(at + along * 6.0, Vector3.UP), "grass")
 
 
-## The player's kart put on a kerb at speed, seen from the grass beyond it.
+## The player's kart put on a curb at speed, seen from the grass beyond it.
 func on_kerb() -> void:
 	var track := race.track
 	var best: StaticBody3D
@@ -143,9 +143,9 @@ func on_kerb() -> void:
 				best_size = box.size.length()
 				best = body
 	if best == null:
-		print("no kerbs on this course")
+		print("no curbs on this course")
 		return
-	# A point on the kerb itself, from the middle of its mesh.
+	# A point on the curb itself, from the middle of its mesh.
 	var vertices: PackedVector3Array = best.get_child(0).mesh.surface_get_arrays(0)[Mesh.ARRAY_VERTEX]
 	var middle: Vector3 = vertices[vertices.size() / 2]
 	var at := track.offset_of(middle)

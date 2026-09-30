@@ -1,26 +1,26 @@
 class_name CharacterDesign
 extends RefCounted
 
-## A driver the way the player built them. They have a name, and a style and
-## colour for each of their pieces: face, hair, facial hair, headgear, neck,
-## torso, back, arms and legs. Like a kart design it's plain data,
-## so it saves as a small file and travels to other players in a network game.
+## A driver as the player built them, with a name and a style and colour for
+## each piece (face, hair, facial hair, headgear, neck, torso, back, arms and
+## legs). Like a kart design it's plain data, so it saves as a small file and
+## goes to other players in a network game.
 ##
-## The weight of all their pieces decides the driver's class, and it goes into
-## the kart like any other part. A heavy driver makes a heavier, steadier kart
-## and a light one makes a quicker, twitchier one.
+## The weight of their pieces goes into the kart like any other part, so a
+## heavy driver makes a heavier, steadier kart and a light one a quicker,
+## twitchier one.
 
 const PIECES_PATH := "res://data/characters/pieces.json"
 ## "head" is the face and the skin colour.
 const SLOTS := ["head", "hair", "facial_hair", "headgear", "neck", "torso", "back", "arms", "legs"]
-## What a driver saved before a slot existed gets for it.
+## What a driver saved without a slot gets for it.
 const DEFAULTS := {
 	"hair": ["none", "#6b4430"],
 	"facial_hair": ["none", "#6b4430"],
 	"neck": ["none", "#c4281c"],
 	"back": ["none", "#3c3f44"],
 }
-## Hair that used to be headgear, before hair had a slot of its own.
+## Headgear styles that are hair now, for drivers saved with them as headgear.
 const HAIR_THAT_WAS_HEADGEAR := { "spiky_hair": "spiky", "ponytail": "ponytail" }
 const LIGHT_BELOW := 36.0
 const HEAVY_FROM := 44.0
@@ -81,7 +81,7 @@ static func from_dict(data: Dictionary) -> CharacterDesign:
 		if piece(slot, style).is_empty() and not styles(slot).is_empty():
 			style = fallback[0] if not piece(slot, fallback[0]).is_empty() else styles(slot)[0]
 		design.pieces[slot] = { "style": style, "color": Color(str(entry.get("color", fallback[1]))) }
-	# Spiky hair and the ponytail were headgear once.
+	# Spiky hair and the ponytail move from headgear to hair.
 	var old_gear := str(data.get("headgear", {}).get("style", ""))
 	if HAIR_THAT_WAS_HEADGEAR.has(old_gear) and not data.has("hair"):
 		design.pieces["hair"] = { "style": HAIR_THAT_WAS_HEADGEAR[old_gear], "color": Color(str(data.headgear.get("color", "#6b4430"))) }

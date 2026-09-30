@@ -1,21 +1,17 @@
 class_name KartStats
 extends RefCounted
 
-## Everything about how a kart will drive that can be worked out from its
-## design alone. The kart uses it to set up its physics, and the garage uses
-## it to show what a change will do before you take it out.
+## Everything about how a kart drives that can be worked out from its design.
+## The kart uses it to set up its physics and the garage shows it.
 ##
-## Air resistance comes from the kart's shape. Looking at the kart from the
-## front, every little square (a stud across and a plate high) that has
-## something in it catches some wind. How much depends on what the wind hits
-## first in that square and what it leaves last. A flat brick face catches
-## all of it, and a slope or a nose cone lets it slide past. The driver's in
-## the wind too, unless something like a windscreen is in front of them. A
-## wheel out in the open churns up extra air, so fairings in front of the
-## wheels help a lot.
+## Drag comes from the kart's shape. Seen from the front, each square a stud
+## across and a plate high with something in it catches wind, depending on what
+## the wind hits first and leaves last there. A flat face catches all of it and
+## a slope or nose cone lets it slide past. The driver catches wind unless
+## something is in front of them, and an open wheel churns up extra air.
 ##
-## Ergonomics is how easily the driver can steer. It depends on how they sit,
-## what they steer with, and how far they have to reach for it.
+## Ergonomics is how easily the driver steers, from how they sit, what they
+## steer with and how far they reach.
 
 const AIR_DENSITY := 1.2
 const BODY_DRAG := 0.5
@@ -28,8 +24,8 @@ const FRONT_SHARE := 0.6
 ## How smooth the air finds the driver, and a wheel's round tire.
 const DRIVER_AERO := 0.9
 const WHEEL_AERO := 0.8
-## Each stud further from the seat the steering is, the driver loses this
-## much control, reaching.
+## Each stud further from the seat the steering is costs the driver this much
+## control.
 const REACH_COST := 0.12
 ## Past this many studs from the seat, the driver can't reach it at all.
 const MOST_REACH := 2
@@ -160,10 +156,9 @@ static func compute(design: KartDesign, skip := {}, fixed_origin: Variant = null
 					stats.seat = info
 					stats.recline = deg_to_rad(info.def.get("recline", 0.0))
 					seat_control = info.def.get("control", 1.0)
-					# The driver sits in the middle of the seat, with their legs
-					# out in front. Sat any further back on a long seat, their
-					# weight took so much off the front wheels that the kart
-					# ploughed straight on in the corners.
+					# The driver sits in the middle of the seat with their legs
+					# out in front. Any further back on a long seat and their
+					# weight takes too much off the front wheels.
 					stats.seat_top = info.centre + Vector3(0.0, info.extent.y * 0.5, 0.0)
 					stats.mass += driver_mass
 					weighted += (stats.seat_top + Vector3.UP * 0.3 * cos(stats.recline)) * driver_mass

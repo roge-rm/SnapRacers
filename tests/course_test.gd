@@ -75,7 +75,7 @@ func _initialize() -> void:
 	check(raced.closes and raced.landmarks.size() == 1, "and it loads as a track to race, landmarks and all")
 	DirAccess.remove_absolute(path)
 
-	# A course saved before the tiles were kart sized: the same pieces, with
+	# A course saved before the tiles were kart sized has the same pieces, with
 	# its start, landmarks and road all grown to match.
 	var old_file := half.to_dict()
 	old_file.erase("grid")

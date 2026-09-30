@@ -1,18 +1,16 @@
 class_name TrackEditor
 extends Node3D
 
-## The track editor. You build a course like a slot car set: every piece you
-## pick clicks onto the end of the road, or after the piece you've picked
-## out. Tap a piece of road to pick it out and take it out, change its
-## surface or walls, or add more after it. Close it up finds the pieces to
-## bring the road back around to the start. Landmarks from the drawer go
-## wherever you drag them, as long as it's off the road.
+## The track editor. You build a course like a slot car set, where every piece
+## you pick clicks onto the end of the road or after the piece you've picked
+## out. Tap a piece of road to take it out, change its surface or walls, or add
+## more after it. Close it up finds the pieces to bring the road back around to
+## the start. Landmarks from the drawer go wherever you drag them off the road.
 ##
-## The course is laid out again after every change. Each kind of piece's road
-## is made once and kept, so that's instant even on a phone, and a moment
-## after you stop, the whole course is built properly, with its pillars and
-## the start gantry. What you're working on is kept as you go, so it's there
-## next time, like the kart in the garage.
+## The course is laid out again after every change from each kind of piece's
+## road, which is made once and kept, and a moment after you stop the whole
+## course is built properly with its pillars and start gantry. What you're
+## working on is kept as you go, like the kart in the garage.
 
 const CURRENT := "user://current_course.json"
 ## How long after the last change the full course gets built, in seconds.
@@ -114,8 +112,8 @@ func _ready() -> void:
 	_highlight.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 	_highlight.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	_camera = Camera3D.new()
-	# The course is seen from well back, so the near plane can be too. Right
-	# up close it made the grass flicker through the road from up here.
+	# The course is seen from well back, so the near plane can be too, or the
+	# grass flickers through the road.
 	_camera.near = 1.0
 	_camera.far = 6000.0
 	add_child(_camera)
@@ -414,7 +412,7 @@ func remove_landmark() -> void:
 	_refresh()
 
 
-## Puts back a landmark that was picked up, if it's clear, or never mind.
+## Puts back a landmark that was picked up, if it's clear.
 func _drop_holding() -> void:
 	if _holding.is_empty():
 		return

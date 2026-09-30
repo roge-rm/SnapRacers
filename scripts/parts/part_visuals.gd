@@ -201,8 +201,8 @@ static func _engine(holder: Node3D, def: Dictionary, extent: Vector3) -> void:
 	var across := Basis(Vector3.BACK, PI * 0.5)
 	match def.get("style", "block"):
 		"pedals":
-			# No engine at all: a low frame with a chainring on it, and a crank
-			# arm each side with a pedal on the end.
+			# No engine at all, just a low frame with a chainring on it and a
+			# crank arm each side with a pedal on the end.
 			var dark := material(Color("#3c3f44"))
 			add.call(box.call(Vector3(extent.x * 0.5, extent.y * 0.25, extent.z * 0.9)), Vector3(0.0, -h.y + extent.y * 0.125, 0.0), material(colour))
 			var middle := Vector3(0.0, -h.y + extent.y * 0.55, 0.0)
@@ -301,9 +301,8 @@ static func make_driver() -> Node3D:
 	return driver
 
 
-## Makes a part see-through, and red when it can't go where it is. I swap the
-## materials instead of drawing a tint on top, because overlays didn't show up
-## on the phone.
+## Makes a part see-through, and red when it can't go where it is. It swaps the
+## materials, since a tint drawn on top doesn't show on the phone.
 static func set_ghost(node: Node, fits: bool) -> void:
 	_tint(node, func(base: StandardMaterial3D) -> StandardMaterial3D:
 		return _variant(base.albedo_color if fits else Color("#ff2a1a"), 0.55))
@@ -371,8 +370,8 @@ static func material(color: Color) -> StandardMaterial3D:
 	if not _materials.has(key):
 		var m := StandardMaterial3D.new()
 		m.albedo_color = color
-		# Plastic has a soft sheen, not a mirror shine. Flat tops facing the sky
-		# looked pale blue when this was glossier.
+		# Plastic has a soft sheen, since glossier flat tops look pale blue
+		# under the sky.
 		m.roughness = 0.55
 		m.metallic_specular = 0.35
 		_materials[key] = m

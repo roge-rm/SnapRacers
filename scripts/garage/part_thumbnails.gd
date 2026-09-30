@@ -1,11 +1,10 @@
 class_name PartThumbnails
 extends Node
 
-## Takes a little picture of every part for the garage's part bank. Each part
-## is set up on its own in a small view off the screen, lit and seen from
-## above at an angle, and drawn once. The pictures are kept for as long as the
-## game runs, so the garage only takes them the first time it opens (which is
-## during the splash, while it warms up).
+## Takes a little picture of every part for the garage's drawer. Each part is
+## set up on its own in a small view off the screen, lit and seen from above at
+## an angle, and drawn once. The pictures are kept while the game runs, so the
+## garage only takes them the first time, during the splash.
 
 signal ready_for(id: String, picture: Texture2D)
 

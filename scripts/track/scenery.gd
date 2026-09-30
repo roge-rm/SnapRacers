@@ -3,20 +3,19 @@ extends Node3D
 
 ## Dresses a track with everything around it, built out of bricks.
 ##
-## Like a real kart track, the road runs out onto grass on both sides, and
-## nothing solid is put within RUNOFF of it. Where two stretches of road run
-## close, a line of soft tire stacks goes halfway across the grass between
-## them. Past the grass there's a grandstand and a pit building on the start
-## straight, billboards on the straights, flags at the start and marshal posts
-## at the corners. Around it
-## each course has a theme (a peach farm, a coal mine, a desert city, a
-## castle) with its own landmarks, trees and buildings, and its own colours
-## for the ground, curbs, walls and sky.
+## The road runs out onto grass on both sides, and nothing solid goes within
+## RUNOFF of it. Where two stretches of road run close, a line of soft tire
+## stacks goes halfway across the grass between them. Past the grass there's a
+## grandstand and a pit building on the start straight, billboards on the
+## straights, flags at the start and marshal posts at the corners. Each course
+## has a theme (a peach farm, a coal mine, a desert city, a castle) with its
+## own landmarks, trees and buildings, and its own colours for the ground,
+## curbs, walls and sky.
 ##
-## It works out how far every patch of ground is from the road, so nothing is
-## ever put on the road or too close to it, and the big landmarks go where
-## you'll see them. Everything is placed from a seed made from the course's
-## name, so a course looks the same every time you race it.
+## It works out how far every patch of ground is from the road, so nothing goes
+## on the road or too close to it, and the big landmarks go where you'll see
+## them. Everything is placed from a seed made from the course's name, so a
+## course looks the same every time.
 
 const CELL := 4.0 # metres, for the map of how far the ground is from the road
 const REACH := 80.0 # how far out from the road scenery goes
@@ -356,13 +355,13 @@ func _trackside() -> void:
 				board_side = -board_side
 
 
-## Lines of soft tire stacks halfway across the grass wherever two stretches
-## of road at the same level run close together, like a real kart track, so
-## nobody cuts across from one to the other.
+## Lines of soft tire stacks halfway across the grass wherever two stretches of
+## road at the same level run close together, so nobody cuts across from one to
+## the other.
 ##
-## Every few metres it looks straight out to each side for other road, a bit
-## of the lap well away from this one. Each gap is only done from the stretch
-## that comes first around the lap, so it's not lined twice.
+## Every few metres it looks straight out to each side for other road well away
+## from this bit of the lap. Each gap is only done from the stretch that comes
+## first around the lap, so it's not lined twice.
 func _tire_lines() -> void:
 	var edge := track.width * 0.5 + TrackPath.KERB
 	var count := track.points.size()

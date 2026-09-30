@@ -1,20 +1,18 @@
 class_name TrackEditorUI
 extends Control
 
-## The track editor's panels, laid out like the garage's. The course fills
-## the screen and every panel floats over it.
+## The track editor's panels, laid out like the garage's. The course fills the
+## screen and every panel floats over it.
 ##
-## Across the top are the tool buttons: leave, undo, redo, fit the course in
-## view, and the file menu. Down the left is the drawer of pieces, with a
-## rail of tabs. Tap a piece and it clicks onto the end of the road (or after
-## the piece you've picked out). The landmarks tab has the big things to put
-## around the course instead. In the top right is one line about the course,
-## which opens into its card: its name, laps and theme, anything stopping it
-## being raced, and Close it up. Test drive and race are along the bottom.
+## Across the top are the tool buttons for leaving, undo, redo, fitting the
+## course in view and the file menu. Down the left is the drawer of pieces with
+## a rail of tabs, and the landmarks tab has the big things to put around the
+## course. In the top right is one line about the course, which opens into its
+## card with its name, laps and theme, anything stopping it being raced and
+## Close it up. Test drive and race are along the bottom.
 ##
-## Tap a piece of road and its actions come up in the bottom right: take it
-## out, add more after it, and change its surface or walls. A landmark in
-## hand has its own: turn it, put it down, or take it away.
+## Tap a piece of road and its actions come up in the bottom right, and a
+## landmark in hand has its own.
 
 signal piece_chosen(spec: Dictionary)
 signal landmark_chosen(prop: String)
@@ -656,7 +654,7 @@ func _open_load() -> void:
 			var course := CourseDesign.load_file(path)
 			if course != null:
 				_load_list.add_child(_load_button(course.name, path))
-	_load_list.add_child(MenuStyle.heading("The game's courses", "Load one to build on it. It becomes a course of your own."))
+	_load_list.add_child(MenuStyle.heading("The game's courses", "Loading one makes a copy of your own"))
 	for id in Tracks.all():
 		var track := TrackPath.load_file(Tracks.path_of(id))
 		_load_list.add_child(_load_button(track.name, Tracks.path_of(id)))

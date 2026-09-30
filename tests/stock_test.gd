@@ -1,9 +1,9 @@
 extends Node
 
-## Checks the stock karts. There are sixteen, every one can be driven and
-## says what it's like, no two drive the same, and each one gets around a
-## lap of Peach Pit with the AI driving it. (tools/stock-karts/balance.tscn
-## goes further, and times them all on three courses.)
+## Checks the stock karts. There are sixteen, every one can be driven and says
+## what it's like, no two drive the same, and each one gets around a lap of
+## Peach Pit with the AI driving it. tools/stock-karts/balance.tscn goes
+## further and times them all on four courses.
 ##   tools/godot/Godot_v4.7.2-stable_linux.x86_64 --headless --fixed-fps 60 --path . res://tests/stock_test.tscn
 
 # A lap of Peach Pit takes them all 75 to 90 s at kart scale, so this leaves

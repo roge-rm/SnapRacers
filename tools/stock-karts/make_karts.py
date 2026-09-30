@@ -73,7 +73,7 @@ def kart(key, name, about):
     return k
 
 
-# 1. The one everyone starts with. It's the old starter kart.
+# 1. The one everyone starts with.
 (kart("starter", "Starter", "A bit of everything. It's a good kart to learn on and to build from.")
     .add("plate_6x10", 7, 2, 7)
     .add("wheel_small", 6, 0, 8).add("wheel_small", 13, 0, 8)
@@ -112,7 +112,7 @@ RUST = "#7b2e2f"
     .add("brick_dropper", 11, 4, 12)
     .pair("ballast", 7, 7, 7, colour=RUST))
 
-# 4. A dragster: long, with tiny wheels up front and slicks at the back.
+# 4. A long dragster, with tiny wheels up front and slicks at the back.
 ORANGE = "#da8540"
 (kart("slingshot", "Slingshot", "A dragster with a V8 in the back and big slicks right at the tail. It's heavy and nothing turns worse, but it's quick down a straight.")
     .add("plate_6x10", 7, 2, 4, colour="#1b2a34").add("plate_6x10", 7, 2, 14, colour="#1b2a34")
@@ -208,7 +208,7 @@ PURPLE = "#6b3fa0"
     .add("shield", 11, 3, 14))
 
 # 11. A proper go-kart, all frame.
-(kart("classic", "Classic", "A proper go-kart: a flat frame, a little engine off to one side and handlebars. Light, simple and quick in the twisty bits.")
+(kart("classic", "Classic", "A proper go-kart, with a flat frame, a little engine off to one side and handlebars. Light, simple and quick in the twisty bits.")
     .add("plate_6x10", 7, 2, 7, colour="#f2cd37")
     .wheels("wheel_small", 8).wheels("wheel_small_wide", 14)
     .add("tile_2x4", 8, 3, 7, rot=1, colour="#1b1b1b")

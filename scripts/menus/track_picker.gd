@@ -30,7 +30,7 @@ func _ready() -> void:
 	# The courses you've built, as long as they're finished.
 	var yours := CourseDesign.saved().filter(func(p): return CourseDesign.load_file(p) != null and CourseDesign.load_file(p).problems().is_empty())
 	if not yours.is_empty():
-		column.add_child(MenuStyle.heading("Your courses", "Built in the track editor"))
+		column.add_child(MenuStyle.heading("Your courses"))
 		for path in yours:
 			column.add_child(_course_button(path))
 	MenuStyle.back_at_bottom(column, go_back)
@@ -48,7 +48,7 @@ func _course_button(path: String) -> Button:
 	return button
 
 
-## A line saying what's on a track, like "675 m, 3 laps, a bridge and a jump".
+## A line saying what's on a track, like "1866 m, 3 laps, a bridge and a jump".
 static func describe(track: TrackPath) -> String:
 	var things := []
 	var has := func(what: Callable) -> bool:

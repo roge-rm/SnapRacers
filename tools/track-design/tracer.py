@@ -68,7 +68,7 @@ def load_real():
     lines = [l for l in json.load(open(os.path.join(here, name + ".json"))) if l["id"] in pick]
     pts = [p for l in lines for p in l["points"]]
     pts = np.array(pts, dtype=float)
-    # Screen y is down; make y up (north) so turns keep their direction.
+    # Screen y is down, so make y up (north) and turns keep their direction.
     pts[:, 1] = -pts[:, 1]
     if REVERSE:
         pts = pts[::-1]
@@ -119,8 +119,8 @@ real_s = np.arange(n, dtype=float)
 print("%s: %.0f m at scale %.2f, start straight %.0f m" % (name, total, scale, best_len), flush=True)
 
 
-# Where the real line crosses itself (a bridge), road is allowed to cross
-# there too; I turn it into a bridge by hand afterwards.
+# Where the real line crosses itself (a bridge), road can cross there too, and
+# I turn it into a bridge by hand afterwards.
 def _crossings(line):
     out = []
     m = len(line)

@@ -1,9 +1,9 @@
 class_name BackLooks
 extends RefCounted
 
-## What's worn on the back: shells, capes, packs, wings, tails and gear, in
-## the back piece's colour. Everything sits on the back of the torso, which is
-## flat, and comes out from it. Some pieces have straps over the shoulders.
+## What's worn on the back, like shells, capes, packs, wings, tails and gear,
+## in the back piece's colour. Everything comes out from the flat back of the
+## torso, and some pieces have straps over the shoulders.
 
 const WHITE := Color("#f2f2f2")
 const DARK := Color("#3c3f44")

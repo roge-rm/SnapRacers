@@ -1,21 +1,21 @@
 class_name DedicatedServer
 extends Node
 
-## SnapRacers running as a dedicated server: a game that's always there for
-## people to join, with nobody of its own racing in it.
+## SnapRacers running as a dedicated server, a game that's always there for
+## people to join with nobody of its own racing in it.
 ##
-## Phones join over ENet, and web pages over a WebSocket (a secure one, when
+## Phones join over ENet and web pages over a WebSocket (a secure one, when
 ## it's given a certificate), both in the same game (see MergedPeer). It keeps
 ## a lobby going, starts a race a few seconds after everyone in it is ready,
-## moves a cup on by itself after the standings, and goes back to the lobby
-## at the end. It tells the local network it's there, like a phone hosting.
+## moves a cup on by itself after the standings and goes back to the lobby at
+## the end. It tells the local network it's there, like a phone hosting.
 ##
 ## It's run from its web admin page (see server/web-admin), which talks to it
-## over a control channel on this machine only: one line of tab separated
-## words in, one line of JSON back. The settings live in a JSON file, so they
-## survive a restart.
+## over a control channel on this machine only, with one line of tab separated
+## words in and one line of JSON back. The settings live in a JSON file, so
+## they survive a restart.
 ##
-## Started with --server on the command line, or by a build exported as a
+## It starts with --server on the command line, or from a build exported as a
 ## dedicated server.
 
 const CONTROL_PORT := 27289
@@ -29,8 +29,8 @@ var _clients: Array[StreamPeerTCP] = []
 var _log: Array = []
 var _log_count := 0
 var _finder: GameFinder
-## When to do the next thing by itself: start, move the cup on, or go back
-## to the lobby.
+## When to do the next thing by itself, whether that's starting, moving the cup
+## on or going back to the lobby.
 var _start_at := -1.0
 var _next_at := -1.0
 var _next := Callable()
@@ -117,8 +117,8 @@ func _save_config() -> void:
 		file.store_string(JSON.stringify(config, "\t"))
 
 
-## The courses and cups it can put on: the game's own, and any in the
-## config's folder (courses/ and cups/ beside the config file).
+## The courses and cups it can put on, the game's own and any in the courses/
+## and cups/ folders beside the config file.
 func courses() -> Dictionary:
 	var out := {}
 	for id in Tracks.all():

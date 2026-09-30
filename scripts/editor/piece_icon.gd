@@ -1,10 +1,10 @@
 class_name PieceIcon
 extends Control
 
-## A picture of a piece of track for the track editor's drawer, drawn from
-## its own shape: the road seen from above on its tiles, coming in at the
-## bottom. Anything that climbs or drops has a little side view under it too,
-## and the loop and the jump are marked so you can tell them apart.
+## A picture of a piece of track for the track editor's drawer, drawn from its
+## own shape as the road seen from above on its tiles, coming in at the bottom.
+## Anything that climbs or drops has a little side view under it too, and the
+## loop and the jump are marked so you can tell them apart.
 
 const ROAD := Color("#8a8d86")
 const EDGE := Color("#f2f2f2")

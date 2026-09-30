@@ -24,18 +24,18 @@ import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicInteger
 
 /**
- * Racing over Bluetooth, with no Wi-Fi at all. It's ScorchDroid's
- * BluetoothTransport: sockets and threads, and nothing about the game. The
- * game's end is scripts/net/bluetooth_peer.gd, which makes it look like any
- * other network to Godot.
+ * Racing over Bluetooth, with no Wi-Fi at all. It's just the sockets and
+ * threads, with nothing about the game. The game's end is
+ * scripts/net/bluetooth_peer.gd, which makes it look like any other network
+ * to Godot.
  *
- * An RFCOMM socket is a stream, not packets, so every packet goes out behind
- * a four byte length, and comes in whole.
+ * An RFCOMM socket is a stream, so every packet goes out behind a four byte
+ * length and comes in whole.
  *
  * Each link has its own thread for writing, so the game never waits on the
  * radio. When a link backs up, packets that don't matter if they're lost (a
  * kart's position, which the next one replaces) are dropped instead of
- * queueing up behind each other, which would only make everything late.
+ * queueing up and making everything late.
  */
 class Bluetooth(private val plugin: SnapRacersNet) {
     companion object {

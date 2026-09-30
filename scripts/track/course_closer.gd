@@ -125,9 +125,9 @@ func _is_start(pose: Transform3D) -> bool:
 	return pose.origin.length() < 0.5 and (-pose.basis.z).dot(Vector3.FORWARD) > 0.99
 
 
-## At least how many more pieces it'll take from here: enough to cover the
-## distance (a piece goes four tiles at most), enough curves to face the
-## right way, and enough ramps to get back down.
+## At least how many more pieces it will take from here, with enough to cover
+## the distance (a piece goes four tiles at most), enough curves to face the
+## right way and enough ramps to get back down.
 func _guess(pose: Transform3D) -> float:
 	var flat := Vector2(pose.origin.x, pose.origin.z)
 	var distance := ceilf((absf(flat.x) + absf(flat.y)) / (4.0 * TrackPiece.TILE))

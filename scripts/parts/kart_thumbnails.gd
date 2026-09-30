@@ -1,9 +1,9 @@
 class_name KartThumbnails
 extends Node
 
-## Takes a picture of a whole kart, from in front and a little to one side,
-## for the kart picker. It works like PartThumbnails: one kart at a time in a
-## small view off the screen, kept for as long as the game runs.
+## Takes a picture of a whole kart, from in front and a little to one side, for
+## the kart picker. It works like PartThumbnails, one kart at a time in a small
+## view off the screen, kept while the game runs.
 
 signal ready_for(key: String, picture: Texture2D)
 

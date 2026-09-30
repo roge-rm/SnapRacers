@@ -2,8 +2,8 @@ class_name TestTrack
 extends Node3D
 
 ## A plain oval on a big green baseplate, with a jump on the back straight and
-## a pile of loose bricks in the middle to crash into. It's for trying out
-## handling until the real tracks and the track builder exist.
+## a pile of loose bricks in the middle to crash into, for test drives from the
+## garage.
 
 const HALF_STRAIGHT := 40.0
 const RADIUS := 30.0

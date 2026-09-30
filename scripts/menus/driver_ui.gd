@@ -1,16 +1,16 @@
 class_name DriverUI
 extends Control
 
-## The driver screen's panels, laid out like the garage's. The driver stands
-## in the middle and every panel floats over the scene on its own dark,
+## The driver screen's panels, laid out like the garage's. The driver stands in
+## the middle and every panel floats over the scene on its own dark,
 ## see-through backing.
 ##
-## Across the top are round tool buttons: leave, undo, redo and a random
-## driver. Down the left is the drawer, with a rail of tabs for the nine
-## pieces and a picture of your driver wearing each style of the piece. The
-## colours for the piece are in the bottom right. In the top right is their
-## name and weight, which opens into a card where you can rename them. Along
-## the bottom are sitting them in a kart and Done.
+## Across the top are round tool buttons for leaving, undo, redo and a random
+## driver. Down the left is the drawer, with a rail of tabs for the nine pieces
+## and a picture of your driver wearing each style. The colours are in the
+## bottom right, their name and weight in the top right (which opens into a
+## card to rename them), and sitting them in a kart and Done are along the
+## bottom.
 
 signal style_chosen(slot: String, style: String)
 signal colour_chosen(slot: String, colour: Color)
@@ -255,7 +255,7 @@ func _build_card() -> void:
 	_weight.add_theme_color_override("font_color", BuilderStyle.DATA)
 	box.add_child(_weight)
 	var about := Label.new()
-	about.text = "Heavier drivers make a steadier kart that's harder to knock around. Lighter ones make it quicker and twitchier."
+	about.text = "A heavier driver makes a steadier kart and a lighter one a quicker one."
 	about.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	about.custom_minimum_size = Vector2(270, 0)
 	about.add_theme_font_size_override("font_size", 17)

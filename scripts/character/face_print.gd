@@ -2,22 +2,20 @@ class_name FacePrint
 extends RefCounted
 
 ## Paints a minifig face onto a texture that wraps around the head, the way a
-## real minifig's face is printed. A face is made of eyes, brows, a mouth and
-## sometimes extras like freckles (see FACES), with any facial hair printed
-## underneath them in its own colour.
+## real minifig's face is printed. A face is eyes, brows, a mouth and sometimes
+## extras like freckles (see FACES), with any facial hair printed underneath in
+## its own colour.
 ##
-## They're meant to be cute. The eyes are big and set low and wide apart, with
-## a big shine and a little one in each, there are rosy cheeks on nearly every
-## face, and the mouths are small.
+## They're meant to be cute, with big eyes set low and wide apart, a big shine
+## and a little one in each, rosy cheeks on nearly every face and small mouths.
 ##
 ## A face can also be painted in a mood (see MOODS), which swaps its eyes,
-## brows or mouth for a moment: blinking, surprised when they're hit, happy
-## when they pass someone, and so on.
+## brows or mouth for a moment, like blinking, looking surprised when they're
+## hit or happy when they pass someone.
 ##
-## Each feature is a shape measured in metres on the head's surface (across
-## the face, around the curve, and up from the middle), drawn with a soft edge
-## so it stays smooth up close. Each one is only painted over its own small
-## patch, so even a face with a beard is quick to make.
+## Each feature is a shape measured in metres on the head's surface, drawn with
+## a soft edge so it stays smooth up close, and only painted over its own small
+## patch so even a face with a beard is quick to make.
 
 const WIDE := 512
 const TALL := 256
@@ -436,7 +434,7 @@ static func _triangle(p: Vector2, a: Vector2, b: Vector2, c: Vector2) -> float:
 	return -edge if inside else edge
 
 
-## Stubble: little dots over the lower face, where a beard would be.
+## Stubble, little dots over the lower face where a beard would be.
 static func _stubble(p: Vector2) -> float:
 	if _ellipse_d(p, Vector2(0.0, -0.03), Vector2(0.085, 0.07)) > 0.0 or p.y > -0.004:
 		return 1.0

@@ -39,41 +39,41 @@ Dan
 
 The garage works like the builder in Apogee, my physics sim. The kart fills the screen and everything else floats over it.
 
-- Drag a part out of the drawer onto the kart, or tap it, then nudge it into place a stud at a time with the arrows.
+- Drag a part from the drawer onto the kart, or tap it and nudge it into place a stud at a time with the arrows.
 - Tap a part on the kart to move, turn, copy or delete it.
 - Mirror puts every part down on both sides at once.
-- Paint any part in sixteen classic brick colours.
-- Undo and redo everything, and save as many karts as you like.
-- A card in the corner shows how the kart will drive: top speed, pull, cornering, control, off-road grip, weight and drag, and it tells you where most of the drag is coming from.
+- Paint any part in sixteen brick colours.
+- Undo and redo anything, and save as many karts as you like.
+- The card in the corner shows top speed, pull, cornering, control, off-road grip, weight and drag, and where most of the drag comes from.
 - Take it straight out for a test drive.
 
 ### 100 parts
 
 | | |
 |---|---|
-| **Plates** | Eleven, from a 1x4 to a long 6x12 chassis and a wide 8x10 one, wedge plates for a pointed nose, and a smooth tile with no studs. |
-| **Bricks** | Eleven: plain bricks from 1x1 to 2x6, a tall brick, a round brick, and a heavy ballast brick to keep the kart low. |
-| **Bodywork** | Twenty: slopes of every size, long slopes, curved slopes, inverted slopes, nose cones up to the full width of the kart, mudguards, a tail fin, wheel fairings and side pods. Put them at the front and the air slides over them, or turn them around to smooth the back. |
-| **Wheels** | Fourteen, from tiny wheels that keep the kart low to monster wheels that go over anything. Slicks in three sizes grip the road best and hate grass, knobbly and studded tires bite into grass, dirt and ice, balloon tires float over sand and kerbs, and skinny bicycle wheels roll further than anything. |
-| **Engines** | Thirteen: small and big engines, a micro engine, a rotary that revs and revs, a low flat four, a twin, a hybrid, two electric motors that push hardest from a standstill, a diesel that shoves like nothing else, a racing V8, a jet that pushes the kart along by itself, and pedals. Each one sounds different. |
-| **Cockpit** | Thirteen: an upright seat, a racing seat, a bucket seat and a lay-down seat, a steering wheel, a racing wheel, handlebars, a yoke and a tiller, and windscreens in four sizes. |
-| **Wings** | Seven: spoilers, a ducktail, front wings, and big rear wings on stilts, single and double, for grip in fast corners. |
-| **Gadgets** | Eleven: turbo and big turbo, spring and super spring, brick dropper, brick cannon, oil can, repair kit, shield, ram plate and magnet. You can carry two, and most of them run on studs you pick up on the track. |
+| **Plates** | Eleven, from a 1x4 to a long 6x12 chassis and a wide 8x10, with wedge plates for a pointed nose and a smooth tile. |
+| **Bricks** | Eleven, from 1x1 to 2x6, a tall brick, a round brick and a heavy ballast brick to keep the kart low. |
+| **Bodywork** | Twenty: slopes, long slopes, curved and inverted slopes, nose cones, mudguards, a tail fin, wheel fairings and side pods. Face them forward and the air slides over them, or turn them around to smooth the back. |
+| **Wheels** | Fourteen, from tiny wheels to monster wheels. Slicks grip the road best and hate grass, knobbly and studded tires bite into grass, dirt and ice, balloon tires float over sand and curbs, and skinny bicycle wheels roll the furthest. |
+| **Engines** | Thirteen: small and big engines, a micro engine, a rotary, a flat four, a twin, a hybrid, two electric motors, a diesel, a V8, a jet and pedals. Each one sounds different. |
+| **Cockpit** | Thirteen: four seats (upright, racing, bucket and lay-down), a steering wheel, a racing wheel, handlebars, a yoke, a tiller and windscreens in four sizes. |
+| **Wings** | Seven: spoilers, a ducktail, front wings and big rear wings, single and double. |
+| **Gadgets** | Eleven: turbo and big turbo, spring and super spring, brick dropper, brick cannon, oil can, repair kit, shield, ram plate and magnet. You can carry two, and most run on studs you pick up on the track. |
 
 ### Air and ergonomics
 
-Air resistance comes from the shape of the kart. Looked at from the front, each little square catches wind depending on what the air hits first and what it leaves last. A flat brick face catches all of it, while a slope or nose cone lets it slide past. The driver's in the wind too, unless there's a windscreen in front of them. A wheel out in the open churns up a lot of air, so fairings in front of the wheels help more than anything.
+The shape of the kart decides its drag. Seen from the front, a flat brick face catches all the wind and a slope or nose cone lets it slide past. The driver catches wind too unless there's a windscreen in front of them, and open wheels churn up a lot of it, so fairings in front of them help the most.
 
-How the driver sits matters. Lying down keeps them out of the wind and the kart low, but it's harder to steer quickly lying down. The steering has to be right in front of the seat, and every stud further they have to reach for it slows their hands.
+How the driver sits matters too. Lying down keeps them out of the wind, but they steer more slowly. The steering has to be right in front of the seat, and every stud they have to reach for it slows their hands.
 
 ### Sixteen stock karts
 
-If you'd rather not build, there are sixteen stock karts to pick from before any race, and the AI drivers race in them too. Each AI driver draws one at random at the start of a race, or once for a whole Grand Prix. Around a lap they're all within about seven percent of each other, but they get there in very different ways.
+If you'd rather not build, you can pick one of sixteen stock karts before any race, and the AI drivers race in them too. Each AI driver gets one at random for a race, or for a whole Grand Prix. They're all within about seven percent of each other around a lap, but they get there in different ways.
 
 | | |
 |---|---|
-| **Starter** | A bit of everything. It's a good kart to learn on and to build from. |
-| **Featherlight** | Light and low, with tiny wheels at the front, handlebars and a little rotary engine. |
+| **Starter** | A bit of everything, good to learn on and to build from. |
+| **Featherlight** | Light and low, with tiny front wheels, handlebars and a little rotary engine. |
 | **Bruiser** | A heavy slab with a diesel, a ram and ballast. |
 | **Slingshot** | A dragster with a V8 and a big turbo in the back. |
 | **Streamliner** | Faired in from nose to tail, with the driver lying down behind the screen. |
@@ -82,66 +82,32 @@ If you'd rather not build, there are sixteen stock karts to pick from before any
 | **Six-wheeler** | Four small wheels steering at the front, and a flat four at the back. |
 | **Monster** | Monster wheels and a hybrid engine. |
 | **Rocket** | A jet engine, slicks and wings. |
-| **Classic** | A proper go-kart: a flat frame, a little engine and handlebars. |
+| **Classic** | A proper go-kart, with a flat frame, a little engine and handlebars. |
 | **Downforce** | Big wings front and back, and slicks. |
 | **Brick Tank** | Two layers of bricks all around, a diesel, a shield and a repair kit. |
 | **Sparky** | An electric all rounder with a magnet for studs. |
-| **Hot Rod** | A V8 out in front and big slicks at the back. |
+| **Hot Rod** | A V8 out in front and big wheels at the back. |
 | **Soapbox** | Tall thin wheels, a nose cone and a little rotary engine. |
 
 ### Drivers
 
-Build your driver from a face, hair, facial hair, headgear, something around the neck, a torso, something on the back, arms and legs, each in its own colours, with a picture of your driver wearing every choice. There are at least twenty of each, from caps, crowns and space helmets to moustaches, capes, shells and wings, so if you want a driver that reminds you of someone from another kart game, you can probably get close. What they wear decides how heavy they are, and a heavier driver makes a steadier kart that's harder to knock around. The seven AI drivers are built the same way.
+Build your driver from a face, hair, facial hair, headgear, something around the neck, a torso, something on the back, arms and legs, each in its own colours. There are at least twenty of each, from caps, crowns and space helmets to moustaches, capes, shells and wings. What they wear decides how heavy they are, and a heavier driver makes a steadier kart. The seven AI drivers are built the same way.
 
-They're brick minifigs, just a bit cuter, with bigger heads, big shiny eyes and rosy cheeks, all in shiny toy plastic. They blink, look over at karts that pull up beside them, look surprised when they get hit, grin when they pass someone and look cross when they get passed. The winner throws their fists in the air and bounces in the seat. Standing on the driver screen they fidget, look around and wave now and then, and they give a little hop every time you try something new on them.
+They're brick minifigs, a bit cuter, with bigger heads, shiny eyes and rosy cheeks. They blink, look over at karts beside them, look surprised when they get hit, grin when they pass someone and look cross when they get passed. The winner throws their fists in the air. On the driver screen they fidget, look around, wave now and then and hop when you try something new on them.
 
 ### Track editor
 
-Build your own courses the way you'd put together a slot car set. Every piece you tap clicks onto the end of the road: straights, bends in three sizes, slants and S bends, humps, ramps and climbing bends for bridges, and the stunts, like the jump, the loop, wall rides, banked sweepers and bends with a shortcut across the middle. Tap a piece of road to take it out, change it to dirt, grass, sand or ice, give it walls or take them off, or add more pieces after it.
+Build courses the way you'd put together a slot car set. Each piece you tap clicks onto the end of the road: straights, bends in three sizes, slants and S bends, humps, ramps and climbing bends for bridges, a jump, a loop, wall rides, banked sweepers and bends with a shortcut. Tap a piece of road to take it out, change it to dirt, grass, sand or ice, add or take off walls, or add pieces after it.
 
-When you've had enough, Close it up works out the fewest pieces to bring the road back around to the start without running into itself. A card in the corner says what's still stopping it being raced, like the road not closing or no straight long enough for the grid. Pick a theme for the ground, the colours and the trees, how hilly it is (flat, rolling or hilly), and put landmarks like windmills, castles, rockets and lighthouses wherever you want them around the course.
+Close it up adds the fewest pieces it takes to bring the road back around to the start. The card in the corner says what's still stopping it being raced. Pick a theme for the ground, colours and trees, how hilly it is, and put landmarks like windmills, castles, rockets and lighthouses wherever you like.
 
-Saving moves the start line onto your longest straight, where the grid has room, and your course joins the lists for single races, time trials, practice and two player races, with its own records. Each course is one file with everything in it, so when you host a game online, everyone gets your course.
+Saving moves the start line onto your longest straight, and the course joins the lists for every kind of race, with its own records. Each course is one file, so when you host a game online everyone gets it.
 
-### Racing
+### Courses
 
-- **Grand Prix:** four cups of four races each, for points and trophies. From the second race on, the leader starts at the back.
-- **Your own cups:** put 2 to 8 races together from any courses, the game's and your own, and race them as a Grand Prix with points and trophies. A cup is one file with its courses in it, so it can be shared.
-- **Single race:** one race against the AI on any course, including your own.
-- **Time trial:** race the clock on any of the sixteen courses, with your best times kept.
-- **Practice:** drive any course on your own for as long as you like.
-- **Two players on one phone:** side by side in landscape, or face to face in portrait with the phone flat between you and the far half turned around.
-- **Six camera views:** close and far chase, first person from your driver's eyes (with their hands on the wheel), a bumper cam, overhead, and TV cameras beside the track. The camera button goes through them and each player's last view is remembered. Hold look back to see who's coming. When you cross the line the camera circles your kart, then the TV cameras take over while the AI drives you home.
-- **Four difficulty levels** for the AI drivers, picked before a race or a cup. Easy drivers take it gently, slip up now and then and wait for you. Expert drivers are right on the limit and never let up. Trophies are kept for each level.
+Every course is based on a real kart circuit, at the same size for the karts as the real one is for real karts: laps of 1.6 to 1.9 km, with a road wide enough for three karts through a bend. They're made of track pieces snapped together on a grid, with crests, jumps, bridges, a loop and plenty of scenery.
 
-### Online
-
-Race people on other phones, with up to eight karts and AI drivers in the empty places if the host wants them. The host picks one race or a whole cup, any course or cup, the game's or their own, and it's sent to everyone. Two players on one phone can go online together too, on a split screen.
-
-There's a way to connect for most places you'd be:
-
-- **The same Wi-Fi:** one phone hosts, and the game shows up on the others by itself.
-- **A hotspot:** with no Wi-Fi around, turn on one phone's hotspot, join it with the others and host on that phone.
-- **Wi-Fi Direct:** no router or hotspot needed. One phone hosts over Wi-Fi Direct, and the others find it with Find Wi-Fi Direct games.
-- **Bluetooth:** no Wi-Fi at all, for two or three phones. Pairing them first makes it quicker.
-- **A server:** a SnapRacers server is always there to join, on your network or on the internet, and runs races by itself. It runs in Docker with an admin page to pick what's raced. Browsers can join one too, which is the only way to race online from the web version. See [server/README.md](server/README.md).
-
-"How do I connect?" at the bottom of the online screen goes through all of it.
-
-### Sound
-
-Everything you hear was made from scratch for the game, by a little synthesiser in `tools/sound`. Nothing's recorded or downloaded.
-
-- **Engines:** each kind of engine has its own sound, from the buzzy little kart engine and the lawnmower micro engine to the lumpy V twin, the clattering diesel, the burbling V8, the whining electric motor and the roaring jet. They rev up as the kart speeds up, and on the grid you can rev yours.
-- **Driving:** tires squeal when you slide, there's a rumble on grass and dirt, and the wind picks up as you go faster.
-- **Everything else:** knocks and crashes, bricks clattering off, every gadget, studs, the countdown, laps, the finish, and clicks and snaps in the menus and the garage.
-- **Music:** a laid back tune for the menus and the garage, and a tune of its own for each cup. I wrote them note by note and the synthesiser plays them.
-
-Music and effects each have their own volume in Settings.
-
-Every course is made of track pieces snapped together on a grid, with crests, jumps, bridges, a loop and plenty of scenery. Each one is based on a real kart circuit, and it's as big for the karts as the real one is for real karts: laps of 1.6 to 1.9 km, with a road wide enough for three karts abreast through a bend.
-
-Like a real kart track, the road runs out onto grass that slows you down, instead of walls you catch on. There are only walls where you'd fall off, like on a bridge or a wall ride. The corners have red and white kerbs you can ride over, but at speed they bounce your wheels into the air. Where two bits of road run close together, there's a line of soft tire stacks down the middle of the grass between them. The ground rolls with gentle hills that the road climbs and drops over, a little on the lakeside courses and a lot in the mountains.
+The road runs out onto grass that slows you down, and there are only walls where you'd fall off. The corners have red and white curbs you can ride, but at speed they bounce your wheels into the air. Where two bits of road run close together there are soft tire stacks between them. The ground rolls in gentle hills, a little by the lakes and a lot in the mountains.
 
 | Cup | Courses |
 |---|---|
@@ -149,6 +115,40 @@ Like a real kart track, the road runs out onto grass that slows you down, instea
 | **Axle** | Delta Dash, Bucketwheel Bend, Foundry Flats, Amber Arc |
 | **Gearbox** | Timberline, Frostbite Forest, Dune Drift, Whistlestop Woods |
 | **Keystone** | Windmill Ridge, Launchpad Loop, Magma Mile, Castle Keep |
+
+### Racing
+
+- **Grand Prix:** four cups of four races each, for points and trophies. From the second race on, the leader starts at the back.
+- **Your own cups:** put 2 to 8 races together from any courses and race them as a Grand Prix. A cup is one file with its courses in it, so it can be shared.
+- **Single race:** one race against the AI on any course.
+- **Time trial:** race the clock, with your best times kept.
+- **Practice:** drive any course on your own for as long as you like.
+- **Two players on one phone:** side by side in landscape, or face to face in portrait with the phone flat between you.
+- **Six camera views:** close and far chase, first person from your driver's eyes, a bumper cam, overhead and TV cameras beside the track. Hold look back to see who's coming. After the finish the camera circles your kart and the AI drives you home.
+- **Four AI levels,** picked before a race or a cup. Easy drivers take it gently, slip up now and then and wait for you. Expert drivers are right on the limit. Trophies are kept for each level.
+
+### Online
+
+Race people on other phones, up to eight karts, with AI drivers in the empty places if the host wants them. The host picks one race or a whole cup and it's sent to everyone. Two players on one phone can go online together on a split screen.
+
+- **The same Wi-Fi:** one phone hosts and the game shows up on the others by itself.
+- **A hotspot:** turn on one phone's hotspot, join it with the others and host on that phone.
+- **Wi-Fi Direct:** no router or hotspot needed. One phone hosts over Wi-Fi Direct and the others use Find Wi-Fi Direct games.
+- **Bluetooth:** for two or three phones with no Wi-Fi at all. Pairing them first makes it quicker.
+- **A server:** a SnapRacers server runs races by itself, on your network or on the internet, in Docker with an admin page. Browsers can join one too, which is the only way to race online from the web version. See [server/README.md](server/README.md).
+
+"How do I connect?" at the bottom of the online screen goes through all of it.
+
+### Sound
+
+Everything you hear was made for the game by a little synthesizer in `tools/sound`. Nothing is recorded or downloaded.
+
+- **Engines:** each kind of engine has its own sound, from the buzzy little kart engine to the clattering diesel, the burbling V8, the whining electric motor and the roaring jet. You can rev yours on the grid.
+- **Driving:** tires squeal when you slide, grass and dirt rumble, and the wind picks up as you go faster.
+- **Everything else:** knocks and crashes, bricks clattering off, every gadget, studs, the countdown, laps, the finish and the clicks in the menus and the garage.
+- **Music:** a laid back tune for the menus and a tune for each cup. I wrote them note by note and the synthesizer plays them.
+
+Music and effects each have their own volume in Settings.
 
 ---
 
@@ -158,11 +158,11 @@ Download the APK from the [Releases](https://github.com/roge-rm/SnapRacers/relea
 
 ## Playing in a browser
 
-You can play it in a browser too, at [roge-rm.gitlab.io/play/snapracers](https://roge-rm.gitlab.io/play/snapracers/). It's the same game, with the garage, the driver screen, the track editor and every kind of race, and your karts, drivers, courses and records are kept in the browser. Two players can share a keyboard or plug in controllers for split screen. It wants a browser with WebGL 2 (any recent Chrome, Edge, Firefox or Safari).
+You can play it in a browser at [roge-rm.gitlab.io/play/snapracers](https://roge-rm.gitlab.io/play/snapracers/). It's the same game, and your karts, drivers, courses and records are kept in the browser. Two players can share a keyboard or plug in controllers. It needs a browser with WebGL 2, which any recent Chrome, Edge, Firefox or Safari has.
 
 ## Building
 
-SnapRacers is made with the Godot Engine 4.7.2, using the Compatibility renderer and Jolt physics. The build scripts expect a self-contained copy of Godot in `tools/godot`, which isn't in the repo:
+SnapRacers is made with Godot 4.7.2, using the Compatibility renderer and Jolt physics. The build scripts expect a copy of Godot in `tools/godot`, which isn't in the repo:
 
 - `tools/godot/Godot_v4.7.2-stable_linux.x86_64`, with an empty `._sc_` file beside it so it keeps its settings in `tools/godot/editor_data`
 - the 4.7.2 export templates in `tools/godot/editor_data/export_templates/4.7.2.stable`
@@ -180,15 +180,15 @@ tools/build-plugin.sh             # the Android network plugin (build-android.sh
 tools/build-server.sh --run       # the dedicated server, to run on this PC (Docker's in server/)
 ```
 
-The Android network plugin, in `android-plugin`, is a little Kotlin library for the things Godot can't do on its own: finding games with NSD, Wi-Fi Direct and Bluetooth. It's built with the Gradle that comes with Godot's Android build template, and `addons/snapracers_net` puts it into the APK.
+The Android network plugin in `android-plugin` is a little Kotlin library for finding games with NSD, Wi-Fi Direct and Bluetooth. It's built with the Gradle from Godot's Android build template, and `addons/snapracers_net` puts it into the APK.
 
-The phone APK is signed with my release key, which lives outside the repository beside the project in `../Keys`, so anywhere else it's signed with the Android debug key instead.
+The phone APK is signed with my release key, which lives beside the project in `../Keys`. Anywhere else it's signed with the Android debug key.
 
-The web page is built without threads, so it runs on any web host, since a threaded page needs the host to send special headers. Its engine needs [Emscripten](https://emscripten.org), which the build looks for in `~/.local/share/emsdk` (or wherever `EMSDK` says).
+The web page is built without threads so it runs on any web host. Its engine needs [Emscripten](https://emscripten.org), which the build looks for in `~/.local/share/emsdk` or wherever `EMSDK` says.
 
-`tools/build-engine.sh` builds Godot from source with only what the game uses (the list is in `tools/engine/profile.py`), which makes the APK a lot smaller. It keeps Ogg Vorbis for the music. It needs the Android NDK version Godot asks for and `uv` for installing scons. The finished engine goes in `tools/godot/custom`, and the Android build puts it into the APK. Without it, the build uses the stock engine.
+`tools/build-engine.sh` builds Godot from source with only what the game uses (the list is in `tools/engine/profile.py`), which makes the APK a lot smaller. It needs the Android NDK version Godot asks for and `uv` for installing scons. The finished engine goes in `tools/godot/custom` and the Android build puts it into the APK. Without it, the build uses the stock engine.
 
-The heavy parts of both builds happen in `/tmp`, because my `/home` is on a slow hard drive. The engine keeps a compile cache there too, so rebuilding it after a small change is quick. `/tmp` is emptied on a reboot, but the finished engine is kept, so it only needs building again for a new version of Godot or a change to the list.
+The heavy parts of the builds happen in `/tmp`, because my `/home` is on a slow hard drive. The engine keeps a compile cache there too. `/tmp` is emptied on a reboot, but the finished engine is kept, so it only needs building again for a new Godot or a change to the list.
 
 | | |
 |---|---|
@@ -200,7 +200,7 @@ The heavy parts of both builds happen in `/tmp`, because my `/home` is on a slow
 
 ## Testing
 
-The tests run headless on the computer and take a few minutes:
+The tests run headless on the computer and take a while, since some race in real time:
 
 ```sh
 tools/run-tests.sh
@@ -211,22 +211,23 @@ They check things like:
 - the starter kart settles on its wheels, gets up to speed, turns, brakes and resets (`drive_test`)
 - the building rules (`design_test`)
 - every part can be built and turned, and shapes, windscreens, seats, jets and tires do what they should (`parts_test`)
-- a gentle bump costs nothing, a crash at full speed knocks parts off, and a reset puts them back (`damage_test`)
+- a gentle bump costs nothing, a crash at full speed knocks parts off and a reset puts them back (`damage_test`)
 - every course closes into a loop without running into itself (`track_test`)
 - a fast kart sticks to the loop all the way around and a slow one drops off (`loop_test`)
 - every gadget does what it says (`gadget_test`)
-- drivers really do hold the steering wheel and follow it around, and every hat, hairdo, beard and back piece is joined on without poking through anything (`character_test`)
+- drivers hold the steering wheel, and every hat, hairdo, beard and back piece is joined on without poking through anything (`character_test`)
 - the garage, the menus and every mode, including a whole Grand Prix and two players on one phone (`garage_test`, `menu_test`, `modes_test`, `split_test`)
 - every stock kart gets around a lap with the AI driving (`stock_test`)
+- each AI level laps about as far behind Expert as it should (`difficulty_test`)
 - whole races with eight karts, around the loop too (`race_test`)
-- the kerbs throw you in the air at speed and only rumble slowly, the grass slows you without stopping you dead, tire stacks bounce you back, and there are no walls beside the road (`runoff_test`)
-- a game over Bluetooth, with a pretend radio: players get their ids, and messages get to the host, from the host and from one player to another (`bluetooth_test`)
+- curbs throw you in the air at speed, grass slows you without stopping you dead, tire stacks bounce you back and there are no walls beside the road (`runoff_test`)
+- a game over Bluetooth with a pretend radio (`bluetooth_test`)
 - two copies of the game racing each other over the network, a race and then a cup (`tools/run-net-test.sh`)
-- the dedicated server, with one player joining like a phone and one like a web page, and its admin page's commands (`tools/run-server-test.sh`, which also works on a server running in Docker with `--running`)
+- the dedicated server, with one player joining like a phone and one like a web page, and its admin page (`tools/run-server-test.sh`, which also works on a server running in Docker with `--running`)
 
 ### Stock karts and courses
 
-`tools/stock-karts` builds the stock karts and times them all against each other. `tools/track-design` turns real kart circuits into brick track pieces. Each has its own README.
+`tools/stock-karts` builds the stock karts and times them against each other, and `tools/track-design` turns real kart circuits into track pieces. Each has its own README.
 
 ---
 

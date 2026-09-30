@@ -82,8 +82,7 @@ class Runner:
 		karts.turbo.add_studs(5)
 		check(karts.turbo.use_gadget(0), "and can with enough")
 		check(karts.turbo.studs == 2, "which costs its three studs (%d left)" % karts.turbo.studs)
-		# Both steer a little while the turbo's on. The turbo used to push
-		# through the back wheels and use up all their grip, so this spun it.
+		# Both steer a little while the turbo's on, and neither should spin.
 		for kart in [karts.turbo, karts.plain]:
 			kart.controls.steer = 0.15
 			kart.set_meta("heading", kart.global_basis.z)

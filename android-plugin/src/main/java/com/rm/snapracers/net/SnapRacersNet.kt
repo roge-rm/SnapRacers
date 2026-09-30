@@ -19,9 +19,7 @@ import java.util.concurrent.ConcurrentLinkedQueue
 /**
  * The game's way into Android's networking: NSD for finding games on the same
  * Wi-Fi, Wi-Fi Direct for racing with no router or hotspot, and Bluetooth for
- * racing with no Wi-Fi at all. It's ScorchDroid's LanDiscovery,
- * WifiDirectTransport and BluetoothTransport, moved over and kept to what
- * SnapRacers needs.
+ * racing with no Wi-Fi at all.
  *
  * The game asks for things by calling the methods here, and everything that
  * comes back (a game found, a group formed, a Bluetooth packet) goes into one

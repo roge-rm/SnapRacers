@@ -4,9 +4,8 @@
 # on a reboot, so this puts the Android build template back when it's missing.
 #
 # Phones and the emulator get separate APKs, each with only the engine they
-# need, because Godot's engine library is almost all of the size. It's about
-# 76 MB for phones and 81 MB for the emulator, and the game itself is well
-# under 1 MB.
+# need, since the engine is most of the size. They're about 19 MB for phones
+# and 23 MB for the emulator.
 #
 #   tools/build-android.sh            the phone build (arm64), copied to the drop folder
 #   tools/build-android.sh --install  the emulator build (x86_64), installed on SnapRacers_Pixel_5
@@ -48,14 +47,13 @@ if [ ! -f "$PLUGIN" ] || [ -n "$(find android-plugin -newer "$PLUGIN" -type f -p
 fi
 
 # Our own cut down engine (see tools/build-engine.sh), when it's been built.
-# Phones get a release build of it, and the emulator gets a debug build, so
-# the debug switches work there.
+# Phones get a release build of it and the emulator a debug build, so the debug
+# switches work there.
 #
-# The phone build is signed with my release key, which lives beside the
-# project in ../Keys (the same layout as my other apps), so neither the
-# keystore nor its passwords can ever be committed. Without it, on a fresh
-# clone say, it's signed with the debug key instead so it can still be
-# sideloaded.
+# The phone build is signed with my release key, which lives beside the project
+# in ../Keys, so neither the keystore nor its passwords can be committed.
+# Without it, on a fresh clone say, it's signed with the debug key so it can
+# still be sideloaded.
 SIGNING="../Keys/snapracers-keystore.properties"
 ABI=arm64-v8a
 KIND=release

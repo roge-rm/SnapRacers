@@ -6,7 +6,7 @@
     <h2>The server's log</h2>
     <div class="actions"><a class="button quiet" href="/logs/download">Download it</a></div>
   </div>
-  <p class="muted">The last 500 things the server said. It doesn't keep any more than that.</p>
+  <p class="muted">The last 500 things the server said.</p>
   <div id="log" class="scroller tall" hx-get="/fragments/log?limit=500" hx-trigger="load, every 5s" hx-swap="innerHTML">
     <p class="muted">Loading...</p>
   </div>

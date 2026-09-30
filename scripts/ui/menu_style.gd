@@ -1,10 +1,8 @@
 class_name MenuStyle
 extends RefCounted
 
-## The look every menu screen shares, taken from ScorchDroid's menus. It has a
-## dark navy to purple backdrop, a big white title, and a column of soft
-## purple pill buttons. Having it in one place keeps the screens looking like
-## they belong together.
+## The look every menu screen shares, with a dark navy to purple backdrop, a
+## big white title and a column of soft purple pill buttons.
 
 const TOP := Color("#16213a")
 const BOTTOM := Color("#2b1b3d")
@@ -150,7 +148,7 @@ static func mark(b: Button, on: bool) -> void:
 				b.add_theme_stylebox_override(state, box)
 
 
-## Back (or Quit) under a menu's buttons, the way ScorchDroid's menus end.
+## Back (or Quit) under a menu's buttons.
 static func back_at_bottom(column: Container, action: Callable, text := "Back") -> Button:
 	var gap := Control.new()
 	gap.custom_minimum_size = Vector2(0.0, 6.0)
@@ -175,9 +173,7 @@ static func link(text: String, action: Callable) -> Button:
 	return b
 
 
-## A heading with a line of grey explanation under it, like ScorchDroid's
-## settings.
-## A slider for a setting, big enough for a thumb: a thick track filled in
+## A slider for a setting, big enough for a thumb, with a thick track filled in
 ## the accent colour up to a round handle.
 static func slider(value: float, changed: Callable, low := 0.0, high := 1.0, step := 0.1) -> HSlider:
 	var s := HSlider.new()
@@ -216,6 +212,7 @@ static func _knob(size: int, colour: Color) -> ImageTexture:
 	return ImageTexture.create_from_image(image)
 
 
+## A heading, with a line of grey explanation under it when there's one.
 static func heading(text: String, explanation := "") -> VBoxContainer:
 	var box := VBoxContainer.new()
 	box.add_theme_constant_override("separation", 2)
@@ -233,9 +230,8 @@ static func heading(text: String, explanation := "") -> VBoxContainer:
 	return box
 
 
-## A page with its title in the top left and Back in the top right corner,
-## like ScorchDroid's settings, and a column underneath for what's on it.
-## Returns that column.
+## A page with its title in the top left, Back in the top right and a column
+## underneath for what's on it. Returns that column.
 static func page(root: Control, heading_text: String, back: Callable, width := 760.0) -> VBoxContainer:
 	root.theme = theme()
 	root.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)

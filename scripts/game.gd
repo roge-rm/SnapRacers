@@ -248,8 +248,8 @@ func show_about() -> void:
 func show_race(path := "") -> void:
 	if path != "":
 		track_path = path
-	# A kart that can't race (like one saved before steering wheels were
-	# needed) goes to the garage instead, which lists what's missing.
+	# A kart that can't race goes to the garage instead, which lists what's
+	# missing.
 	if not design.problems().is_empty():
 		show_garage()
 		return

@@ -10,7 +10,7 @@ extends Node
 ## every frame (and whenever the Bluetooth peer polls), turning each thing
 ## into a signal, or handing it to the Bluetooth peer.
 
-## A game found: how ("nsd", "direct" or "bluetooth"), and what's known
+## A game found, with how ("nsd", "direct" or "bluetooth") and what's known
 ## about it ("name", and "address" and "port", or "device").
 signal found(how: String, game: Dictionary)
 ## A game found with NSD has gone.
@@ -18,7 +18,7 @@ signal lost(how: String, game_name: String)
 ## Looking over Wi-Fi Direct or Bluetooth has finished, or couldn't start.
 signal looking_done(how: String, why: String)
 signal direct_hosting(ok: bool, why: String)
-## Joined a Wi-Fi Direct group: the host's address to race to, or why not.
+## Joined a Wi-Fi Direct group, with the host's address to race to, or why not.
 signal direct_joined(address: String, why: String)
 
 var android: Object

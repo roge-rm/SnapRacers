@@ -28,9 +28,9 @@ var _time := 0.0
 func _ready() -> void:
 	design = Game.character.duplicate_design()
 	SkyAndSun.add_to(self, 20.0, BuilderStyle.BACKGROUND)
-	# Lit like a toy on a shelf: softly, with light, soft shadows, a cool
-	# light from the other side and a warm one from behind that picks out the
-	# edges of the shiny plastic.
+	# Lit like a toy on a shelf, softly with light shadows, a cool light from
+	# the other side and a warm one from behind that picks out the edges of the
+	# shiny plastic.
 	for child in get_children():
 		if child is WorldEnvironment:
 			child.environment.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
@@ -41,7 +41,8 @@ func _ready() -> void:
 			child.light_energy = 0.75
 			child.shadow_opacity = 0.55
 			child.shadow_blur = 2.5
-			# Close up, the shadow of the hips on the legs came out as a sawtooth.
+			# Enough bias that close up the hips' shadow on the legs isn't a
+			# sawtooth.
 			child.shadow_bias = 0.08
 			child.shadow_normal_bias = 2.5
 	CharacterRig.add_toy_lights(self)

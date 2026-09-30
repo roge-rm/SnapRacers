@@ -24,7 +24,7 @@ static func _load() -> void:
 	var text := FileAccess.get_file_as_string(PATH)
 	var data = JSON.parse_string(text)
 	if typeof(data) != TYPE_DICTIONARY or not data.has("parts"):
-		push_error("I couldn't read the part catalog at %s" % PATH)
+		push_error("I couldn't read the part catalogue at %s" % PATH)
 		return
 	for id in data.parts:
 		var part: Dictionary = data.parts[id]
