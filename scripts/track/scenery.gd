@@ -22,6 +22,11 @@ const REACH := 80.0 # how far out from the road scenery goes
 const MAX_FILLERS := 280
 ## Grass between the edge of the road and anything you could hit.
 const RUNOFF := 10.0
+## Props this small (by Props.ROOM) come down whole when hit. Bigger ones only
+## break where they're hit.
+const SMALL := 3.2
+## Props too big to break, like hills and lakes.
+const UNBREAKABLE := ["mountain", "volcano", "slag_heap", "dune", "lake", "pond", "lava_pool", "old_banking", "red_roof", "bridge"]
 ## Two stretches of road closer than this (middle to middle) get a line of
 ## tire stacks between them.
 const BARRIER_REACH := 2.0 * TrackPiece.TILE
@@ -416,7 +421,10 @@ func _grounded(at: Vector3) -> Vector3:
 func _add(prop: String, at: Vector3, facing := -1) -> void:
 	at = _grounded(at)
 	var f := facing if facing >= 0 else _facing_road(at)
+	if not UNBREAKABLE.has(prop):
+		_kit.begin(prop, Props.ROOM.get(prop, 3.0) <= SMALL)
 	Props.add(_kit, prop, at, _rng, f)
+	_kit.done()
 	_placed.append([at, Props.ROOM.get(prop, 3.0)])
 
 
@@ -451,7 +459,9 @@ func _trackside() -> void:
 					var post := p + track.rights[k] * outside * (edge + 4.0)
 					post = _grounded(post)
 					if _free(post, 1.5) and not _near_other_road(post, edge + 3.0, k, 25.0):
+						_kit.begin("marshal_post", true)
 						Props.marshal_post(_kit, post, _facing_for(p - post))
+						_kit.done()
 						_placed.append([post, 1.5])
 		elif flat_ground:
 			straight_run += 1.0
@@ -459,7 +469,9 @@ func _trackside() -> void:
 				var spot := p + track.rights[k] * board_side * (edge + 3.5)
 				spot = _grounded(spot)
 				if _free(spot, 3.2) and not _near_other_road(spot, edge + 3.0, k, 25.0):
+					_kit.begin("billboard", true)
 					Props.billboard(_kit, spot, _facing_for(p - spot), boards[_rng.randi() % boards.size()])
+					_kit.done()
 					_placed.append([spot, 3.2])
 				board_side = -board_side
 
@@ -493,7 +505,9 @@ func _tire_lines() -> void:
 			var steps := maxi(1, int(a.distance_to(b) / STACK_EVERY))
 			for i in steps:
 				var at := a.lerp(b, float(i) / steps)
+				_kit.begin("tires", false, true)
 				Props.barrier_stack(_kit, at, colours[(stacks / 3) % 2])
+				_kit.done()
 				stacks += 1
 			_placed.append([a, 2.0])
 
@@ -672,10 +686,12 @@ func _start_area(edge: float) -> void:
 		front = _grounded(front)
 		if not _clear_of_other_road(front, fwd, -right * side, 32.0, 8.0, start_k):
 			continue
+		_kit.begin("grandstand" if built == 0 else "pit_building", false)
 		if built == 0:
 			Props.grandstand(_kit, front, 30.0, _facing_for(-right * side), _rng)
 		else:
 			Props.pit_building(_kit, front, 30.0, _facing_for(-right * side))
+		_kit.done()
 		_placed.append([front + right * side * 3.5, 17.0])
 		built += 1
 	for k in 4:
@@ -685,7 +701,9 @@ func _start_area(edge: float) -> void:
 			# The start straight can bend soon after the line, so check all the
 			# road, not just other bits of it.
 			if not _near_other_road(at, edge + 1.0, start_k, 0.0):
+				_kit.begin("flag", true)
 				Props.flag(_kit, at, [Props.RED, Props.YELLOW, Props.BLUE, Props.GREEN][k])
+				_kit.done()
 
 
 ## Whether a building `length` long and `depth` deep, with its front middle at

@@ -12,7 +12,8 @@ extends Node
 ## going for a moment.
 ##
 ## What happens to a kart is sent as it happens: parts coming off, repairs,
-## resets and gadgets, so its wreckage, bubble and bricks show up everywhere.
+## resets, gadgets and scenery it breaks, so its wreckage, bubble and bricks
+## show up everywhere.
 ## Only a kart's own device decides whether it was hit, so a brick that
 ## misses on one screen and hits on another hurts it once, where it counts.
 ##
@@ -68,6 +69,8 @@ func add(slot: int, racer: Race.Racer, owner: int) -> void:
 	kart.repaired.connect(func() -> void: session.kart_event.rpc(slot, "repaired", null))
 	kart.was_reset.connect(func() -> void: session.kart_event.rpc(slot, "reset", null))
 	kart.gadget_used.connect(func(kind: String) -> void: session.kart_event.rpc(slot, "gadget", kind))
+	kart.broke_scenery.connect(func(group: int, at: Vector3, velocity: Vector3) -> void:
+		session.kart_event.rpc(slot, "broke", [group, at.x, at.y, at.z, velocity.x, velocity.y, velocity.z]))
 
 
 func slot_of(racer: Race.Racer) -> int:
@@ -158,6 +161,10 @@ func got_event(sender: int, slot: int, kind: String, data: Variant) -> void:
 			kart.repair_now()
 		"reset":
 			Sounds.play_at("fx/reset", kart.sound)
+		"broke":
+			var damage := WorldDamage.in_tree(get_tree())
+			if damage != null and data is Array and data.size() == 7:
+				damage.break_at(int(data[0]), Vector3(data[1], data[2], data[3]), Vector3(data[4], data[5], data[6]))
 		"gadget":
 			var noise: String = Kart.GADGET_SOUNDS.get(str(data), "")
 			if noise != "":

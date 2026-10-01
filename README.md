@@ -123,6 +123,8 @@ Every course is based on a real circuit, with laps of 1.6 to 1.9 km and a road w
 
 The road runs out onto grass that slows you down, and there are only walls where you'd fall off. The corners have red and white curbs you can ride, but at speed they bounce your wheels into the air. Where two bits of road run close together there are soft tire stacks between them. The ground rolls in gentle hills, a little by the lakes and a lot in the mountains.
 
+The scenery breaks. Drive through a tree, a fence or a billboard and it comes down in pieces, and a crash into a house or the grandstand knocks a hole in it. The loose bricks stay where they land until the race is over, and you can push them about, so the places people crash fill up with rubble. A hard hit on a tire stack knocks its top tires off, but the bottom ones stay, so you still can't cut across.
+
 | Cup | Courses |
 |---|---|
 | **Baseplate** | Peach Pit, Trulli Turns, Lemon Lake, Pithead Park |
@@ -230,6 +232,7 @@ They check things like:
 - the building rules (`design_test`)
 - every part can be built and turned, and shapes, windscreens, seats, jets and tires do what they should (`parts_test`)
 - a gentle bump costs nothing, a crash at full speed knocks parts off and a reset puts them back (`damage_test`)
+- small scenery comes down whole, buildings only where they're hit, tire stacks keep their bottom tire, and a kart driving into something small knocks it down and keeps going (`damage_world_test`)
 - every course closes into a loop without running into itself (`track_test`)
 - a fast kart sticks to the loop all the way around and a slow one drops off (`loop_test`)
 - every power-up does what it says, the boxes hand them out and the karts at the back get the strong ones more often (`gadget_test`)

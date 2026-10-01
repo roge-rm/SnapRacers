@@ -15,6 +15,8 @@ extends RigidBody3D
 signal was_reset
 signal parts_lost(indices: Array[int])
 signal gadget_used(kind: String)
+## It broke some scenery (see WorldDamage), so other devices can too.
+signal broke_scenery(group: int, at: Vector3, velocity: Vector3)
 ## Its lost parts are back on, after a reset or from a repair kit.
 signal repaired
 
@@ -62,6 +64,15 @@ const LAYER_DEBRIS := 4
 ## Things karts crash into that aren't the track, like fired bricks and
 ## dropped piles. Wheels don't ride on them.
 const LAYER_HAZARD := 8
+## Loose bricks knocked off the scenery (see WorldDamage). Karts push them
+## about, and wheels don't ride on them.
+const LAYER_RUBBLE := 16
+## How fast a kart has to be going into scenery to break it, in metres a
+## second, how much of its speed it keeps going through something small it
+## broke, and how soon after a break it can break something else.
+const BREAK_SPEED := 7.0
+const PLOUGH := 0.7
+const BREAK_EVERY := 0.25
 
 # Power-ups (see Powerups).
 const TURBO_TIME := 1.6
@@ -302,6 +313,7 @@ var _impact := {} # part index -> recent knocks, in newton seconds
 var _breaking: Array[int] = []
 var _last_velocity := Vector3.ZERO
 var _last_applied := Vector3.ZERO
+var _break_wait := 0.0
 ## The grip the driven wheels had left for driving last step, for each
 ## newton of weight they carry standing still, taking the one with least.
 var _drive_room := INF
@@ -309,7 +321,7 @@ var _drive_room := INF
 
 func _init() -> void:
 	collision_layer = LAYER_KARTS
-	collision_mask = LAYER_WORLD | LAYER_KARTS | LAYER_HAZARD
+	collision_mask = LAYER_WORLD | LAYER_KARTS | LAYER_HAZARD | LAYER_RUBBLE
 	center_of_mass_mode = CENTER_OF_MASS_MODE_CUSTOM
 	continuous_cd = true
 	can_sleep = false
@@ -934,6 +946,7 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 		applied += push
 
 	_steady(state, up)
+	_break_scenery(state)
 	_feel_knocks(state)
 	_last_velocity = state.linear_velocity
 	_last_applied = applied
@@ -1081,6 +1094,34 @@ static func ground_drag(ground: float, offroad: float) -> float:
 ## engine, tires, air and gravity did. The physics engine's contact impulses
 ## come out well under the real knock, so they only share it out between the
 ## parts that were touching something.
+## Breaks scenery the kart's gone into hard enough (see WorldDamage). Only
+## the kart's own device decides, and tells the others. Going through
+## something small only slows it down a bit.
+func _break_scenery(state: PhysicsDirectBodyState3D) -> void:
+	_break_wait = maxf(_break_wait - state.step, 0.0)
+	if remote or _break_wait > 0.0 or ghost_left > 0.0:
+		return
+	for i in state.get_contact_count():
+		var hit: Object = state.get_contact_collider_object(i)
+		if hit == null or not hit.has_meta("breakable"):
+			continue
+		var group := WorldDamage.group_of(hit, state.get_contact_collider_shape(i))
+		if group < 0:
+			continue
+		var at := state.get_contact_collider_position(i)
+		var toward := at - state.transform.origin
+		toward.y = 0.0
+		if toward.length() < 0.01 or _last_velocity.dot(toward.normalized()) < BREAK_SPEED:
+			continue
+		_break_wait = BREAK_EVERY
+		var damage: WorldDamage = hit.get_meta("breakable")
+		damage.break_at.call_deferred(group, at, _last_velocity)
+		broke_scenery.emit.call_deferred(group, at, _last_velocity)
+		if damage.is_small(group):
+			state.linear_velocity = _last_velocity * PLOUGH
+		return
+
+
 func _feel_knocks(state: PhysicsDirectBodyState3D) -> void:
 	var count := state.get_contact_count()
 	for part in _impact.keys():
@@ -1297,7 +1338,7 @@ func _ghost_tick(delta: float) -> void:
 
 func _set_ghostly(on: bool) -> void:
 	collision_layer = 0 if on else LAYER_KARTS
-	collision_mask = LAYER_WORLD if on else LAYER_WORLD | LAYER_KARTS | LAYER_HAZARD
+	collision_mask = LAYER_WORLD if on else LAYER_WORLD | LAYER_KARTS | LAYER_HAZARD | LAYER_RUBBLE
 	for mesh in find_children("*", "GeometryInstance3D", true, false):
 		mesh.transparency = 0.6 if on else 0.0
 
