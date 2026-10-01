@@ -96,6 +96,7 @@ func _ready() -> void:
 			break
 	editor.drop_landmark()
 	check(editor.course.landmarks.size() == 1, "but it can beside it")
+	await _controller(editor)
 
 	# Saving.
 	editor.course.name = "Editor Test Course"
@@ -132,3 +133,47 @@ func _ready() -> void:
 	DirAccess.remove_absolute(TrackEditor.CURRENT)
 	print("All editor checks passed." if failures == 0 else "%d editor checks failed." % failures)
 	get_tree().quit(1 if failures > 0 else 0)
+
+
+## The editor with a controller (see TrackEditorPad).
+func _controller(editor: TrackEditor) -> void:
+	var pad: TrackEditorPad = editor.find_children("*", "TrackEditorPad", false, false)[0]
+	pad._button(JOY_BUTTON_DPAD_DOWN)
+	await frames(1)
+	var focused := get_viewport().gui_get_focus_owner()
+	check(focused != null and editor.ui._tiles.is_ancestor_of(focused), "the d-pad picks out a piece in the drawer")
+	var tab: int = editor.ui._category
+	pad._button(JOY_BUTTON_RIGHT_SHOULDER)
+	await frames(2)
+	check(editor.ui._category == tab + 1, "RB goes to the next tab")
+	pad._button(JOY_BUTTON_LEFT_SHOULDER)
+	await frames(2)
+	var pieces := editor.course.pieces.size()
+	pad._button(JOY_BUTTON_Y)
+	check(pad.on_road and editor.selected == pieces - 1, "Y goes onto the road at the last piece")
+	pad._button(JOY_BUTTON_DPAD_LEFT)
+	check(editor.selected == pieces - 2, "and left steps back a piece")
+	pad._button(JOY_BUTTON_A)
+	await frames(1)
+	focused = get_viewport().gui_get_focus_owner()
+	check(focused != null and editor.ui._actions.is_ancestor_of(focused), "A goes into its buttons")
+	pad._button(JOY_BUTTON_B)
+	await frames(1)
+	check(pad.on_road and get_viewport().gui_get_focus_owner() == null, "and B comes back out onto the road")
+	pad._button(JOY_BUTTON_X)
+	check(editor.course.pieces.size() == pieces - 1, "X takes the piece out")
+	var trigger := InputEventJoypadMotion.new()
+	trigger.axis = JOY_AXIS_TRIGGER_LEFT
+	trigger.axis_value = 1.0
+	pad._input(trigger)
+	trigger.axis_value = 0.0
+	pad._input(trigger)
+	check(editor.course.pieces.size() == pieces, "and LT undoes that")
+	pad._button(JOY_BUTTON_B)
+	check(not pad.on_road and editor.selected == -1, "B goes back to the drawer")
+	editor.pick_up_landmark("barn")
+	var facing: int = editor._holding.facing
+	pad._button(JOY_BUTTON_X)
+	check(editor._holding.facing == (facing + 1) % 4, "X turns a landmark in hand")
+	pad._button(JOY_BUTTON_BACK)
+	check(editor._holding.is_empty() and editor.course.landmarks.size() == 1, "and Back takes it away")

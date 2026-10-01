@@ -202,6 +202,13 @@ func _unhandled_input(event: InputEvent) -> void:
 		_last_touch = 0.0
 
 
+## LB and RB on a controller go to the tab before or after.
+func next_tab(by: int) -> void:
+	var slots: Array = DriverUI.SLOTS.map(func(s): return s[0])
+	ui.show_slot(slots[posmod(slots.find(ui.slot) + by, slots.size())])
+	PadFocus.focus_first.call_deferred(ui._tiles)
+
+
 func go_back() -> void:
 	Game.keep_character(design)
 	Game.show_editors()

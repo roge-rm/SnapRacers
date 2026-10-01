@@ -110,6 +110,7 @@ func _ready() -> void:
 	await _mirror_and_paint(parts)
 	await _moving(parts)
 	await _snapping(parts)
+	await _controller(parts)
 	await _camera()
 	await _camera_hole()
 	garage.ui.drive_pressed.emit()
@@ -323,3 +324,62 @@ func _snapping(parts: int) -> void:
 	garage.ui.undo_pressed.emit()
 	garage.ui.undo_pressed.emit()
 	check(garage.design.parts.size() == parts, "undo takes them both off")
+
+
+## The garage with a controller (see GaragePad).
+func _controller(parts: int) -> void:
+	var pad: GaragePad = garage.find_children("*", "GaragePad", false, false)[0]
+	garage.select(-1)
+	pad.on_kart = false
+	pad._button(JOY_BUTTON_DPAD_DOWN)
+	await frames(1)
+	var focused := get_viewport().gui_get_focus_owner()
+	check(focused is GarageUI.PartTile, "the d-pad picks out a part in the drawer (%s)" % focused)
+	var tab := garage.ui._category
+	pad._button(JOY_BUTTON_RIGHT_SHOULDER)
+	await frames(2)
+	check(garage.ui._category == (tab + 1) % GarageUI.CATEGORIES.size() and get_viewport().gui_get_focus_owner() is GarageUI.PartTile, "RB goes to the next tab, still picking out a part")
+	pad._button(JOY_BUTTON_LEFT_SHOULDER)
+	await frames(2)
+
+	garage.ui.part_chosen.emit("p_curve_2x2")
+	pad._button(JOY_BUTTON_DPAD_RIGHT)
+	check(not garage._spot.is_empty(), "holding a part, the d-pad hops it onto a dot")
+	var turned_from: Basis = garage._ghost_place.basis
+	pad._button(JOY_BUTTON_X)
+	check(not garage._ghost_place.basis.is_equal_approx(turned_from), "X turns it")
+	var high := garage.ghost_at().y
+	pad._trigger(true)
+	check(garage.ghost_at().y == high + 1, "RT lifts it a plate")
+	pad._trigger(false)
+	pad._button(JOY_BUTTON_DPAD_RIGHT)
+	var ok := garage._ghost_ok
+	pad._button(JOY_BUTTON_A)
+	check(not ok or garage.design.parts.size() == parts + 1, "A puts it down where it fits")
+	pad._button(JOY_BUTTON_B)
+	check(garage._mode == GarageUI.Mode.IDLE, "B puts the part in hand back")
+	if garage.design.parts.size() > parts:
+		garage.undo()
+
+	pad._button(JOY_BUTTON_Y)
+	check(pad.on_kart and garage._mode == GarageUI.Mode.SELECTED, "Y goes over to the kart and picks out a part")
+	var first := garage._selected
+	pad._button(JOY_BUTTON_DPAD_LEFT)
+	pad._button(JOY_BUTTON_DPAD_UP)
+	check(garage._selected != -1 and garage._selected != first, "the d-pad hops to another part (%d to %d)" % [first, garage._selected])
+	pad._button(JOY_BUTTON_BACK)
+	check(garage.design.parts.size() == parts - 1 and not pad.on_kart, "Back deletes it")
+	pad._trigger(false)
+	check(garage.design.parts.size() == parts, "and LT undoes that")
+
+	pad._button(JOY_BUTTON_BACK)
+	check(garage._mode == GarageUI.Mode.PAINTING and pad.paint_at != -1, "Back in the drawer starts painting, with a part picked out")
+	var colour := garage.ui.paint_colour()
+	pad._button(JOY_BUTTON_RIGHT_SHOULDER)
+	check(not garage.ui.paint_colour().is_equal_approx(colour), "RB picks the next colour")
+	var target := pad.paint_at
+	pad._button(JOY_BUTTON_A)
+	check(garage.design.parts[target].get("color", Color.BLACK).is_equal_approx(garage.ui.paint_colour()), "and A paints the part")
+	garage.undo()
+	pad._button(JOY_BUTTON_B)
+	check(garage._mode == GarageUI.Mode.IDLE, "B stops painting")

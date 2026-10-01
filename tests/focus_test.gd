@@ -77,6 +77,15 @@ func _ready() -> void:
 	Input.parse_input_event(touch)
 	await frames(3)
 	check(focused() == null or focused() is LineEdit, "a touch puts the picked out button away")
+	# The driver builder's tabs.
+	Game.show_driver()
+	await frames(3)
+	var builder := screen() as DriverBuilder
+	var slot: String = builder.ui.slot
+	await pad(JOY_BUTTON_RIGHT_SHOULDER)
+	check(builder.ui.slot != slot, "RB goes to the driver builder's next tab (%s to %s)" % [slot, builder.ui.slot])
+	await pad(JOY_BUTTON_LEFT_SHOULDER)
+	check(builder.ui.slot == slot, "and LB back")
 	Game.show_menu()
 	await frames(3)
 

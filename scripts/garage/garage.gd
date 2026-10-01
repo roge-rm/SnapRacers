@@ -154,6 +154,11 @@ func _ready() -> void:
 	ui.menu_pressed.connect(_to_menu)
 	ui.name_changed.connect(func(text: String) -> void: design.name = text)
 
+	# A controller works the garage its own way (see GaragePad).
+	var pad := GaragePad.new()
+	pad.garage = self
+	add_child(pad)
+
 	var pictures := PartThumbnails.new()
 	pictures.ready_for.connect(func(id: String, picture: Texture2D) -> void:
 		ui.show_picture(id, picture)

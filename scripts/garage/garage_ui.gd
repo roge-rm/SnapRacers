@@ -684,6 +684,14 @@ func _build_painting() -> void:
 	_show_swatches()
 
 
+## The paint colour before or after, for a controller's LB and RB.
+func next_colour(by: int) -> void:
+	var at := PAINTS.find("#" + _paint_colour.to_html(false))
+	_paint_colour = Color(PAINTS[posmod(at + by, PAINTS.size())])
+	_show_swatches()
+	colour_chosen.emit(_paint_colour)
+
+
 func _show_swatches() -> void:
 	for swatch in _swatches:
 		var colour: Color = swatch.get_meta("colour")

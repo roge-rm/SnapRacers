@@ -121,6 +121,10 @@ func _ready() -> void:
 
 	ui = TrackEditorUI.new()
 	add_child(ui)
+	# A controller works the editor its own way (see TrackEditorPad).
+	var pad := TrackEditorPad.new()
+	pad.editor = self
+	add_child(pad)
 	ui.piece_chosen.connect(add_piece)
 	ui.landmark_chosen.connect(pick_up_landmark)
 	ui.undo_pressed.connect(undo)
