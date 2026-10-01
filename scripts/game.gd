@@ -61,6 +61,7 @@ var controllers: Controllers
 var plugin: NetPlugin
 ## Whether two people on this phone join an online game together.
 var online_two := false
+var _part_pictures: PartThumbnails
 var _loading: CanvasLayer
 var _loading_since := 0
 var _portrait := false
@@ -115,10 +116,19 @@ func start_server(host: Node) -> void:
 ## Starts the game in `host`. Tests skip the splash.
 func start(host: Node, splash := true) -> void:
 	_host = host
+	part_pictures()
 	if splash:
 		_swap(SplashScreen.new())
 	else:
 		show_menu()
+
+
+## The pictures of the parts for the garage, taken once for the whole game.
+func part_pictures() -> PartThumbnails:
+	if _part_pictures == null:
+		_part_pictures = PartThumbnails.new()
+		add_child(_part_pictures)
+	return _part_pictures
 
 
 func show_menu() -> void:

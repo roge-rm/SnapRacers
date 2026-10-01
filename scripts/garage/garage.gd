@@ -159,15 +159,19 @@ func _ready() -> void:
 	pad.garage = self
 	add_child(pad)
 
-	var pictures := PartThumbnails.new()
-	pictures.ready_for.connect(func(id: String, picture: Texture2D) -> void:
-		ui.show_picture(id, picture)
-		if id == _holding:
-			ui.set_held_picture(picture))
-	add_child(pictures)
+	var pictures := Game.part_pictures()
+	pictures.ready_for.connect(_on_picture)
+	ui.tab_shown.connect(pictures.hurry)
+	pictures.hurry(ui.shown)
 
 	_rebuild()
 	show_view("angle")
+
+
+func _on_picture(id: String, picture: Texture2D) -> void:
+	ui.show_picture(id, picture)
+	if id == _holding:
+		ui.set_held_picture(picture)
 
 
 # Changing the kart.

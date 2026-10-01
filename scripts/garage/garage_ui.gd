@@ -45,6 +45,8 @@ signal drive_pressed
 signal race_pressed
 signal menu_pressed
 signal name_changed(text: String)
+## A tab of the drawer was opened, with the parts on it.
+signal tab_shown(ids: Array)
 
 ## The drawer's tabs: name, kinds of part, groups of part and picture. A
 ## part goes in the tab for its group, or for its kind if it hasn't got one.
@@ -109,6 +111,8 @@ var _problem_count := 0
 
 var _held_chip: PanelContainer
 var _held_picture: TextureRect
+## The parts on the drawer's tab that's open.
+var shown: Array = []
 var _held_name: Label
 var _placing: PanelContainer
 var _place: Button
@@ -429,6 +433,7 @@ func _show_category(index: int) -> void:
 	_heading.text = CATEGORIES[index][0].to_upper()
 	for child in _tiles.get_children():
 		child.queue_free()
+	shown.clear()
 	var ids := PartCatalog.ids()
 	ids.sort_custom(func(a, b): return PartCatalog.get_part(a).mass < PartCatalog.get_part(b).mass)
 	for id in ids:
@@ -439,6 +444,8 @@ func _show_category(index: int) -> void:
 		tile.chosen.connect(func() -> void: part_chosen.emit(id))
 		tile.dragged.connect(func(finger: int) -> void: part_dragged.emit(id, finger))
 		_tiles.add_child(tile)
+		shown.append(id)
+	tab_shown.emit(shown)
 
 
 ## Which of the drawer's tabs a part goes in.
