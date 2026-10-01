@@ -60,7 +60,7 @@ func _ready() -> void:
 	Game.show_settings()
 	await frames(2)
 	check(screen() is SettingsScreen, "settings opens")
-	var back := screen().find_children("*", "Button", true, false).filter(func(b): return b.text == "Back")
+	var back := screen().find_children("*", "Button", true, false).filter(func(b): return b.text == "Back" and not b is ScrollButton)
 	check(back.size() == 2, "settings has a Back button at the top and the bottom")
 	# Steering with buttons instead of the stick, picked in Settings.
 	var saved_steering := Game.steering(0)
@@ -68,6 +68,7 @@ func _ready() -> void:
 	check(buttons_pill.size() == 2, "settings has a steering choice for each player")
 	buttons_pill[0].pressed.emit()
 	check(Game.steering(0) == "buttons", "picking Buttons for player 1 keeps it")
+	await _controls_page()
 	var touch := TouchControls.new()
 	touch.steering = Game.steering(0)
 	add_child(touch)
@@ -334,3 +335,47 @@ func _driver() -> void:
 	await frames(2)
 	check(screen() is EditorsMenu, "Done goes back to the editors")
 	Game.keep_character(kept)
+
+
+## Settings > Controls has whose controller is whose and every player's
+## keys and buttons, which can be changed.
+func _controls_page() -> void:
+	var pages := screen().find_children("*", "ControlsPage", true, false)
+	check(pages.size() == 1, "settings has the controllers and buttons")
+	if pages.is_empty():
+		return
+	var page: ControlsPage = pages[0]
+	var settings := Game.settings
+	var had: Variant = settings.get_value("bindings", "player_2", null)
+	page._person = 1
+	page._wait(["key", "reset", 0])
+	var key := InputEventKey.new()
+	key.physical_keycode = KEY_G
+	key.pressed = true
+	page._input(key)
+	check(InputBindings.key(settings, 1, "reset") == KEY_G and page._waiting.is_empty(), "tapping player 2's reset and pressing G changes it")
+	page._wait(["pad", "gadget_1", 0])
+	var shoulder := InputEventJoypadButton.new()
+	shoulder.button_index = JOY_BUTTON_LEFT_SHOULDER
+	shoulder.pressed = true
+	page._input(shoulder)
+	check(InputBindings.pad(settings, 1, "gadget_1")[0] == [InputBindings.BUTTON, JOY_BUTTON_LEFT_SHOULDER, 1], "and power-up 1 can go on LB")
+	check(InputBindings.pad(settings, 1, "look_back")[0] == [InputBindings.BUTTON, JOY_BUTTON_X, 1], "which gives look back the X it had, so nothing's lost")
+	page._wait(["owner", "", 1])
+	var press := InputEventJoypadButton.new()
+	press.device = 30
+	press.button_index = JOY_BUTTON_A
+	press.pressed = true
+	page._input(press)
+	check(Game.controllers.device_of(1) == 30, "pressing a button on a controller gives it to player 2")
+	Game.controllers._on_connection(30, false)
+	var reset := screen().find_children("*", "Button", true, false).filter(func(b): return b.text == "Put back how they were")
+	check(reset.size() == 1, "and there's a way to put them back")
+	if not reset.is_empty():
+		reset[0].pressed.emit()
+	check(InputBindings.key(settings, 1, "reset") == KEY_ENTER, "which puts player 2 back how they were")
+	if had == null:
+		InputBindings.reset(settings, 1)
+	else:
+		settings.set_value("bindings", "player_2", had)
+	Game.save_settings()

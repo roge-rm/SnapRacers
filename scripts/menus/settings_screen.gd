@@ -91,6 +91,7 @@ func _controls_page() -> Control:
 			row.add_child(button)
 		for how in choices:
 			MenuStyle.mark(choices[how], how == Game.steering(person))
+	page.add_child(ControlsPage.new())
 	return page
 
 

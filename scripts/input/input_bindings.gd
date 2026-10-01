@@ -147,7 +147,13 @@ static func from_event(event: InputEvent) -> Array:
 static func key_name(code: Key) -> String:
 	if code == KEY_NONE:
 		return "None"
-	return OS.get_keycode_string(DisplayServer.keyboard_get_keycode_from_physical(code))
+	# What the key says on this keyboard's layout, where there's a keyboard
+	# to ask.
+	if DisplayServer.get_name() != "headless":
+		var local := DisplayServer.keyboard_get_keycode_from_physical(code)
+		if local != KEY_NONE:
+			return OS.get_keycode_string(local)
+	return OS.get_keycode_string(code)
 
 
 ## What to call a button, stick or trigger, for the settings.

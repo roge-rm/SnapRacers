@@ -34,6 +34,9 @@ func _ready() -> void:
 		_layout_buttons.append(button)
 	_second = MenuStyle.button("", _next_kart)
 	column.add_child(_second)
+	var owners := ControlsPage.new()
+	owners.owners_only = true
+	column.add_child(owners)
 	var go := MenuStyle.button("Pick a course", Game.show_tracks.bind(Game.MODE_RACE))
 	go.custom_minimum_size.y = 72.0
 	column.add_child(go)
