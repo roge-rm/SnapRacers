@@ -1,8 +1,9 @@
 class_name SteeringVisual
 extends Node3D
 
-## What the driver steers with, a wheel on a column, handlebars or a yoke (a
-## wheel with its top cut off, so it tucks in under a windscreen). It turns
+## What the driver steers with, a wheel on a column, handlebars, a yoke (a
+## wheel with its top cut off, so it tucks in under a windscreen) or a
+## motorbike's bars, which are modelled and turn on their stem. It turns
 ## with the kart's steering and says where the driver's hands go on it, so they
 ## can follow it around.
 ##
@@ -16,6 +17,8 @@ const TURN := PI / 3.0
 ## of its turn. A minifig's arms only swing forward and back, so their hands
 ## can't go far around a wheel.
 const HANDS_FOLLOW := 0.5
+## How far a motorbike's bars turn at full lock, the same as the wheels.
+const BIKE_TURN := Kart.MAX_STEER
 
 var style := "wheel"
 ## Big, like a minifig's steering wheel, so hands at quarter to three are
@@ -29,6 +32,9 @@ var _rest := Transform3D.IDENTITY
 
 func _init(def: Dictionary, extent: Vector3) -> void:
 	style = str(def.get("style", "wheel"))
+	if def.has("mesh"):
+		_bike_bars(def, extent)
+		return
 	var colour: Color = def.get("color", Color("#1b1b1b"))
 	var bottom := -extent.y * 0.5
 	# The wheel reaches back over the seat's edge toward the driver, to where a
@@ -103,8 +109,26 @@ func _init(def: Dictionary, extent: Vector3) -> void:
 			_add(mesh, Color("#9aa0a6"), Transform3D(Basis(Vector3.UP, a), spoke * radius * 0.5), 0.6, _wheel)
 
 
+## A motorbike's bars, from their model, turning about the stem at the
+## front. The bar is swept back toward the rider along the top, with a grip
+## at each end.
+func _bike_bars(def: Dictionary, extent: Vector3) -> void:
+	var stem := Vector3(0.0, 0.0, -extent.z * 0.5 + Grid.STUD * 0.5)
+	_wheel = Node3D.new()
+	_wheel.position = stem
+	add_child(_wheel)
+	var model := PartVisuals._modelled(def)
+	model.position = -stem
+	_wheel.add_child(model)
+	radius = 0.35
+	_rest = Transform3D(Basis.IDENTITY, Vector3(0.0, extent.y * 0.5 - 0.04, extent.z * 0.5 - 0.05) - stem)
+
+
 ## Turns the wheel for this much steering, -1 full left to 1 full right.
 func steer(amount: float) -> void:
+	if style == "bikebars":
+		_wheel.basis = Basis(Vector3.UP, -amount * BIKE_TURN)
+		return
 	_wheel.basis = _base * Basis(Vector3.UP, -amount * TURN)
 
 
@@ -113,6 +137,9 @@ func steer(amount: float) -> void:
 ## sit at quarter to three on a wheel and on the grips of handlebars, and they
 ## move around with it (sliding a little on a wheel's rim).
 func grips(amount: float) -> Array:
+	if style == "bikebars":
+		var turn := Transform3D(Basis(Vector3.UP, -amount * BIKE_TURN), _wheel.position)
+		return [turn * (_rest.origin + Vector3(-radius, 0.0, 0.0)), turn * (_rest.origin + Vector3(radius, 0.0, 0.0)), turn.basis * Vector3.LEFT, turn.basis * Vector3.RIGHT]
 	var spin := -amount * TURN * (HANDS_FOLLOW if style == "wheel" else 1.0)
 	var out := []
 	for angle in [PI, 0.0]:

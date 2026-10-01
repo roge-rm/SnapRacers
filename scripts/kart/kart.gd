@@ -122,6 +122,22 @@ const STICK_PULL := 0.1
 ## by this much for every m/s, more for small wheels than big ones (KERB_WHEEL
 ## is the size that gets the kick as it is). Slowly they rumble, and at racing
 ## speed the wheels skip into the air and lose their grip.
+## Wheels this close to the middle of the kart from side to side are in a
+## line, like a bike's.
+const IN_LINE := 0.2
+## How hard a trike, with one wheel in the middle, is held upright, against a
+## bike.
+const TRIKE_HOLD := 0.8
+## How strongly a bike is turned back upright, and how much its rolling is
+## damped, and how much of that it keeps in the air.
+const HOLD_ALIGN := 140.0
+const HOLD_DAMP := 24.0
+const HOLD_IN_AIR := 0.3
+## Rolled over further than this, a bike has crashed, and isn't held up.
+const HOLD_LETS_GO := deg_to_rad(65.0)
+## How far a bike leans into a bend, at most, and how quickly.
+const MOST_LEAN := deg_to_rad(42.0)
+const LEAN_RATE := 2.5
 const KERB_RIDGE := 0.6
 const KERB_KICK := 0.024
 const KERB_WHEEL := 0.3
@@ -186,6 +202,19 @@ var steer_angle := 0.0
 var forward_speed := 0.0
 ## From the front wheels to the back ones, in metres.
 var wheelbase := 1.2
+## How hard it's held upright: 1 for a bike, with its wheels in a line, less
+## for a trike with one wheel in the middle, and nothing for anything else.
+## Bikes and trikes would fall over on their own.
+var upright := 0.0
+## How far a bike's looks lean into a bend, in radians, right positive. The
+## body itself stays upright, so this is only in how it looks, and it's
+## worked out from the steering and speed, so remote bikes lean the same.
+var lean := 0.0
+var _looks: Node3D
+## Parts that turn with a steered wheel, like a bike's front fork, as
+## [node, its basis going straight].
+var _turning := []
+var _ground_y := 0.0
 ## How far the front wheels turn at full lock right now (see steer_limit()).
 var full_lock := MAX_STEER
 ## Whether the kart is stuck to the road on a loop or a wall ride right now.
@@ -322,6 +351,12 @@ func build(new_design: KartDesign, who: CharacterDesign = null) -> void:
 		var steers := steered.is_empty() or steered.has(info.index)
 		var drives := driven.is_empty() or driven.has(info.index)
 		_wheel_setup[info.index] = [steers, drives, spring, 2.0 * SUSPENSION_DAMPING * sqrt(spring * share)]
+	upright = 0.0
+	var in_line := _full.wheels.filter(func(info: KartStats.PartInfo) -> bool: return absf(info.centre.x - com.x) < IN_LINE).size()
+	if _full.wheels.size() >= 2 and in_line == _full.wheels.size():
+		upright = 1.0
+	elif _full.wheels.size() == 3 and in_line == 1:
+		upright = TRIKE_HOLD
 	var front := _average_z(_full.wheels, steered)
 	var back := _average_z(_full.wheels, driven)
 	if not steered.is_empty() and not driven.is_empty() and back - front > 0.2:
@@ -379,13 +414,18 @@ static func _weight_shares(full: KartStats) -> Array[float]:
 			for k in n:
 				dot += rows[r][k] * rows[c][k]
 			m[c][r] = dot
-	# With fewer than three wheels (or all of them in a line) this can't be
-	# solved, so it falls back to an even split.
-	if absf(m.determinant()) < 1e-6:
-		for k in n:
-			out.append(1.0 / n)
-		return out
-	var y := m.inverse() * target
+	var y := Vector3.ZERO
+	if absf(m.determinant()) >= 1e-6:
+		y = m.inverse() * target
+	else:
+		# With the wheels all in a line, like a bike's, only the total and
+		# the balance front to back can be met.
+		var det := m[0][0] * m[1][1] - m[1][0] * m[0][1]
+		if absf(det) < 1e-6:
+			for k in n:
+				out.append(1.0 / n)
+			return out
+		y = Vector3(m[1][1], -m[0][1], 0.0) / det
 	var total := 0.0
 	for k in n:
 		var share := maxf(rows[0][k] * y.x + rows[1][k] * y.y + rows[2][k] * y.z, 0.05 / n)
@@ -409,6 +449,10 @@ func _assemble() -> void:
 	wheels.clear()
 	_steering = null
 	_rig = null
+	_turning.clear()
+	# Everything you see goes in here, so a bike can lean it.
+	_looks = Node3D.new()
+	add_child(_looks)
 
 	stats = KartStats.compute(design, lost, _full.origin_cell, _driver_mass())
 	power = stats.power
@@ -437,7 +481,7 @@ func _assemble() -> void:
 			w.damper = setup[3]
 			w.visual = PartVisuals.make_wheel(info.def)
 			w.visual.position = info.centre
-			add_child(w.visual)
+			_looks.add_child(w.visual)
 			wheels.append(w)
 			var body := CollisionShape3D.new()
 			var cylinder := CylinderShape3D.new()
@@ -456,24 +500,28 @@ func _assemble() -> void:
 		add_child(shape)
 		var look := PartVisuals.make_turned(info.def, info.extent, info.basis)
 		look.position = info.centre
-		if look is SteeringVisual:
-			add_child(look)
+		if info.def.get("steers", false) and _beside_steered_wheel(info):
+			_looks.add_child(look)
+			_turning.append([look, look.basis])
+		elif look is SteeringVisual:
+			_looks.add_child(look)
 			if _steering == null:
 				_steering = look
 		else:
 			looks.append(look)
 	if not looks.is_empty():
-		add_child(KartMesh.bake(looks))
+		_looks.add_child(KartMesh.bake(looks))
 		for look in looks:
 			look.free()
 
 	if stats.has_seat:
 		_rig = CharacterRig.new(driver if driver != null else default_driver(), true)
 		_rig.recline = stats.recline
+		_rig.astride = stats.astride
 		_rig.head_layer = head_layer
 		_rig.lively = true
 		_rig.position = stats.seat_top
-		add_child(_rig)
+		_looks.add_child(_rig)
 		# The driver takes hits too, so a rollover lands on something.
 		var shape := CollisionShape3D.new()
 		var box := BoxShape3D.new()
@@ -482,6 +530,9 @@ func _assemble() -> void:
 		shape.position = stats.seat_top + Vector3(0.0, 0.4, 0.0)
 		add_child(shape)
 
+	_ground_y = 0.0
+	for w in wheels:
+		_ground_y = minf(_ground_y, w.rest.y - w.radius)
 	sound.refit(stats)
 	mass = maxf(stats.mass, 1.0)
 	center_of_mass = stats.center_of_mass
@@ -489,6 +540,16 @@ func _assemble() -> void:
 	for w in wheels:
 		if w.driven:
 			_driven_count += 1
+
+
+## Whether the wheel nearest this part is one that steers, so a fork turns
+## with the wheel in it.
+func _beside_steered_wheel(part: KartStats.PartInfo) -> bool:
+	var nearest: KartStats.PartInfo = null
+	for info in stats.wheels:
+		if nearest == null or info.centre.distance_to(part.centre) < nearest.centre.distance_to(part.centre):
+			nearest = info
+	return nearest != null and _wheel_setup.has(nearest.index) and _wheel_setup[nearest.index][0]
 
 
 ## Where the driver's eyes are, in world space, for a first person camera.
@@ -506,6 +567,15 @@ func bumper_point() -> Vector3:
 		for info in stats.parts:
 			front = minf(front, info.centre.z - info.extent.z * 0.5)
 	return Vector3(0.0, 0.3, front - 0.05)
+
+
+## How wide the kart is, in metres, wheels and all.
+func width() -> float:
+	var most := 0.0
+	if stats != null:
+		for info in stats.parts:
+			most = maxf(most, absf(info.centre.x) + info.extent.x * 0.5)
+	return most * 2.0 if most > 0.0 else 2.0
 
 
 ## How far the back of the kart is behind its middle, in metres, for the chase
@@ -666,6 +736,7 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 	var room := INF
 	var turned := clampf(absf(steer_angle) / maxf(full_lock, 0.001), 0.0, 1.0)
 	var share := mass / maxf(wheels.size(), 1)
+	var ground_up := Vector3.ZERO
 	for w in wheels:
 		var anchor := state.transform * (w.rest + Vector3.UP * SUSPENSION_TRAVEL)
 		var reach := SUSPENSION_TRAVEL * 2.0 + w.radius
@@ -690,6 +761,7 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 		w.load = load
 
 		var normal: Vector3 = hit.normal
+		ground_up += normal
 		var ground_body: Object = hit.get("collider")
 		if ground_body != null and ground_body.get_meta("sticky", false):
 			sticky_up += normal
@@ -761,7 +833,9 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 		# but doesn't flip. Driving and braking act right at its height, so it
 		# doesn't squat onto its tail pulling away or dive when it brakes.
 		var height := (com - contact).dot(up)
-		state.apply_force(side * tire.y, contact + up * height * ROLL_HELP - origin)
+		# A bike's are right at its height, since it doesn't lean on its
+		# tires and is held upright instead, and a trike's nearly.
+		state.apply_force(side * tire.y, contact + up * height * lerpf(ROLL_HELP, 1.0, upright) - origin)
 		state.apply_force(heading * tire.x, contact + up * height - origin)
 		applied += normal * load + side * tire.y + heading * tire.x
 
@@ -807,6 +881,9 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 		_rail_height = INF
 		_rail_done = Vector3.INF
 
+	if upright > 0.0 and not sticking:
+		_hold_upright(state, ground_up)
+
 	# Air drag from everything facing forward, and downforce from any wings.
 	var air := 0.5 * KartStats.AIR_DENSITY
 	var drag := -state.linear_velocity * speed * air * drag_area
@@ -833,6 +910,39 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 	_feel_knocks(state)
 	_last_velocity = state.linear_velocity
 	_last_applied = applied
+
+
+## Keeps a bike or trike from falling over, by turning it back upright about
+## the way it's pointing. On the ground that's square to the ground, and in
+## the air it's upright, more gently. One that's gone right over has crashed,
+## and is left to fall.
+func _hold_upright(state: PhysicsDirectBodyState3D, ground_up: Vector3) -> void:
+	var basis := state.transform.basis
+	var strength := upright
+	var toward := ground_up.normalized()
+	if ground_up == Vector3.ZERO:
+		toward = Vector3.UP
+		strength *= HOLD_IN_AIR
+	if basis.y.angle_to(toward) > HOLD_LETS_GO:
+		return
+	var forward := -basis.z
+	var tilt := basis.y.cross(toward).dot(forward)
+	var roll := state.angular_velocity.dot(forward)
+	var want := forward * (tilt * HOLD_ALIGN - roll * HOLD_DAMP) * strength
+	state.apply_torque(state.inverse_inertia_tensor.inverse() * want)
+
+
+## The parts that turn with the steering, like a bike's fork. Tests use it.
+func turning_parts() -> Array[Node3D]:
+	var out: Array[Node3D] = []
+	for turning in _turning:
+		out.append(turning[0])
+	return out
+
+
+## The looks, which lean with a bike. Tests use it.
+func looks() -> Node3D:
+	return _looks
 
 
 ## On a corkscrew, once it's going fast enough to stay on, the kart rides the
@@ -1019,19 +1129,22 @@ func _pose_driver() -> void:
 		return
 	var amount := clampf(steer_angle / full_lock, -1.0, 1.0)
 	_rig.look(amount)
+	# A motorbike's bars turn as far as the front wheel does, along with the
+	# fork.
+	var turn := clampf(steer_angle / MAX_STEER, -1.0, 1.0) if _steering != null and _steering.style == "bikebars" else amount
 	if alongside != null and is_instance_valid(alongside):
 		_rig.glance(_rig.global_transform.affine_inverse() * alongside.global_position)
 	else:
 		_rig.glance(Vector3.ZERO)
 	if _rig.busy_hands():
 		if _steering != null:
-			_steering.steer(amount)
+			_steering.steer(turn)
 		return
 	if _steering == null:
 		_rig.rest_hands()
 		return
-	_steering.steer(amount)
-	var grips := _steering.grips(amount)
+	_steering.steer(turn)
+	var grips := _steering.grips(turn)
 	# From the steering wheel's space into the driver's.
 	var to_rig := _rig.transform.affine_inverse() * _steering.transform
 	_rig.grip(to_rig * grips[0], to_rig * grips[1], to_rig.basis * grips[2], to_rig.basis * grips[3])
@@ -1286,7 +1399,26 @@ func _process(delta: float) -> void:
 		for w in wheels:
 			w.spin += forward_speed / w.radius * delta
 	_pose_driver()
+	_lean_looks(delta)
+	var steered := Basis(Vector3.UP, -steer_angle)
+	for turning in _turning:
+		turning[0].basis = steered * turning[1]
 	for w in wheels:
 		w.visual.position = w.rest + Vector3.UP * (SUSPENSION_TRAVEL - w.length)
-		var turn := Basis(Vector3.UP, -steer_angle) if w.steered else Basis.IDENTITY
+		var turn := steered if w.steered else Basis.IDENTITY
 		w.visual.basis = turn * Basis(Vector3.RIGHT, -w.spin)
+
+
+## Leans a bike's looks into the bend, as far as it would have to lean to go
+## round it at this speed, about where its wheels touch the ground.
+func _lean_looks(delta: float) -> void:
+	if _looks == null:
+		return
+	var want := 0.0
+	if upright >= 1.0:
+		var bend := tan(steer_angle) / maxf(wheelbase, 0.5)
+		want = clampf(atan(forward_speed * absf(forward_speed) * bend / KartStats.gravity()), -MOST_LEAN, MOST_LEAN)
+	lean = move_toward(lean, want, LEAN_RATE * delta)
+	var pivot := Vector3(0.0, _ground_y, 0.0)
+	var tip := Basis(Vector3.FORWARD, lean)
+	_looks.transform = Transform3D(tip, pivot - tip * pivot)

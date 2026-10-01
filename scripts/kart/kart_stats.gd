@@ -74,6 +74,8 @@ var seat: PartInfo
 var seat_top := Vector3.ZERO
 ## How far back the driver leans, in radians.
 var recline := 0.0
+## Whether the driver sits astride a saddle, like on a motorbike.
+var astride := false
 ## What the drag comes from, in m² of drag area: "driver", "wheels", "flat"
 ## (flat fronts and backs) and "smooth" (everything else).
 var drag_parts := {}
@@ -166,6 +168,7 @@ static func compute(design: KartDesign, skip := {}, fixed_origin: Variant = null
 					stats.has_seat = true
 					stats.seat = info
 					stats.recline = deg_to_rad(info.def.get("recline", 0.0))
+					stats.astride = info.def.get("astride", false)
 					seat_control = info.def.get("control", 1.0)
 					# The driver sits in the middle of the seat with their legs
 					# out in front. Any further back on a long seat and their

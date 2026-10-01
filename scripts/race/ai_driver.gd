@@ -50,7 +50,9 @@ const LOOP_AHEAD := 40.0
 const LOOP_RUN_IN := 90.0
 const LOOP_SKILL := 0.95
 const SEE_AHEAD := 12.0 # how far ahead it watches for karts in its way
-const KART_ROOM := 2.8 # how far to the side a kart has to be to be out of the way
+## How far to the side another kart has to be to be out of the way, past
+## touching. Bikes are narrower, so they get by with less.
+const KART_GAP := 0.8
 
 var kart: Kart
 var track: TrackPath
@@ -234,13 +236,14 @@ func _dodge() -> float:
 		var gap := other.global_position - kart.global_position
 		var ahead := gap.dot(facing)
 		var side := gap.dot(right)
-		if ahead > 0.0 and ahead < SEE_AHEAD and absf(side) < KART_ROOM:
+		var room := (kart.width() + other.width()) * 0.5 + KART_GAP
+		if ahead > 0.0 and ahead < SEE_AHEAD and absf(side) < room:
 			var go_right := side < 0.0
-			if here + KART_ROOM > half_road:
+			if here + room > half_road:
 				go_right = false
-			elif here - KART_ROOM < -half_road:
+			elif here - room < -half_road:
 				go_right = true
-			return (KART_ROOM if go_right else -KART_ROOM) * (1.0 - ahead / SEE_AHEAD * 0.5)
+			return (room if go_right else -room) * (1.0 - ahead / SEE_AHEAD * 0.5)
 	return 0.0
 
 

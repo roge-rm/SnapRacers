@@ -27,6 +27,10 @@ static func make_turned(def: Dictionary, extent: Vector3, basis: Basis) -> Node3
 		return make_wheel(def)
 	if kind == "steering" and not def.has("mesh"):
 		return SteeringVisual.new(def, extent)
+	if kind == "steering" and def.get("style", "") == "bikebars":
+		var bars := SteeringVisual.new(def, extent)
+		bars.basis = basis
+		return bars
 	if def.has("mesh"):
 		var made := Node3D.new()
 		var turned := _modelled(def)

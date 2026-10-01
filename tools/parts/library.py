@@ -517,13 +517,17 @@ def mudguard_2x4():
 @part
 def front_fork():
     """A motorbike's front fork: a crown with studs on top and two legs down
-    to an axle the wheel goes on."""
-    crown = union([box(0, 0.75, 0, 2 * STUD, 0.75 + PLATE, STUD), studs(grid_cells(2, 1), 0.75 + PLATE)])
-    legs = [box(x, 0.0, 0.07, x + 0.08, 0.76, 0.18, edge=0.01) for x in (0.03, 2 * STUD - 0.11)]
+    to an axle the wheel goes on. From the axle to the bottom of the crown is
+    four plates more than on the swingarm, so with the same wheels a brick and
+    a plate on the swingarm bring it level with the crown. It turns with the
+    wheel in it when that's a steered wheel."""
+    top = 0.8
+    crown = union([box(0, top, 0, 2 * STUD, top + PLATE, STUD), studs(grid_cells(2, 1), top + PLATE)])
+    legs = [box(x, 0.0, 0.07, x + 0.08, top + 0.01, 0.18, edge=0.01) for x in (0.03, 2 * STUD - 0.11)]
     axle = cylinder(0.03, 2 * STUD - 0.06, "x", (0.03, 0.045, 0.125), 10)
-    con = top_studs(grid_cells(2, 1), 0.75 + PLATE) + sockets(grid_cells(2, 1), 0.75) + [c("axle", (0.11, 0.045, 0.125), (1, 0, 0), 2 * STUD - 0.22)]
-    solids = [[0, 0.75, 0, 2 * STUD, 0.75 + PLATE, STUD], [0.03, 0.0, 0.07, 0.11, 0.76, 0.18], [2 * STUD - 0.11, 0.0, 0.07, 2 * STUD - 0.03, 0.76, 0.18]]
-    return Part("b_fork", "Front fork", "body", "bike", (2 * STUD, 0.75 + PLATE, STUD), union([crown, axle] + legs), con, METAL, finish="metal", solids=solids)
+    con = top_studs(grid_cells(2, 1), top + PLATE) + sockets(grid_cells(2, 1), top) + [c("axle", (0.11, 0.045, 0.125), (1, 0, 0), 2 * STUD - 0.22)]
+    solids = [[0, top, 0, 2 * STUD, top + PLATE, STUD], [0.03, 0.0, 0.07, 0.11, top + 0.01, 0.18], [2 * STUD - 0.11, 0.0, 0.07, 2 * STUD - 0.03, top + 0.01, 0.18]]
+    return Part("b_fork", "Front fork", "body", "bike", (2 * STUD, top + PLATE, STUD), union([crown, axle] + legs), con, METAL, finish="metal", solids=solids, steers=True)
 
 
 @part
@@ -560,12 +564,16 @@ def saddle():
 
 @part
 def bike_bars():
-    """Motorbike handlebars on a stem, with grips."""
-    stem = union([box(STUD * 1.5, 0, 0, STUD * 2.5, PLATE, STUD), cylinder(0.035, 0.3, "y", (2 * STUD, PLATE, STUD * 0.5), 10)])
-    bar = cylinder(0.025, 4 * STUD - 0.04, "x", (0.02, PLATE + 0.3, STUD * 0.5), 10)
-    grips = [cylinder(0.04, 0.16, "x", (x, PLATE + 0.3, STUD * 0.5), 10) for x in (0.02, 4 * STUD - 0.18)]
+    """Motorbike handlebars on a stem at the front, swept back toward the
+    rider, with grips. They turn about the stem."""
+    high = PLATE + 0.2
+    back = 2 * STUD - 0.05
+    stem = union([box(STUD * 1.5, 0, 0, STUD * 2.5, PLATE, STUD), cylinder(0.035, 0.2 + 0.025, "y", (2 * STUD, PLATE, STUD * 0.5), 10)])
+    riser = cylinder(0.025, back - STUD * 0.5, "z", (2 * STUD, high, STUD * 0.5), 10)
+    bar = cylinder(0.025, 0.7, "x", (2 * STUD - 0.35, high, back), 10)
+    grips = [cylinder(0.04, 0.14, "x", (x, high, back), 10) for x in (2 * STUD - 0.42, 2 * STUD + 0.28)]
     con = sockets([(1, 0), (2, 0)])
-    return Part("b_bars", "Bike bars", "steering", "bike", (4 * STUD, PLATE + 0.34, STUD), union([stem, bar]), con, METAL, finish="metal", control=1.15, style="bikebars",
+    return Part("b_bars", "Bike bars", "steering", "bike", (4 * STUD, PLATE + 0.24, 2 * STUD), union([stem, riser, bar]), con, METAL, finish="metal", control=1.15, style="bikebars",
                 trim=(union(grips), BLACK, "plastic"), solids=[[STUD * 1.5, 0, 0, STUD * 2.5, PLATE, STUD]])
 
 

@@ -16,6 +16,9 @@ const BUILD_SIZE := Vector3i(20, 30, 24)
 ## plates, so it doesn't scrape when the springs squash.
 const CLEARANCE := 2
 const SAVE_DIR := "user://karts"
+## How much of a wheel's height its two crossed boxes cover, for bumping
+## into other parts.
+const ROUND_SHARE := 0.7
 
 var name := "Kart"
 ## A line about what kind of kart it is, for the stock karts.
@@ -118,6 +121,13 @@ static func solid_boxes(id: String, place: Transform3D) -> Array[AABB]:
 	if def.has("solids"):
 		for b in def.solids:
 			out.append(place * b)
+	elif def.get("kind", "") == "wheel":
+		# A wheel is round, so it's two boxes across each other instead of
+		# its whole box, and it leaves the corners free.
+		var size := PartCatalog.fine_size(id)
+		var inset := size.z * (1.0 - ROUND_SHARE) * 0.5
+		out.append(place * AABB(Vector3(0.0, 0.0, inset), Vector3(size.x, size.y, size.z - inset * 2.0)))
+		out.append(place * AABB(Vector3(0.0, inset, 0.0), Vector3(size.x, size.y - inset * 2.0, size.z)))
 	else:
 		out.append(fine_box(id, place))
 	return out
@@ -414,8 +424,10 @@ func problems() -> Array[String]:
 		var gap := steering_gap()
 		if gap == -1 or gap > KartStats.MOST_REACH:
 			out.append("The steering has to be right in front of the seat.")
-	if wheels < 3:
-		out.append("It needs at least three wheels.")
+	if wheels < 2:
+		out.append("It needs at least two wheels.")
+	elif wheels == 2 and not _wheels_in_line():
+		out.append("Two wheels have to be one behind the other.")
 	if groups().size() > 1:
 		out.append("Some parts aren't attached to the rest.")
 	for i in parts.size():
@@ -426,6 +438,15 @@ func problems() -> Array[String]:
 	if wheels > 0 and lowest_other < lowest_wheel + CLEARANCE - 0.01:
 		out.append("Something hangs too low. Everything but the wheels needs two plates of room underneath.")
 	return out
+
+
+## Whether the wheels are one behind the other, like a bike's.
+func _wheels_in_line() -> bool:
+	var xs: Array[float] = []
+	for i in parts.size():
+		if is_wheel(parts[i].id):
+			xs.append(box_of(i).get_center().x)
+	return xs.max() - xs.min() < 1.0
 
 
 ## How much two boxes overlap, leaving out a sliver at their faces, so parts

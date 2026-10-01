@@ -20,6 +20,10 @@ extends Node3D
 ## at karts beside it and cheers when it wins, and standing it fidgets, looks
 ## around and waves now and then. Pictures stay still.
 ##
+## Astride a motorbike's saddle, the legs swing down toward the footpegs
+## instead of out in front, the upper body leans forward and the arms swing
+## out to the sides as well, to reach wide bars.
+##
 ## The origin is where the driver sits, in the middle of the bottom of the
 ## hips, and they face -Z. Standing, the feet are FEET_BELOW under the origin.
 
@@ -50,6 +54,12 @@ const FOREARM := 0.12
 const ELBOW_BEND := deg_to_rad(35.0)
 const FOREARM_IN := 0.25
 const HAND_SIZE := 0.045
+## Astride, how far the legs swing down from straight out in front, and how
+## far the upper body leans forward.
+const ASTRIDE_LEGS := deg_to_rad(25.0)
+const ASTRIDE_LEAN := deg_to_rad(30.0)
+## How far the arms can swing out to the sides, astride.
+const MOST_SPREAD := deg_to_rad(60.0)
 ## Where domes over the head (hair, helmets and hoods) start, which is where
 ## the flat top of the head starts to round over, above the eyebrows.
 const DOME_BASE := HEAD_HEIGHT * 0.5 - 0.035
@@ -59,6 +69,7 @@ var seated := true
 ## How far back they lean from the hips, in radians, for a laid back seat.
 ## Set it before the rig goes into the scene.
 var recline := 0.0
+var astride := false
 
 var _head: Node3D
 ## Everything above the hips, which leans back with `recline`.
@@ -73,6 +84,8 @@ var head_layer := 0:
 		_apply_head_layer()
 var _arm: Array[Node3D] = []
 var _hand: Array[Node3D] = []
+## How far each arm swings out to the side.
+var _spread: Array[float] = [0.0, 0.0]
 ## Where each hand's grip sits, in its arm's own unswung space.
 var _grip_local: Array[Vector3] = []
 
@@ -128,7 +141,7 @@ func _ready() -> void:
 	# the rig's own space, as if it weren't leaning.
 	_upper = Node3D.new()
 	var pivot := Vector3(0.0, HIPS_TOP, 0.0)
-	var lean := Basis(Vector3.RIGHT, recline)
+	var lean := Basis(Vector3.RIGHT, recline - (ASTRIDE_LEAN if astride else 0.0))
 	_upper.transform = Transform3D(lean, pivot - lean * pivot)
 	add_child(_upper)
 	_build()
@@ -364,14 +377,24 @@ func _swing_arm(side: int, target: Vector3, along: Vector3) -> void:
 	var pivot := shoulder(side)
 	var reach := _grip_local[side]
 	var want := target - pivot
+	if astride:
+		# Out to the side first, as far as it takes to get the hand over the
+		# target.
+		var out := (absf(target.x) - absf(pivot.x)) / reach.length()
+		_spread[side] = clampf(asin(clampf(out, 0.0, 1.0)), 0.0, MOST_SPREAD)
+		want = _spread_basis(side).inverse() * want
 	# Swinging about X only moves the hand around in the Y-Z plane.
 	var angle := atan2(want.z, want.y) - atan2(reach.z, reach.y)
 	_set_swing(side, angle, along)
 
 
+func _spread_basis(side: int) -> Basis:
+	return Basis(Vector3.BACK, _spread[side] * (1.0 if side == 1 else -1.0))
+
+
 ## How far the arm is swung now.
 func _swing_of(side: int) -> float:
-	var y := _arm[side].transform.basis.y
+	var y := _spread_basis(side).inverse() * _arm[side].transform.basis.y
 	return atan2(y.z, y.y)
 
 
@@ -379,7 +402,7 @@ func _swing_of(side: int) -> float:
 ## along `along`.
 func _set_swing(side: int, angle: float, along: Vector3) -> void:
 	var pivot := shoulder(side)
-	var swing := Basis(Vector3.RIGHT, angle)
+	var swing := _spread_basis(side) * Basis(Vector3.RIGHT, angle)
 	_arm[side].transform = Transform3D(swing, pivot)
 	# The hand's hole runs along what it's holding, with the wrist behind.
 	var wrist_dir := swing * _forearm_dir(side)
@@ -401,7 +424,18 @@ func _forearm_dir(side: int) -> Vector3:
 # Building.
 
 func _build() -> void:
+	var before := get_child_count()
 	LegLooks.build(self)
+	if astride:
+		# The legs, but not the hips, swing down about the hip.
+		var hip := Vector3(0.0, HIPS_TOP * 0.5, 0.0)
+		var down := Basis(Vector3.RIGHT, -ASTRIDE_LEGS)
+		var legs := Node3D.new()
+		legs.transform = Transform3D(down, hip - down * hip)
+		var made := get_children().slice(before + 1)
+		add_child(legs)
+		for node in made:
+			node.reparent(legs, false)
 	TorsoLooks.build(self)
 	# The neck post the head sits on.
 	add(_upper, MeshKit.rounded_cylinder(0.05, 0.03, 0.006, 20), design.skin(), Vector3(0.0, NECK_Y, 0.0))
