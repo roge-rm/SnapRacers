@@ -69,7 +69,7 @@ func _ready() -> void:
 	_delete_dialog.ok_button_text = "Delete"
 	_delete_dialog.confirmed.connect(func() -> void:
 		DirAccess.remove_absolute(path)
-		Game.show_cups())
+		Game.show_your_cups())
 	add_child(_delete_dialog)
 	_show()
 
@@ -80,7 +80,7 @@ func _course_button(course_path: String) -> Button:
 		if cup.add(course_path):
 			_show()
 		else:
-			Sounds.play("fx/nope"), TrackPicker.describe(track))
+			Sounds.play("fx/nope"), CourseOutline.describe(track))
 	button.custom_minimum_size.y = 76.0
 	button.set_meta("track", course_path)
 	return button
@@ -123,8 +123,8 @@ func save() -> void:
 	# When it's renamed the old file goes, so there aren't two.
 	if old != "" and old != path:
 		DirAccess.remove_absolute(old)
-	Game.show_cups()
+	Game.show_your_cups()
 
 
 func go_back() -> void:
-	Game.show_cups()
+	Game.show_your_cups()

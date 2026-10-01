@@ -136,9 +136,9 @@ The road runs out onto grass that slows you down, and there are only walls where
 
 ### Racing
 
-- **Grand Prix:** eight cups of four races each, for points and trophies. From the second race on, the leader starts at the back.
+- **Grand Prix:** eight cups of four races each, for points and trophies. From the second race on, the leader starts at the back. All the cups are on one screen, each with its own brick trophy and the layouts of its courses. A trophy's grey until you finish in the top three, then it's gold, silver or bronze.
 - **Your own cups:** put 2 to 8 races together from any courses and race them as a Grand Prix. A cup is one file with its courses in it, so it can be shared.
-- **Single race:** one race against the AI on any course.
+- **Single race:** one race against the AI on any course. Pick a cup, then one of its courses.
 - **Time trial:** race the clock, with your best times kept.
 - **Practice:** drive any course on your own for as long as you like.
 - **Two players on one phone:** side by side in landscape, or face to face in portrait with the phone flat between you.

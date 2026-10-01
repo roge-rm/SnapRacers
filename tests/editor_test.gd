@@ -108,8 +108,13 @@ func _ready() -> void:
 	# It shows up in the course lists.
 	Game.show_tracks(Game.MODE_TIME_TRIAL)
 	await frames(2)
+	var mine := screen().find_children("*", "Button", true, false).filter(func(b): return b.has_meta("yours"))
+	check(mine.size() == 1, "there's a card for your courses with the cups")
+	if not mine.is_empty():
+		mine[0].pressed.emit()
+		await frames(2)
 	var listed := screen().find_children("*", "Button", true, false).filter(func(b): return b.get_meta("track", "") == path)
-	check(listed.size() == 1, "and it's in the course list under your courses")
+	check(screen() is CourseGrid and listed.size() == 1, "and it's there behind it")
 
 	# Racing on it from the editor comes back to the editor.
 	Game.show_track_editor()

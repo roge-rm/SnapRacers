@@ -14,6 +14,10 @@ extends Control
 ##
 ## It has to draw on the real screen, which uses different versions of the same
 ## shaders than views off the screen do.
+##
+## Meanwhile it works out the layouts of the game's courses for the cup screen
+## (see CourseOutline), a few each frame. The first launch builds every course
+## to do it, and after that they're saved.
 
 ## How many frames each scene is drawn for. The first one does the compiling,
 ## and the rest catch anything that only turns up once things have moved.
@@ -28,6 +32,9 @@ var _shown := 0.0
 var _began := 0
 var _started := false
 var _done := false
+## The courses whose layouts are still to get ready.
+var _outlines: Array = []
+var _outlines_took := 0
 var _bar: ProgressBar
 var _status: Label
 
@@ -67,6 +74,10 @@ func _ready() -> void:
 	column.add_child(_status)
 
 	_stages = [_warm_race, _warm_garage, _warm_driver]
+	for cup in GrandPrix.cups():
+		for id in cup.tracks:
+			_outlines.append(Tracks.path_of(id))
+		Game.trophy_pictures().take(cup.get("trophy", {}), Color(cup.get("colour", "#a3a2a4")), TrophyModel.finish_for(CupGrid.best_place(cup.id)))
 	_began = Time.get_ticks_msec()
 	# The race and the rest are only here to get things ready, so nobody should
 	# hear them. The sounds get loaded meanwhile.
@@ -105,6 +116,16 @@ func _warm_driver() -> Node:
 	return builder
 
 
+## Gets course layouts ready for up to a few milliseconds, and at least one.
+func _outline_some() -> void:
+	var from := Time.get_ticks_msec()
+	while not _outlines.is_empty():
+		CourseOutline.of(_outlines.pop_front())
+		if Time.get_ticks_msec() - from > 6:
+			break
+	_outlines_took += Time.get_ticks_msec() - from
+
+
 func _next_stage() -> void:
 	if _scene != null:
 		_scene.queue_free()
@@ -120,14 +141,15 @@ func _process(delta: float) -> void:
 	if not _started or _done:
 		return
 	_frames += 1
+	_outline_some()
 	var stages_total := 3.0
 	var finished := stages_total - _stages.size() - (1 if _scene != null else 0)
 	_bar.value = clampf((finished + float(_frames) / WARM_FRAMES) / stages_total, 0.0, 1.0) * 100.0
 	if _scene != null and _frames >= WARM_FRAMES:
 		_next_stage()
-	elif _scene == null and _shown >= AT_LEAST:
+	elif _scene == null and _shown >= AT_LEAST and _outlines.is_empty():
 		_done = true
-		print("Warm-up took %d ms" % (Time.get_ticks_msec() - _began))
+		print("Warm-up took %d ms, with %d ms of course layouts" % [Time.get_ticks_msec() - _began, _outlines_took])
 		Sounds.hushed = false
 		Game.show_menu()
 

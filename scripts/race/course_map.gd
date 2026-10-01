@@ -40,12 +40,9 @@ func _ready() -> void:
 	mode = mode
 	if track == null:
 		return
-	for k in range(0, track.points.size(), 3):
-		_line.append(Vector2(track.points[k].x, track.points[k].z))
-	_line.append(_line[0])
-	_box = Rect2(_line[0], Vector2.ZERO)
-	for p in _line:
-		_box = _box.expand(p)
+	var outline := CourseOutline.of_track(track)
+	_line = outline.line
+	_box = outline.box
 
 
 func _process(_delta: float) -> void:

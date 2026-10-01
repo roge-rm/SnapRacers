@@ -23,7 +23,7 @@ func _ready() -> void:
 	var me := Game.player_name()
 	var place := standings.map(func(s): return s[0]).find(me) + 1
 	if done:
-		var trophy: String = CupPicker.TROPHIES.get(place, "")
+		var trophy: String = CupGrid.TROPHIES.get(place, "")
 		var news := "You won the %s!" % grand_prix.cup.name if place == 1 else "You finished %s." % RaceHud.ordinal(place)
 		if trophy != "":
 			news += " That's a %s." % trophy.to_lower()

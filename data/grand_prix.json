@@ -1,13 +1,13 @@
 {
-	"_comment": "The Grand Prix cups, easiest first. Each is four courses from data/tracks, raced in this order, and its race tune from sound/music. Every course was traced from a real circuit (see each course's inspired_by).",
+	"_comment": "The Grand Prix cups, easiest first. Each is four courses from data/tracks, raced in this order, and its race tune from sound/music. Every course was traced from a real circuit (see each course's inspired_by). Each has a colour and a brick trophy (see TrophyModel).",
 	"cups": [
-		{ "id": "baseplate", "name": "Baseplate Cup", "tracks": ["peach_pit", "trulli_turns", "lemon_lake", "pithead_park"], "music": "race_one" },
-		{ "id": "axle", "name": "Axle Cup", "tracks": ["delta_dash", "bucketwheel_bend", "foundry_flats", "amber_arc"], "music": "race_two" },
-		{ "id": "gearbox", "name": "Gearbox Cup", "tracks": ["timberline", "frostbite_forest", "dune_drift", "whistlestop_woods"], "music": "race_three" },
-		{ "id": "keystone", "name": "Keystone Cup", "tracks": ["windmill_ridge", "launchpad_loop", "magma_mile", "castle_keep"], "music": "race_four" },
-		{ "id": "legends", "name": "Legends Cup", "tracks": ["royal_run", "dry_lagoon", "sakura_swirl", "rouge_ridge"], "music": "race_legends" },
-		{ "id": "gravel", "name": "Gravel Cup", "tracks": ["menhir_meadow", "oast_hill", "devils_dust", "pine_hill_leap"], "music": "race_rally" },
-		{ "id": "hangar", "name": "Hangar Cup", "tracks": ["neon_nights", "hairpin_hall", "bohemian_bends", "spark_deck"], "music": "race_indoor" },
-		{ "id": "corkscrew", "name": "Corkscrew Cup", "tracks": ["serpent_summit", "lakeshore_plunge", "red_rocket", "twister_pines"], "music": "race_coaster" }
+		{ "id": "baseplate", "name": "Baseplate Cup", "tracks": ["peach_pit", "trulli_turns", "lemon_lake", "pithead_park"], "music": "race_one", "colour": "#4b974b", "trophy": { "top": "cup" } },
+		{ "id": "axle", "name": "Axle Cup", "tracks": ["delta_dash", "bucketwheel_bend", "foundry_flats", "amber_arc"], "music": "race_two", "colour": "#c4281c", "trophy": { "top": "wheel" } },
+		{ "id": "gearbox", "name": "Gearbox Cup", "tracks": ["timberline", "frostbite_forest", "dune_drift", "whistlestop_woods"], "music": "race_three", "colour": "#0d69ab", "trophy": { "top": "gear" } },
+		{ "id": "keystone", "name": "Keystone Cup", "tracks": ["windmill_ridge", "launchpad_loop", "magma_mile", "castle_keep"], "music": "race_four", "colour": "#da8541", "trophy": { "top": "arch" } },
+		{ "id": "legends", "name": "Legends Cup", "tracks": ["royal_run", "dry_lagoon", "sakura_swirl", "rouge_ridge"], "music": "race_legends", "colour": "#6b3fa0", "trophy": { "top": "flag" } },
+		{ "id": "gravel", "name": "Gravel Cup", "tracks": ["menhir_meadow", "oast_hill", "devils_dust", "pine_hill_leap"], "music": "race_rally", "colour": "#8a5a3a", "trophy": { "top": "peak" } },
+		{ "id": "hangar", "name": "Hangar Cup", "tracks": ["neon_nights", "hairpin_hall", "bohemian_bends", "spark_deck"], "music": "race_indoor", "colour": "#e04da0", "trophy": { "top": "bolt" } },
+		{ "id": "corkscrew", "name": "Corkscrew Cup", "tracks": ["serpent_summit", "lakeshore_plunge", "red_rocket", "twister_pines"], "music": "race_coaster", "colour": "#12a5a5", "trophy": { "top": "spiral" } }
 	]
 }

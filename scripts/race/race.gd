@@ -315,7 +315,7 @@ func _add_view(racer: Racer, world_parent: Node, layer: CanvasLayer) -> void:
 	racer_hud.menu_pressed.connect(leave)
 	racer_hud.next_pressed.connect(func() -> void:
 		Game.finish_grand_prix_race(standings().map(func(r): return r.name)))
-	racer_hud.courses_pressed.connect(func() -> void: Game.show_tracks(mode))
+	racer_hud.courses_pressed.connect(func() -> void: Game.show_tracks(mode, Game.racing_alone, true))
 	racer_hud.camera_pressed.connect(input.press_view)
 	racer_hud.pause_pressed.connect(open_menu.bind(racer))
 	input.menu_pressed.connect(open_menu.bind(racer))
@@ -600,10 +600,10 @@ func leave() -> void:
 			Game.grand_prix = null
 			Game.show_cups()
 		Game.MODE_TIME_TRIAL, Game.MODE_PRACTICE:
-			Game.show_tracks(mode)
+			Game.show_tracks(mode, false, true)
 		_:
 			if Game.racing_alone:
-				Game.show_tracks(Game.MODE_RACE, true)
+				Game.show_tracks(Game.MODE_RACE, true, true)
 			elif split == Game.SOLO:
 				Game.show_menu()
 			else:

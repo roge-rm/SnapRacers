@@ -14,7 +14,7 @@ func _ready() -> void:
 	gap.custom_minimum_size = Vector2(0.0, 24.0)
 	column.add_child(gap)
 	for item in [
-		["Grand Prix", Game.show_cups, "Four cups of four races each, for points and trophies"],
+		["Grand Prix", Game.show_cups, "Cups of four races each, for points and trophies"],
 		["Single race", Game.show_tracks.bind(Game.MODE_RACE, true), "One race against the AI on any course, yours too"],
 		["Time trial", Game.show_tracks.bind(Game.MODE_TIME_TRIAL), "Race the clock on any course, with your best times kept"],
 		["Practice", Game.show_tracks.bind(Game.MODE_PRACTICE), "Drive any course on your own, for as long as you like"],

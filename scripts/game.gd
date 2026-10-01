@@ -61,7 +61,10 @@ var controllers: Controllers
 var plugin: NetPlugin
 ## Whether two people on this phone join an online game together.
 var online_two := false
+## The cup whose courses were picked from last, to come back to.
+var cup_shown := ""
 var _part_pictures: PartThumbnails
+var _trophy_pictures: TrophyThumbnails
 var _loading: CanvasLayer
 var _loading_since := 0
 var _portrait := false
@@ -131,6 +134,14 @@ func part_pictures() -> PartThumbnails:
 	return _part_pictures
 
 
+## The pictures of the cups' trophies, the same way.
+func trophy_pictures() -> TrophyThumbnails:
+	if _trophy_pictures == null:
+		_trophy_pictures = TrophyThumbnails.new()
+		add_child(_trophy_pictures)
+	return _trophy_pictures
+
+
 func show_menu() -> void:
 	_swap(MainMenu.new())
 
@@ -157,7 +168,12 @@ func show_multiplayer() -> void:
 
 
 func show_cups() -> void:
-	_swap(CupPicker.new())
+	_swap(CupGrid.new(MODE_GRAND_PRIX))
+
+
+## The cups you've made.
+func show_your_cups() -> void:
+	_swap(CupGrid.new(MODE_GRAND_PRIX, false, true))
 
 
 ## Hosting or joining a game over the network.
@@ -186,10 +202,19 @@ func show_cup_builder(path := "") -> void:
 	_swap(CupBuilder.new(path))
 
 
-## The course list for time trials, practice or a race against the AI,
-## on your own or (from the Multiplayer menu) for two.
-func show_tracks(for_mode := MODE_RACE, alone := false) -> void:
-	_swap(TrackPicker.new(for_mode, alone))
+## The cups, to pick a course from for time trials, practice or a race against
+## the AI, on your own or (from the Multiplayer menu) for two. Coming back
+## from a race goes back to the cup it was in.
+func show_tracks(for_mode := MODE_RACE, alone := false, back_to_cup := false) -> void:
+	if back_to_cup and cup_shown != "":
+		show_course_grid(for_mode, alone, cup_shown)
+	else:
+		_swap(CupGrid.new(for_mode, alone))
+
+
+## A cup's courses, or the ones you've built (CourseGrid.YOURS).
+func show_course_grid(for_mode: String, alone: bool, cup: String) -> void:
+	_swap(CourseGrid.new(for_mode, alone, cup))
 
 
 ## Pick a kart, then `go` starts the race. Back goes to `back`. With `ai`,

@@ -204,8 +204,8 @@ func _practice() -> void:
 	check(race.player.hud._place.text == "Practice", "the HUD says it's practice")
 	race.leave()
 	await frames(2)
-	var picker := screen() as TrackPicker
-	check(picker != null and picker.mode == Game.MODE_PRACTICE, "leaving goes back to the practice course list")
+	var picker := screen()
+	check((picker is CupGrid or picker is CourseGrid) and picker.mode == Game.MODE_PRACTICE, "leaving goes back to the practice courses")
 
 
 ## A cup of your own: made on the Make a cup page from one of the game's
@@ -229,11 +229,15 @@ func _your_cup() -> void:
 	check(builder.cup.races.size() == 2 and not builder._save.disabled, "adding two races makes it ready to save")
 	builder.save()
 	await frames(2)
-	var picker: CupPicker = screen()
+	var picker: CupGrid = screen()
 	var path := CupDesign.path_for("Modes Test Cup")
 	check(FileAccess.file_exists(path), "it saves as a cup of your own")
 	var listed := picker.find_children("*", "Button", true, false).filter(func(b): return b.get_meta("cup", "") == CupDesign.id_of(path))
-	check(listed.size() == 1, "and it's in the Grand Prix list under your cups")
+	check(picker.yours and listed.size() == 1, "and it's with your cups")
+	Game.show_cups()
+	await frames(2)
+	var yours := screen().find_children("*", "Button", true, false).filter(func(b): return b.has_meta("yours"))
+	check(yours.size() == 1, "which the Grand Prix has a card for")
 
 	# Racing it.
 	var cup := CupDesign.load_file(path)

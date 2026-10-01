@@ -26,7 +26,7 @@ const AT_ONCE := 8
 
 static var _pictures := {}
 
-var _views: Array[Studio] = []
+var _views: Array[PictureStudio] = []
 var _queue: Array = []
 var _stamp := ""
 
@@ -43,7 +43,7 @@ func _ready() -> void:
 		set_process(false)
 		return
 	for i in AT_ONCE:
-		var studio := Studio.new()
+		var studio := PictureStudio.new(SIZE)
 		add_child(studio)
 		_views.append(studio)
 	_stamp = _work_out_stamp()
@@ -97,47 +97,18 @@ func _process(_delta: float) -> void:
 	for studio in _views:
 		var done := studio.taken()
 		if done != null:
-			_pictures[studio.id] = ImageTexture.create_from_image(done)
-			done.save_png("%s/%s.png" % [SAVED, studio.id])
-			ready_for.emit(studio.id, _pictures[studio.id])
-			studio.id = ""
-		if studio.id == "" and not _queue.is_empty():
-			studio.take(_queue.pop_front())
-		busy = busy or studio.id != ""
+			_pictures[studio.key] = ImageTexture.create_from_image(done)
+			done.save_png("%s/%s.png" % [SAVED, studio.key])
+			ready_for.emit(studio.key, _pictures[studio.key])
+			studio.key = ""
+		if studio.key == "" and not _queue.is_empty():
+			var id: String = _queue.pop_front()
+			var made := PartVisuals.make(PartCatalog.get_part(id), PartCatalog.fine_size(id) * Grid.FINE)
+			_lighten(made)
+			studio.take(id, made, Vector3(1.0, 0.9, -1.3), FILL)
+		busy = busy or studio.key != ""
 	if not busy:
 		set_process(false)
-
-
-## Points the camera at the part from in front and to one side, where the
-## shaping on slopes and noses shows, close enough that it fills the picture.
-static func _frame(camera: Camera3D, made: Node3D) -> void:
-	var corners: Array[Vector3] = []
-	for node in made.find_children("*", "VisualInstance3D", true, false):
-		var shown := node as VisualInstance3D
-		var box := shown.get_aabb()
-		for i in 8:
-			corners.append(shown.global_transform * box.get_endpoint(i))
-	if corners.is_empty():
-		corners.append(Vector3.ZERO)
-	var middle := Vector3.ZERO
-	for corner in corners:
-		middle += corner
-	middle /= corners.size()
-	camera.position = middle + Vector3(1.0, 0.9, -1.3).normalized() * 10.0
-	camera.look_at(middle, Vector3.UP)
-	# Where the corners land in the picture, to centre it and size it.
-	var low := Vector2.INF
-	var high := -Vector2.INF
-	var to_camera := camera.global_transform.affine_inverse()
-	for corner in corners:
-		var seen := to_camera * corner
-		low = low.min(Vector2(seen.x, seen.y))
-		high = high.max(Vector2(seen.x, seen.y))
-	var centre := (low + high) * 0.5
-	camera.position += camera.basis.x * centre.x + camera.basis.y * centre.y
-	var aspect := float(SIZE.x) / float(SIZE.y)
-	var span := high - low
-	camera.size = maxf(maxf(span.y, span.x / aspect) / FILL, 0.02)
 
 
 ## Lifts dark colours, so black tires and dark tiles show up in the drawer.
@@ -150,62 +121,3 @@ static func _lighten(made: Node3D) -> void:
 		var lighter := material.duplicate() as StandardMaterial3D
 		lighter.albedo_color.v = DARKEST
 		shown.material_override = lighter
-
-
-## A small view off the screen where one part at a time has its picture taken.
-class Studio:
-	extends SubViewport
-
-	## The part in it, or "" when it's free.
-	var id := ""
-	var _camera: Camera3D
-	var _stand: Node3D
-	var _frames := 0
-
-	func _init() -> void:
-		size = SIZE
-		own_world_3d = true
-		transparent_bg = true
-		render_target_update_mode = SubViewport.UPDATE_DISABLED
-		var env := WorldEnvironment.new()
-		env.environment = Environment.new()
-		env.environment.background_mode = Environment.BG_CLEAR_COLOR
-		env.environment.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
-		env.environment.ambient_light_color = Color("#e8e8e8")
-		env.environment.ambient_light_energy = 0.55
-		add_child(env)
-		var sun := DirectionalLight3D.new()
-		sun.rotation_degrees = Vector3(-50.0, 215.0, 0.0)
-		sun.light_energy = 1.0
-		add_child(sun)
-		_camera = Camera3D.new()
-		_camera.projection = Camera3D.PROJECTION_ORTHOGONAL
-		add_child(_camera)
-		_stand = Node3D.new()
-		add_child(_stand)
-
-	func take(part: String) -> void:
-		id = part
-		_frames = 0
-		for child in _stand.get_children():
-			child.queue_free()
-		var def := PartCatalog.get_part(id)
-		var made := PartVisuals.make(def, PartCatalog.fine_size(id) * Grid.FINE)
-		_stand.add_child(made)
-		PartThumbnails._lighten(made)
-		PartThumbnails._frame(_camera, made)
-		render_target_update_mode = SubViewport.UPDATE_ONCE
-
-	## The picture once it's ready, or null.
-	func taken() -> Image:
-		if id == "":
-			return null
-		_frames += 1
-		# One frame to draw it, one more for the picture to be ready.
-		if _frames < 3:
-			return null
-		var image := get_texture().get_image()
-		if image == null or image.is_empty():
-			id = ""
-			return null
-		return image
