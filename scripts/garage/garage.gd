@@ -4,15 +4,18 @@ extends Node3D
 ## Where you build your kart.
 ##
 ## Drag a part from the drawer onto the kart, or tap it and it shows up on the
-## kart as a see-through preview, green where it fits and red where it doesn't.
-## Drag it or tap where it goes, then nudge it with the arrows (a stud at a
-## time, and right is always right on the screen), Up and Down for a plate at a
-## time, and Turn. Place puts it down and leaves you holding another, so you
-## can put down a row.
+## kart as a see-through preview, red where it doesn't fit. Dots show every
+## spot on the kart it could join: studs, bars, axles, holes, hinges and ball
+## joints. Drag it or tap a dot and it snaps on there. Turn turns it about the
+## joint, Flip turns it over, Way on puts it on by another of its own
+## connectors, and Slide moves it along a bar or axle. The arrows still move
+## it a stud at a time (right is always right on the screen), and Up and Down
+## a plate at a time. Place puts it down and leaves you holding another, so
+## you can put down a row.
 ##
-## Tap a part on the kart to move, turn, copy or delete it. With Mirror on,
-## anything you put down, delete or paint happens on the other side too. Paint
-## mode colours whatever part you tap.
+## Tap a part on the kart to move, turn, copy or delete it, or drag it to
+## move it. With Mirror on, anything you put down, delete or paint happens on
+## the other side too. Paint mode colours whatever part you tap.
 ##
 ## One finger turns the view and two fingers slide and zoom it. With a mouse
 ## the right button turns it, the middle button slides it and the wheel zooms.
@@ -20,6 +23,13 @@ extends Node3D
 const ORBIT_SPEED := 0.006
 const DRAG_START := 14.0 # pixels a finger has to move before it counts as a drag
 const GRAB_RADIUS := 90.0 # how close to the preview a drag has to start to move it
+const SNAP_RADIUS := 60.0 # how close to a dot a finger has to be to snap to it
+## The colours of the dots, by what joins there.
+const DOT_COLOURS := {
+	"stud": Color("#b39dff"), "socket": Color("#b39dff"), "side": Color("#b39dff"), "clip": Color("#f2cd37"), "bar": Color("#f2cd37"),
+	"pin": Color("#36aebf"), "hole": Color("#36aebf"), "axle": Color("#36aebf"), "axle_hole": Color("#36aebf"), "hub": Color("#36aebf"),
+	"hinge_a": Color("#da8540"), "hinge_b": Color("#da8540"), "ball": Color("#da8540"), "cup": Color("#da8540"),
+}
 const MIN_DISTANCE := 2.0
 const MAX_DISTANCE := 16.0
 const UNDO_LIMIT := 100
@@ -48,14 +58,26 @@ var _part_nodes: Array[Node3D] = []
 var _selected := -1
 var _mode := GarageUI.Mode.IDLE
 
-# The part being placed.
+# The part being placed, and where it is: its place takes its own space to
+# the kart's, in the fine unit (see KartDesign).
 var _holding := ""
-var _holding_rot := 0
 var _holding_colour: Variant = null
+var _ghost_place := Transform3D.IDENTITY
 var _ghost: Node3D
 var _twin_ghost: Node3D
-var _ghost_at := Vector3i.ZERO
+var _ghost_turn := Basis.IDENTITY
+var _twin_turn := Basis.IDENTITY
 var _ghost_ok := false
+## The spot it's snapped onto and how (see Snap), or empty when it's just
+## sitting on the grid.
+var _spot := {}
+var _way := {}
+## The spots the part in hand could join, and the dots that show them.
+var _spots := []
+var _dots: MultiMeshInstance3D
+var _dot_here: MeshInstance3D
+## A drag on the picked out part moves it.
+var _grab_selected := false
 ## When a part on the kart is being moved, where it came from, so Cancel can
 ## put it back.
 var _moving := {}
@@ -93,6 +115,7 @@ func _ready() -> void:
 	_add_baseplate()
 	_parts_root = Node3D.new()
 	add_child(_parts_root)
+	_make_dots()
 
 	_camera = Camera3D.new()
 	_camera.fov = 50.0
@@ -109,6 +132,9 @@ func _ready() -> void:
 	ui.raise_pressed.connect(func() -> void: lift(1))
 	ui.lower_pressed.connect(func() -> void: lift(-1))
 	ui.turn_pressed.connect(turn)
+	ui.flip_pressed.connect(flip)
+	ui.way_pressed.connect(way_on)
+	ui.slide_pressed.connect(slide)
 	ui.place_pressed.connect(place)
 	ui.cancel_pressed.connect(cancel)
 	ui.move_pressed.connect(move_selected)
@@ -168,35 +194,53 @@ func redo() -> void:
 	_rebuild()
 
 
-## Starts placing a part. It shows up where you're looking unless `at` says
-## where.
-func start_placing(id: String, rot := 0, colour: Variant = null, at: Variant = null) -> void:
+## Starts placing a part, turned by `turn`. It shows up where you're looking
+## unless `at` says where, as a Transform3D place or a Vector3i spot on the
+## grid.
+func start_placing(id: String, turn := Basis.IDENTITY, colour: Variant = null, at: Variant = null) -> void:
 	if _mode == GarageUI.Mode.PLACING and not _moving.is_empty():
 		cancel()
 	_holding = id
-	_holding_rot = 0 if KartDesign.is_wheel(id) else rot
 	_holding_colour = colour
+	_spot = {}
+	_way = {}
 	ui.set_held_picture(PartThumbnails.picture(id))
 	_set_mode(GarageUI.Mode.PLACING)
-	_make_ghosts()
-	if at != null:
-		_ghost_at = at
-		_show_ghost()
+	_find_spots()
+	if KartDesign.is_wheel(id):
+		turn = Basis.IDENTITY
+	if at is Transform3D:
+		_ghost_place = at
+	elif at is Vector3i:
+		_ghost_place = KartDesign.box_place(id, turn, at)
 	else:
+		_ghost_place = KartDesign.box_place(id, turn, Vector3i.ZERO)
 		_aim_ghost(_view_middle())
+	_show_ghost()
 
 
 func _stop_placing() -> void:
 	_holding = ""
 	_moving = {}
+	_spot = {}
+	_way = {}
+	_spots = []
 	_bank_finger = NO_DRAG
 	for ghost in [_ghost, _twin_ghost]:
 		if ghost != null:
 			ghost.queue_free()
 	_ghost = null
 	_twin_ghost = null
+	_show_dots()
 	if _mode == GarageUI.Mode.PLACING:
 		_set_mode(GarageUI.Mode.IDLE)
+
+
+## Where the part in hand is on the stud grid: the front left bottom corner of
+## its box.
+func ghost_at() -> Vector3i:
+	var low := KartDesign.fine_box(_holding, _ghost_place).position / Grid.UNIT_FINE
+	return Vector3i(roundi(low.x), roundi(low.y), roundi(low.z))
 
 
 ## Moves the part being placed one stud across the screen. `direction` is in
@@ -204,46 +248,102 @@ func _stop_placing() -> void:
 func nudge(direction: Vector2i) -> void:
 	if _holding == "":
 		return
-	var step := _screen_to_grid(direction)
-	_ghost_at = _clamped(_ghost_at + step)
-	_show_ghost()
+	_shift(Vector3(_screen_to_grid(direction)) * Grid.UNIT_FINE)
 
 
 ## Moves the part being placed up or down a plate.
 func lift(plates: int) -> void:
 	if _holding == "":
 		return
-	_ghost_at = _clamped(_ghost_at + Vector3i(0, plates, 0))
+	_shift(Vector3(0.0, plates * Grid.PLATE_FINE, 0.0))
+
+
+## Moves the part in hand off whatever spot it was snapped to.
+func _shift(by: Vector3) -> void:
+	_ghost_place.origin += by
+	_ghost_place = _clamped(_holding, _ghost_place)
+	_spot = {}
+	_way = {}
 	_show_ghost()
 
 
+## Turns the part in hand a quarter turn about the joint it's on, or about
+## its middle when it isn't snapped on anywhere. A part on the kart that's
+## picked out turns about its middle.
 func turn() -> void:
 	if _holding != "":
 		if KartDesign.is_wheel(_holding):
 			return
-		# Turn it about its own middle, as near as the grid allows.
-		var old := KartDesign.part_box(_holding, _ghost_at, _holding_rot)
-		_holding_rot = (_holding_rot + 1) % 4
-		var size := Grid.rotated_size(PartCatalog.get_part(_holding).size, _holding_rot)
-		var centre := old.get_center()
-		_ghost_at = _clamped(Vector3i(roundi(centre.x - size.x * 0.5), _ghost_at.y, roundi(centre.z - size.z * 0.5)))
-		_make_ghosts()
+		if not _spot.is_empty():
+			var way := Snap.turned(design, _holding, _spot, _way)
+			if not way.is_empty():
+				_take_way(way)
+				return
+		_ghost_place = _turned_in_place(_holding, _ghost_place, Grid.yaw(1))
+		_spot = {}
+		_way = {}
 		_show_ghost()
 	elif _selected != -1:
 		var p: Dictionary = design.parts[_selected]
 		if KartDesign.is_wheel(p.id):
 			return
-		var old := KartDesign.part_box(p.id, p.at, p.rot)
-		var new_rot: int = (p.rot + 1) % 4
-		var new_size := Grid.rotated_size(PartCatalog.get_part(p.id).size, new_rot)
-		var centre := old.get_center()
-		var at := Vector3i(roundi(centre.x - new_size.x * 0.5), p.at.y, roundi(centre.z - new_size.z * 0.5))
-		if design.fits(p.id, at, new_rot, _selected):
+		var place := _turned_in_place(p.id, KartDesign.place_of(p), Grid.yaw(1))
+		if design.fits_place(p.id, place, _selected) and design.attaches_place(p.id, place, _selected):
 			_remember()
-			design.parts[_selected] = KartDesign.grid_entry(p.id, at, new_rot, p.get("color"))
+			design.parts[_selected] = KartDesign.placed_entry(p.id, place, p.get("color"))
 			_rebuild()
 		else:
 			ui.toast("There's no room to turn it there.")
+
+
+## Turns the part in hand over.
+func flip() -> void:
+	if _holding == "":
+		return
+	if not _spot.is_empty():
+		var way := Snap.flipped(design, _holding, _spot, _way)
+		if way.is_empty():
+			ui.toast("It only goes on one way up there.")
+		else:
+			_take_way(way)
+		return
+	_ghost_place = _turned_in_place(_holding, _ghost_place, Basis(Vector3.RIGHT, PI))
+	_show_ghost()
+
+
+## Puts the part in hand on the same spot by the next of its own connectors.
+func way_on() -> void:
+	if _holding == "" or _spot.is_empty():
+		return
+	var way := Snap.next_way(design, _holding, _spot, _way)
+	if way.is_empty():
+		ui.toast("It only goes on there one way.")
+	else:
+		_take_way(way)
+
+
+## Slides the part in hand along the bar, axle or hinge it's on.
+func slide() -> void:
+	if _holding == "" or _spot.is_empty() or not Snap.slides(_spot, _way):
+		return
+	var way := Snap.slid(design, _holding, _spot, _way)
+	_spot = way.spot
+	_take_way(way)
+
+
+func _take_way(way: Dictionary) -> void:
+	_way = way
+	_ghost_place = way.place
+	_show_ghost()
+
+
+## A part turned by `turn` about the middle of its box, kept on the grid.
+func _turned_in_place(id: String, place: Transform3D, turn: Basis) -> Transform3D:
+	var centre := KartDesign.fine_box(id, place).get_center() / Grid.UNIT_FINE
+	var basis := Snap.exact(turn * place.basis)
+	var size := Vector3(KartDesign.grid_size(id, basis))
+	var at := Vector3i(roundi(centre.x - size.x * 0.5), roundi(centre.y - size.y * 0.5), roundi(centre.z - size.z * 0.5))
+	return _clamped(id, KartDesign.box_place(id, basis, at))
 
 
 ## Puts the part being placed down, and its mirror image too with Mirror on.
@@ -257,12 +357,13 @@ func place() -> void:
 	# A move took its undo step when it started.
 	if _moving.is_empty():
 		_remember()
-	var entry := KartDesign.grid_entry(_holding, _ghost_at, _holding_rot, _holding_colour)
+	var entry := KartDesign.placed_entry(_holding, _ghost_place, _holding_colour)
 	design.parts.append(entry)
 	var placed := design.parts.size() - 1
 	if mirror and _moving.is_empty():
 		var twin := mirrored(entry)
-		if twin.at != entry.at and design.fits(twin.id, twin.at, twin.rot) and design.attaches(twin.id, twin.at, twin.rot):
+		var twin_place := KartDesign.place_of(twin)
+		if not twin_place.is_equal_approx(_ghost_place) and design.fits_place(twin.id, twin_place) and design.attaches_place(twin.id, twin_place):
 			design.parts.append(twin)
 	if not _moving.is_empty():
 		# A part that was being moved is done, so pick it out where it landed.
@@ -274,6 +375,7 @@ func place() -> void:
 		return
 	_rebuild()
 	# Keep holding the same part, so you can put down a row of them.
+	_find_spots()
 	_show_ghost()
 
 
@@ -303,7 +405,7 @@ func move_selected() -> void:
 	Sounds.play("fx/unsnap")
 	_selected = -1
 	_rebuild()
-	start_placing(p.id, p.rot, p.get("color"), p.at)
+	start_placing(p.id, KartDesign.place_of(p).basis, p.get("color"), KartDesign.place_of(p))
 	_moving = { "index": index, "entry": p }
 	_show_ghost()
 
@@ -314,14 +416,15 @@ func copy_selected() -> void:
 	if _selected == -1:
 		return
 	var p: Dictionary = design.parts[_selected]
-	var size := Grid.rotated_size(PartCatalog.get_part(p.id).size, p.rot)
-	var spot: Vector3i = p.at
-	for offset in [Vector3i(size.x, 0, 0), Vector3i(-size.x, 0, 0), Vector3i(0, 0, size.z), Vector3i(0, 0, -size.z), Vector3i(0, size.y, 0)]:
-		var at: Vector3i = p.at + offset
-		if design.fits(p.id, at, p.rot) and design.attaches(p.id, at, p.rot):
-			spot = at
+	var from := KartDesign.place_of(p)
+	var size := KartDesign.fine_box(p.id, from).size
+	var spot := from
+	for offset in [Vector3(size.x, 0, 0), Vector3(-size.x, 0, 0), Vector3(0, 0, size.z), Vector3(0, 0, -size.z), Vector3(0, size.y, 0)]:
+		var place := Transform3D(from.basis, from.origin + offset)
+		if design.fits_place(p.id, place) and design.attaches_place(p.id, place):
+			spot = place
 			break
-	start_placing(p.id, p.rot, p.get("color"), spot)
+	start_placing(p.id, from.basis, p.get("color"), spot)
 
 
 func delete_selected() -> void:
@@ -367,19 +470,17 @@ func set_painting(on: bool) -> void:
 ## Where a part would be as the mirror image of this one, across the middle
 ## of the kart from side to side.
 static func mirrored(entry: Dictionary) -> Dictionary:
-	var rot: int = posmod(4 - int(entry.rot), 4)
-	var size := Grid.rotated_size(PartCatalog.get_part(entry.id).size, rot)
-	var at: Vector3i = entry.at
 	# A left handed part's twin is the right handed one.
 	var id: String = PartCatalog.get_part(entry.id).get("mirror", entry.id)
-	return KartDesign.grid_entry(id, Vector3i(KartDesign.BUILD_SIZE.x - at.x - size.x, at.y, at.z), rot, entry.get("color"))
+	return KartDesign.placed_entry(id, Snap.mirror_place(entry.id, KartDesign.place_of(entry)), entry.get("color"))
 
 
 ## The index of the part that's exactly this one, or -1.
 func find_part(entry: Dictionary) -> int:
+	var place := KartDesign.place_of(entry)
 	for i in design.parts.size():
 		var p: Dictionary = design.parts[i]
-		if p.id == entry.id and p.at == entry.at and p.rot == entry.rot:
+		if p.id == entry.id and KartDesign.place_of(p).is_equal_approx(place):
 			return i
 	return -1
 
@@ -466,8 +567,9 @@ func _rebuild() -> void:
 	var stats := KartStats.compute(design, {}, null, Game.character.mass())
 	for i in design.parts.size():
 		var p: Dictionary = design.parts[i]
-		var node := _part_node(p.id, p.rot, p.get("color"))
-		node.position = _world_centre(p.id, p.at, p.rot)
+		var place := KartDesign.place_of(p)
+		var node := _part_node(p.id, place.basis, p.get("color"))
+		node.position = _world_centre(p.id, place)
 		_parts_root.add_child(node)
 		_part_nodes.append(node)
 	if stats.has_seat:
@@ -499,78 +601,208 @@ func _rebuild() -> void:
 
 func _refresh_ui() -> void:
 	var what := ""
-	var can_turn := true
+	var moves := { "turn": true }
 	if _mode == GarageUI.Mode.PLACING:
 		what = PartCatalog.get_part(_holding).get("name", _holding)
-		can_turn = not KartDesign.is_wheel(_holding)
+		moves = {
+			"turn": not KartDesign.is_wheel(_holding),
+			"flip": true,
+			"way": not _spot.is_empty(),
+			"slide": not _spot.is_empty() and Snap.slides(_spot, _way),
+		}
 	elif _mode == GarageUI.Mode.SELECTED and _selected != -1:
 		var id: String = design.parts[_selected].id
 		what = PartCatalog.get_part(id).get("name", id)
-		can_turn = not KartDesign.is_wheel(id)
-	ui.set_mode(_mode, what, can_turn)
+		moves = { "turn": not KartDesign.is_wheel(id) }
+	ui.set_mode(_mode, what, moves)
 	ui.set_can_place(_ghost_ok)
 	ui.set_history(not _undo.is_empty(), not _redo.is_empty())
 
 
-func _part_node(id: String, rot: int, colour: Variant = null) -> Node3D:
+func _part_node(id: String, basis: Basis, colour: Variant = null) -> Node3D:
 	var def := PartCatalog.get_part(id)
 	if colour != null:
 		def = def.duplicate()
 		def["color"] = colour
-	var size := Grid.rotated_size(def.size, rot)
-	return PartVisuals.make(def, Grid.to_metres(Vector3(size)), rot)
+	var extent := (Transform3D(basis, Vector3.ZERO) * AABB(Vector3.ZERO, PartCatalog.fine_size(id))).size * Grid.FINE
+	return PartVisuals.make_turned(def, extent, basis)
 
 
-func _world_centre(id: String, at: Vector3i, rot: int) -> Vector3:
-	var size := Grid.rotated_size(PartCatalog.get_part(id).size, rot)
-	return Grid.to_metres(Vector3(at) + Vector3(size) * 0.5)
+func _world_centre(id: String, place: Transform3D) -> Vector3:
+	return place * (PartCatalog.fine_size(id) * 0.5) * Grid.FINE
 
 
+## Remakes the part in hand and its twin when they've been turned.
 func _make_ghosts() -> void:
-	for ghost in [_ghost, _twin_ghost]:
-		if ghost != null:
-			ghost.queue_free()
-	_ghost = _part_node(_holding, _holding_rot, _holding_colour)
-	add_child(_ghost)
-	_ghost.visible = false
-	_twin_ghost = _part_node(PartCatalog.get_part(_holding).get("mirror", _holding), posmod(4 - _holding_rot, 4), _holding_colour)
-	add_child(_twin_ghost)
-	_twin_ghost.visible = false
+	var twin_id: String = PartCatalog.get_part(_holding).get("mirror", _holding)
+	var twin_turn := Snap.mirror_place(_holding, _ghost_place).basis
+	if _ghost == null or not _ghost_turn.is_equal_approx(_ghost_place.basis):
+		if _ghost != null:
+			_ghost.queue_free()
+		_ghost = _part_node(_holding, _ghost_place.basis, _holding_colour)
+		_ghost_turn = _ghost_place.basis
+		add_child(_ghost)
+	if _twin_ghost == null or not _twin_turn.is_equal_approx(twin_turn):
+		if _twin_ghost != null:
+			_twin_ghost.queue_free()
+		_twin_ghost = _part_node(twin_id, twin_turn, _holding_colour)
+		_twin_turn = twin_turn
+		add_child(_twin_ghost)
 
 
-## Points the part being placed at whatever is under this screen position.
+## Points the part being placed at whatever is under this screen position. It
+## snaps onto the nearest dot there, or failing that sits on the grid where
+## the finger is, the way bricks always have.
 func _aim_ghost(screen_pos: Vector2) -> void:
-	if _ghost == null:
+	if _holding == "":
 		return
-	var hit := BuildMath.cast(design, _camera.project_ray_origin(screen_pos) / Grid.UNIT, _camera.project_ray_normal(screen_pos) / Grid.UNIT)
+	var hit := _cast(screen_pos)
+	if snap_to(_spot_under(screen_pos, hit)):
+		return
 	if not hit.is_hit():
 		return
-	var size := Grid.rotated_size(PartCatalog.get_part(_holding).size, _holding_rot)
-	_ghost_at = BuildMath.nearest_spot(design, _holding, BuildMath.placement(hit, size), _holding_rot)
+	var basis := _ghost_place.basis
+	var at := BuildMath.placement(hit, KartDesign.grid_size(_holding, basis))
+	_ghost_place = _clamped(_holding, KartDesign.box_place(_holding, basis, BuildMath.nearest_cell(design, _holding, at, basis)))
+	_spot = {}
+	_way = {}
 	_show_ghost()
 
 
+## Snaps the part in hand onto a spot, the best way it fits there. Returns
+## whether it went on.
+func snap_to(spot: Dictionary) -> bool:
+	if spot.is_empty() or _holding == "":
+		return false
+	var way := Snap.best(design, _holding, Snap.ways(_holding, spot, _ghost_place.basis, spot.at))
+	if way.is_empty():
+		return false
+	_spot = spot
+	_take_way(way)
+	return true
+
+
+## The dot nearest this screen position, if there's one close enough that
+## isn't hidden behind the kart.
+func _spot_under(screen_pos: Vector2, hit: BuildMath.Hit) -> Dictionary:
+	var eye := _camera.global_position
+	var depth := INF
+	if hit.is_hit() and hit.part != -1:
+		depth = (Grid.to_metres(hit.point) - eye).length() + Grid.STUD
+	var best := {}
+	var best_distance := SNAP_RADIUS
+	for spot in _spots:
+		var at: Vector3 = _dot_position(spot)
+		if _camera.is_position_behind(at) or (at - eye).length() > depth:
+			continue
+		var distance := _camera.unproject_position(at).distance_to(screen_pos)
+		if distance < best_distance:
+			best_distance = distance
+			best = spot
+	return best
+
+
 func _show_ghost() -> void:
-	if _ghost == null:
+	if _holding == "":
 		_refresh_ui()
 		return
-	_ghost_ok = design.fits(_holding, _ghost_at, _holding_rot) and design.attaches(_holding, _ghost_at, _holding_rot)
-	_ghost.position = _world_centre(_holding, _ghost_at, _holding_rot)
+	_make_ghosts()
+	_ghost_ok = design.fits_place(_holding, _ghost_place) and design.attaches_place(_holding, _ghost_place)
+	_ghost.position = _world_centre(_holding, _ghost_place)
 	_ghost.visible = true
 	PartVisuals.set_ghost(_ghost, _ghost_ok)
-	var twin := mirrored({ "id": _holding, "at": _ghost_at, "rot": _holding_rot })
-	_twin_ghost.visible = mirror and _moving.is_empty() and twin.at != _ghost_at
+	var twin := mirrored({ "id": _holding, "place": _ghost_place })
+	var twin_place := KartDesign.place_of(twin)
+	_twin_ghost.visible = mirror and _moving.is_empty() and not twin_place.is_equal_approx(_ghost_place)
 	if _twin_ghost.visible:
-		_twin_ghost.position = _world_centre(twin.id, twin.at, twin.rot)
-		PartVisuals.set_ghost(_twin_ghost, design.fits(twin.id, twin.at, twin.rot))
+		_twin_ghost.position = _world_centre(twin.id, twin_place)
+		PartVisuals.set_ghost(_twin_ghost, design.fits_place(twin.id, twin_place))
+	_show_dots()
 	_refresh_ui()
 
 
-## Keeps a spot inside the build area.
-func _clamped(at: Vector3i) -> Vector3i:
-	var size := Grid.rotated_size(PartCatalog.get_part(_holding).size, _holding_rot)
-	var most := KartDesign.BUILD_SIZE - size
-	return Vector3i(clampi(at.x, 0, most.x), clampi(at.y, 0, most.y), clampi(at.z, 0, most.z))
+## Keeps a part inside the build area.
+func _clamped(id: String, place: Transform3D) -> Transform3D:
+	var box := KartDesign.fine_box(id, place)
+	var most := Vector3(KartDesign.BUILD_SIZE) * Grid.UNIT_FINE
+	var shift := Vector3.ZERO
+	for k in 3:
+		if box.position[k] < 0.0:
+			shift[k] = -box.position[k]
+		elif box.end[k] > most[k]:
+			shift[k] = most[k] - box.end[k]
+	return Transform3D(place.basis, place.origin + shift)
+
+
+# The dots for the spots a part could join.
+
+func _make_dots() -> void:
+	var shader := Shader.new()
+	# Pulled a little toward the camera, so a dot on a face isn't lost in it.
+	shader.code = """
+shader_type spatial;
+render_mode unshaded;
+void vertex() {
+	vec4 view = MODELVIEW_MATRIX * vec4(VERTEX, 1.0);
+	view.z += 0.03;
+	POSITION = PROJECTION_MATRIX * view;
+}
+void fragment() {
+	ALBEDO = COLOR.rgb;
+}
+"""
+	var material := ShaderMaterial.new()
+	material.shader = shader
+	var ball := SphereMesh.new()
+	ball.radius = 0.035
+	ball.height = 0.07
+	ball.radial_segments = 10
+	ball.rings = 5
+	ball.material = material
+	var multi := MultiMesh.new()
+	multi.transform_format = MultiMesh.TRANSFORM_3D
+	multi.use_colors = true
+	multi.mesh = ball
+	_dots = MultiMeshInstance3D.new()
+	_dots.multimesh = multi
+	_dots.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	add_child(_dots)
+	var here := SphereMesh.new()
+	here.radius = 0.06
+	here.height = 0.12
+	var white := StandardMaterial3D.new()
+	white.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	white.albedo_color = Color.WHITE
+	white.no_depth_test = true
+	here.material = white
+	_dot_here = MeshInstance3D.new()
+	_dot_here.mesh = here
+	_dot_here.visible = false
+	add_child(_dot_here)
+
+
+## Works out the spots the part in hand could join.
+func _find_spots() -> void:
+	_spots = Snap.spots_for(design, _holding) if _holding != "" else []
+
+
+func _show_dots() -> void:
+	var multi := _dots.multimesh
+	multi.instance_count = _spots.size()
+	for i in _spots.size():
+		var spot: Dictionary = _spots[i]
+		multi.set_instance_transform(i, Transform3D(Basis.IDENTITY, _dot_position(spot)))
+		multi.set_instance_color(i, DOT_COLOURS.get(spot.type, Color.WHITE))
+	_dot_here.visible = not _spot.is_empty()
+	if _dot_here.visible:
+		_dot_here.position = _dot_position(_spot)
+
+
+## Where a spot's dot goes, in metres: on the top of a stud, and just off the
+## face for everything else.
+func _dot_position(spot: Dictionary) -> Vector3:
+	var out: float = 0.055 if spot.type == "stud" else 0.012
+	return spot.at * Grid.FINE + spot.axis * out
 
 
 ## Which way on the grid a screen direction goes, from where the camera is.
@@ -735,6 +967,12 @@ func _on_key(event: InputEventKey) -> void:
 			lift(-1)
 		KEY_R:
 			turn()
+		KEY_F:
+			flip()
+		KEY_T:
+			way_on()
+		KEY_S:
+			slide()
 		KEY_ENTER, KEY_KP_ENTER:
 			place()
 		KEY_M:
@@ -762,6 +1000,8 @@ func _on_touch(event: InputEventScreenTouch) -> void:
 			# A drag that starts on the part being placed moves it. Anywhere
 			# else it turns the view.
 			_moving_ghost = _ghost != null and _ghost.visible and _camera.unproject_position(_ghost.global_position).distance_to(event.position) < GRAB_RADIUS
+			# And one on the part that's picked out moves that.
+			_grab_selected = _mode == GarageUI.Mode.SELECTED and _selected != -1 and _camera.unproject_position(_part_nodes[_selected].global_position).distance_to(event.position) < GRAB_RADIUS
 		else:
 			_several_fingers = true
 			_start_pinch()
@@ -775,6 +1015,7 @@ func _on_touch(event: InputEventScreenTouch) -> void:
 			_tap(event.position)
 		_several_fingers = false
 		_moving_ghost = false
+		_grab_selected = false
 	else:
 		_start_pinch()
 
@@ -809,6 +1050,10 @@ func _on_drag(event: InputEventScreenDrag) -> void:
 		return
 	if not _dragging and event.position.distance_to(_press_at) > DRAG_START:
 		_dragging = true
+		if _grab_selected:
+			_grab_selected = false
+			move_selected()
+			_moving_ghost = true
 	if not _dragging:
 		return
 	if _moving_ghost:

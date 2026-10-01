@@ -1,7 +1,8 @@
 extends Node
 
 ## Uses the garage the way a player would, and checks what happens to the
-## kart: placing parts from the bank and nudging them into place, mirror,
+## kart: placing parts from the bank and nudging them into place, snapping
+## them onto the dots and turning, flipping and sliding them there, mirror,
 ## moving, copying, painting and deleting parts, undo and redo, and the camera
 ## views.
 ##
@@ -106,6 +107,7 @@ func _ready() -> void:
 	await _placing(parts)
 	await _mirror_and_paint(parts)
 	await _moving(parts)
+	await _snapping(parts)
 	await _camera()
 	await _camera_hole()
 	garage.ui.drive_pressed.emit()
@@ -117,8 +119,8 @@ func _ready() -> void:
 
 func _bank() -> void:
 	var tiles := garage.ui.find_children("*", "Button", true, false).filter(func(b): return b is GarageUI.PartTile)
-	var plates := PartCatalog.ids().filter(func(id): return PartCatalog.get_part(id).kind == "plate").size()
-	check(tiles.size() == plates, "the bank starts on the plates, wedges and all (%d of %d)" % [tiles.size(), plates])
+	var plates := PartCatalog.ids().filter(func(id): return GarageUI.category_of(PartCatalog.get_part(id)) == 0).size()
+	check(tiles.size() == plates and plates > 20, "the bank starts on the plates and tiles (%d of %d)" % [tiles.size(), plates])
 	# Every part is in one of the drawer's tabs, and every tab has something.
 	var shown := {}
 	for i in GarageUI.CATEGORIES.size():
@@ -130,7 +132,7 @@ func _bank() -> void:
 			shown[id] = true
 	var missing := PartCatalog.ids().filter(func(id): return not shown.has(id))
 	check(missing.is_empty(), "every part is in the drawer somewhere %s" % [missing])
-	garage.ui._show_category(5)
+	garage.ui._show_category(6)
 	await frames(1)
 	var extras: Array = garage.ui.find_children("*", "Button", true, false).filter(func(b): return b is GarageUI.PartTile).map(func(b): return b.id)
 	check(extras.has("steering_wheel") and extras.has("seat"), "extras have the seat and the steering wheel %s" % [extras])
@@ -140,24 +142,24 @@ func _bank() -> void:
 func _placing(parts: int) -> void:
 	garage.ui.part_chosen.emit("brick_2x2")
 	check(garage._mode == GarageUI.Mode.PLACING and garage._ghost.visible, "tapping a part in the bank shows it on the kart")
-	garage.start_placing("brick_2x2", 0, null, SPOT)
+	garage.start_placing("brick_2x2", Basis.IDENTITY, null, SPOT)
 	check(garage._ghost_ok, "it fits in the free spot on the chassis")
 	garage.ui.place_pressed.emit()
 	check(garage.design.parts.size() == parts + 1 and count("brick_2x2", SPOT) == 1, "Place puts it down")
 	check(garage._mode == GarageUI.Mode.PLACING, "and you're still holding one, to put down a row")
 	# Nudging moves it a stud at a time, and back again.
-	var before := garage._ghost_at
+	var before := garage.ghost_at()
 	garage.ui.nudged.emit(Vector2i(1, 0))
-	var moved := garage._ghost_at - before
+	var moved := garage.ghost_at() - before
 	check(absi(moved.x) + absi(moved.z) == 1 and moved.y == 0, "an arrow moves it one stud (%s)" % moved)
 	garage.ui.nudged.emit(Vector2i(-1, 0))
-	check(garage._ghost_at == before, "and the other arrow moves it back")
+	check(garage.ghost_at() == before, "and the other arrow moves it back")
 	garage.ui.raise_pressed.emit()
-	check(garage._ghost_at.y == before.y + 1, "Up moves it up a plate")
+	check(garage.ghost_at().y == before.y + 1, "Up moves it up a plate")
 	garage.ui.lower_pressed.emit()
-	check(garage._ghost_at.y == before.y, "and Down back down")
+	check(garage.ghost_at().y == before.y, "and Down back down")
 	garage.ui.turn_pressed.emit()
-	check(garage._holding_rot == 1, "Turn turns it")
+	check(garage._ghost_place.basis.is_equal_approx(Grid.yaw(1)), "Turn turns it")
 	garage.ui.cancel_pressed.emit()
 	check(garage._mode == GarageUI.Mode.IDLE and garage.design.parts.size() == parts + 1, "Cancel stops without putting anything else down")
 	garage.ui.undo_pressed.emit()
@@ -177,14 +179,14 @@ func _placing(parts: int) -> void:
 	lift.position = drag.position
 	lift.pressed = false
 	garage._input(lift)
-	check(garage._mode == GarageUI.Mode.PLACING and garage._ghost.visible and garage._ghost_at.y >= 3, "dragging a part out of the bank drops it on the kart (%s)" % garage._ghost_at)
+	check(garage._mode == GarageUI.Mode.PLACING and garage._ghost.visible and garage.ghost_at().y >= 3, "dragging a part out of the bank drops it on the kart (%s)" % garage.ghost_at())
 	garage.cancel()
 
 
 func _mirror_and_paint(parts: int) -> void:
 	garage.ui.mirror_toggled.emit(true)
 	check(garage.mirror, "Mirror turns on")
-	garage.start_placing("brick_2x2", 0, null, SPOT)
+	garage.start_placing("brick_2x2", Basis.IDENTITY, null, SPOT)
 	check(garage._twin_ghost.visible, "and shows where the other one goes")
 	garage.place()
 	garage.cancel()
@@ -192,11 +194,11 @@ func _mirror_and_paint(parts: int) -> void:
 	garage.ui.paint_toggled.emit(true)
 	check(garage._mode == GarageUI.Mode.PAINTING, "Paint starts painting")
 	var blue := Color("#0d69ab")
-	garage.paint(garage.find_part({ "id": "brick_2x2", "at": SPOT, "rot": 0 }), blue)
+	garage.paint(garage.find_part(KartDesign.grid_entry("brick_2x2", SPOT, 0)), blue)
 	var painted: Array = garage.design.parts.filter(func(p): return p.id == "brick_2x2" and p.get("color", Color.BLACK).is_equal_approx(blue))
 	check(painted.size() == 2, "painting one paints its twin too (%d)" % painted.size())
 	garage.ui.paint_toggled.emit(false)
-	garage.select(garage.find_part({ "id": "brick_2x2", "at": SPOT, "rot": 0 }))
+	garage.select(garage.find_part(KartDesign.grid_entry("brick_2x2", SPOT, 0)))
 	check(garage._mode == GarageUI.Mode.SELECTED, "picking a part out shows its buttons")
 	garage.ui.delete_pressed.emit()
 	check(count("brick_2x2", SPOT) == 0 and count("brick_2x2", TWIN) == 0 and garage.design.parts.size() == parts, "deleting one deletes its twin")
@@ -229,15 +231,93 @@ func _camera() -> void:
 	garage.show_view("top")
 	check(garage._pitch < deg_to_rad(-80.0), "the top view looks down on the kart")
 	# From above with the front up the screen, right on the screen is +X.
-	garage.start_placing("brick_1x2", 0, null, SPOT)
-	var before := garage._ghost_at
+	garage.start_placing("brick_1x2", Basis.IDENTITY, null, SPOT)
+	var before := garage.ghost_at()
 	garage.nudge(Vector2i(1, 0))
-	check(garage._ghost_at - before == Vector3i(1, 0, 0), "from the top, the right arrow moves it right (%s)" % (garage._ghost_at - before))
+	check(garage.ghost_at() - before == Vector3i(1, 0, 0), "from the top, the right arrow moves it right (%s)" % (garage.ghost_at() - before))
 	garage.nudge(Vector2i(0, -1))
-	check(garage._ghost_at - before == Vector3i(1, 0, -1), "and the up arrow moves it toward the front")
+	check(garage.ghost_at() - before == Vector3i(1, 0, -1), "and the up arrow moves it toward the front")
 	garage.cancel()
 	garage.show_view("front")
 	check(is_equal_approx(garage._yaw, PI), "the front view looks at the front")
 	var far := garage._distance
 	garage.show_view("fit")
 	check(garage._distance > 2.0 and garage._distance < 16.0 and is_equal_approx(garage._distance, far), "and fit frames the whole kart (%.1f m)" % garage._distance)
+
+
+## The free spot on the kart at this point, in the fine unit, from the ones
+## the part in hand could join.
+func spot_at(at: Vector3) -> Dictionary:
+	for spot in garage._spots:
+		if spot.at.distance_to(at) < 0.5:
+			return spot
+	return {}
+
+
+func _snapping(parts: int) -> void:
+	garage.show_view("top")
+	garage.ui.part_chosen.emit("p_curve_2x2")
+	check(not garage._spots.is_empty() and garage._dots.multimesh.instance_count == garage._spots.size(), "holding a part shows dots where it could join (%d)" % garage._spots.size())
+	check(garage._spots.all(func(s): return s.type == "stud"), "and a curve only joins studs")
+	# The free stud on the chassis at SPOT, tapped the way a finger would.
+	var stud := spot_at((Vector3(SPOT) + Vector3(0.5, 0.0, 0.5)) * Grid.UNIT_FINE)
+	check(not stud.is_empty(), "there's a dot on a free stud of the chassis")
+	garage._aim_ghost(get_viewport().get_camera_3d().unproject_position(garage._dot_position(stud)))
+	check(not garage._spot.is_empty() and garage._spot.at == stud.at, "tapping the dot snaps the curve onto it")
+	check(garage._ghost_ok, "and it fits there")
+	var on := func() -> bool: return (garage._ghost_place * garage._way.own.at).distance_to(stud.at) < 0.5
+	var before: Transform3D = garage._ghost_place
+	var own: int = garage._way.own.index
+	garage.ui.way_pressed.emit()
+	check(garage._way.own.index != own and on.call() and not garage._ghost_place.is_equal_approx(before), "Way on puts it on the same stud by another of its sockets")
+	before = garage._ghost_place
+	garage.ui.turn_pressed.emit()
+	check(not garage._ghost_place.basis.is_equal_approx(before.basis) and on.call(), "Turn turns it about the stud")
+	before = garage._ghost_place
+	garage.ui.flip_pressed.emit()
+	check(garage._ghost_place.is_equal_approx(before), "Flip leaves it, since it can't go on a stud upside down")
+	check(garage.ui._slide.disabled, "and there's nothing to slide it along")
+	garage.ui.place_pressed.emit()
+	check(garage.design.parts.size() == parts + 1, "Place puts it on")
+	garage.cancel()
+
+	# A clip slides along a bar.
+	var handle := Vector3i(12, 3, 11)
+	garage.start_placing("p_plate_handle_1x2", Basis.IDENTITY, null, handle)
+	check(garage._ghost_ok, "a plate with a handle fits on the chassis")
+	garage.place()
+	garage.cancel()
+	garage.start_placing("p_plate_clip_1x1")
+	var bars := garage._spots.filter(func(s): return s.type == "bar")
+	check(not bars.is_empty(), "and a clip can go on its handle (%d dots)" % bars.size())
+	if not bars.is_empty():
+		check(garage.snap_to(bars[0]) and Snap.slides(garage._spot, garage._way), "it snaps onto the handle")
+		check(not garage.ui._slide.disabled, "and can slide")
+		var from: Vector3 = garage._ghost_place.origin
+		garage.ui.slide_pressed.emit()
+		var moved: Vector3 = garage._ghost_place.origin - from
+		check(is_equal_approx(moved.length(), Snap.SLIDE) and absf(moved.normalized().dot(bars[0].axis)) > 0.99, "Slide moves it along the handle (%s)" % moved)
+		for i in 20:
+			garage.slide()
+		check(KartDesign.joined({ "id": "p_plate_clip_1x1", "place": garage._ghost_place }, garage.design.parts[garage.design.parts.size() - 1]), "and past the end it goes back, still on the handle")
+	garage.cancel()
+	check(garage.design.parts.size() == parts + 2, "with the curve and the handle on")
+
+	# Dragging a part that's picked out moves it.
+	var curve := garage.design.parts.size() - 2
+	garage.select(curve)
+	await frames(1)
+	var at := get_viewport().get_camera_3d().unproject_position(garage._part_nodes[curve].global_position)
+	touch(at, true)
+	var drag := InputEventScreenDrag.new()
+	drag.index = 0
+	drag.position = at + Vector2(40, 0)
+	drag.relative = Vector2(40, 0)
+	garage._unhandled_input(drag)
+	check(garage._mode == GarageUI.Mode.PLACING and not garage._moving.is_empty() and garage._holding == "p_curve_2x2", "dragging a picked out part picks it up to move it")
+	touch(drag.position, false)
+	garage.cancel()
+	check(garage.design.parts.size() == parts + 2, "and Cancel puts it back")
+	garage.ui.undo_pressed.emit()
+	garage.ui.undo_pressed.emit()
+	check(garage.design.parts.size() == parts, "undo takes them both off")

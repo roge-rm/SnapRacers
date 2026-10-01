@@ -78,10 +78,22 @@ static func placed_entry(id: String, place: Transform3D, color: Variant = null) 
 
 ## Where a part sitting on the grid goes, as its place.
 static func grid_place(id: String, at: Vector3i, rot: int) -> Transform3D:
-	var basis := Grid.yaw(rot)
+	return box_place(id, Grid.yaw(rot), at)
+
+
+## Where a part turned by `basis` goes to have the front left bottom corner
+## of its box at `at` on the stud grid.
+static func box_place(id: String, basis: Basis, at: Vector3i) -> Transform3D:
 	var size := PartCatalog.fine_size(id)
 	var low := (Transform3D(basis, Vector3.ZERO) * AABB(Vector3.ZERO, size)).position
 	return Transform3D(basis, Vector3(at) * Grid.UNIT_FINE - low)
+
+
+## How many studs, plates and studs a part turned by `basis` takes up on the
+## grid, rounded up.
+static func grid_size(id: String, basis: Basis) -> Vector3i:
+	var size := (Transform3D(basis, Vector3.ZERO) * AABB(Vector3.ZERO, PartCatalog.fine_size(id))).size / Grid.UNIT_FINE
+	return Vector3i(maxi(1, ceili(size.x - 0.01)), maxi(1, ceili(size.y - 0.01)), maxi(1, ceili(size.z - 0.01)))
 
 
 ## Where an entry's part has been put. An entry made the old way, with only

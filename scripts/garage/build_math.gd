@@ -101,6 +101,11 @@ static func placement(hit: Hit, size: Vector3i) -> Vector3i:
 ## by a stud or two shouldn't stop a part from going down. It tries sliding a
 ## little first, then stacking higher.
 static func nearest_spot(design: KartDesign, id: String, at: Vector3i, rot: int) -> Vector3i:
+	return nearest_cell(design, id, at, Grid.yaw(rot))
+
+
+## The same for a part turned by `basis`, any way up.
+static func nearest_cell(design: KartDesign, id: String, at: Vector3i, basis: Basis) -> Vector3i:
 	var best := at
 	var best_cost := INF
 	for dy in range(0, 13):
@@ -110,7 +115,8 @@ static func nearest_spot(design: KartDesign, id: String, at: Vector3i, rot: int)
 				if cost >= best_cost:
 					continue
 				var spot := at + Vector3i(dx, dy, dz)
-				if design.fits(id, spot, rot) and design.attaches(id, spot, rot):
+				var place := KartDesign.box_place(id, basis, spot)
+				if design.fits_place(id, place) and design.attaches_place(id, place):
 					best = spot
 					best_cost = cost
 	return best

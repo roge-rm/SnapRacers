@@ -76,7 +76,7 @@ func _process(_delta: float) -> void:
 	for child in _stand.get_children():
 		child.queue_free()
 	var def := PartCatalog.get_part(_current)
-	var extent := Grid.to_metres(Vector3(def.size))
+	var extent := PartCatalog.fine_size(_current) * Grid.FINE
 	_stand.add_child(PartVisuals.make(def, extent))
 	var biggest := maxf(extent.x, maxf(extent.y, extent.z))
 	if def.get("kind", "") == "wheel":

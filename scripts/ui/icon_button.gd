@@ -84,6 +84,18 @@ func _draw() -> void:
 				draw_line(c + Vector2(x, -3), c + Vector2(x, 10), ink, w)
 			draw_line(c + Vector2(-13, -11), c + Vector2(-13, 0), ink, 2.0)
 			draw_line(c + Vector2(13, -11), c + Vector2(13, 0), ink, 2.0)
+		"rods":
+			# A bar with a clip on it.
+			draw_line(c + Vector2(-12, 9), c + Vector2(12, -9), ink, w, true)
+			draw_arc(c + Vector2(-2, 1.5), 5.0, 0.0, TAU, 16, ink, 2.0, true)
+			draw_line(c + Vector2(-5, 6), c + Vector2(-9, 11), ink, w, true)
+		"bikes":
+			draw_arc(c + Vector2(-8, 4), 6.0, 0.0, TAU, 16, ink, 2.0, true)
+			draw_arc(c + Vector2(8, 4), 6.0, 0.0, TAU, 16, ink, 2.0, true)
+			draw_line(c + Vector2(-8, 4), c + Vector2(-1, -3), ink, w, true)
+			draw_line(c + Vector2(-1, -3), c + Vector2(6, -3), ink, w, true)
+			draw_line(c + Vector2(8, 4), c + Vector2(5, -9), ink, w, true)
+			draw_line(c + Vector2(2, -9), c + Vector2(8, -9), ink, w, true)
 		"wheels":
 			draw_arc(c, 11.0, 0.0, TAU, 24, ink, w, true)
 			draw_circle(c, 4.0, ink)

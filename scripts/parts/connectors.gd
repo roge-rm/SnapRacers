@@ -85,19 +85,24 @@ static func _worked_out(def: Dictionary) -> Array:
 
 
 ## The part's connectors where it's been put, `place` taking its own space to
-## the kart's. A line comes out as a spot every LINE_STEP along it.
+## the kart's. A line comes out as a spot every LINE_STEP along it. Each spot
+## says which of the part's connectors it's on ("index"), how far along it is
+## ("along") and which step along ("step").
 static func placed(id: String, place: Transform3D) -> Array:
 	var out := []
-	for c in of(id):
+	var list := of(id)
+	for i in list.size():
+		var c: Dictionary = list[i]
 		var axis: Vector3 = (place.basis * c.axis).normalized()
 		var start: Vector3 = place * c.at
 		var length: float = c.get("length", 0.0)
 		if length <= 0.0:
-			out.append({ "type": c.type, "at": start, "axis": axis })
+			out.append({ "type": c.type, "at": start, "axis": axis, "index": i, "along": 0.0, "step": 0 })
 			continue
 		var steps := maxi(1, roundi(length / LINE_STEP))
 		for k in steps + 1:
-			out.append({ "type": c.type, "at": start + axis * length * k / steps, "axis": axis })
+			var along := length * k / steps
+			out.append({ "type": c.type, "at": start + axis * along, "axis": axis, "index": i, "along": along, "step": k })
 	return out
 
 

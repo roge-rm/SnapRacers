@@ -40,6 +40,8 @@ class PartInfo:
 	var basis := Basis.IDENTITY # which way it's turned
 	var centre := Vector3.ZERO # metres, in kart space
 	var extent := Vector3.ONE # metres, after turning
+	var low := Vector3.ZERO # the exact corner of its box, in grid units
+	var high := Vector3.ONE # and the far corner
 
 
 var parts: Array[PartInfo] = []
@@ -107,7 +109,7 @@ static func aero_turned(def: Dictionary, basis: Basis) -> Vector2:
 ## undamaged kart as `fixed_origin` so the parts that are left don't shift.
 static func compute(design: KartDesign, skip := {}, fixed_origin: Variant = null, driver_mass := DRIVER_MASS) -> KartStats:
 	var stats := KartStats.new()
-	var lo := Vector3i(1 << 20, 1 << 20, 1 << 20)
+	var lo := Vector3.ONE * INF
 	var hi := -lo
 	for i in design.parts.size():
 		if skip.has(i):
@@ -123,15 +125,15 @@ static func compute(design: KartDesign, skip := {}, fixed_origin: Variant = null
 		info.index = i
 		info.def = def
 		var box := KartDesign.fine_box(p.id, KartDesign.place_of(p))
-		var low := box.position / Grid.UNIT_FINE
-		var high := box.end / Grid.UNIT_FINE
-		info.at = Vector3i(roundi(low.x), roundi(low.y), roundi(low.z))
-		info.size = Vector3i(roundi(high.x), roundi(high.y), roundi(high.z)) - info.at
+		info.low = box.position / Grid.UNIT_FINE
+		info.high = box.end / Grid.UNIT_FINE
+		info.at = Vector3i(roundi(info.low.x), roundi(info.low.y), roundi(info.low.z))
+		info.size = Vector3i(roundi(info.high.x), roundi(info.high.y), roundi(info.high.z)) - info.at
 		info.rot = p.get("rot", 0)
 		info.basis = KartDesign.place_of(p).basis
 		stats.parts.append(info)
-		lo = lo.min(info.at)
-		hi = hi.max(info.at + info.size)
+		lo = lo.min(info.low)
+		hi = hi.max(info.high)
 	if stats.parts.is_empty():
 		return stats
 	stats.origin_cell = Vector3((lo.x + hi.x) * 0.5, lo.y, (lo.z + hi.z) * 0.5)
@@ -142,8 +144,8 @@ static func compute(design: KartDesign, skip := {}, fixed_origin: Variant = null
 	var offroad_total := 0.0
 	var seat_control := 1.0
 	for info in stats.parts:
-		info.extent = Grid.to_metres(Vector3(info.size))
-		info.centre = Grid.to_metres(Vector3(info.at) + Vector3(info.size) * 0.5 - stats.origin_cell)
+		info.extent = Grid.to_metres(info.high - info.low)
+		info.centre = Grid.to_metres((info.low + info.high) * 0.5 - stats.origin_cell)
 		var part_mass: float = info.def.get("mass", 1.0)
 		stats.mass += part_mass
 		weighted += info.centre * part_mass

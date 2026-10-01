@@ -12,7 +12,7 @@ extends Control
 ## kart will drive, which opens into the whole card.
 ##
 ## A part in hand shows in a chip under the toolbar, with the arrows, up and
-## down, turn and place in the bottom right. Tap a part on the kart and its
+## down, turn, flip, way on, slide and place in the bottom right. Tap a part on the kart and its
 ## actions pop up beside it. Race and test drive are along the bottom.
 
 signal part_chosen(id: String)
@@ -23,6 +23,9 @@ signal nudged(direction: Vector2i)
 signal raise_pressed
 signal lower_pressed
 signal turn_pressed
+signal flip_pressed
+signal way_pressed
+signal slide_pressed
 signal place_pressed
 signal cancel_pressed
 signal move_pressed
@@ -43,14 +46,19 @@ signal race_pressed
 signal menu_pressed
 signal name_changed(text: String)
 
+## The drawer's tabs: name, kinds of part, groups of part and picture. A
+## part goes in the tab for its group, or for its kind if it hasn't got one.
+## Wings all go together.
 const CATEGORIES := [
-	["Plates", ["plate"], "plates"],
-	["Bricks", ["brick"], "bricks"],
-	["Bodywork", ["body", "fairing", "gadget"], "slopes"],
-	["Wheels", ["wheel"], "wheels"],
-	["Engines", ["engine"], "engines"],
-	["Cockpit", ["seat", "steering", "screen"], "extras"],
-	["Wings", ["wing"], "wings"],
+	["Plates", ["plate"], ["plates", "tiles"], "plates"],
+	["Bricks", ["brick"], ["bricks", "brackets"], "bricks"],
+	["Curves", ["body", "fairing", "gadget"], ["curves", "slopes", "arches"], "slopes"],
+	["Rods and joints", [], ["bars", "technic", "hinges"], "rods"],
+	["Wheels", ["wheel"], ["wheels"], "wheels"],
+	["Engines", ["engine"], [], "engines"],
+	["Cockpit", ["seat", "steering", "screen"], ["details"], "extras"],
+	["Bikes", [], ["bike"], "bikes"],
+	["Wings", ["wing"], [], "wings"],
 ]
 ## The colours you can paint parts, the classic brick ones.
 const PAINTS := [
@@ -105,6 +113,9 @@ var _held_name: Label
 var _placing: PanelContainer
 var _place: Button
 var _turn_buttons: Array[Button] = []
+var _flip: Button
+var _way: Button
+var _slide: Button
 var _actions: PanelContainer
 var _action_title: Label
 var _anchor := Vector2.ZERO
@@ -175,13 +186,17 @@ func set_kart_name(text: String) -> void:
 
 
 ## Shows the controls for what you're doing, with `what` being the part you're
-## placing or have picked out.
-func set_mode(mode: Mode, what: String, can_turn := true) -> void:
+## placing or have picked out. `moves` says which of "turn", "flip", "way" and
+## "slide" it can do.
+func set_mode(mode: Mode, what: String, moves := {}) -> void:
 	if mode != _mode:
 		_peek = false
 	_mode = mode
 	for button in _turn_buttons:
-		button.disabled = not can_turn
+		button.disabled = not moves.get("turn", true)
+	_flip.disabled = not moves.get("flip", false)
+	_way.disabled = not moves.get("way", false)
+	_slide.disabled = not moves.get("slide", false)
 	_held_chip.visible = mode == Mode.PLACING
 	_placing.visible = mode == Mode.PLACING
 	_actions.visible = mode == Mode.SELECTED
@@ -190,7 +205,7 @@ func set_mode(mode: Mode, what: String, can_turn := true) -> void:
 	match mode:
 		Mode.PLACING:
 			_held_name.text = what
-			_hint = "Drag it or tap where it goes, then nudge it into place."
+			_hint = "Drag it or tap a dot where it goes."
 		Mode.SELECTED:
 			_action_title.text = what
 			_hint = ""
@@ -360,7 +375,7 @@ func _build_drawer() -> void:
 	_rail_box = rail
 	_drawer_row = row
 	for i in CATEGORIES.size():
-		var tab := IconButton.new(CATEGORIES[i][2], CATEGORIES[i][0])
+		var tab := IconButton.new(CATEGORIES[i][3], CATEGORIES[i][0])
 		tab.pressed.connect(_show_category.bind(i))
 		rail.add_child(tab)
 		_rail.append(tab)
@@ -413,17 +428,33 @@ func _show_category(index: int) -> void:
 	_heading.text = CATEGORIES[index][0].to_upper()
 	for child in _tiles.get_children():
 		child.queue_free()
-	var kinds: Array = CATEGORIES[index][1]
 	var ids := PartCatalog.ids()
 	ids.sort_custom(func(a, b): return PartCatalog.get_part(a).mass < PartCatalog.get_part(b).mass)
 	for id in ids:
 		var part := PartCatalog.get_part(id)
-		if not kinds.has(part.kind):
+		if category_of(part) != index:
 			continue
 		var tile := PartTile.new(id, part.name)
 		tile.chosen.connect(func() -> void: part_chosen.emit(id))
 		tile.dragged.connect(func(finger: int) -> void: part_dragged.emit(id, finger))
 		_tiles.add_child(tile)
+
+
+## Which of the drawer's tabs a part goes in.
+static func category_of(def: Dictionary) -> int:
+	var kind: String = def.get("kind", "")
+	var group: String = def.get("group", "")
+	for i in CATEGORIES.size():
+		if kind == "wing" and CATEGORIES[i][1].has(kind):
+			return i
+	if group != "":
+		for i in CATEGORIES.size():
+			if CATEGORIES[i][2].has(group):
+				return i
+	for i in CATEGORIES.size():
+		if CATEGORIES[i][1].has(kind):
+			return i
+	return 0
 
 
 ## Puts a part's picture on its tile once it's been taken.
@@ -551,11 +582,27 @@ func _build_placing() -> void:
 		var sig: Signal = pair[1]
 		button.fired.connect(func() -> void: sig.emit())
 		updown.add_child(button)
+	var moves := GridContainer.new()
+	moves.columns = 2
+	moves.add_theme_constant_override("h_separation", 8)
+	moves.add_theme_constant_override("v_separation", 8)
+	column.add_child(moves)
 	var turn := Button.new()
 	BuilderStyle.chip(turn, "Turn")
 	turn.pressed.connect(func() -> void: turn_pressed.emit())
 	_turn_buttons.append(turn)
-	column.add_child(turn)
+	_flip = Button.new()
+	BuilderStyle.chip(_flip, "Flip")
+	_flip.pressed.connect(func() -> void: flip_pressed.emit())
+	_way = Button.new()
+	BuilderStyle.chip(_way, "Way on")
+	_way.pressed.connect(func() -> void: way_pressed.emit())
+	_slide = RepeatButton.new()
+	BuilderStyle.chip(_slide, "Slide")
+	_slide.fired.connect(func() -> void: slide_pressed.emit())
+	for button in [turn, _flip, _way, _slide]:
+		button.size_flags_horizontal = SIZE_EXPAND_FILL
+		moves.add_child(button)
 	_place = BuilderStyle.pill("Place", MenuStyle.ACCENT, BuilderStyle.ON_ACCENT, func() -> void: place_pressed.emit(), 52.0)
 	# Placing a part makes its own snap, so no click on top.
 	_place.set_meta("quiet", true)
