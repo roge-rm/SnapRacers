@@ -128,6 +128,33 @@ func check_race(race: Race, mode: String) -> void:
 	away.pressed = false
 	views[1].push_input(away, true)
 
+	# Each player's own keys and controller. Player 2's go key is changed to
+	# G, and a pretend controller is given to player 2.
+	var settings := Game.settings
+	var had: Variant = settings.get_value("bindings", "player_2", null)
+	InputBindings.set_key(settings, 1, "go", KEY_G)
+	await _key(KEY_G, true)
+	check(second.input.controls.throttle == 1.0 and race.player.input.controls.throttle == 0.0, "player 2's own key drives them and not player 1")
+	await _key(KEY_G, false)
+	await _key(KEY_W, true)
+	check(race.player.input.controls.throttle == 1.0 and second.input.controls.throttle == 0.0, "and W is still player 1's")
+	await _key(KEY_W, false)
+	var pad := 12
+	Game.controllers.give(pad, 1)
+	await _pad(pad, JOY_BUTTON_A, true)
+	check(second.input.controls.throttle == 1.0 and race.player.input.controls.throttle == 0.0, "the controller given to player 2 drives player 2")
+	await _pad(pad, JOY_BUTTON_A, false)
+	await _pad(pad, JOY_BUTTON_START, true)
+	await frames(2)
+	check(race.menu_open(second) and not race.menu_open(race.player), "and its Start opens player 2's menu")
+	await _pad(pad, JOY_BUTTON_START, false)
+	race.close_menu(second)
+	Game.controllers._on_connection(pad, false)
+	if had == null:
+		settings.erase_section_key("bindings", "player_2")
+	else:
+		settings.set_value("bindings", "player_2", had)
+
 	# Let the AI drive both of them for a bit.
 	for human in race.humans:
 		var driver := AIDriver.new()
@@ -147,3 +174,22 @@ func check_race(race: Race, mode: String) -> void:
 	# Finishing shows the results to whoever finished.
 	race._player_finished(second)
 	check(second.hud._results.visible and not race.player.hud._results.visible, "results come up in the half of whoever finished")
+
+
+func _key(code: Key, down: bool) -> void:
+	var event := InputEventKey.new()
+	event.physical_keycode = code
+	event.pressed = down
+	Input.parse_input_event(event)
+	Input.flush_buffered_events()
+	await frames(2)
+
+
+func _pad(device: int, index: JoyButton, down: bool) -> void:
+	var event := InputEventJoypadButton.new()
+	event.device = device
+	event.button_index = index
+	event.pressed = down
+	Input.parse_input_event(event)
+	Input.flush_buffered_events()
+	await frames(2)

@@ -177,6 +177,8 @@ func _ready() -> void:
 ## Everything after the grid's filled: the AI's view of the other karts,
 ## the power-up boxes, and each person's view.
 func _finish_setting_up(people: int) -> void:
+	if Game.controllers != null:
+		Game.controllers.unplugged.connect(_on_unplugged)
 	var karts: Array[Kart] = []
 	for racer in racers:
 		karts.append(racer.kart)
@@ -263,11 +265,10 @@ func _add_view(racer: Racer, world_parent: Node, layer: CanvasLayer) -> void:
 	var index := humans.find(racer)
 	var input := LocalPlayerInput.new()
 	input.use_keyboard = true
+	input.person = index
 	if humans.size() == 1:
 		input.any_joypad = true
-	else:
-		input.keys = LocalPlayerInput.LEFT_KEYS if index == 0 else LocalPlayerInput.RIGHT_KEYS
-		input.pad_slot = index
+		input.both_keys = true
 	add_child(input)
 	racer.input = input
 	racer.kart.controls = input.controls
@@ -670,6 +671,16 @@ func _update_pause() -> void:
 
 func _exit_tree() -> void:
 	get_tree().paused = false
+
+
+## A controller coming unplugged pauses a single player race with the menu
+## open, and in split screen says so in that player's half.
+func _on_unplugged(person: int) -> void:
+	if not started or person >= humans.size() or humans[person].progress.finished:
+		return
+	if _can_pause():
+		open_menu(humans[0])
+	humans[person].hud.flash("Controller unplugged" if humans.size() == 1 else "Player %d's controller came unplugged" % (person + 1))
 
 
 ## Going off to another app pauses a single player race, with the menu open.

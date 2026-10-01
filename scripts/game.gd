@@ -55,6 +55,8 @@ var came_from_editor := false
 var racing_alone := false
 ## Racing with people on other devices (see NetSession).
 var net: NetSession
+## Which controller is whose (see Controllers).
+var controllers: Controllers
 ## The Android network plugin, when there is one (see NetPlugin).
 var plugin: NetPlugin
 ## Whether two people on this phone join an online game together.
@@ -78,6 +80,10 @@ func _ready() -> void:
 	Sounds.setup(volume(Sounds.MUSIC_BUS), volume(Sounds.EFFECTS_BUS))
 	plugin = NetPlugin.new()
 	add_child(plugin)
+	controllers = Controllers.new()
+	controllers.settings = settings
+	controllers.changed.connect(save_settings)
+	add_child(controllers)
 	net = NetSession.new()
 	add_child(net)
 	# Wherever we are when an online game ends under us (the host left, say),
@@ -451,6 +457,11 @@ func set_volume(bus: String, value: float) -> void:
 
 func set_setting(section: String, key: String, value: Variant) -> void:
 	settings.set_value(section, key, value)
+	settings.save(SETTINGS)
+
+
+## Saves the settings after something's changed them, like new bindings.
+func save_settings() -> void:
 	settings.save(SETTINGS)
 
 

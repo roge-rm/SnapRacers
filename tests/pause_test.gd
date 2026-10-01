@@ -86,8 +86,12 @@ func _ready() -> void:
 	await frames(2)
 	check(not race.menu_open(me) and not get_tree().paused, "and closes it again")
 
-	race.open_menu(me)
+	# A controller coming unplugged pauses with the menu open.
+	Game.controllers._on_connection(21, true)
+	Game.controllers.give(21, 0)
+	Game.controllers._on_connection(21, false)
 	await frames(2)
+	check(race.menu_open(me) and get_tree().paused, "unplugging the controller opens the menu and pauses")
 	race._menus[me].quit_pressed.emit()
 	await frames(5)
 	check(race_on_screen() == null and not get_tree().paused, "Quit leaves the race, and nothing's paused after")

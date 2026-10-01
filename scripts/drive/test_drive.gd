@@ -15,6 +15,7 @@ func _ready() -> void:
 	var player := LocalPlayerInput.new()
 	player.use_keyboard = true
 	player.any_joypad = true
+	player.both_keys = true
 	add_child(player) # before the kart, so its controls are up to date each tick
 
 	kart = Kart.new()
