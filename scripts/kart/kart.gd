@@ -417,6 +417,8 @@ func _assemble() -> void:
 	drag_area = stats.drag_area
 	lift_area = stats.lift_area
 
+	# Everything but the wheels and steering is drawn as one mesh.
+	var looks: Array[Node3D] = []
 	for info in stats.parts:
 		if info.def.kind == "wheel":
 			var w := Wheel.new()
@@ -452,11 +454,18 @@ func _assemble() -> void:
 		shape.shape = box
 		shape.position = info.centre
 		add_child(shape)
-		var look := PartVisuals.make(info.def, info.extent, info.rot)
+		var look := PartVisuals.make_turned(info.def, info.extent, info.basis)
 		look.position = info.centre
-		add_child(look)
-		if look is SteeringVisual and _steering == null:
-			_steering = look
+		if look is SteeringVisual:
+			add_child(look)
+			if _steering == null:
+				_steering = look
+		else:
+			looks.append(look)
+	if not looks.is_empty():
+		add_child(KartMesh.bake(looks))
+		for look in looks:
+			look.free()
 
 	if stats.has_seat:
 		_rig = CharacterRig.new(driver if driver != null else default_driver(), true)
@@ -542,7 +551,7 @@ func lose_parts(indices: Array[int]) -> void:
 		if not newly.has(info.index):
 			continue
 		var at := global_transform * info.centre
-		var piece := Debris.make(info.def, info.extent, Transform3D(global_basis, at), info.rot)
+		var piece := Debris.make(info.def, info.extent, Transform3D(global_basis, at), info.basis)
 		piece.linear_velocity = linear_velocity + angular_velocity.cross(at - com)
 		piece.angular_velocity = angular_velocity
 		get_parent().add_child(piece)

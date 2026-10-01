@@ -1,14 +1,14 @@
 class_name KartDesign
 extends RefCounted
 
-## A kart as the player built it, with its parts, where they sit on the grid
-## and which way they're turned. It's what gets saved and sent to other
-## players, so it stays plain data.
+## A kart as the player built it, with its parts, where they sit and which way
+## they're turned. It's what gets saved and sent to other players, so it stays
+## plain data.
 ##
-## It also knows the building rules. Parts join the way real bricks do, with
-## the studs on top of one pressing into the bottom of the part above where
-## they overlap. Wheels, fairings and side pods clip onto the side of a part
-## instead.
+## It also knows the building rules. Parts join where their connectors meet
+## (see Connectors), the way real bricks do, with the studs on top of one
+## pressing into the bottom of the part above. Wheels, fairings and side pods
+## clip onto the side of a part instead.
 
 ## How big a kart can be, in studs across, plates high and studs long.
 const BUILD_SIZE := Vector3i(20, 30, 24)
@@ -20,9 +20,13 @@ const SAVE_DIR := "user://karts"
 var name := "Kart"
 ## A line about what kind of kart it is, for the stock karts.
 var about := ""
-## Each entry is { "id": String, "at": Vector3i, "rot": int }, plus "color"
-## (a Color) when the part has been painted something other than its own
-## colour.
+## Each entry is { "id": String, "place": Transform3D }, plus "color" (a
+## Color) when the part has been painted something other than its own colour.
+## The place takes the part's own space to the kart's, in the fine unit (see
+## Grid). Each entry also has "at" (Vector3i) and "rot" (int), where it sits
+## on the stud grid and how many quarter turns it's turned, for parts that sit
+## on the grid flat side down. Make entries with grid_entry() or
+## placed_entry() so these agree.
 var parts: Array[Dictionary] = []
 
 
@@ -35,16 +39,66 @@ static func from_dict(data: Dictionary) -> KartDesign:
 		# now, are left off.
 		if PartCatalog.get_part(str(entry.get("id", ""))).is_empty():
 			continue
-		var at: Array = entry.get("at", [0, 0, 0])
-		var part := {
-			"id": str(entry.get("id", "")),
-			"at": Vector3i(int(at[0]), int(at[1]), int(at[2])),
-			"rot": posmod(int(entry.get("rot", 0)), 4),
-		}
-		if entry.has("color"):
-			part["color"] = Color(str(entry.color))
-		design.parts.append(part)
+		var id := str(entry.get("id", ""))
+		var color: Variant = Color(str(entry.color)) if entry.has("color") else null
+		if entry.has("pos"):
+			var pos: Array = entry.pos
+			var basis: Basis = Grid.turns()[clampi(int(entry.get("turn", 0)), 0, 23)]
+			design.parts.append(placed_entry(id, Transform3D(basis, Vector3(float(pos[0]), float(pos[1]), float(pos[2]))), color))
+		else:
+			# A kart saved before parts could be turned every way, by where
+			# it sat on the stud grid.
+			var at: Array = entry.get("at", [0, 0, 0])
+			design.parts.append(grid_entry(id, Vector3i(int(at[0]), int(at[1]), int(at[2])), int(entry.get("rot", 0)), color))
 	return design
+
+
+## An entry for a part sitting on the stud grid flat side down, with the
+## front left bottom corner of its box at `at` after it's turned `rot`
+## quarter turns.
+static func grid_entry(id: String, at: Vector3i, rot: int, color: Variant = null) -> Dictionary:
+	return placed_entry(id, grid_place(id, at, rot), color)
+
+
+## An entry for a part put anywhere.
+static func placed_entry(id: String, place: Transform3D, color: Variant = null) -> Dictionary:
+	var cell := fine_box(id, place).position / Grid.UNIT_FINE
+	var turn := Grid.turn_index(place.basis)
+	var entry := {
+		"id": id,
+		"place": place,
+		"at": Vector3i(roundi(cell.x), roundi(cell.y), roundi(cell.z)),
+		"rot": turn if turn >= 0 and turn < 4 else -1,
+	}
+	entry["_grid"] = [entry.at, entry.rot]
+	if color != null:
+		entry["color"] = color
+	return entry
+
+
+## Where a part sitting on the grid goes, as its place.
+static func grid_place(id: String, at: Vector3i, rot: int) -> Transform3D:
+	var basis := Grid.yaw(rot)
+	var size := Grid.fine_size(PartCatalog.get_part(id).get("size", Vector3i.ONE))
+	var low := (Transform3D(basis, Vector3.ZERO) * AABB(Vector3.ZERO, size)).position
+	return Transform3D(basis, Vector3(at) * Grid.UNIT_FINE - low)
+
+
+## Where an entry's part has been put. An entry made the old way, with only
+## "at" and "rot", or whose "at" or "rot" has been changed since, gets its
+## place worked out again from those.
+static func place_of(entry: Dictionary) -> Transform3D:
+	var rot := int(entry.get("rot", 0))
+	var grid := [entry.get("at", Vector3i.ZERO), rot]
+	if not entry.has("place") or (entry.has("at") and rot >= 0 and entry.get("_grid", []) != grid):
+		entry["place"] = grid_place(entry.id, grid[0], rot)
+		entry["_grid"] = grid
+	return entry.place
+
+
+## The box a part fills where it's been put, in the fine unit.
+static func fine_box(id: String, place: Transform3D) -> AABB:
+	return place * AABB(Vector3.ZERO, Grid.fine_size(PartCatalog.get_part(id).get("size", Vector3i.ONE)))
 
 
 static func load_file(path: String) -> KartDesign:
@@ -58,7 +112,9 @@ static func load_file(path: String) -> KartDesign:
 func to_dict() -> Dictionary:
 	var out := []
 	for p in parts:
-		var entry := { "id": p.id, "at": [p.at.x, p.at.y, p.at.z], "rot": p.rot }
+		var place := place_of(p)
+		var pos := [snappedf(place.origin.x, 0.01), snappedf(place.origin.y, 0.01), snappedf(place.origin.z, 0.01)]
+		var entry := { "id": p.id, "pos": pos, "turn": maxi(Grid.turn_index(place.basis), 0) }
 		if p.has("color"):
 			entry["color"] = "#" + p.color.to_html(false)
 		out.append(entry)
@@ -111,14 +167,18 @@ static func saved_paths() -> Array[String]:
 
 # Building rules.
 
+## The box a part fills, on the stud grid (studs across, plates up, studs
+## along).
 func box_of(index: int) -> AABB:
-	return part_box(parts[index].id, parts[index].at, parts[index].rot)
+	return _grid_box(fine_box(parts[index].id, place_of(parts[index])))
 
 
 static func part_box(id: String, at: Vector3i, rot: int) -> AABB:
-	var def := PartCatalog.get_part(id)
-	var size := Grid.rotated_size(def.get("size", Vector3i.ONE), rot)
-	return AABB(Vector3(at), Vector3(size))
+	return _grid_box(fine_box(id, grid_place(id, at, rot)))
+
+
+static func _grid_box(fine: AABB) -> AABB:
+	return AABB(fine.position / Grid.UNIT_FINE, fine.size / Grid.UNIT_FINE)
 
 
 static func is_wheel(id: String) -> bool:
@@ -131,45 +191,53 @@ static func clips_on_side(id: String) -> bool:
 	return PartCatalog.get_part(id).get("kind", "") in ["wheel", "fairing"]
 
 
-## Whether a part here would fit inside the build area without going through
-## anything.
+## Whether a part on the grid here would fit inside the build area without
+## going through anything.
 func fits(id: String, at: Vector3i, rot: int, ignore := -1) -> bool:
-	var box := part_box(id, at, rot)
-	if box.position.x < 0 or box.position.y < 0 or box.position.z < 0:
-		return false
-	if box.end.x > BUILD_SIZE.x or box.end.y > BUILD_SIZE.y or box.end.z > BUILD_SIZE.z:
+	return fits_place(id, grid_place(id, at, rot), ignore)
+
+
+func fits_place(id: String, place: Transform3D, ignore := -1) -> bool:
+	var box := fine_box(id, place)
+	var area := AABB(Vector3.ZERO, Vector3(BUILD_SIZE) * Grid.UNIT_FINE)
+	if not area.grow(0.01).encloses(box):
 		return false
 	for i in parts.size():
-		if i != ignore and _overlap_volume(box, box_of(i)) > 0.0:
+		if i != ignore and _overlap_volume(box, fine_box(parts[i].id, place_of(parts[i]))) > 0.0:
 			return false
 	return true
 
 
-## Whether these two parts hold onto each other.
-static func joined(id_a: String, box_a: AABB, id_b: String, box_b: AABB) -> bool:
-	var wheel_a := clips_on_side(id_a)
-	var wheel_b := clips_on_side(id_b)
-	if wheel_a and wheel_b:
-		return false
-	if not wheel_a and not wheel_b:
-		# By studs, when one sits right on top of the other and they overlap.
-		var stacked := is_equal_approx(box_a.end.y, box_b.position.y) or is_equal_approx(box_b.end.y, box_a.position.y)
-		return stacked and _overlap_area(box_a, box_b, Vector3.AXIS_Y) > 0.0
-	# By an axle (or a clip), when the wheel's flat side is against the side of
-	# the part.
-	var side_by_side := is_equal_approx(box_a.end.x, box_b.position.x) or is_equal_approx(box_b.end.x, box_a.position.x)
-	return side_by_side and _overlap_area(box_a, box_b, Vector3.AXIS_X) > 0.0
+## Whether these two parts, where they've been put, hold onto each other.
+## Each needs an "id" and a "place".
+static func joined(a: Dictionary, b: Dictionary) -> bool:
+	var spots := {}
+	for c in Connectors.placed(a.id, place_of(a)):
+		var key := Connectors.key_of(c.at)
+		if not spots.has(key):
+			spots[key] = []
+		spots[key].append(c)
+	for c in Connectors.placed(b.id, place_of(b)):
+		for other in spots.get(Connectors.key_of(c.at), []):
+			if Connectors.meet(c, other):
+				return true
+	return false
 
 
-## Whether a part here would be held on by anything. The first part always is.
+## Whether a part on the grid here would be held on by anything. The first
+## part always is.
 func attaches(id: String, at: Vector3i, rot: int, ignore := -1) -> bool:
-	var box := part_box(id, at, rot)
+	return attaches_place(id, grid_place(id, at, rot), ignore)
+
+
+func attaches_place(id: String, place: Transform3D, ignore := -1) -> bool:
+	var entry := { "id": id, "place": place }
 	var others := 0
 	for i in parts.size():
 		if i == ignore:
 			continue
 		others += 1
-		if joined(id, box, parts[i].id, box_of(i)):
+		if joined(entry, parts[i]):
 			return true
 	return others == 0
 
@@ -177,13 +245,24 @@ func attaches(id: String, at: Vector3i, rot: int, ignore := -1) -> bool:
 ## Which parts each part is joined to, as lists of indices.
 func links() -> Array:
 	var out := []
+	var spots := {}
 	for i in parts.size():
 		out.append([])
-	for i in parts.size():
-		for j in range(i + 1, parts.size()):
-			if joined(parts[i].id, box_of(i), parts[j].id, box_of(j)):
-				out[i].append(j)
-				out[j].append(i)
+		for c in Connectors.placed(parts[i].id, place_of(parts[i])):
+			c["part"] = i
+			var key := Connectors.key_of(c.at)
+			if not spots.has(key):
+				spots[key] = []
+			spots[key].append(c)
+	for key in spots:
+		var here: Array = spots[key]
+		for a in here.size():
+			for b in range(a + 1, here.size()):
+				var i: int = here[a].part
+				var j: int = here[b].part
+				if i != j and not out[i].has(j) and Connectors.meet(here[a], here[b]):
+					out[i].append(j)
+					out[j].append(i)
 	return out
 
 
@@ -245,7 +324,7 @@ func steering_gap() -> int:
 			continue
 		var box := box_of(i)
 		# It has to be in front of the seat and overlap it from side to side.
-		var gap := int(seat_box.position.z - box.end.z)
+		var gap := roundi(seat_box.position.z - box.end.z)
 		var across := minf(box.end.x, seat_box.end.x) - maxf(box.position.x, seat_box.position.x)
 		if gap >= 0 and across > 0.0 and (best == -1 or gap < best):
 			best = gap
@@ -267,10 +346,11 @@ func problems() -> Array[String]:
 	var engines := 0
 	var wheels := 0
 	var steering := 0
-	var lowest_wheel := 1 << 20
-	var lowest_other := 1 << 20
+	var lowest_wheel := INF
+	var lowest_other := INF
 	for i in parts.size():
 		var def := PartCatalog.get_part(parts[i].id)
+		var bottom := box_of(i).position.y
 		match def.get("kind", ""):
 			"seat":
 				seats += 1
@@ -280,9 +360,9 @@ func problems() -> Array[String]:
 				steering += 1
 			"wheel":
 				wheels += 1
-				lowest_wheel = mini(lowest_wheel, parts[i].at.y)
+				lowest_wheel = minf(lowest_wheel, bottom)
 				continue
-		lowest_other = mini(lowest_other, parts[i].at.y)
+		lowest_other = minf(lowest_other, bottom)
 	if parts.is_empty():
 		out.append("Pick a part on the left to start building.")
 		return out
@@ -302,27 +382,16 @@ func problems() -> Array[String]:
 		out.append("Some parts aren't attached to the rest.")
 	for i in parts.size():
 		for j in range(i + 1, parts.size()):
-			if _overlap_volume(box_of(i), box_of(j)) > 0.0:
+			if _overlap_volume(fine_box(parts[i].id, place_of(parts[i])), fine_box(parts[j].id, place_of(parts[j]))) > 0.0:
 				out.append("Two parts are inside each other.")
 				return out
-	if wheels > 0 and lowest_other < lowest_wheel + CLEARANCE:
+	if wheels > 0 and lowest_other < lowest_wheel + CLEARANCE - 0.01:
 		out.append("Something hangs too low. Everything but the wheels needs two plates of room underneath.")
 	return out
 
 
+## How much two boxes overlap, leaving out a sliver at their faces, so parts
+## that only touch don't count.
 static func _overlap_volume(a: AABB, b: AABB) -> float:
-	var i := a.intersection(b)
+	var i := a.grow(-0.05).intersection(b.grow(-0.05))
 	return i.size.x * i.size.y * i.size.z if i.has_volume() else 0.0
-
-
-## How much two boxes overlap when you look along one axis.
-static func _overlap_area(a: AABB, b: AABB, axis: int) -> float:
-	var total := 1.0
-	for k in 3:
-		if k == axis:
-			continue
-		var d := minf(a.end[k], b.end[k]) - maxf(a.position[k], b.position[k])
-		if d <= 0.0:
-			return 0.0
-		total *= d
-	return total

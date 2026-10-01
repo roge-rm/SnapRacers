@@ -34,11 +34,12 @@ const MOST_REACH := 2
 class PartInfo:
 	var index := 0 # position in the design's part list
 	var def: Dictionary
-	var at := Vector3i.ZERO # grid position, as designed
-	var rot := 0 # quarter turns
+	var at := Vector3i.ZERO # the corner of the box it fills on the grid
+	var rot := 0 # quarter turns, or -1 if it's tipped over
 	var size := Vector3i.ONE # grid size after turning
+	var basis := Basis.IDENTITY # which way it's turned
 	var centre := Vector3.ZERO # metres, in kart space
-	var extent := Vector3.ONE # metres
+	var extent := Vector3.ONE # metres, after turning
 
 
 var parts: Array[PartInfo] = []
@@ -82,18 +83,22 @@ var origin_cell := Vector3.ZERO
 
 
 ## How smooth a part is to the air at its front and back, as it's turned.
-## Turned halfway around, its back is at the front. Turned a quarter, the
+## Turned halfway around, its back is at the front. Turned any other way, the
 ## wind hits its side.
 static func aero_of(def: Dictionary, rot: int) -> Vector2:
+	return aero_turned(def, Grid.yaw(rot))
+
+
+static func aero_turned(def: Dictionary, basis: Basis) -> Vector2:
 	var aero: Dictionary = def.get("aero", {})
 	var front: float = aero.get("front", 1.0)
 	var back: float = aero.get("back", 1.0)
 	var side: float = aero.get("side", 1.0)
-	match posmod(rot, 4):
-		0:
-			return Vector2(front, back)
-		2:
-			return Vector2(back, front)
+	var facing := basis * Vector3.FORWARD
+	if facing.dot(Vector3.FORWARD) > 0.9:
+		return Vector2(front, back)
+	if facing.dot(Vector3.BACK) > 0.9:
+		return Vector2(back, front)
 	return Vector2(side, side)
 
 
@@ -117,9 +122,13 @@ static func compute(design: KartDesign, skip := {}, fixed_origin: Variant = null
 		var info := PartInfo.new()
 		info.index = i
 		info.def = def
-		info.at = p.at
-		info.rot = p.rot
-		info.size = Grid.rotated_size(def.size, p.rot)
+		var box := KartDesign.fine_box(p.id, KartDesign.place_of(p))
+		var low := box.position / Grid.UNIT_FINE
+		var high := box.end / Grid.UNIT_FINE
+		info.at = Vector3i(roundi(low.x), roundi(low.y), roundi(low.z))
+		info.size = Vector3i(roundi(high.x), roundi(high.y), roundi(high.z)) - info.at
+		info.rot = p.get("rot", 0)
+		info.basis = KartDesign.place_of(p).basis
 		stats.parts.append(info)
 		lo = lo.min(info.at)
 		hi = hi.max(info.at + info.size)
@@ -207,7 +216,7 @@ func _work_out_drag() -> void:
 		if info.def.kind == "wheel":
 			add.call(info.at.x, info.at.x + info.size.x, info.at.y, info.at.y + info.size.y, info.at.z, info.at.z + info.size.z, Vector2(WHEEL_AERO, WHEEL_AERO), "wheel %d" % info.index)
 			continue
-		var aero := aero_of(info.def, info.rot)
+		var aero := aero_turned(info.def, info.basis)
 		add.call(info.at.x, info.at.x + info.size.x, info.at.y, info.at.y + info.size.y, info.at.z, info.at.z + info.size.z, aero, "flat" if aero.x >= 0.9 else "smooth")
 	if seat != null:
 		# The driver, as tall as they sit up, across the width of the seat.

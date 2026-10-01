@@ -62,9 +62,9 @@ func _initialize() -> void:
 	check(not starter.attaches("brick_2x2", Vector3i(0, 0, 0), 0), "a brick off on its own isn't attached")
 
 	# Wheels only go on by their axle, on the side.
-	var plate := KartDesign.part_box("plate_6x10", Vector3i(7, 2, 7), 0)
-	check(KartDesign.joined("wheel_small", KartDesign.part_box("wheel_small", Vector3i(6, 0, 8), 0), "plate_6x10", plate), "a wheel clips onto the side of the chassis")
-	check(not KartDesign.joined("wheel_small", KartDesign.part_box("wheel_small", Vector3i(8, 3, 8), 0), "plate_6x10", plate), "a wheel sitting on top of the chassis isn't attached")
+	var plate := KartDesign.grid_entry("plate_6x10", Vector3i(7, 2, 7), 0)
+	check(KartDesign.joined(KartDesign.grid_entry("wheel_small", Vector3i(6, 0, 8), 0), plate), "a wheel clips onto the side of the chassis")
+	check(not KartDesign.joined(KartDesign.grid_entry("wheel_small", Vector3i(8, 3, 8), 0), plate), "a wheel sitting on top of the chassis isn't attached")
 
 	# Looking straight down at the middle of the chassis.
 	var empty_top := KartDesign.new()

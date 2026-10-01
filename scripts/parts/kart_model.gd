@@ -11,12 +11,21 @@ static func make(design: KartDesign, driver: CharacterDesign = null) -> Node3D:
 	var root := Node3D.new()
 	var stats := KartStats.compute(design)
 	var steering: SteeringVisual = null
+	# Everything that doesn't move is drawn as one mesh (see KartMesh).
+	var looks: Array[Node3D] = []
 	for info in stats.parts:
-		var look := PartVisuals.make(info.def, info.extent, info.rot)
+		var look := PartVisuals.make_turned(info.def, info.extent, info.basis)
 		look.position = info.centre
-		root.add_child(look)
-		if look is SteeringVisual and steering == null:
-			steering = look
+		if look is SteeringVisual or info.def.kind == "wheel":
+			root.add_child(look)
+			if look is SteeringVisual and steering == null:
+				steering = look
+		else:
+			looks.append(look)
+	if not looks.is_empty():
+		root.add_child(KartMesh.bake(looks))
+		for look in looks:
+			look.free()
 	if stats.has_seat:
 		var rig := CharacterRig.new(driver if driver != null else Kart.default_driver(), true)
 		rig.recline = stats.recline

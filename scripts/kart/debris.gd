@@ -16,7 +16,7 @@ static var _alive: Array[Debris] = []
 var _age := 0.0
 
 
-static func make(def: Dictionary, extent: Vector3, where: Transform3D, rot := 0) -> Debris:
+static func make(def: Dictionary, extent: Vector3, where: Transform3D, turn := Basis.IDENTITY) -> Debris:
 	var piece := Debris.new()
 	piece.transform = where
 	piece.mass = maxf(def.get("mass", 1.0), 0.2)
@@ -34,7 +34,7 @@ static func make(def: Dictionary, extent: Vector3, where: Transform3D, rot := 0)
 		box.size = extent
 		shape.shape = box
 	piece.add_child(shape)
-	piece.add_child(PartVisuals.make(def, extent, rot))
+	piece.add_child(PartVisuals.make_turned(def, extent, turn))
 	return piece
 
 

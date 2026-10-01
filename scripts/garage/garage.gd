@@ -240,10 +240,7 @@ func turn() -> void:
 		var at := Vector3i(roundi(centre.x - new_size.x * 0.5), p.at.y, roundi(centre.z - new_size.z * 0.5))
 		if design.fits(p.id, at, new_rot, _selected):
 			_remember()
-			var turned := p.duplicate()
-			turned.at = at
-			turned.rot = new_rot
-			design.parts[_selected] = turned
+			design.parts[_selected] = KartDesign.grid_entry(p.id, at, new_rot, p.get("color"))
 			_rebuild()
 		else:
 			ui.toast("There's no room to turn it there.")
@@ -260,9 +257,7 @@ func place() -> void:
 	# A move took its undo step when it started.
 	if _moving.is_empty():
 		_remember()
-	var entry := { "id": _holding, "at": _ghost_at, "rot": _holding_rot }
-	if _holding_colour != null:
-		entry["color"] = _holding_colour
+	var entry := KartDesign.grid_entry(_holding, _ghost_at, _holding_rot, _holding_colour)
 	design.parts.append(entry)
 	var placed := design.parts.size() - 1
 	if mirror and _moving.is_empty():
@@ -377,10 +372,7 @@ static func mirrored(entry: Dictionary) -> Dictionary:
 	var at: Vector3i = entry.at
 	# A left handed part's twin is the right handed one.
 	var id: String = PartCatalog.get_part(entry.id).get("mirror", entry.id)
-	var twin := { "id": id, "at": Vector3i(KartDesign.BUILD_SIZE.x - at.x - size.x, at.y, at.z), "rot": rot }
-	if entry.has("color"):
-		twin["color"] = entry.color
-	return twin
+	return KartDesign.grid_entry(id, Vector3i(KartDesign.BUILD_SIZE.x - at.x - size.x, at.y, at.z), rot, entry.get("color"))
 
 
 ## The index of the part that's exactly this one, or -1.

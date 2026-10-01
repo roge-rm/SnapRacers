@@ -16,6 +16,12 @@ static var _stud_mesh: CylinderMesh
 ## A part centred on its own origin, turned `rot` quarter turns. `extent` is
 ## its size once turned. Wheels come out with their axle along X.
 static func make(def: Dictionary, extent: Vector3, rot := 0) -> Node3D:
+	return make_turned(def, extent, Grid.yaw(rot))
+
+
+## A part centred on its own origin, turned by `basis`, any of the ways a
+## part can be turned. `extent` is its size once turned.
+static func make_turned(def: Dictionary, extent: Vector3, basis: Basis) -> Node3D:
 	var kind: String = def.get("kind", "")
 	if kind == "wheel":
 		return make_wheel(def)
@@ -24,11 +30,9 @@ static func make(def: Dictionary, extent: Vector3, rot := 0) -> Node3D:
 	var root := Node3D.new()
 	# Shaped parts are made facing forward and then turned, so they need
 	# their size before the turn.
-	var own := extent
-	if posmod(rot, 2) == 1:
-		own = Vector3(extent.z, extent.y, extent.x)
+	var own := Grid.to_metres(Vector3(def.get("size", Vector3i.ONE)))
 	var holder := Node3D.new()
-	holder.rotation.y = -rot * PI * 0.5
+	holder.basis = basis
 	root.add_child(holder)
 	if kind == "engine":
 		_engine(holder, def, own)
