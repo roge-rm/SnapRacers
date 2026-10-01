@@ -65,6 +65,8 @@ var _portrait := false
 
 
 func _ready() -> void:
+	# Esc and Back still work while a race is paused.
+	process_mode = Node.PROCESS_MODE_ALWAYS
 	settings.load(SETTINGS)
 	if FileAccess.file_exists(CURRENT_KART):
 		design = KartDesign.load_file(CURRENT_KART)
@@ -477,6 +479,8 @@ func show_loading(on: bool) -> void:
 
 
 func _swap(next: Node) -> void:
+	# Nothing's paused on a new screen.
+	get_tree().paused = false
 	if _screen != null:
 		_screen.queue_free()
 	_screen = next

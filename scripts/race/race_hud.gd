@@ -13,6 +13,8 @@ extends Control
 signal again_pressed
 signal garage_pressed
 signal menu_pressed
+## The menu button at the top, for the race's menu (see RaceMenu).
+signal pause_pressed
 ## Moving on to the Grand Prix standings.
 signal next_pressed
 ## Back to the course list, to pick another.
@@ -36,7 +38,7 @@ var _clock: Label
 var _big: Label
 var _message: Label
 var _message_left := 0.0
-var _quit: Button
+var _menu: IconButton
 var _camera: IconButton
 var _fps: Label
 var _results: PanelContainer
@@ -91,14 +93,15 @@ func _ready() -> void:
 	_message.set_anchors_and_offsets_preset(PRESET_CENTER)
 	_message.offset_top = -140.0
 
-	_quit = Button.new()
-	_quit.text = "Quit"
-	_quit.custom_minimum_size = Vector2(130, 56)
-	_quit.focus_mode = FOCUS_NONE
-	add_child(_quit)
-	_quit.set_anchors_and_offsets_preset(PRESET_CENTER_TOP)
-	_quit.position.y = 12
-	_quit.pressed.connect(func() -> void: menu_pressed.emit())
+	# The menu, with quit and the settings, at the top in the middle.
+	_menu = IconButton.new("pause", "Menu")
+	add_child(_menu)
+	_menu.set_anchors_and_offsets_preset(PRESET_CENTER_TOP)
+	_menu.offset_left = -IconButton.SIZE * 0.5
+	_menu.offset_right = IconButton.SIZE * 0.5
+	_menu.offset_top = 14.0
+	_menu.offset_bottom = 14.0 + IconButton.SIZE
+	_menu.pressed.connect(func() -> void: pause_pressed.emit())
 
 	# The camera button, left of where the touch controls put reset.
 	_camera = IconButton.new("camera", "Change the view")
@@ -119,7 +122,7 @@ func _ready() -> void:
 	# Nothing hides under a camera hole.
 	var safe := SafeArea.new()
 	add_child(safe)
-	for control in [corner, _clock, _quit, _camera, _fps]:
+	for control in [corner, _clock, _menu, _camera, _fps]:
 		safe.watch(control)
 
 
@@ -131,7 +134,7 @@ static func held_name(kart: Kart, slot: int) -> String:
 
 
 func buttons() -> Array[Control]:
-	return [_quit, _camera, _results, map] if map != null else [_quit, _camera, _results]
+	return [_menu, _camera, _results, map] if map != null else [_menu, _camera, _results]
 
 
 func _label(size: int) -> Label:
@@ -292,7 +295,7 @@ func _build_results() -> void:
 
 func show_results() -> void:
 	_results.visible = true
-	_quit.visible = false
+	_menu.visible = false
 	if touch != null:
 		touch.visible = false
 	_fill_results()

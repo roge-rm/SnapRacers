@@ -51,6 +51,8 @@ var track: TrackPath
 var racers: Array[Racer] = []
 ## The people racing, player 1 first.
 var humans: Array[Racer] = []
+## The menus open now, by whose they are.
+var _menus := {}
 ## Player 1.
 var player: Racer
 ## How the screen is shared (Game.SOLO and so on). Setting it before this is
@@ -98,6 +100,8 @@ func _init(split_override: Variant = null) -> void:
 
 
 func _ready() -> void:
+	# The menu pauses a race whatever it's under (see open_menu).
+	process_mode = Node.PROCESS_MODE_PAUSABLE
 	mode = Game.mode
 	if not _split_set:
 		split = Game.race_split()
@@ -312,6 +316,8 @@ func _add_view(racer: Racer, world_parent: Node, layer: CanvasLayer) -> void:
 		Game.finish_grand_prix_race(standings().map(func(r): return r.name)))
 	racer_hud.courses_pressed.connect(func() -> void: Game.show_tracks(mode))
 	racer_hud.camera_pressed.connect(input.press_view)
+	racer_hud.pause_pressed.connect(open_menu.bind(racer))
+	input.menu_pressed.connect(open_menu.bind(racer))
 
 
 ## Two halves of the screen, each with its own SubViewport looking at this
@@ -603,5 +609,70 @@ func leave() -> void:
 				Game.show_multiplayer()
 
 
+## Esc and Back open the menu, or close it again, or once you've finished
+## leave.
 func go_back() -> void:
-	leave()
+	if not _menus.is_empty():
+		for racer in _menus.keys():
+			close_menu(racer)
+		return
+	if humans.is_empty() or humans.all(func(r: Racer) -> bool: return r.progress.finished):
+		leave()
+		return
+	open_menu(humans[0])
+
+
+## Opens this player's menu over their view. In a single player race that
+## pauses everything.
+func open_menu(racer: Racer) -> void:
+	if _menus.has(racer) or racer.hud == null or racer.progress.finished:
+		return
+	var menu := RaceMenu.new()
+	menu.race = self
+	menu.racer = racer
+	menu.person = humans.find(racer)
+	menu.pauses = _can_pause()
+	menu.can_restart = mode != Game.MODE_GRAND_PRIX and not Game.net.is_online()
+	menu.resume_pressed.connect(close_menu.bind(racer))
+	menu.restart_pressed.connect(func() -> void:
+		get_tree().paused = false
+		Game.show_race())
+	menu.quit_pressed.connect(func() -> void:
+		get_tree().paused = false
+		leave())
+	racer.hud.add_child(menu)
+	_menus[racer] = menu
+	_update_pause()
+
+
+func close_menu(racer: Racer) -> void:
+	if not _menus.has(racer):
+		return
+	_menus[racer].queue_free()
+	_menus.erase(racer)
+	_update_pause()
+
+
+func menu_open(racer: Racer) -> bool:
+	return _menus.has(racer)
+
+
+## Only a single player race on this device pauses. With someone else
+## playing, here or online, it carries on.
+func _can_pause() -> bool:
+	return humans.size() == 1 and not Game.net.is_online()
+
+
+func _update_pause() -> void:
+	if is_inside_tree():
+		get_tree().paused = _can_pause() and not _menus.is_empty()
+
+
+func _exit_tree() -> void:
+	get_tree().paused = false
+
+
+## Going off to another app pauses a single player race, with the menu open.
+func _notification(what: int) -> void:
+	if what in [NOTIFICATION_APPLICATION_FOCUS_OUT, NOTIFICATION_APPLICATION_PAUSED] and _can_pause() and started and not humans.is_empty():
+		open_menu(humans[0])

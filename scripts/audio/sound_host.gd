@@ -14,6 +14,8 @@ var kept: Array[AudioStream] = []
 
 
 func _enter_tree() -> void:
+	# The music and the menu's clicks carry on while a race is paused.
+	process_mode = Node.PROCESS_MODE_ALWAYS
 	get_tree().node_added.connect(_on_node_added)
 	for node in get_tree().root.find_children("*", "BaseButton", true, false):
 		_on_node_added(node)

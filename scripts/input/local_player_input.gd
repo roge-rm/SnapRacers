@@ -8,6 +8,9 @@ extends Node
 ## several at once (like a keyboard and a controller on a desktop), and the
 ## strongest input wins.
 
+## Start on the controller, for the race's menu.
+signal menu_pressed
+
 @export var use_keyboard := false
 ## Which keys a player uses when two share a keyboard. It's ALL_KEYS for one
 ## player on their own, LEFT_KEYS (WASD, Q, E and R, with C to look back and V
@@ -30,6 +33,7 @@ var look_back := false
 
 var _view_pressed := false
 var _view_held := false
+var _menu_held := false
 
 const STICK_DEADZONE := 0.15
 const ALL_KEYS := 0
@@ -97,6 +101,10 @@ func _physics_process(_delta: float) -> void:
 		gadget[1] = gadget[1] or Input.is_joy_button_pressed(joypad, JOY_BUTTON_RIGHT_SHOULDER)
 		back = back or Input.is_joy_button_pressed(joypad, JOY_BUTTON_LEFT_SHOULDER)
 		view = view or Input.is_joy_button_pressed(joypad, JOY_BUTTON_BACK)
+		var menu := Input.is_joy_button_pressed(joypad, JOY_BUTTON_START)
+		if menu and not _menu_held:
+			menu_pressed.emit()
+		_menu_held = menu
 
 	if touch != null and touch.visible:
 		throttle = maxf(throttle, touch.throttle)
@@ -129,3 +137,9 @@ func take_view_press() -> bool:
 
 func press_view() -> void:
 	_view_pressed = true
+
+
+## Whether this controller is this player's. With one player on their own,
+## any controller is.
+func owns_joypad(device: int) -> bool:
+	return any_joypad or device == joypad
