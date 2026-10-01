@@ -112,5 +112,22 @@ func _init() -> void:
 	wide_back.parts[4] = { "id": "wheel_slick", "at": Vector3i(13, 0, 13), "rot": 0 }
 	check(is_equal_approx(KartStats.compute(wide_back).grip, mixed.grip), "cornering goes by the end that grips less, so slicks on the back alone don't add any")
 
+	# The parts modelled by tools/parts join by their own connectors. A wheel
+	# goes onto the stub of an axle, and a curved slope onto studs.
+	var made := PartCatalog.ids().filter(func(id): return PartCatalog.get_part(id).has("mesh"))
+	check(made.size() >= 100, "there are the modelled parts too (%d)" % made.size())
+	check(made.all(func(id): return ResourceLoader.exists(PartCatalog.get_part(id).mesh)), "and every one has its mesh")
+	var plate_place := Transform3D(Basis.IDENTITY, Vector3(140.0, 27.2, 100.0))
+	var axle_plate := { "id": "p_axle_plate_2x6", "place": plate_place }
+	# The axle stub on the left runs across from x 0 to 20 at (y 3.2, z 10),
+	# and the wheel's hub runs across its middle at (y 24, z 24).
+	var wheel := { "id": "w_kart", "place": Transform3D(Basis.IDENTITY, plate_place.origin + Vector3(0.0, 3.2 - 24.0, 10.0 - 24.0)) }
+	check(KartDesign.joined(wheel, axle_plate), "a wheel goes onto an axle's stub")
+	check(not KartDesign.clash(wheel.id, wheel.place, axle_plate.id, axle_plate.place), "without going through the plate it sticks out of")
+	var curve := { "id": "p_curve_2x4", "place": Transform3D(Basis.IDENTITY, plate_place.origin + Vector3(20.0, 12.8, 0.0)) }
+	check(KartDesign.joined(curve, axle_plate), "a curved slope clicks onto the studs")
+	var floating := { "id": "p_curve_2x4", "place": Transform3D(Basis.IDENTITY, plate_place.origin + Vector3(20.0, 20.0, 0.0)) }
+	check(not KartDesign.joined(floating, axle_plate), "but not when it's held up off them")
+
 	print("All parts checks passed." if failures == 0 else "%d parts checks failed." % failures)
 	quit(1 if failures > 0 else 0)

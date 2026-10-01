@@ -1,0 +1,25 @@
+[remap]
+
+importer="wavefront_obj"
+importer_version=1
+type="Mesh"
+uid="uid://be1qc8v3m8nac"
+path="res://.godot/imported/p_ball_plate.obj-b012e50e798661214b282bd5c0f6264b.mesh"
+
+[deps]
+
+files=["res://.godot/imported/p_ball_plate.obj-b012e50e798661214b282bd5c0f6264b.mesh"]
+
+source_file="res://parts/meshes/p_ball_plate.obj"
+dest_files=["res://.godot/imported/p_ball_plate.obj-b012e50e798661214b282bd5c0f6264b.mesh", "res://.godot/imported/p_ball_plate.obj-b012e50e798661214b282bd5c0f6264b.mesh"]
+
+[params]
+
+generate_tangents=true
+generate_lods=true
+generate_shadow_mesh=true
+generate_lightmap_uv2=false
+generate_lightmap_uv2_texel_size=0.2
+scale_mesh=Vector3(1, 1, 1)
+offset_mesh=Vector3(0, 0, 0)
+force_disable_mesh_compression=false

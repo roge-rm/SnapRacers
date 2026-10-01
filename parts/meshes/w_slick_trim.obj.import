@@ -1,0 +1,25 @@
+[remap]
+
+importer="wavefront_obj"
+importer_version=1
+type="Mesh"
+uid="uid://bwy27a0jlht4v"
+path="res://.godot/imported/w_slick_trim.obj-446baa509540d1e7704ad65138a12f8c.mesh"
+
+[deps]
+
+files=["res://.godot/imported/w_slick_trim.obj-446baa509540d1e7704ad65138a12f8c.mesh"]
+
+source_file="res://parts/meshes/w_slick_trim.obj"
+dest_files=["res://.godot/imported/w_slick_trim.obj-446baa509540d1e7704ad65138a12f8c.mesh", "res://.godot/imported/w_slick_trim.obj-446baa509540d1e7704ad65138a12f8c.mesh"]
+
+[params]
+
+generate_tangents=true
+generate_lods=true
+generate_shadow_mesh=true
+generate_lightmap_uv2=false
+generate_lightmap_uv2_texel_size=0.2
+scale_mesh=Vector3(1, 1, 1)
+offset_mesh=Vector3(0, 0, 0)
+force_disable_mesh_compression=false

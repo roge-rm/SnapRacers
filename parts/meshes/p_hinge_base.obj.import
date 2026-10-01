@@ -1,0 +1,25 @@
+[remap]
+
+importer="wavefront_obj"
+importer_version=1
+type="Mesh"
+uid="uid://b2r7bsywy6u2v"
+path="res://.godot/imported/p_hinge_base.obj-36a069f723cc2efbf3178d030c2f411f.mesh"
+
+[deps]
+
+files=["res://.godot/imported/p_hinge_base.obj-36a069f723cc2efbf3178d030c2f411f.mesh"]
+
+source_file="res://parts/meshes/p_hinge_base.obj"
+dest_files=["res://.godot/imported/p_hinge_base.obj-36a069f723cc2efbf3178d030c2f411f.mesh", "res://.godot/imported/p_hinge_base.obj-36a069f723cc2efbf3178d030c2f411f.mesh"]
+
+[params]
+
+generate_tangents=true
+generate_lods=true
+generate_shadow_mesh=true
+generate_lightmap_uv2=false
+generate_lightmap_uv2_texel_size=0.2
+scale_mesh=Vector3(1, 1, 1)
+offset_mesh=Vector3(0, 0, 0)
+force_disable_mesh_compression=false

@@ -79,7 +79,7 @@ static func placed_entry(id: String, place: Transform3D, color: Variant = null) 
 ## Where a part sitting on the grid goes, as its place.
 static func grid_place(id: String, at: Vector3i, rot: int) -> Transform3D:
 	var basis := Grid.yaw(rot)
-	var size := Grid.fine_size(PartCatalog.get_part(id).get("size", Vector3i.ONE))
+	var size := PartCatalog.fine_size(id)
 	var low := (Transform3D(basis, Vector3.ZERO) * AABB(Vector3.ZERO, size)).position
 	return Transform3D(basis, Vector3(at) * Grid.UNIT_FINE - low)
 
@@ -96,9 +96,35 @@ static func place_of(entry: Dictionary) -> Transform3D:
 	return entry.place
 
 
+## The solid boxes of a part where it's been put, in the fine unit. Most parts
+## are solid all through their box, but a part with bits sticking out, like a
+## wheel holder's pins, says which boxes are solid, so a wheel can go over its
+## pin.
+static func solid_boxes(id: String, place: Transform3D) -> Array[AABB]:
+	var out: Array[AABB] = []
+	var def := PartCatalog.get_part(id)
+	if def.has("solids"):
+		for b in def.solids:
+			out.append(place * b)
+	else:
+		out.append(fine_box(id, place))
+	return out
+
+
+## Whether two parts where they've been put go through each other.
+static func clash(id_a: String, place_a: Transform3D, id_b: String, place_b: Transform3D) -> bool:
+	if not fine_box(id_a, place_a).intersects(fine_box(id_b, place_b)):
+		return false
+	for a in solid_boxes(id_a, place_a):
+		for b in solid_boxes(id_b, place_b):
+			if _overlap_volume(a, b) > 0.0:
+				return true
+	return false
+
+
 ## The box a part fills where it's been put, in the fine unit.
 static func fine_box(id: String, place: Transform3D) -> AABB:
-	return place * AABB(Vector3.ZERO, Grid.fine_size(PartCatalog.get_part(id).get("size", Vector3i.ONE)))
+	return place * AABB(Vector3.ZERO, PartCatalog.fine_size(id))
 
 
 static func load_file(path: String) -> KartDesign:
@@ -203,7 +229,7 @@ func fits_place(id: String, place: Transform3D, ignore := -1) -> bool:
 	if not area.grow(0.01).encloses(box):
 		return false
 	for i in parts.size():
-		if i != ignore and _overlap_volume(box, fine_box(parts[i].id, place_of(parts[i]))) > 0.0:
+		if i != ignore and clash(id, place, parts[i].id, place_of(parts[i])):
 			return false
 	return true
 
@@ -382,7 +408,7 @@ func problems() -> Array[String]:
 		out.append("Some parts aren't attached to the rest.")
 	for i in parts.size():
 		for j in range(i + 1, parts.size()):
-			if _overlap_volume(fine_box(parts[i].id, place_of(parts[i])), fine_box(parts[j].id, place_of(parts[j]))) > 0.0:
+			if clash(parts[i].id, place_of(parts[i]), parts[j].id, place_of(parts[j])):
 				out.append("Two parts are inside each other.")
 				return out
 	if wheels > 0 and lowest_other < lowest_wheel + CLEARANCE - 0.01:

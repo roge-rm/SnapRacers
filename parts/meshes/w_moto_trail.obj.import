@@ -1,0 +1,25 @@
+[remap]
+
+importer="wavefront_obj"
+importer_version=1
+type="Mesh"
+uid="uid://dwmvf8dxqp2iu"
+path="res://.godot/imported/w_moto_trail.obj-6236b88b84cb1852b111752baa568e0e.mesh"
+
+[deps]
+
+files=["res://.godot/imported/w_moto_trail.obj-6236b88b84cb1852b111752baa568e0e.mesh"]
+
+source_file="res://parts/meshes/w_moto_trail.obj"
+dest_files=["res://.godot/imported/w_moto_trail.obj-6236b88b84cb1852b111752baa568e0e.mesh", "res://.godot/imported/w_moto_trail.obj-6236b88b84cb1852b111752baa568e0e.mesh"]
+
+[params]
+
+generate_tangents=true
+generate_lods=true
+generate_shadow_mesh=true
+generate_lightmap_uv2=false
+generate_lightmap_uv2_texel_size=0.2
+scale_mesh=Vector3(1, 1, 1)
+offset_mesh=Vector3(0, 0, 0)
+force_disable_mesh_compression=false

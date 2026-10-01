@@ -1,0 +1,25 @@
+[remap]
+
+importer="wavefront_obj"
+importer_version=1
+type="Mesh"
+uid="uid://brfui3j8n0ery"
+path="res://.godot/imported/p_wedge_3x2_left.obj-5e75c83a5888e67ad5cf74a80061ee67.mesh"
+
+[deps]
+
+files=["res://.godot/imported/p_wedge_3x2_left.obj-5e75c83a5888e67ad5cf74a80061ee67.mesh"]
+
+source_file="res://parts/meshes/p_wedge_3x2_left.obj"
+dest_files=["res://.godot/imported/p_wedge_3x2_left.obj-5e75c83a5888e67ad5cf74a80061ee67.mesh", "res://.godot/imported/p_wedge_3x2_left.obj-5e75c83a5888e67ad5cf74a80061ee67.mesh"]
+
+[params]
+
+generate_tangents=true
+generate_lods=true
+generate_shadow_mesh=true
+generate_lightmap_uv2=false
+generate_lightmap_uv2_texel_size=0.2
+scale_mesh=Vector3(1, 1, 1)
+offset_mesh=Vector3(0, 0, 0)
+force_disable_mesh_compression=false

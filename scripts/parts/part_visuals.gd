@@ -25,8 +25,14 @@ static func make_turned(def: Dictionary, extent: Vector3, basis: Basis) -> Node3
 	var kind: String = def.get("kind", "")
 	if kind == "wheel":
 		return make_wheel(def)
-	if kind == "steering":
+	if kind == "steering" and not def.has("mesh"):
 		return SteeringVisual.new(def, extent)
+	if def.has("mesh"):
+		var made := Node3D.new()
+		var turned := _modelled(def)
+		turned.basis = basis
+		made.add_child(turned)
+		return made
 	var root := Node3D.new()
 	# Shaped parts are made facing forward and then turned, so they need
 	# their size before the turn.
@@ -79,7 +85,35 @@ static func make_studs(extent: Vector3, color: Color, cells: Array[Vector2i] = [
 	return node
 
 
+## A part modelled by tools/parts, from its mesh, and its trim in its own
+## colour, centred on its own origin.
+static func _modelled(def: Dictionary) -> Node3D:
+	var root := Node3D.new()
+	var mesh := MeshInstance3D.new()
+	mesh.mesh = load(def.mesh)
+	mesh.material_override = finished(def.color, def.get("finish", "plastic"))
+	root.add_child(mesh)
+	if def.has("trim"):
+		var trim := MeshInstance3D.new()
+		trim.mesh = load(def.trim.mesh)
+		trim.material_override = finished(def.trim.color, def.trim.get("finish", "plastic"))
+		root.add_child(trim)
+	return root
+
+
+## The material for a colour with this finish: "plastic", "glass" or "metal".
+static func finished(color: Color, finish: String) -> StandardMaterial3D:
+	match finish:
+		"glass":
+			return glass(color)
+		"metal":
+			return shiny(color)
+	return material(color)
+
+
 static func make_wheel(def: Dictionary) -> Node3D:
+	if def.has("mesh"):
+		return _modelled(def)
 	var radius: float = def.get("radius", 0.3)
 	var width: float = def.get("width", 0.25)
 	var tread: String = def.get("tread", "road")
