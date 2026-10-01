@@ -132,7 +132,10 @@ const TRIKE_HOLD := 0.8
 ## damped, and how much of that it keeps in the air.
 const HOLD_ALIGN := 140.0
 const HOLD_DAMP := 24.0
-const HOLD_IN_AIR := 0.3
+const HOLD_IN_AIR := 1.0
+## In the air a bike levels out front to back too, this much as hard as it
+## holds its roll, so it lands on its wheels instead of going over the front.
+const AIR_PITCH := 0.5
 ## Rolled over further than this, a bike has crashed, and isn't held up.
 const HOLD_LETS_GO := deg_to_rad(65.0)
 ## How far a bike leans into a bend, at most, and how quickly.
@@ -492,12 +495,7 @@ func _assemble() -> void:
 			body.rotation.z = PI * 0.5
 			add_child(body)
 			continue
-		var shape := CollisionShape3D.new()
-		var box := BoxShape3D.new()
-		box.size = info.extent
-		shape.shape = box
-		shape.position = info.centre
-		add_child(shape)
+		_add_bodies(info)
 		var look := PartVisuals.make_turned(info.def, info.extent, info.basis)
 		look.position = info.centre
 		if info.def.get("steers", false) and _beside_steered_wheel(info):
@@ -540,6 +538,28 @@ func _assemble() -> void:
 	for w in wheels:
 		if w.driven:
 			_driven_count += 1
+
+
+## The part's collision shapes: its box, or for a modelled part with gaps in
+## it, like a motorbike's fork, a box for each of its solid bits.
+func _add_bodies(info: KartStats.PartInfo) -> void:
+	var boxes: Array[AABB] = []
+	if info.def.has("solids"):
+		var middle := PartCatalog.fine_size(info.def.id) * 0.5
+		for solid in info.def.solids:
+			var b: AABB = Transform3D(info.basis, Vector3.ZERO) * AABB((solid as AABB).position - middle, (solid as AABB).size)
+			boxes.append(AABB(info.centre + b.position * Grid.FINE, b.size * Grid.FINE))
+	else:
+		boxes.append(AABB(info.centre - info.extent * 0.5, info.extent))
+	for b in boxes:
+		if b.size.x < 0.01 or b.size.y < 0.01 or b.size.z < 0.01:
+			continue
+		var shape := CollisionShape3D.new()
+		var box := BoxShape3D.new()
+		box.size = b.size
+		shape.shape = box
+		shape.position = b.get_center()
+		add_child(shape)
 
 
 ## Whether the wheel nearest this part is one that steers, so a fork turns
@@ -828,7 +848,11 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 			f_long = minf(f_long, lerpf(minf(left_over, _drive_room * standing), left_over, turned))
 		var tire := Vector2(f_long, f_lat).limit_length(most)
 
-		state.apply_force(normal * load, contact - origin)
+		# A bike's springs push along the bike, through its middle, so they
+		# can't tip it over. Balanced on two wheels it would fall over like
+		# a pencil on its point, all the faster in the pull of a loop.
+		var push := up if upright >= 1.0 else normal
+		state.apply_force(push * load, contact - origin)
 		# Cornering forces act a little below the centre of mass, so it leans
 		# but doesn't flip. Driving and braking act right at its height, so it
 		# doesn't squat onto its tail pulling away or dive when it brakes.
@@ -837,7 +861,7 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 		# tires and is held upright instead, and a trike's nearly.
 		state.apply_force(side * tire.y, contact + up * height * lerpf(ROLL_HELP, 1.0, upright) - origin)
 		state.apply_force(heading * tire.x, contact + up * height - origin)
-		applied += normal * load + side * tire.y + heading * tire.x
+		applied += push * load + side * tire.y + heading * tire.x
 
 	rough = float(on_rough) / on_any if on_any > 0 else 0.0
 	_drive_room = room
@@ -845,7 +869,8 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 	# Sticky road. Gravity already pulls everything down, so this cancels that
 	# and pulls toward the road instead.
 	var needed := STICK_SPEED if up.y > -0.1 else STICK_SPEED_OVERHEAD
-	if sticky_wheels >= 2 and speed > needed:
+	# A bike only has two wheels, so one on the road is enough.
+	if sticky_wheels >= (1 if upright >= 1.0 else 2) and speed > needed:
 		stick_up = sticky_up.normalized()
 		_stick_left = STICK_HOLD
 	else:
@@ -881,7 +906,9 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 		_rail_height = INF
 		_rail_done = Vector3.INF
 
-	if upright > 0.0 and not sticking:
+	# On sticky road too, square to the road, since a bike would fall over on
+	# the way into a loop.
+	if upright > 0.0:
 		_hold_upright(state, ground_up)
 
 	# Air drag from everything facing forward, and downforce from any wings.
@@ -914,13 +941,14 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 
 ## Keeps a bike or trike from falling over, by turning it back upright about
 ## the way it's pointing. On the ground that's square to the ground, and in
-## the air it's upright, more gently. One that's gone right over has crashed,
+## the air it levels out both ways, so it lands on its wheels. One that's gone right over has crashed,
 ## and is left to fall.
 func _hold_upright(state: PhysicsDirectBodyState3D, ground_up: Vector3) -> void:
 	var basis := state.transform.basis
 	var strength := upright
 	var toward := ground_up.normalized()
-	if ground_up == Vector3.ZERO:
+	var flying := ground_up == Vector3.ZERO
+	if flying:
 		toward = Vector3.UP
 		strength *= HOLD_IN_AIR
 	if basis.y.angle_to(toward) > HOLD_LETS_GO:
@@ -929,6 +957,10 @@ func _hold_upright(state: PhysicsDirectBodyState3D, ground_up: Vector3) -> void:
 	var tilt := basis.y.cross(toward).dot(forward)
 	var roll := state.angular_velocity.dot(forward)
 	var want := forward * (tilt * HOLD_ALIGN - roll * HOLD_DAMP) * strength
+	if flying:
+		var side := basis.x
+		var pitch := basis.y.cross(toward).dot(side)
+		want += side * (pitch * HOLD_ALIGN - state.angular_velocity.dot(side) * HOLD_DAMP) * AIR_PITCH * upright
 	state.apply_torque(state.inverse_inertia_tensor.inverse() * want)
 
 

@@ -21,10 +21,14 @@ class Runner:
 		if not ok:
 			failures += 1
 
+	## The starter kart as it was built on the stud grid, before parts had
+	## their own connectors, so a ram plate goes on where its front bricks were.
+	const OLD_STARTER := "res://tests/data/old_starter.json"
+
 	## The starter kart holding these power-ups, at this spot facing -Z, with
 	## a ram plate on the front if asked.
 	func kart_with(powerups: Array, at: Vector3, ram := false) -> Kart:
-		var design := KartDesign.load_file("res://data/karts/stock/starter.json")
+		var design := KartDesign.load_file(OLD_STARTER)
 		if ram:
 			design.parts = design.parts.filter(func(p): return p.id != "brick_1x6")
 			design.parts.append({ "id": "ram_plate", "at": Vector3i(7, 3, 7), "rot": 0 })
@@ -42,7 +46,7 @@ class Runner:
 
 		# Two at most.
 		var holder := Kart.new()
-		holder.build(KartDesign.load_file("res://data/karts/stock/starter.json"))
+		holder.build(KartDesign.load_file(OLD_STARTER))
 		check(holder.give("turbo") and holder.give("shield"), "a kart can hold two power-ups")
 		check(not holder.give("oil") and holder.full(), "but not a third")
 		holder.free()

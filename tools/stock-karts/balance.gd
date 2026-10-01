@@ -5,6 +5,8 @@ extends Node
 ## two laps on its own, from a standing start. Run it with:
 ##   tools/godot/Godot_v4.7.2-stable_linux.x86_64 --headless --fixed-fps 60 --path . res://tools/stock-karts/balance.tscn
 ## Name karts or courses after -- to only do those, like -- rocket peach_pit.
+## With BALANCE_OUT set it also writes the times there, for balance.sh, which
+## runs several of these at once and puts their times together.
 
 const COURSES := ["peach_pit", "foundry_flats", "launchpad_loop", "dune_drift"]
 const LAPS := 2
@@ -30,6 +32,16 @@ func _ready() -> void:
 			var result: Array = await _time(key, course)
 			times[key] = times.get(key, []) + [result]
 			print("%-14s %-16s %s" % [key, course, "%.1f s, laps %s, %d resets" % [result[0], result[1], result[2]] if result[0] < INF else "didn't finish"])
+	if OS.has_environment("BALANCE_OUT"):
+		var out := {}
+		for key in karts:
+			out[key] = {}
+			for i in courses.size():
+				var result: Array = times[key][i]
+				out[key][courses[i]] = { "time": result[0] if result[0] < INF else -1.0, "laps": result[1], "resets": result[2] }
+		var file := FileAccess.open(OS.get_environment("BALANCE_OUT"), FileAccess.WRITE)
+		file.store_string(JSON.stringify(out, "\t"))
+		file.close()
 	# How each kart compares with the middle of the field, course by course.
 	print("\n%-14s %s   overall" % ["kart", "   ".join(courses.map(func(c): return "%-14s" % c))])
 	var middles := []
@@ -83,7 +95,7 @@ func _time(key: String, course: String) -> Array:
 			if racer.offset > from and (racer.offset < from + 40.0 or OS.has_environment("TRACE_ALL")) and racer.progress.lap_times.is_empty():
 				var k := racer.kart
 				var side := (k.global_position - race.track.point_at(racer.offset)).dot(race.track.right_at(racer.offset))
-				print("    %.1f m: %.1f m/s, %+.1f m across, steer %+.2f of %.0f°, throttle %.1f brake %.1f, bend %.3f, boost %.1f" % [racer.offset, k.linear_velocity.length(), side, k.controls.steer, rad_to_deg(k.full_lock), k.controls.throttle, k.controls.brake, race.track.bend_at(racer.offset), k.boost_left])
+				print("    %.1f m: %.1f m/s, %+.1f m across, steer %+.2f of %.0f°, throttle %.1f brake %.1f, bend %.3f, boost %.1f, %d wheels down, sticking %s, touching %d" % [racer.offset, k.linear_velocity.length(), side, k.controls.steer, rad_to_deg(k.full_lock), k.controls.throttle, k.controls.brake, race.track.bend_at(racer.offset), k.boost_left, k.wheels.filter(func(w): return w.grounded).size(), k.sticking, k.get_colliding_bodies().size()])
 		if OS.has_environment("RACE_DEBUG"):
 			var kart := racer.kart
 			var piece: int = race.track.piece_of[race.track._index_before(racer.offset)]

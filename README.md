@@ -67,7 +67,7 @@ How the driver sits matters too. Lying down keeps them out of the wind, but they
 
 ### Sixteen stock karts
 
-If you'd rather not build, you can pick one of sixteen stock karts before any race, and the AI drivers race in them too. Each AI driver gets one at random for a race, or for a whole Grand Prix. They're all within about seven percent of each other around a lap, but they get there in different ways.
+If you'd rather not build, you can pick one of the stock karts, bikes and trikes before any race, and the AI drivers race in them too. Each AI driver gets one at random for a race, or for a whole Grand Prix. They're all within about ten percent of each other around a lap, but they get there in different ways.
 
 | | |
 |---|---|

@@ -27,6 +27,23 @@ MESHES = "parts/meshes"
 OUT = os.path.join(GAME, "data", "parts_made.json")
 
 
+# Parts with a twin among the first parts weigh the same and are as strong,
+# so karts built from either drive the same.
+TWINS = {
+    "p_plate_1x4": "plate_1x4", "p_plate_2x4": "plate_2x4", "p_plate_2x6": "plate_2x6", "p_plate_4x4": "plate_4x4",
+    "p_plate_4x8": "plate_4x8", "p_plate_6x10": "plate_6x10", "p_plate_6x12": "plate_6x12",
+    "p_brick_1x1": "brick_1x1", "p_brick_1x2": "brick_1x2", "p_brick_1x4": "brick_1x4", "p_brick_1x6": "brick_1x6",
+    "p_brick_2x2": "brick_2x2", "p_brick_2x4": "brick_2x4", "p_round_brick_2x2": "brick_round_2x2", "p_tile_2x4": "tile_2x4",
+    "p_slope_1x2": "slope_1x2", "p_slope_2x2": "slope_2x2", "p_slope_2x4": "slope_long_2x4", "p_curve_2x4": "curve_2x4", "p_curve_4x4": "curve_4x4",
+    "w_kart": "wheel_small", "w_kart_wide": "wheel_small_wide", "w_racing": "wheel_medium", "w_slick": "wheel_big_slick",
+    "w_offroad": "wheel_knobbly", "w_moto": "wheel_skinny", "w_moto_trail": "wheel_skinny", "w_scooter": "wheel_small",
+}
+# The 6 wide plates are chassis plates, heavy and strong like the first ones,
+# for each stud of them.
+CHASSIS = {"p_plate_6x6": 36, "p_plate_6x8": 48}
+FIRST = json.load(open(os.path.join(GAME, "data", "parts.json")))["parts"]
+
+
 def entry_for(p):
     size = p.size
     out = {
@@ -55,6 +72,31 @@ def entry_for(p):
         out["trim"] = {"mesh": "res://%s/%s_trim.obj" % (MESHES, p.id), "color": p.trim[1], "finish": p.trim[2]}
     for k, v in p.stats.items():
         out[k] = v
+    twin_of = out.pop("twin", None)
+    if twin_of:
+        # A remodelled first part takes everything but its look from it.
+        for key, value in FIRST[twin_of].items():
+            if key not in ("size", "color", "kind"):
+                out[key] = value
+        out["name"] = FIRST[twin_of]["name"]
+    engine_twin = out.pop("engine_twin", None)
+    if engine_twin:
+        # A motorbike frame has an engine in it, and sounds like one of the
+        # first ones.
+        twin = FIRST[engine_twin]
+        out["sound"] = engine_twin
+        out["mass"] = round(twin["mass"] * 0.8 + 6.0, 1)
+        out["strength"] = twin["strength"]
+    if "seat_box" in out:
+        out["seat_box"] = fine(out["seat_box"][:3]) + fine(out["seat_box"][3:])
+    if p.id in TWINS:
+        twin = FIRST[TWINS[p.id]]
+        out["mass"] = twin["mass"]
+        out["strength"] = twin["strength"]
+    elif p.id in CHASSIS:
+        studs = CHASSIS[p.id]
+        out["mass"] = round(FIRST["plate_6x10"]["mass"] * studs / 60.0, 1)
+        out["strength"] = round(FIRST["plate_6x10"]["strength"] * math.sqrt(studs / 60.0), -1)
     return out
 
 

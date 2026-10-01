@@ -14,6 +14,7 @@ extends Node
 ## the middle of the kart.
 const SPOT := Vector3i(7, 3, 11)
 const TWIN := Vector3i(11, 3, 11)
+const OLD_STARTER := "res://tests/data/old_starter.json"
 
 var failures := 0
 var garage: Garage
@@ -93,16 +94,17 @@ func _ready() -> void:
 	host = Node.new()
 	add_child(host)
 	Game.start(host, false)
-	# Start from the starter kart, not whatever an earlier run left as the
-	# kart being worked on.
-	Game.design = KartDesign.load_file(Game.STARTER)
+	# Start from the starter kart as it was built before parts had their own
+	# connectors, which also checks a kart saved back then still works, and
+	# not from whatever an earlier run left as the kart being worked on.
+	Game.design = KartDesign.load_file(OLD_STARTER)
 	Game.show_garage()
 	await frames(3)
 	garage = host.get_child(host.get_child_count() - 1)
 	check(garage is Garage, "the game opens in the garage")
 	garage.finger_lift = 0.0
 	var parts := garage.design.parts.size()
-	check(parts == KartDesign.load_file("res://data/karts/stock/starter.json").parts.size(), "with the starter kart in it (%d parts)" % parts)
+	check(parts == KartDesign.load_file(OLD_STARTER).parts.size(), "with the old starter kart in it (%d parts)" % parts)
 	await _bank()
 	await _placing(parts)
 	await _mirror_and_paint(parts)

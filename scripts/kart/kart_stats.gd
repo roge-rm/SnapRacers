@@ -23,6 +23,10 @@ const DRIVER_MASS := 45.0
 const FRONT_SHARE := 0.6
 ## How smooth the air finds the driver, and a wheel's round tire.
 const DRIVER_AERO := 0.9
+## Astride a motorbike the rider sits up with their arms out to the bars, so
+## they catch the wind across the bars' width and worse.
+const ASTRIDE_AERO := 1.2
+const ASTRIDE_WIDTH := 4
 const WHEEL_AERO := 0.8
 ## Each stud further from the seat the steering is costs the driver this much
 ## control.
@@ -42,6 +46,7 @@ class PartInfo:
 	var extent := Vector3.ONE # metres, after turning
 	var low := Vector3.ZERO # the exact corner of its box, in grid units
 	var high := Vector3.ONE # and the far corner
+	var place := Transform3D.IDENTITY # its own space to the kart's, in the fine unit
 
 
 var parts: Array[PartInfo] = []
@@ -71,6 +76,8 @@ var offroad := 0.0
 var control := 1.0
 var has_seat := false
 var seat: PartInfo
+## Where the driver sits, on the stud grid.
+var seat_cells := AABB()
 var seat_top := Vector3.ZERO
 ## How far back the driver leans, in radians.
 var recline := 0.0
@@ -132,7 +139,8 @@ static func compute(design: KartDesign, skip := {}, fixed_origin: Variant = null
 		info.at = Vector3i(roundi(info.low.x), roundi(info.low.y), roundi(info.low.z))
 		info.size = Vector3i(roundi(info.high.x), roundi(info.high.y), roundi(info.high.z)) - info.at
 		info.rot = p.get("rot", 0)
-		info.basis = KartDesign.place_of(p).basis
+		info.place = KartDesign.place_of(p)
+		info.basis = info.place.basis
 		stats.parts.append(info)
 		lo = lo.min(info.low)
 		hi = hi.max(info.high)
@@ -151,29 +159,35 @@ static func compute(design: KartDesign, skip := {}, fixed_origin: Variant = null
 		var part_mass: float = info.def.get("mass", 1.0)
 		stats.mass += part_mass
 		weighted += info.centre * part_mass
+		# Engines push, and so does a motorbike frame with its engine in it.
+		stats.power += info.def.get("power", 0.0) * POWER_SCALE
+		stats.max_force += info.def.get("max_force", 0.0)
+		stats.thrust += info.def.get("thrust", 0.0) * THRUST_SCALE
 		match info.def.kind:
 			"wheel":
 				stats.wheels.append(info)
 				stats.rolling += info.def.get("rolling", 0.015)
 				stats.grip += info.def.get("grip", 1.0)
 				offroad_total += info.def.get("offroad", 0.0)
-			"engine":
-				stats.power += info.def.get("power", 0.0) * POWER_SCALE
-				stats.max_force += info.def.get("max_force", 0.0)
-				stats.thrust += info.def.get("thrust", 0.0) * THRUST_SCALE
 			"wing":
 				stats.lift_area += info.def.get("lift_area", 0.0)
 			"seat":
 				if not stats.has_seat:
 					stats.has_seat = true
 					stats.seat = info
+					stats.seat_cells = design.seat_box_of(info.index)
 					stats.recline = deg_to_rad(info.def.get("recline", 0.0))
 					stats.astride = info.def.get("astride", false)
 					seat_control = info.def.get("control", 1.0)
 					# The driver sits in the middle of the seat with their legs
 					# out in front. Any further back on a long seat and their
-					# weight takes too much off the front wheels.
+					# weight takes too much off the front wheels. A motorbike
+					# frame says where its seat is.
 					stats.seat_top = info.centre + Vector3(0.0, info.extent.y * 0.5, 0.0)
+					if info.def.has("seat_box"):
+						var box: AABB = info.def.seat_box
+						var top := box.get_center() + Vector3(0.0, box.size.y * 0.5, 0.0)
+						stats.seat_top = info.centre + info.basis * ((top - PartCatalog.fine_size(info.def.id) * 0.5) * Grid.FINE)
 					stats.mass += driver_mass
 					weighted += (stats.seat_top + Vector3.UP * 0.3 * cos(stats.recline)) * driver_mass
 			"steering":
@@ -222,12 +236,30 @@ func _work_out_drag() -> void:
 			add.call(info.at.x, info.at.x + info.size.x, info.at.y, info.at.y + info.size.y, info.at.z, info.at.z + info.size.z, Vector2(WHEEL_AERO, WHEEL_AERO), "wheel %d" % info.index)
 			continue
 		var aero := aero_turned(info.def, info.basis)
-		add.call(info.at.x, info.at.x + info.size.x, info.at.y, info.at.y + info.size.y, info.at.z, info.at.z + info.size.z, aero, "flat" if aero.x >= 0.9 else "smooth")
+		var what := "flat" if aero.x >= 0.9 else "smooth"
+		if info.def.has("solids"):
+			# A modelled part with gaps in it, like a motorbike frame, only
+			# catches the wind where it's solid.
+			for solid in info.def.solids:
+				var b: AABB = info.place * (solid as AABB)
+				var lo := Vector3i((b.position / Grid.UNIT_FINE).round())
+				var hi := Vector3i((b.end / Grid.UNIT_FINE).round())
+				add.call(lo.x, hi.x, lo.y, hi.y, lo.z, hi.z, aero, what)
+			continue
+		add.call(info.at.x, info.at.x + info.size.x, info.at.y, info.at.y + info.size.y, info.at.z, info.at.z + info.size.z, aero, what)
 	if seat != null:
 		# The driver, as tall as they sit up, across the width of the seat.
-		var top := seat.at.y + seat.size.y
+		var top := roundi(seat_top.y / Grid.PLATE + origin_cell.y)
 		var height: int = seat.def.get("driver_height", 7)
-		add.call(seat.at.x, seat.at.x + seat.size.x, top, top + height, seat.at.z, seat.at.z + seat.size.z, Vector2(DRIVER_AERO, 1.0), "driver")
+		var lo := Vector3i(seat_cells.position.round())
+		var hi := Vector3i(seat_cells.end.round())
+		var aero := DRIVER_AERO
+		if astride:
+			var middle := roundi(seat_cells.get_center().x)
+			lo.x = mini(lo.x, middle - ASTRIDE_WIDTH / 2)
+			hi.x = maxi(hi.x, middle + ASTRIDE_WIDTH / 2)
+			aero = ASTRIDE_AERO
+		add.call(lo.x, hi.x, top, top + height, lo.z, hi.z, Vector2(aero, 1.0), "driver")
 
 	var cell := Grid.STUD * Grid.PLATE
 	drag_parts = { "driver": 0.0, "wheels": 0.0, "flat": 0.0, "smooth": 0.0 }

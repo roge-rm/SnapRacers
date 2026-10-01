@@ -60,6 +60,9 @@ static func _read(id: String, part: Dictionary) -> Dictionary:
 		for b in part.solids:
 			solids.append(AABB(_vector(b.slice(0, 3)), _vector(b.slice(3, 6)) - _vector(b.slice(0, 3))))
 		part["solids"] = solids
+	if part.has("seat_box"):
+		var b: Array = part.seat_box
+		part["seat_box"] = AABB(_vector(b.slice(0, 3)), _vector(b.slice(3, 6)) - _vector(b.slice(0, 3)))
 	if part.has("trim"):
 		part.trim["color"] = Color(part.trim.color)
 	return part

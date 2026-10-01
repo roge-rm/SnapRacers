@@ -15,7 +15,12 @@ func check(ok: bool, what: String) -> void:
 
 
 func _initialize() -> void:
-	var starter := KartDesign.load_file("res://data/karts/stock/starter.json")
+	# The stock starter checks out, and the rest of the rules are checked on
+	# the starter as it was built before parts had their own connectors, on
+	# the stud grid, which also checks a kart saved back then still works.
+	var stock := KartDesign.load_file("res://data/karts/stock/starter.json")
+	check(stock.problems().is_empty() and stock.groups().size() == 1, "the stock starter kart has no problems and is all one piece %s" % [stock.problems()])
+	var starter := KartDesign.load_file("res://tests/data/old_starter.json")
 
 	check(starter.problems().is_empty(), "the starter kart has no problems %s" % [starter.problems()])
 	check(starter.groups().size() == 1, "the starter kart is all one piece")
@@ -101,7 +106,11 @@ func _initialize() -> void:
 	# A painted part keeps its paint through saving and loading.
 	var painted := KartDesign.load_file("res://data/karts/stock/featherlight.json")
 	var again := KartDesign.from_dict(painted.to_dict())
-	check(again.parts[5].get("color", Color.BLACK).is_equal_approx(Color("#0d69ab")), "paint survives a save and load")
+	var kept := true
+	for i in painted.parts.size():
+		if painted.parts[i].has("color") and not again.parts[i].get("color", Color.BLACK).is_equal_approx(painted.parts[i].color):
+			kept = false
+	check(kept and painted.parts.any(func(p): return p.has("color")), "paint survives a save and load")
 
 	check(KartDesign.file_name_for("  My Kart!! 2 ") == "my_kart_2", "kart names make tidy file names")
 

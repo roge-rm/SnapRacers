@@ -1,0 +1,11 @@
+{
+	"name": "Trikester",
+	"about": "A trike with a knobbly tire up front, a bike's front end and two wheels at the back. Good on gravel, and a bit of a handful on the road.",
+	"parts": [
+		{"id": "b_frame_trike", "pos": [100.0, 32.0, 80], "turn": 0, "color": "#da8540"},
+		{"id": "b_moto_fork_dirt", "pos": [160.0, 32.4, 80], "turn": 0},
+		{"id": "w_moto_trail", "pos": [191.2, 0, 54.0], "turn": 0},
+		{"id": "w_moto", "pos": [100.0, 0.0, 194.0], "turn": 0},
+		{"id": "w_moto", "pos": [300.0, 0.0, 266.0], "turn": 2}
+	]
+}

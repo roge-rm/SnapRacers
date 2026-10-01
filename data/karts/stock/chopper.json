@@ -1,0 +1,10 @@
+{
+	"name": "Chopper",
+	"about": "Long and low with a big engine. It rumbles along at a fair old lick, but it's slow to turn.",
+	"parts": [
+		{"id": "b_frame_cruiser", "pos": [180.0, 32.0, 80], "turn": 0, "color": "#1b1b1b"},
+		{"id": "b_moto_fork", "pos": [160.0, 32.4, 80], "turn": 0},
+		{"id": "w_moto", "pos": [192.0, 0, 54.0], "turn": 0},
+		{"id": "w_moto", "pos": [192.0, 0.0, 234.0], "turn": 0}
+	]
+}

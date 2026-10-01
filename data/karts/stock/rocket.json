@@ -2,16 +2,22 @@
 	"name": "Rocket",
 	"about": "A jet engine, slicks and wings. Slow off the line, then very, very fast, and it keeps pushing on the grass.",
 	"parts": [
-		{"id": "plate_6x10", "at": [7, 2, 7], "rot": 0, "color": "#f2f3f2"},
-		{"id": "wheel_slick", "at": [5, 0, 7], "rot": 0},
-		{"id": "wheel_slick", "at": [13, 0, 7], "rot": 0},
-		{"id": "wheel_slick", "at": [5, 0, 14], "rot": 0},
-		{"id": "wheel_slick", "at": [13, 0, 14], "rot": 0},
-		{"id": "front_wing_6x2", "at": [7, 3, 7], "rot": 0, "color": "#c4281c"},
-		{"id": "nose_2x2", "at": [9, 4, 7], "rot": 0, "color": "#c4281c"},
-		{"id": "steering_wheel", "at": [9, 3, 10], "rot": 0},
-		{"id": "racing_seat", "at": [9, 3, 11], "rot": 0},
-		{"id": "jet", "at": [9, 3, 14], "rot": 0},
-		{"id": "rear_wing_6x2", "at": [7, 6, 16], "rot": 0, "color": "#c4281c"}
+		{"id": "p_kart_axle_plate", "pos": [120, 20.0, 140], "turn": 0, "color": "#1b1b1b"},
+		{"id": "wheel_slick", "pos": [100, 0, 130.0], "turn": 0},
+		{"id": "wheel_slick", "pos": [260, 0, 130.0], "turn": 0},
+		{"id": "p_kart_axle_plate", "pos": [120, 20.0, 300], "turn": 0, "color": "#1b1b1b"},
+		{"id": "wheel_slick", "pos": [100, 0, 290.0], "turn": 0},
+		{"id": "wheel_slick", "pos": [260, 0, 290.0], "turn": 0},
+		{"id": "p_plate_6x10", "pos": [140, 28.0, 140], "turn": 0, "color": "#f2f3f2"},
+		{"id": "front_wing_6x2", "pos": [140, 36.0, 140], "turn": 0, "color": "#c4281c"},
+		{"id": "p_nose_4x6", "pos": [160, 44.0, 80], "turn": 0, "color": "#c4281c"},
+		{"id": "p_curve_2x4", "pos": [140, 36.0, 200], "turn": 0, "color": "#f2f3f2"},
+		{"id": "p_curve_2x4", "pos": [220.0, 36.0, 200], "turn": 0, "color": "#f2f3f2"},
+		{"id": "steering_wheel", "pos": [180, 36.0, 200], "turn": 0},
+		{"id": "s_racing_seat", "pos": [180, 36.0, 220], "turn": 0},
+		{"id": "jet", "pos": [180, 36.0, 280], "turn": 0},
+		{"id": "p_curve_2x2", "pos": [180.0, 36.0, 320.0], "turn": 2, "color": "#c4281c"},
+		{"id": "p_curve_2x2", "pos": [260.0, 36.0, 320.0], "turn": 2, "color": "#c4281c"},
+		{"id": "rear_wing_6x2", "pos": [140, 60.0, 320], "turn": 0, "color": "#c4281c"}
 	]
 }

@@ -1,16 +1,24 @@
 {
 	"name": "Classic",
-	"about": "A proper go-kart, with a flat frame, a little engine off to one side and handlebars. Light, simple and quick in the twisty bits.",
+	"about": "A proper go-kart, with a nose cone, a little engine off to one side and handlebars. Light, simple and quick in the twisty bits.",
 	"parts": [
-		{"id": "plate_6x10", "at": [7, 2, 7], "rot": 0, "color": "#f2cd37"},
-		{"id": "wheel_small", "at": [6, 0, 8], "rot": 0},
-		{"id": "wheel_small", "at": [13, 0, 8], "rot": 0},
-		{"id": "wheel_small_wide", "at": [5, 0, 14], "rot": 0},
-		{"id": "wheel_small_wide", "at": [13, 0, 14], "rot": 0},
-		{"id": "tile_2x4", "at": [8, 3, 7], "rot": 1, "color": "#1b1b1b"},
-		{"id": "handlebars", "at": [8, 3, 10], "rot": 0},
-		{"id": "bucket_seat", "at": [9, 3, 11], "rot": 0},
-		{"id": "engine_small", "at": [11, 3, 13], "rot": 0},
-		{"id": "tile_2x4", "at": [8, 3, 15], "rot": 1, "color": "#1b1b1b"}
+		{"id": "p_kart_axle_plate", "pos": [120, 20.0, 140], "turn": 0, "color": "#1b1b1b"},
+		{"id": "w_kart", "pos": [120.0, 0, 136.0], "turn": 0},
+		{"id": "w_kart", "pos": [280.0, 0, 184.0], "turn": 2},
+		{"id": "p_kart_axle_plate", "pos": [120, 20.0, 300], "turn": 0, "color": "#1b1b1b"},
+		{"id": "w_kart_wide", "pos": [104.0, 0, 296.0], "turn": 0},
+		{"id": "w_kart_wide", "pos": [296.0, 0, 344.0], "turn": 2},
+		{"id": "p_plate_6x10", "pos": [140, 28.0, 140], "turn": 0, "color": "#f2cd37"},
+		{"id": "p_nose_4x6", "pos": [160, 36.0, 80], "turn": 0, "color": "#1b1b1b"},
+		{"id": "p_tile_1x2", "pos": [140, 36.0, 140], "turn": 0, "color": "#1b1b1b"},
+		{"id": "p_tile_1x2", "pos": [240.0, 36.0, 140], "turn": 0, "color": "#1b1b1b"},
+		{"id": "handlebars", "pos": [160, 36.0, 200], "turn": 0},
+		{"id": "s_bucket_seat", "pos": [180, 36.0, 220], "turn": 0},
+		{"id": "p_curve_1x4", "pos": [140, 36.0, 200], "turn": 0, "color": "#1b1b1b"},
+		{"id": "p_curve_1x3", "pos": [240, 36.0, 200], "turn": 0, "color": "#1b1b1b"},
+		{"id": "engine_small", "pos": [220, 36.0, 260], "turn": 0},
+		{"id": "d_exhaust", "pos": [240, 60.0, 260], "turn": 0},
+		{"id": "p_curve_2x2", "pos": [200.0, 36.0, 340.0], "turn": 2, "color": "#1b1b1b"},
+		{"id": "p_tile_1x2", "pos": [200, 36.0, 300], "turn": 0, "color": "#1b1b1b"}
 	]
 }

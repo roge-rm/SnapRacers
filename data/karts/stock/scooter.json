@@ -1,0 +1,10 @@
+{
+	"name": "Scooter",
+	"about": "Little wheels and a quiet electric motor. Nippy and quick off the line, but light enough to get bumped right off the road.",
+	"parts": [
+		{"id": "b_frame_scooter", "pos": [180.0, 20.0, 80], "turn": 0, "color": "#36aebf"},
+		{"id": "b_moto_fork_scooter", "pos": [160.0, 20.4, 80], "turn": 0},
+		{"id": "w_scooter", "pos": [192.8, 0, 66.0], "turn": 0},
+		{"id": "w_scooter", "pos": [192.8, 0.0, 196.0], "turn": 0}
+	]
+}

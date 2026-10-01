@@ -159,7 +159,7 @@ func _ready() -> void:
 	await frames(2)
 	check(screen() is KartPicker, "picking one asks which kart to race in")
 	var cards := screen().find_children("*", "Button", true, false).filter(func(b): return b.has_meta("kart"))
-	check(cards.size() == 17, "your own and all 16 stock karts (%d)" % cards.size())
+	check(cards.size() == Game.stock_keys().size() + 1, "your own and all the stock karts (%d)" % cards.size())
 	var was_choice := Game.kart_choice()
 	cards.filter(func(b): return b.get_meta("kart") == "rocket")[0].pressed.emit()
 	check(Game.kart_choice() == "rocket", "tapping one picks it")

@@ -120,7 +120,7 @@ func _bike_bars(def: Dictionary, extent: Vector3) -> void:
 	var model := PartVisuals._modelled(def)
 	model.position = -stem
 	_wheel.add_child(model)
-	radius = 0.35
+	radius = def.get("grip_reach", 0.35)
 	_rest = Transform3D(Basis.IDENTITY, Vector3(0.0, extent.y * 0.5 - 0.04, extent.z * 0.5 - 0.05) - stem)
 
 

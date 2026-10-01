@@ -80,7 +80,7 @@ class Runner:
 				# Knock a front wheel off the gentle kart by hand.
 				var wheel := -1
 				for i in gentle.design.parts.size():
-					if gentle.design.parts[i].id == "wheel_small":
+					if gentle.design.parts[i].id == "w_kart":
 						wheel = i
 						break
 				gentle.lose_parts([wheel] as Array[int])

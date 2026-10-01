@@ -10,7 +10,7 @@ scripts/parts/connectors.gd for which types go together.
 
 import math
 
-from kit import BRICK, EDGE, PLATE, STUD, STUD_HEIGHT, STUD_RADIUS, box, cut, cylinder, grid_cells, plan_y, profile_x, studs, union
+from kit import BRICK, EDGE, FINE, PLATE, STUD, STUD_HEIGHT, STUD_RADIUS, box, cut, cylinder, grid_cells, plan_y, profile_x, studs, union
 
 # Colours, the classic brick ones.
 RED = "#c4281c"
@@ -494,8 +494,9 @@ part(lambda: _wheel("w_kart_wide", "Wide kart wheel", 0.3, 0.45, 0.2, 1.2, 0.022
 part(lambda: _wheel("w_racing", "Racing wheel", 0.35, 0.35, 0.27, 1.15, 0.018, color=WHITE))
 part(lambda: _wheel("w_slick", "Big slick", 0.4, 0.5, 0.28, 1.35, 0.028, color=DARK_GREY))
 part(lambda: _wheel("w_offroad", "Off-road wheel", 0.42, 0.4, 0.25, 1.05, 0.03, offroad=0.6, lugs=14, color=YELLOW))
-part(lambda: _wheel("w_moto", "Motorbike wheel", 0.45, 0.2, 0.34, 1.1, 0.014, color=BLACK))
-part(lambda: _wheel("w_moto_trail", "Trail bike wheel", 0.45, 0.22, 0.32, 1.0, 0.02, offroad=0.5, lugs=16, color=RED))
+# Motorbike tires are thin, so they don't hold a bend as well as a kart's.
+part(lambda: _wheel("w_moto", "Motorbike wheel", 0.45, 0.2, 0.34, 0.95, 0.014, color=BLACK))
+part(lambda: _wheel("w_moto_trail", "Trail bike wheel", 0.45, 0.22, 0.32, 0.88, 0.02, offroad=0.5, lugs=16, color=RED))
 part(lambda: _wheel("w_scooter", "Scooter wheel", 0.3, 0.18, 0.2, 0.95, 0.016, color=WHITE))
 
 
@@ -518,10 +519,10 @@ def mudguard_2x4():
 def front_fork():
     """A motorbike's front fork: a crown with studs on top and two legs down
     to an axle the wheel goes on. From the axle to the bottom of the crown is
-    four plates more than on the swingarm, so with the same wheels a brick and
-    a plate on the swingarm bring it level with the crown. It turns with the
-    wheel in it when that's a steered wheel."""
-    top = 0.8
+    a brick more than on the swingarm, so with the same wheels a brick (or an
+    engine as tall) on the swingarm brings it level with the crown. It turns
+    with the wheel in it when that's a steered wheel."""
+    top = 0.7
     crown = union([box(0, top, 0, 2 * STUD, top + PLATE, STUD), studs(grid_cells(2, 1), top + PLATE)])
     legs = [box(x, 0.0, 0.07, x + 0.08, top + 0.01, 0.18, edge=0.01) for x in (0.03, 2 * STUD - 0.11)]
     axle = cylinder(0.03, 2 * STUD - 0.06, "x", (0.03, 0.045, 0.125), 10)
@@ -544,12 +545,12 @@ def swingarm():
 
 @part
 def fuel_tank():
-    """A rounded motorbike tank, 2×3."""
-    l = 3 * STUD
+    """A rounded motorbike tank, 2×2, for under the bars."""
+    l = 2 * STUD
     h = 2 * PLATE + 0.06
     pts = [(0.0, 0.0), (0.0, h * 0.5)] + [(l * 0.5 - math.cos(t * math.pi) * l * 0.5, h * 0.5 + h * 0.5 * math.sin(t * math.pi)) for t in [k / 16.0 for k in range(1, 16)]] + [(l, h * 0.5), (l, 0.0)]
     side = profile_x(pts, 0.03, 2 * STUD - 0.03)
-    return Part("b_tank", "Fuel tank", "body", "bike", (2 * STUD, h, l), side, sockets(grid_cells(2, 3)), RED, aero={"front": 0.5, "back": 0.6, "side": 0.8})
+    return Part("b_tank", "Fuel tank", "body", "bike", (2 * STUD, h, l), side, sockets(grid_cells(2, 2)), RED, aero={"front": 0.5, "back": 0.6, "side": 0.8})
 
 
 @part
@@ -564,16 +565,16 @@ def saddle():
 
 @part
 def bike_bars():
-    """Motorbike handlebars on a stem at the front, swept back toward the
-    rider, with grips. They turn about the stem."""
-    high = PLATE + 0.2
-    back = 2 * STUD - 0.05
-    stem = union([box(STUD * 1.5, 0, 0, STUD * 2.5, PLATE, STUD), cylinder(0.035, 0.2 + 0.025, "y", (2 * STUD, PLATE, STUD * 0.5), 10)])
+    """Motorbike handlebars on a stem at the front, swept back over a tank
+    toward the rider, with grips. They turn about the stem."""
+    high = PLATE + 0.3
+    back = 3 * STUD - 0.05
+    stem = union([box(STUD * 1.5, 0, 0, STUD * 2.5, PLATE, STUD), cylinder(0.035, 0.3 + 0.025, "y", (2 * STUD, PLATE, STUD * 0.5), 10)])
     riser = cylinder(0.025, back - STUD * 0.5, "z", (2 * STUD, high, STUD * 0.5), 10)
     bar = cylinder(0.025, 0.7, "x", (2 * STUD - 0.35, high, back), 10)
     grips = [cylinder(0.04, 0.14, "x", (x, high, back), 10) for x in (2 * STUD - 0.42, 2 * STUD + 0.28)]
     con = sockets([(1, 0), (2, 0)])
-    return Part("b_bars", "Bike bars", "steering", "bike", (4 * STUD, PLATE + 0.24, 2 * STUD), union([stem, riser, bar]), con, METAL, finish="metal", control=1.15, style="bikebars",
+    return Part("b_bars", "Bike bars", "steering", "bike", (4 * STUD, PLATE + 0.34, 3 * STUD), union([stem, riser, bar]), con, METAL, finish="metal", control=1.15, style="bikebars",
                 trim=(union(grips), BLACK, "plastic"), solids=[[STUD * 1.5, 0, 0, STUD * 2.5, PLATE, STUD]])
 
 
@@ -595,6 +596,286 @@ def nose_fairing():
     lamp = cylinder(0.08, 0.04, "-z", (STUD, 0.22, 0.17), 16)
     return Part("b_nose", "Front fairing", "body", "bike", (2 * STUD, h, l), shell, sockets([(0, 1), (1, 1)]), WHITE, aero={"front": 0.35, "back": 1.0, "side": 0.8},
                 trim=(lamp, TRANS_CLEAR, "glass"))
+
+
+def _capsule(a, b, r):
+    """A rod with round ends from a to b, like a frame tube."""
+    from manifold3d import Manifold
+    return Manifold.batch_hull([Manifold.sphere(r, 10).translate(list(a)), Manifold.sphere(r, 10).translate(list(b))])
+
+
+# Bodywork made for karts.
+
+@part
+def nose_4x6():
+    """A racing nose, 4 wide at the back and narrowing to 2 at the tip,
+    curving up from a thin tip to 3 plates high."""
+    w = 4 * STUD
+    l = 6 * STUD
+    h = 3 * PLATE
+    plan = plan_y([(STUD, 0.0), (3 * STUD, 0.0), (w, 2.5 * STUD), (w, l), (0.0, l), (0.0, 2.5 * STUD)], 0.0, h + 0.01)
+    side = [(0.0, 0.0)] + [(l * 0.8 * t, 0.04 + (h - 0.04) * math.sin(t * math.pi * 0.5)) for t in [k / 16.0 for k in range(17)]] + [(l, h), (l, 0.0)]
+    body = profile_x(side, 0.002, w - 0.002) ^ plan
+    cells = [(1, 0), (2, 0), (1, 1), (2, 1)] + [(i, k) for i in range(4) for k in range(3, 6)] + [(0, 2), (1, 2), (2, 2), (3, 2)]
+    return Part("p_nose_4x6", "Racing nose 4×6", "body", "curves", (w, h, l), body, sockets(cells), RED, aero={"front": 0.25, "back": 1.0, "side": 0.7},
+                solids=[[STUD, 0, 0, 3 * STUD, h, 2 * STUD], [0, 0, 2 * STUD, w, h, l]])
+
+
+@part
+def cowl_2x6():
+    """An engine cowl, rounded over the top and sloping down at the back."""
+    w = 2 * STUD
+    l = 6 * STUD
+    h = 3 * PLATE
+    from manifold3d import CrossSection
+    arch = [(w * 0.5 + w * 0.5 * math.cos(t * math.pi), h * 0.35 + h * 0.65 * math.sin(t * math.pi)) for t in [k / 16.0 for k in range(17)]]
+    across = CrossSection([[(0.002, 0.0), (w - 0.002, 0.0)] + [(x, y) for x, y in arch]]).extrude(l)
+    side = [(0.0, 0.0), (0.0, h), (l * 0.45, h)] + [(l * 0.45 + l * 0.55 * t, h * (1.0 - 0.75 * t * t)) for t in [k / 12.0 for k in range(1, 13)]] + [(l, 0.0)]
+    body = across ^ profile_x(side, 0.0, w)
+    return Part("p_cowl_2x6", "Engine cowl 2×6", "body", "curves", (w, h, l), body, sockets(grid_cells(2, 6)), RED, aero={"front": 1.0, "back": 0.4, "side": 0.8})
+
+
+# Motorbikes, the way toy motorbikes come: a frame in one piece with the
+# engine, tank, seat and swingarm in it, a front fork with its bars on top
+# that turns as one, and a fairing that clips on the front. Everything is in
+# the fine unit, measured from the ground with the wheels on, from the front
+# of the fork (where the front axle is, 10 back) and across the frame.
+
+
+def _f(*v):
+    return [x * FINE for x in v]
+
+
+def _tube(a, b, r):
+    """A tube from a to b, r across, all in the fine unit."""
+    return _capsule(_f(*a), _f(*b), r * FINE)
+
+
+def _moto_frame(id, name, style, color, twin, power, push, about):
+    """A motorbike's frame. `style` is "sport", "dirt", "cruiser",
+    "scooter" or "trike". The front wheel's middle is at R and its top at
+    2R, with the fork crown just over it and the frame's head on that. The
+    back axle is at `back`."""
+    R = 24 if style == "scooter" else 36
+    top = 2 * R
+    back = {"sport": 170, "dirt": 170, "cruiser": 190, "scooter": 140, "trike": 150}[style]
+    seat = {"sport": top + 10, "dirt": top + 16, "cruiser": top + 4, "scooter": top + 10, "trike": top + 10}[style]
+    low = max(R - 4, 16)
+    head = (top + 10, top + 30)
+    wide = 80 if style == "trike" else 0
+    x0, x1 = -wide, 40 + wide
+    parts = []
+    trim = []
+    solids = []
+    # The head over the fork crown, and the spine back to the seat.
+    parts.append(box(*_f(2, head[0], 0, 38, head[1], 20), edge=0.02))
+    solids.append([2, head[0], 0, 38, head[1], 20])
+    trim.append(_tube((20, head[0] + 4, 14), (20, low + 8, 60), 2.6))
+    trim.append(_tube((20, head[1] - 4, 16), (20, seat - 6, 84), 2.6))
+    if style == "scooter":
+        # An apron in front of the legs and a floor to put the feet on.
+        parts.append(box(*_f(2, R + 26, 20, 38, head[1], 28), edge=0.015))
+        parts.append(box(*_f(2, R + 12, 36, 38, R + 20, 84), edge=0.015))
+        solids += [[2, R + 26, 20, 38, head[1], 28], [2, R + 12, 36, 38, R + 20, 84]]
+    else:
+        # The tank, sloping down from the head to the seat.
+        tl = 44
+        th = {"sport": 24, "dirt": 18, "cruiser": 22, "trike": 24}[style]
+        pts = [(0.0, 0.0)] + [(tl * t, th * (1.0 - 0.45 * t * t) * (0.55 + 0.45 * math.sin(math.pi * min(1.0, t * 1.6)))) for t in [k / 16.0 for k in range(17)]] + [(tl, 0.0)]
+        tank = profile_x([(z * FINE, y * FINE) for z, y in pts], 4 * FINE, 36 * FINE).translate(_f(0, top + 4, 21))
+        parts.append(tank)
+        solids.append([4, top + 4, 21, 36, top + 4 + th, 21 + tl])
+    # The engine, low between the wheels, with its cylinders and fins.
+    if style == "scooter":
+        parts.append(box(*_f(6, low, 84, 34, seat - 8, 112), edge=0.03))
+        solids.append([6, low, 84, 34, seat - 8, 112])
+    else:
+        e0, e1 = 48, 96
+        parts.append(box(*_f(5, low, e0, 35, top - 12, e1), edge=0.03))
+        solids.append([5, low, e0, 35, top - 12, e1])
+        cylinders = {"sport": 2, "dirt": 1, "cruiser": 2, "trike": 2}[style]
+        for k in range(cylinders):
+            z = e0 + 12 + k * 22 if cylinders > 1 else e0 + 20
+            lean = -10 if (style == "cruiser" and k == 0) else 6
+            trim.append(_tube((20, low + 14, z), (20, top - 6, z + lean), 4.0))
+            for fin in range(4):
+                y = low + 18 + fin * 7
+                trim.append(box(*_f(7, y, z - 7 + lean * fin / 6.0, 33, y + 1.6, z + 7 + lean * fin / 6.0), edge=0.004))
+        # Footpegs out each side.
+        trim.append(_tube((-8, low + 12, 64), (48, low + 12, 64), 1.8))
+    # The seat, and the tail behind it.
+    s0 = 76
+    parts.append(box(*_f(4, seat - 8, s0, 36, seat, 122), edge=0.03))
+    solids.append([4, seat - 8, s0, 36, seat, 122])
+    under = box(*_f(6, top - 12, 84, 34, seat - 8, 122), edge=0.02)
+    parts.append(under)
+    tail_end = back - 10 if style != "trike" else back + 30
+    # It rises clear of the back wheel.
+    under_tail = max(seat - 14, top + 4)
+    tail = profile_x([(z * FINE, y * FINE) for z, y in [(122, under_tail), (tail_end, seat + 2), (tail_end, seat + 8), (122, seat)]], 8 * FINE, 32 * FINE)
+    parts.append(tail)
+    solids.append([8, under_tail, 122, 32, seat + 2, tail_end])
+    trim.append(box(*_f(10, seat + 1, tail_end - 4, 30, seat + 7, tail_end), edge=0.008))
+    # The swingarm back to the axle, or for a trike an axle across.
+    if style == "trike":
+        housing = box(*_f(-20, R - 6, back - 8, 60, R + 6, back + 8), edge=0.02)
+        parts.append(housing)
+        solids.append([-20, R - 6, back - 8, 60, R + 6, back + 8])
+        trim.append(_tube((20, low + 10, 96), (20, R, back - 8), 3.0))
+        for side in (-1, 1):
+            x = 20 + side * 70
+            fender = cut(cylinder((R + 10) * FINE, 22 * FINE, "x", (0, 0, 0), 24).translate(_f(x - 11, R, back)),
+                         cylinder((R + 6) * FINE, 30 * FINE, "x", (0, 0, 0), 24).translate(_f(x - 15, R, back)),
+                         box(*_f(x - 20, -10, back - 60, x + 20, R + 4, back + 60), edge=0))
+            parts.append(fender)
+        axle = c("axle", _f(-wide, R, back), (1, 0, 0), (40 + 2 * wide) * FINE)
+    else:
+        for x in (2, 32):
+            arm = box(*_f(x, R - 5, 96, x + 6, R + 5, back + 6), edge=0.01)
+            parts.append(arm)
+            solids.append([x, R - 5, 96, x + 6, R + 5, back + 6])
+        axle = c("axle", _f(8.8, R, back), (1, 0, 0), 22.4 * FINE)
+        # A mudguard over the back wheel, and the exhaust along the right.
+        guard = cut(cylinder((R + 7) * FINE, 20 * FINE, "x", (0, 0, 0), 24).translate(_f(10, R, back)),
+                    cylinder((R + 3) * FINE, 30 * FINE, "x", (0, 0, 0), 24).translate(_f(5, R, back)),
+                    box(*_f(0, -10, back - 60, 40, R + 6, back + 60), edge=0), box(*_f(0, -10, back - 60, 40, R + 60, back - 10), edge=0))
+        parts.append(guard)
+        if style == "scooter":
+            trim.append(_tube((34, low + 6, 110), (34, R + 6, back + 10), 2.6))
+        else:
+            trim.append(_tube((36, low + 6, 90), (36, R + 6, back + 14), 2.6))
+            trim.append(cylinder(0.04, 16 * FINE, "z", tuple(_f(36, R + 6, back + 6)), 12))
+    con = [c("socket", _f(x, head[0], 10), (0, -1, 0)) for x in (10, 30)]
+    con += [c("side", _f(x, head[0] + 10, 0), (0, 0, -1)) for x in (10, 30)]
+    con.append(axle)
+    zmax = max(back + 30, tail_end)
+    hi = max(head[1], seat + 8, top + 4 + 24)
+    shift = [-x0 * FINE, -low * FINE, 0]
+    body = union(parts + trim[:0]).translate(shift)
+    trimmed = union(trim).translate(shift)
+    for co in con:
+        co["at"] = [co["at"][0] + shift[0], co["at"][1] + shift[1], co["at"][2]]
+    solids = [[(a - x0) * FINE, (b - low) * FINE, cc * FINE, (d - x0) * FINE, (e - low) * FINE, g * FINE] for a, b, cc, d, e, g in solids]
+    seat_box = [(4 - x0) * FINE, (seat - 8 - low) * FINE, s0 * FINE, (36 - x0) * FINE, (seat - low) * FINE, 122 * FINE]
+    return Part(id, name, "seat", "bike", ((x1 - x0) * FINE, (hi - low) * FINE, zmax * FINE), body, con, color, about=about,
+                trim=(trimmed, METAL, "metal"), solids=solids, seat_box=seat_box, engine_twin=twin, aero={"front": 0.6, "back": 0.7, "side": 0.8}, power=power, max_force=push, astride=True, driver_height=7,
+                control=1.05, recline=0)
+
+
+# A bike's narrow, so its engine is smaller than a kart's for the same speed,
+# and it's light, so it still pulls away quickly.
+part(lambda: _moto_frame("b_frame_sport", "Sports bike frame", "sport", RED, "engine_twin", 6500.0, 1300.0,
+                         "A sports bike frame with a twin in it, and the seat and swingarm. Put a fork on the front, a fairing too if you like, and wheels on both ends."))
+part(lambda: _moto_frame("b_frame_dirt", "Dirt bike frame", "dirt", YELLOW, "engine_micro", 6200.0, 1300.0,
+                         "A dirt bike frame, light, with a little single and a tall seat. Put a fork on the front and wheels on both ends."))
+part(lambda: _moto_frame("b_frame_cruiser", "Cruiser frame", "cruiser", BLACK, "engine_big", 6500.0, 1400.0,
+                         "A long, low cruiser frame with a big twin. Put a fork on the front and wheels on both ends."))
+part(lambda: _moto_frame("b_frame_scooter", "Scooter frame", "scooter", WHITE, "electric_motor", 4500.0, 1600.0,
+                         "A scooter with an electric motor under the seat and a floor for your feet. Put the scooter fork on the front and small wheels on both ends."))
+part(lambda: _moto_frame("b_frame_trike", "Trike frame", "trike", BLUE, "engine_big", 9000.0, 1600.0,
+                         "A trike frame with an axle across the back for two wheels. Put a fork on the front and wheels on all three."))
+
+
+def _moto_fork(id, name, style, about):
+    """A front fork with the bars on top, which turns as one about the front
+    axle. Its crown sits just over the wheel, under the frame's head, and the
+    bars sweep back over the tank to the rider's hands."""
+    R = 24 if style == "scooter" else 36
+    top = 2 * R
+    crown = (top + 2, top + 10)
+    bar = top + 40 if style != "dirt" else top + 46
+    reach = 66
+    parts = [box(*_f(20, crown[0], 0, 60, crown[1], 20), edge=0.015)]
+    for x in (22.4, 51.2):
+        parts.append(box(*_f(x, R - 3.6, 5, x + 6.4, crown[0] + 1, 15), edge=0.01))
+    parts.append(cylinder(0.03, 22.4 * FINE, "x", tuple(_f(28.8, R, 10)), 10))
+    # The steerer up through the head, then the bars.
+    parts.append(cylinder(0.035, (bar - crown[1]) * FINE, "y", tuple(_f(40, crown[1], 10)), 12))
+    parts.append(_tube((40, bar, 10), (40, bar, reach - 10), 2.2))
+    parts.append(_tube((16, bar, reach), (64, bar, reach), 2.2))
+    for x in (16, 64):
+        parts.append(_tube((40 + (x - 40) * 0.5, bar, reach - 10), (x, bar, reach), 2.0))
+    grips = [_tube((x, bar, reach), (x + d * 9, bar, reach), 3.2) for x, d in ((22, -1), (58, 1))]
+    if style == "dirt":
+        guard = cut(cylinder((R + 6) * FINE, 18 * FINE, "x", (0, 0, 0), 24).translate(_f(31, R, 10)),
+                    cylinder((R + 2) * FINE, 30 * FINE, "x", (0, 0, 0), 24).translate(_f(25, R, 10)),
+                    box(*_f(20, -10, -60, 60, R + 8, 80), edge=0))
+        parts.append(guard)
+    if style == "scooter":
+        # A little headlamp on the bars.
+        grips.append(cylinder(0.05, 0.04, "-z", tuple(_f(40, bar - 6, 8)), 14))
+    low = R - 3.6
+    hi = bar + 4
+    shift = [0, -low * FINE, 0]
+    con = [c("stud", _f(x, crown[1], 10), (0, 1, 0)) for x in (30, 50)] + [c("axle", _f(28.8, R, 10), (1, 0, 0), 22.4 * FINE)]
+    for co in con:
+        co["at"] = [co["at"][0], co["at"][1] + shift[1], co["at"][2]]
+    solids = [[20, crown[0], 0, 60, crown[1], 20], [22.4, R - 3.6, 5, 28.8, crown[0], 15], [51.2, R - 3.6, 5, 57.6, crown[0], 15]]
+    solids = [[a * FINE, (b - low) * FINE, cc * FINE, d * FINE, (e - low) * FINE, g * FINE] for a, b, cc, d, e, g in solids]
+    return Part(id, name, "steering", "bike", (80 * FINE, (hi - low) * FINE, (reach + 4) * FINE), union(parts).translate(shift), con, METAL, finish="metal",
+                about=about, style="bikebars", control=1.15, grip_reach=0.3, mass=2.5, strength=900.0, trim=(union(grips).translate(shift), BLACK, "plastic"), solids=solids)
+
+
+part(lambda: _moto_fork("b_moto_fork", "Motorbike fork", "road",
+                        "A front fork with the bars on top, for a motorbike frame. The bars and the front wheel turn together."))
+part(lambda: _moto_fork("b_moto_fork_dirt", "Dirt bike fork", "dirt",
+                        "A dirt bike's fork with high bars and a mudguard up high over the wheel."))
+part(lambda: _moto_fork("b_moto_fork_scooter", "Scooter fork", "scooter",
+                        "A short fork with bars and a lamp, for the scooter frame and small wheels."))
+
+
+@part
+def moto_fairing():
+    """A sports bike's fairing, with a headlight and a screen, that clips
+    onto the front of the frame's head and stays put while the bars turn."""
+    top = 72
+    l = 30
+    h0, h1 = top + 2, top + 40
+    h = h1 - h0
+    tip = 12.0
+    pts = [(l, 0.0), (l, h)] + [(l * (1 - t), tip + (h - tip) * math.cos(t * math.pi * 0.5)) for t in [k / 12.0 for k in range(1, 13)]] + [(6.0, 0.0)]
+    shell = profile_x([(z * FINE, y * FINE) for z, y in pts], 2 * FINE, 38 * FINE)
+    lamp = cylinder(0.06, 0.03, "-z", tuple(_f(20, 18, 7)), 16)
+    screen = profile_x([(z * FINE, y * FINE) for z, y in [(14, h1 - h0 - 2), (l, h1 - h0 + 12), (l + 2, h1 - h0 + 12), (18, h1 - h0 - 2)]], 6 * FINE, 34 * FINE)
+    con = [c("clip", _f(x, 18, l), (0, 0, 1)) for x in (10, 30)]
+    return Part("b_moto_fairing", "Sports fairing", "body", "bike", (40 * FINE, (h1 - h0 + 12) * FINE, (l + 2) * FINE), union([shell, lamp]), con, WHITE,
+                aero={"front": 0.3, "back": 1.0, "side": 0.8}, trim=(union([screen, lamp]), TRANS_CLEAR, "glass"), solids=[[2 * FINE, 0, 0, 38 * FINE, (h1 - h0) * FINE, l * FINE]])
+
+
+# Kart chassis and seats.
+
+@part
+def kart_axle_plate():
+    """A plate 6×2 with a pin out of each side for a wheel, for the front or
+    back of a kart. Any wheel goes on the pins right up against the plate."""
+    cells = [(i, k) for i in range(1, 7) for k in range(2)]
+    plate = union([box(STUD, 0, 0, 7 * STUD, PLATE, 2 * STUD), studs(cells, PLATE)])
+    pins = [cylinder(HOLE - 0.006, STUD, "x", (x, PLATE * 0.5, STUD), 14) for x in (0.0, 7 * STUD)]
+    con = sockets(cells) + top_studs(cells, PLATE) + [c("pin", (x, PLATE * 0.5, STUD), (1, 0, 0), STUD) for x in (0.0, 7 * STUD)]
+    return Part("p_kart_axle_plate", "Kart axle plate 6×2", "plate", "technic", (8 * STUD, PLATE, 2 * STUD), union([plate] + pins), con, BLACK,
+                solids=[[STUD, 0, 0, 7 * STUD, PLATE, 2 * STUD]], mass=2.0, strength=2500.0)
+
+
+def _seat(id, twin, across, plates, along, recline, back, color, bolsters=True):
+    """A seat with a cushion filling its box, which the driver sits on top
+    of, and a backrest rising behind them leaning back by `recline` degrees.
+    It weighs the same and works the same as `twin`, one of the first seats."""
+    w = across * STUD
+    h = plates * PLATE
+    l = along * STUD
+    cushion = box(0.01, 0, 0.01, w - 0.01, h, l - 0.01, edge=0.025)
+    rest = box(0.02, 0.0, -0.06, w - 0.02, back, 0.0, edge=0.025).rotate([recline, 0, 0]).translate([0, h - 0.02, l - 0.01])
+    parts = [cushion, rest]
+    if bolsters:
+        for x in (0.0, w - 0.06):
+            parts.append(box(x, h - 0.02, 0.06, x + 0.06, h + 0.07, l - 0.02, edge=0.02))
+    return Part(id, "", "seat", "seats", (w, h, l), union(parts), sockets(grid_cells(across, along)), color, twin=twin)
+
+
+part(lambda: _seat("s_seat", "seat", 2, 3, 2, 8, 0.3, BLACK, bolsters=False))
+part(lambda: _seat("s_bucket_seat", "bucket_seat", 2, 2, 2, 25, 0.3, BLACK))
+part(lambda: _seat("s_racing_seat", "racing_seat", 2, 2, 2, 15, 0.34, RED))
+part(lambda: _seat("s_lay_down_seat", "lay_down_seat", 2, 1, 4, 62, 0.3, BLACK))
 
 
 # Details.
@@ -666,4 +947,5 @@ def canopy():
     rim = cut(box(0, 0, 0, w, PLATE * 0.5, l, edge=0.01), box(0.06, -0.1, 0.06, w - 0.06, 0.2, l - 0.06, edge=0))
     cells = [(0, 0), (3, 0), (0, 5), (3, 5)]
     return Part("d_canopy", "Canopy", "screen", "details", (w, h, l), union([shell.translate([0, PLATE * 0.5, 0]), rim]), sockets(cells), GLASS, finish="glass",
-                aero={"front": 0.35, "back": 0.6, "side": 0.6}, solids=[[0, 0, 0, w, PLATE * 0.5, l]])
+                aero={"front": 0.35, "back": 0.6, "side": 0.6},
+                solids=[[0, 0, 0, w, PLATE * 0.5, 0.06], [0, 0, l - 0.06, w, PLATE * 0.5, l], [0, 0, 0, 0.06, PLATE * 0.5, l], [w - 0.06, 0, 0, w, PLATE * 0.5, l]])

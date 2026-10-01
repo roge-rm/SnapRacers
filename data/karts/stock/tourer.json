@@ -1,0 +1,11 @@
+{
+	"name": "Tourer",
+	"about": "A big touring trike with two wheels at the back. Steadier than a bike, and in no hurry to turn.",
+	"parts": [
+		{"id": "b_frame_trike", "pos": [100.0, 32.0, 80], "turn": 0, "color": "#0d69ab"},
+		{"id": "b_moto_fork", "pos": [160.0, 32.4, 80], "turn": 0},
+		{"id": "w_moto", "pos": [192.0, 0, 54.0], "turn": 0},
+		{"id": "w_moto", "pos": [100.0, 0.0, 194.0], "turn": 0},
+		{"id": "w_moto", "pos": [300.0, 0.0, 266.0], "turn": 2}
+	]
+}

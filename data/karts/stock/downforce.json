@@ -2,16 +2,20 @@
 	"name": "Downforce",
 	"about": "Big wings front and back, and slicks at the back. The faster it goes the harder it grips, so it flies through fast corners.",
 	"parts": [
-		{"id": "plate_6x10", "at": [7, 2, 7], "rot": 0, "color": "#1b2a34"},
-		{"id": "wheel_small", "at": [6, 0, 7], "rot": 0},
-		{"id": "wheel_small", "at": [13, 0, 7], "rot": 0},
-		{"id": "wheel_slick", "at": [5, 0, 14], "rot": 0},
-		{"id": "wheel_slick", "at": [13, 0, 14], "rot": 0},
-		{"id": "front_wing_6x2", "at": [7, 3, 7], "rot": 0, "color": "#f2cd37"},
-		{"id": "slope_4x2", "at": [8, 4, 7], "rot": 0, "color": "#1b2a34"},
-		{"id": "steering_wheel", "at": [9, 3, 10], "rot": 0},
-		{"id": "racing_seat", "at": [9, 3, 11], "rot": 0},
-		{"id": "engine_small", "at": [9, 3, 14], "rot": 0},
-		{"id": "rear_wing_6x2", "at": [7, 6, 15], "rot": 0, "color": "#f2cd37"}
+		{"id": "p_kart_axle_plate", "pos": [120, 20.0, 140], "turn": 0, "color": "#1b1b1b"},
+		{"id": "w_kart", "pos": [120.0, 0, 136.0], "turn": 0},
+		{"id": "w_kart", "pos": [280.0, 0, 184.0], "turn": 2},
+		{"id": "p_kart_axle_plate", "pos": [120, 20.0, 300], "turn": 0, "color": "#1b1b1b"},
+		{"id": "wheel_slick", "pos": [100, 0, 290.0], "turn": 0},
+		{"id": "wheel_slick", "pos": [260, 0, 290.0], "turn": 0},
+		{"id": "p_plate_6x10", "pos": [140, 28.0, 140], "turn": 0, "color": "#1b2a34"},
+		{"id": "front_wing_6x2", "pos": [140, 36.0, 140], "turn": 0, "color": "#f2cd37"},
+		{"id": "p_nose_4x6", "pos": [160, 44.0, 80], "turn": 0, "color": "#1b2a34"},
+		{"id": "p_curve_2x6", "pos": [140, 36.0, 200], "turn": 0, "color": "#1b2a34"},
+		{"id": "p_curve_2x6", "pos": [220.0, 36.0, 200], "turn": 0, "color": "#1b2a34"},
+		{"id": "steering_wheel", "pos": [180, 36.0, 200], "turn": 0},
+		{"id": "s_racing_seat", "pos": [180, 36.0, 220], "turn": 0},
+		{"id": "engine_small", "pos": [180, 36.0, 280], "turn": 0},
+		{"id": "rear_wing_6x2", "pos": [140, 60.0, 300], "turn": 0, "color": "#f2cd37"}
 	]
 }

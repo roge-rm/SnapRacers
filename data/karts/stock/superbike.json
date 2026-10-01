@@ -1,0 +1,11 @@
+{
+	"name": "Superbike",
+	"about": "A light sports bike with a fairing and a twin. Quick away and quick to flick about, but it can't hold a bend like a kart, and it gets knocked about.",
+	"parts": [
+		{"id": "b_frame_sport", "pos": [180.0, 32.0, 80], "turn": 0, "color": "#c4281c"},
+		{"id": "b_moto_fork", "pos": [160.0, 32.4, 80], "turn": 0},
+		{"id": "w_moto", "pos": [192.0, 0, 54.0], "turn": 0},
+		{"id": "w_moto", "pos": [192.0, 0.0, 214.0], "turn": 0},
+		{"id": "b_moto_fairing", "pos": [180.0, 74.0, 50], "turn": 0, "color": "#f2f3f2"}
+	]
+}

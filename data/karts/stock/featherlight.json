@@ -1,17 +1,24 @@
 {
 	"name": "Featherlight",
-	"about": "Light and low, with tiny wheels at the front, handlebars for quick hands and a little rotary engine that revs and revs.",
+	"about": "Light and low, with skinny wheels at the front, handlebars for quick hands and a little rotary engine that revs and revs.",
 	"parts": [
-		{"id": "plate_6x10", "at": [7, 2, 7], "rot": 0, "color": "#f2f3f2"},
-		{"id": "wheel_tiny", "at": [6, 0, 8], "rot": 0},
-		{"id": "wheel_tiny", "at": [13, 0, 8], "rot": 0},
-		{"id": "wheel_small", "at": [6, 0, 13], "rot": 0},
-		{"id": "wheel_small", "at": [13, 0, 13], "rot": 0},
-		{"id": "slope_4x2", "at": [8, 3, 7], "rot": 0, "color": "#0d69ab"},
-		{"id": "handlebars", "at": [8, 3, 10], "rot": 0},
-		{"id": "racing_seat", "at": [9, 3, 11], "rot": 0},
-		{"id": "engine_rotary", "at": [9, 3, 15], "rot": 0},
-		{"id": "curve_2x4", "at": [7, 3, 11], "rot": 0, "color": "#0d69ab"},
-		{"id": "curve_2x4", "at": [11, 3, 11], "rot": 0, "color": "#0d69ab"}
+		{"id": "p_kart_axle_plate", "pos": [120, 20.0, 140], "turn": 0, "color": "#1b1b1b"},
+		{"id": "w_scooter", "pos": [125.6, 0, 136.0], "turn": 0},
+		{"id": "w_scooter", "pos": [274.4, 0, 184.0], "turn": 2},
+		{"id": "p_kart_axle_plate", "pos": [120, 20.0, 300], "turn": 0, "color": "#1b1b1b"},
+		{"id": "w_kart", "pos": [120.0, 0, 296.0], "turn": 0},
+		{"id": "w_kart", "pos": [280.0, 0, 344.0], "turn": 2},
+		{"id": "p_plate_6x10", "pos": [140, 28.0, 140], "turn": 0, "color": "#f2f3f2"},
+		{"id": "p_nose_4x6", "pos": [160, 36.0, 80], "turn": 0, "color": "#0d69ab"},
+		{"id": "p_tile_1x2", "pos": [140, 36.0, 140], "turn": 0, "color": "#0d69ab"},
+		{"id": "p_tile_1x2", "pos": [240.0, 36.0, 140], "turn": 0, "color": "#0d69ab"},
+		{"id": "handlebars", "pos": [160, 36.0, 200], "turn": 0},
+		{"id": "s_racing_seat", "pos": [180, 36.0, 220], "turn": 0},
+		{"id": "p_curve_1x4", "pos": [140, 36.0, 220], "turn": 0, "color": "#0d69ab"},
+		{"id": "p_curve_1x4", "pos": [240.0, 36.0, 220], "turn": 0, "color": "#0d69ab"},
+		{"id": "engine_rotary", "pos": [180, 36.0, 280], "turn": 0},
+		{"id": "p_curve_2x2", "pos": [220.0, 52.0, 320.0], "turn": 2, "color": "#0d69ab"},
+		{"id": "p_tile_1x2", "pos": [140, 36.0, 300], "turn": 0, "color": "#f2f3f2"},
+		{"id": "p_tile_1x2", "pos": [240.0, 36.0, 300], "turn": 0, "color": "#f2f3f2"}
 	]
 }

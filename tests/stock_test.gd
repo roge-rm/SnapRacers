@@ -1,8 +1,9 @@
 extends Node
 
-## Checks the stock karts. There are sixteen, every one can be driven and says
-## what it's like, no two drive the same, and each one gets around a lap of
-## Peach Pit with the AI driving it. tools/stock-karts/balance.tscn goes
+## Checks the stock karts, bikes and trikes. There are fifteen karts, four
+## bikes and three trikes, every one can be driven and says what it's like, no
+## two drive the same, and each one gets around a lap of Peach Pit with the AI
+## driving it. tools/stock-karts/balance.tscn goes
 ## further and times them all on four courses.
 ##   tools/godot/Godot_v4.7.2-stable_linux.x86_64 --headless --fixed-fps 60 --path . res://tests/stock_test.tscn
 
@@ -25,7 +26,12 @@ func _ready() -> void:
 	add_child(host)
 	Game.start(host, false)
 	var keys := Game.stock_keys()
-	check(keys.size() == 16, "there are sixteen stock karts (%d)" % keys.size())
+	var by_wheels := {}
+	for key in keys:
+		var wheels := KartStats.compute(Game.stock_kart(key)).wheels.size()
+		var kind := "bike" if wheels == 2 else "trike" if wheels == 3 else "kart"
+		by_wheels[kind] = by_wheels.get(kind, 0) + 1
+	check(by_wheels.get("kart", 0) == 15 and by_wheels.get("bike", 0) == 4 and by_wheels.get("trike", 0) == 3, "there are fifteen karts, four bikes and three trikes %s" % by_wheels)
 	var looks := []
 	var names := {}
 	for key in keys:

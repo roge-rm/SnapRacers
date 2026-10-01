@@ -65,9 +65,10 @@ static func engine_for(stats: KartStats) -> String:
 	var best := ""
 	var most := 0.0
 	for info in stats.parts:
-		if info.def.kind == "engine" and float(info.def.get("power", 0.0)) > most:
+		if float(info.def.get("power", 0.0)) > most:
 			most = float(info.def.get("power", 0.0))
-			best = info.def.id
+			# A remodelled engine sounds like the one it was made from.
+			best = info.def.get("sound", info.def.id)
 	return best
 
 

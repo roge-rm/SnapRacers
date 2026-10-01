@@ -1,0 +1,10 @@
+{
+	"name": "Dirt Bike",
+	"about": "Knobbly tires and a light little engine. Happy on grass and gravel and nimble in tight turns, but slow on the road.",
+	"parts": [
+		{"id": "b_frame_dirt", "pos": [180.0, 32.0, 80], "turn": 0, "color": "#f2cd37"},
+		{"id": "b_moto_fork_dirt", "pos": [160.0, 32.4, 80], "turn": 0},
+		{"id": "w_moto_trail", "pos": [191.2, 0, 54.0], "turn": 0},
+		{"id": "w_moto_trail", "pos": [191.2, 0.0, 214.0], "turn": 0}
+	]
+}

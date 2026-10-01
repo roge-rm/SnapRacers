@@ -62,7 +62,8 @@ static func of(id: String) -> Array:
 
 ## Plates, bricks and bodywork from the first parts have studs across the
 ## top, sockets across the bottom and spots down each side a wheel or
-## fairing can clip onto. Their wheels and fairings clip on by either side.
+## fairing can clip onto. Their wheels and fairings clip on by either side,
+## and their wheels have a hub through the middle as well.
 static func _worked_out(def: Dictionary) -> Array:
 	var out := []
 	var size: Vector3i = def.size
@@ -74,6 +75,9 @@ static func _worked_out(def: Dictionary) -> Array:
 			var z := (k + 0.5) * Grid.STUD_FINE
 			out.append({ "type": "clip" if clips else "side", "at": Vector3(0.0, y, z), "axis": Vector3.LEFT, "length": 0.0 })
 			out.append({ "type": "clip" if clips else "side", "at": Vector3(fine.x, y, z), "axis": Vector3.RIGHT, "length": 0.0 })
+	if def.get("kind", "") == "wheel":
+		# And a hub through the middle, so it goes on a pin or an axle too.
+		out.append({ "type": "hub", "at": Vector3(0.0, fine.y * 0.5, fine.z * 0.5), "axis": Vector3.RIGHT, "length": fine.x })
 	if not clips:
 		for i in size.x:
 			for k in size.z:

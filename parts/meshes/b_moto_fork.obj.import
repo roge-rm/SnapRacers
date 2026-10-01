@@ -1,0 +1,25 @@
+[remap]
+
+importer="wavefront_obj"
+importer_version=1
+type="Mesh"
+uid="uid://h374a0glqond"
+path="res://.godot/imported/b_moto_fork.obj-a08fcab0ef1b21204225908acb58fe71.mesh"
+
+[deps]
+
+files=["res://.godot/imported/b_moto_fork.obj-a08fcab0ef1b21204225908acb58fe71.mesh"]
+
+source_file="res://parts/meshes/b_moto_fork.obj"
+dest_files=["res://.godot/imported/b_moto_fork.obj-a08fcab0ef1b21204225908acb58fe71.mesh", "res://.godot/imported/b_moto_fork.obj-a08fcab0ef1b21204225908acb58fe71.mesh"]
+
+[params]
+
+generate_tangents=true
+generate_lods=true
+generate_shadow_mesh=true
+generate_lightmap_uv2=false
+generate_lightmap_uv2_texel_size=0.2
+scale_mesh=Vector3(1, 1, 1)
+offset_mesh=Vector3(0, 0, 0)
+force_disable_mesh_compression=false

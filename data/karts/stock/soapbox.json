@@ -2,16 +2,20 @@
 	"name": "Soapbox",
 	"about": "Tall thin wheels, a nose cone and a little rotary engine. Not much push, but hardly anything holds it back either.",
 	"parts": [
-		{"id": "plate_6x10", "at": [7, 4, 5], "rot": 0, "color": "#d7c599"},
-		{"id": "wheel_big", "at": [6, 0, 5], "rot": 0},
-		{"id": "wheel_big", "at": [13, 0, 5], "rot": 0},
-		{"id": "wheel_big", "at": [6, 0, 14], "rot": 0},
-		{"id": "wheel_big", "at": [13, 0, 14], "rot": 0},
-		{"id": "nose_4x4", "at": [8, 5, 5], "rot": 0, "color": "#c4281c"},
-		{"id": "windscreen_2", "at": [9, 8, 8], "rot": 0},
-		{"id": "racing_wheel", "at": [9, 5, 9], "rot": 0},
-		{"id": "lay_down_seat", "at": [9, 5, 10], "rot": 0},
-		{"id": "engine_rotary", "at": [11, 5, 13], "rot": 0},
-		{"id": "nose_2x2", "at": [9, 5, 14], "rot": 2, "color": "#c4281c"}
+		{"id": "p_kart_axle_plate", "pos": [120, 28.0, 100], "turn": 0, "color": "#1b1b1b"},
+		{"id": "wheel_big", "pos": [120, 0, 80.0], "turn": 0},
+		{"id": "wheel_big", "pos": [260, 0, 80.0], "turn": 0},
+		{"id": "p_kart_axle_plate", "pos": [120, 28.0, 300], "turn": 0, "color": "#1b1b1b"},
+		{"id": "wheel_big", "pos": [120, 0, 280.0], "turn": 0},
+		{"id": "wheel_big", "pos": [260, 0, 280.0], "turn": 0},
+		{"id": "p_plate_6x12", "pos": [140, 36.0, 100], "turn": 0, "color": "#d7c599"},
+		{"id": "p_nose_4x6", "pos": [160, 44.0, 40], "turn": 0, "color": "#c4281c"},
+		{"id": "d_screen_2", "pos": [180, 44.0, 160], "turn": 0},
+		{"id": "p_curve_1x4", "pos": [140, 44.0, 160], "turn": 0, "color": "#c4281c"},
+		{"id": "p_curve_1x4", "pos": [240.0, 44.0, 160], "turn": 0, "color": "#c4281c"},
+		{"id": "racing_wheel", "pos": [180, 44.0, 200], "turn": 0},
+		{"id": "s_lay_down_seat", "pos": [180, 44.0, 220], "turn": 0},
+		{"id": "engine_rotary", "pos": [220, 44.0, 260], "turn": 0},
+		{"id": "p_curve_2x2", "pos": [220.0, 44.0, 340.0], "turn": 2, "color": "#c4281c"}
 	]
 }

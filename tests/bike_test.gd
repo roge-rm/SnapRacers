@@ -1,7 +1,6 @@
 extends SceneTree
 
-## Rides a motorbike and a trike built from the bike parts on the test track
-## with no screen. The bike has to stay upright on its own, standing still,
+## Rides the stock Superbike and Tourer on the test track with no screen. The bike has to stay upright on its own, standing still,
 ## through a slalom and in a hard turn, and lean into the bends the right way.
 ## The trike mustn't tip over in a hard turn either. It also checks the
 ## building rules for two wheels.
@@ -23,8 +22,9 @@ class Runner:
 	var lean_right := false
 	var on_trike := false
 
-	## A motorbike, in the fine unit, with the front wheel in a fork and the back
-	## one in a swingarm, joined by a plate along the top.
+	## A motorbike built from bits, in the fine unit, with the front wheel in a
+	## fork and the back one in a swingarm, joined by a plate along the top,
+	## for checking the building rules.
 	static func bike() -> KartDesign:
 		var design := KartDesign.new()
 		design.name = "Test bike"
@@ -34,38 +34,20 @@ class Runner:
 			["w_moto", Vector3(192, 0, 194)],
 			["b_swingarm", Vector3(180, 32.4, 160)],
 			["p_brick_2x2", Vector3(180, 72.4, 160)],
-			["p_plate_2x2", Vector3(180, 96.4, 160)],
-			["p_plate_2x10", Vector3(180, 104.4, 100)],
-			["b_bars", Vector3(160, 112.4, 100)],
-			["b_saddle", Vector3(180, 112.4, 140)],
-			["engine_small", Vector3(180, 112.4, 200)],
+			["p_plate_2x10", Vector3(180, 96.4, 100)],
+			["b_bars", Vector3(160, 104.4, 100)],
+			["b_tank", Vector3(180, 104.4, 120)],
+			["b_saddle", Vector3(180, 104.4, 160)],
+			["engine_small", Vector3(180, 104.4, 220)],
 		]:
 			design.parts.append(KartDesign.placed_entry(p[0], Transform3D(Basis.IDENTITY, p[1])))
 		return design
 
-
-	## The bike with two back wheels instead, on a wheel holder under a stack of
-	## bricks.
-	static func trike() -> KartDesign:
-		var design := bike()
-		design.name = "Test trike"
-		design.parts = design.parts.filter(func(p): return not (p.id == "b_swingarm" or (p.id == "w_moto" and p.place.origin.z > 150.0)))
-		for p in [
-			["p_wheel_holder_2x2", Vector3(160, 32.4, 200)],
-			["p_brick_2x2", Vector3(180, 40.4, 200)],
-			["p_brick_2x2", Vector3(180, 64.4, 200)],
-			["p_plate_2x2", Vector3(180, 88.4, 200)],
-			["p_plate_2x2", Vector3(180, 96.4, 200)],
-			["w_moto", Vector3(164, 0.4, 184)],
-			["w_moto", Vector3(220, 0.4, 184)],
-		]:
-			design.parts.append(KartDesign.placed_entry(p[0], Transform3D(Basis.IDENTITY, p[1])))
-		return design
 
 	func _ready() -> void:
 		track = TestTrack.new()
 		add_child(track)
-		_ride(bike())
+		_ride(KartDesign.load_file("res://data/karts/stock/superbike.json"))
 
 	func _ride(design: KartDesign) -> void:
 		if kart != null:
@@ -121,11 +103,11 @@ class Runner:
 			631:
 				lean_right = kart.lean > 0.0 and kart.looks().basis.y.x > 0.0
 				most_lean = rad_to_deg(kart.lean)
-				var forks := kart.turning_parts()
+				# The fork comes with the bars, and turns with them.
 				var front: Kart.Wheel = kart.wheels.filter(func(w): return w.steered)[0]
-				var fork_turn := forks[0].basis.z.signed_angle_to(Vector3.BACK, Vector3.UP) if not forks.is_empty() else 0.0
+				var fork_turn: float = kart._steering._wheel.basis.z.signed_angle_to(Vector3.BACK, Vector3.UP) if kart._steering != null else 0.0
 				var wheel_turn := front.visual.basis.x.signed_angle_to(Vector3.RIGHT, Vector3.UP)
-				check(forks.size() == 1 and absf(fork_turn) > 0.01 and is_equal_approx(snappedf(fork_turn, 0.001), snappedf(wheel_turn, 0.001)), "the fork turns with the front wheel (%.1f and %.1f degrees)" % [rad_to_deg(fork_turn), rad_to_deg(wheel_turn)])
+				check(absf(fork_turn) > 0.01 and is_equal_approx(snappedf(fork_turn, 0.001), snappedf(wheel_turn, 0.001)), "the fork and bars turn with the front wheel (%.1f and %.1f degrees)" % [rad_to_deg(fork_turn), rad_to_deg(wheel_turn)])
 			691:
 				var turned := rad_to_deg(angle_difference(start_yaw, kart.global_rotation.y))
 				check(turned < -40.0, "turns right when steering right (%.0f degrees)" % turned)
@@ -145,7 +127,7 @@ class Runner:
 				check(absf(kart.lean) < deg_to_rad(2.0), "with no lean (%.1f degrees)" % rad_to_deg(kart.lean))
 				on_trike = true
 				tick = 0
-				_ride(trike())
+				_ride(KartDesign.load_file("res://data/karts/stock/tourer.json"))
 
 	func _trike_ride(c: KartControls) -> void:
 		match tick:

@@ -365,7 +365,7 @@ func steering_gap() -> int:
 	var seat := seat_index()
 	if seat == -1:
 		return -1
-	var seat_box := box_of(seat)
+	var seat_box := seat_box_of(seat)
 	var best := -1
 	for i in parts.size():
 		if PartCatalog.get_part(parts[i].id).get("kind", "") != "steering":
@@ -377,6 +377,16 @@ func steering_gap() -> int:
 		if gap >= 0 and across > 0.0 and (best == -1 or gap < best):
 			best = gap
 	return best
+
+
+## Where the driver sits on the seat part at this index, on the stud grid.
+## That's the whole part, except on a motorbike frame, which says where its
+## seat is.
+func seat_box_of(index: int) -> AABB:
+	var def := PartCatalog.get_part(parts[index].id)
+	if not def.has("seat_box"):
+		return box_of(index)
+	return _grid_box(place_of(parts[index]) * (def.seat_box as AABB))
 
 
 func seat_index() -> int:
@@ -402,6 +412,9 @@ func problems() -> Array[String]:
 		match def.get("kind", ""):
 			"seat":
 				seats += 1
+				# A motorbike frame is the seat and the engine.
+				if def.get("power", 0.0) > 0.0:
+					engines += 1
 			"engine":
 				engines += 1
 			"steering":
