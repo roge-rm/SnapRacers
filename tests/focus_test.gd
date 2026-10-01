@@ -71,12 +71,28 @@ func _ready() -> void:
 	check(settings._pages[1].visible, "RB goes to the next tab")
 	await pad(JOY_BUTTON_LEFT_SHOULDER)
 	check(settings._pages[0].visible, "and LB back again")
-	var touch := InputEventScreenTouch.new()
-	touch.position = Vector2(5, 5)
-	touch.pressed = true
-	Input.parse_input_event(touch)
-	await frames(3)
+	for down in [true, false]:
+		var touch := InputEventScreenTouch.new()
+		touch.position = Vector2(5, 5)
+		touch.pressed = down
+		Input.parse_input_event(touch)
+		await frames(3)
 	check(focused() == null or focused() is LineEdit, "a touch puts the picked out button away")
+	# A button keeps its focus while a finger's held down on it, since losing it
+	# would stop the press, and lets go once the finger's up.
+	Game.show_single_player()
+	await frames(3)
+	var held: Button = screen().find_children("*", "Button", true, false)[0]
+	var watcher: PadFocus = Game.get_children().filter(func(n): return n is PadFocus)[0]
+	held.grab_focus()
+	for down in [true, false]:
+		var finger := InputEventScreenTouch.new()
+		finger.pressed = down
+		watcher._input(finger)
+		await frames(3)
+		if down:
+			check(focused() == held, "a button keeps its focus while it's held down")
+	check(focused() == null, "and lets it go once the finger's up")
 	# The driver builder's tabs.
 	Game.show_driver()
 	await frames(3)

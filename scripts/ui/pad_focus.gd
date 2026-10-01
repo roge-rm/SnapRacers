@@ -34,8 +34,10 @@ func _input(event: InputEvent) -> void:
 	var viewport := get_viewport()
 	if event is InputEventScreenTouch or event is InputEventMouseButton:
 		using_pad = false
-		# A tapped button takes the focus, so let it go again afterwards.
-		_drop_focus.call_deferred()
+		# A tapped button takes the focus, so let it go again once the finger's
+		# up. Letting go any sooner stops the button being pressed.
+		if not event.pressed:
+			_drop_focus.call_deferred()
 		return
 	if not _navigating(event):
 		return
