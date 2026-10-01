@@ -50,6 +50,10 @@ const COLOURS := {
 const DECK_COLOUR := Color("#7a7f87")
 
 const PILLAR_COLOUR := Color("#a3a2a4")
+## Roller coaster supports: how thick each leg is and how far apart the
+## braces between them are.
+const LEG_SIZE := 0.6
+const BRACE_EVERY := 3.0
 ## Which surface each edge of the outline is, for the shader.
 const KIND := {"road": 0.0, "kerb": 1.0, "deck": 2.0, "wall": 3.0, "walltop": 4.0, "line": 5.0}
 
@@ -256,6 +260,18 @@ func _add_piece(index: int) -> void:
 	body.set_meta("grip", feel[0])
 	body.set_meta("drag", feel[1])
 	body.set_meta("sticky", piece.sticky)
+	# A corkscrew holds karts to its line like a roller coaster's rails, so
+	# its road knows where its middle runs.
+	if piece.type == "corkscrew":
+		var line := PackedVector3Array()
+		var ahead := PackedVector3Array()
+		var across := PackedVector3Array()
+		for k in track.points.size():
+			if track.piece_of[k] == index:
+				line.append(track.points[k])
+				ahead.append(track.forwards[k])
+				across.append(track.rights[k])
+		body.set_meta("rail", [line, ahead, across])
 	# Which piece it is, so the track editor can tell which one was tapped.
 	body.set_meta("piece", index)
 	var look := MeshInstance3D.new()
@@ -565,11 +581,13 @@ func _add_pillars() -> void:
 	add_child(body)
 	var spots: Array[Transform3D] = []
 	var clear := track.width * 0.5 + TrackPath.KERB + 2.0
+	# A theme can have roller coaster supports instead of solid pillars.
+	var lattice: bool = _theme.get("supports", "") == "lattice"
 	var next := 0.0
 	for k in track.points.size():
-		# Nothing goes under loops and wall rides, because the road isn't lying
-		# flat there.
-		if track.distances[k] < next or not track.solids[k] or track.ups[k].y < 0.9:
+		# Nothing goes under loops, corkscrews and wall rides, because the road
+		# isn't lying flat there, or soon won't be.
+		if track.distances[k] < next or not track.solids[k] or track.ups[k].y < 0.9 or track.stickies[k]:
 			continue
 		var p := track.points[k]
 		var ground := ground_at(p.x, p.z)
@@ -585,22 +603,51 @@ func _add_pillars() -> void:
 		if blocked:
 			continue
 		next = track.distances[k] + PILLAR_EVERY
+		if lattice:
+			_lattice(body, spots, p, track.rights[k], ground, bottom)
+			continue
 		# Lined up with the stud grid, like everything else built on the
 		# baseplate.
 		var where := Transform3D(Basis.IDENTITY, Vector3(snappedf(p.x, 0.25), ground + bottom * 0.5, snappedf(p.z, 0.25)))
-		var shape := CollisionShape3D.new()
-		var box := BoxShape3D.new()
-		box.size = Vector3(PILLAR_SIZE, bottom, PILLAR_SIZE)
-		shape.shape = box
-		shape.transform = where
-		body.add_child(shape)
+		_solid_box(body, where, Vector3(PILLAR_SIZE, bottom, PILLAR_SIZE))
 		spots.append(where.scaled_local(Vector3(PILLAR_SIZE, bottom, PILLAR_SIZE)))
 	if spots.is_empty():
 		return
 	var colours: Array[Color] = []
 	colours.resize(spots.size())
-	colours.fill(PILLAR_COLOUR)
+	colours.fill(Color(_theme.get("supports_colour", PILLAR_COLOUR)))
 	_add_blocks(spots, colours)
+
+
+func _solid_box(body: StaticBody3D, where: Transform3D, size: Vector3) -> void:
+	var shape := CollisionShape3D.new()
+	var box := BoxShape3D.new()
+	box.size = size
+	shape.shape = box
+	shape.transform = where
+	body.add_child(shape)
+
+
+## A roller coaster's support under raised road: a leg under each side with
+## crossed braces between them all the way up.
+func _lattice(body: StaticBody3D, spots: Array[Transform3D], p: Vector3, right: Vector3, ground: float, bottom: float) -> void:
+	var across := Vector3(right.x, 0.0, right.z).normalized()
+	var half := track.width * 0.5 - 0.5
+	var foot := Vector3(p.x, ground, p.z)
+	for side: float in [-1.0, 1.0]:
+		var leg := Transform3D(Basis.IDENTITY, foot + across * side * half + Vector3.UP * bottom * 0.5)
+		_solid_box(body, leg, Vector3(LEG_SIZE, bottom, LEG_SIZE))
+		spots.append(leg.scaled_local(Vector3(LEG_SIZE, bottom, LEG_SIZE)))
+	var rungs := maxi(1, roundi(bottom / BRACE_EVERY))
+	for r in rungs:
+		var low := bottom * r / rungs
+		var high := bottom * (r + 1) / rungs
+		for way: float in [-1.0, 1.0]:
+			var a := foot + across * half * way + Vector3.UP * low
+			var b := foot - across * half * way + Vector3.UP * high
+			var along := (b - a).normalized()
+			var basis := Basis(across.cross(along).normalized(), along, across.cross(along).cross(along).normalized())
+			spots.append(Transform3D(basis, (a + b) * 0.5).scaled_local(Vector3(0.25, a.distance_to(b), 0.25)))
 
 
 ## Draws boxes that look built from bricks, all in one go. Each transform

@@ -485,7 +485,7 @@ func _clear_spot(racer: Racer) -> Transform3D:
 ## Whether this is the flat run in to a loop, or its foot where it's only
 ## starting to climb. A kart put back there has no speed for the loop.
 func _loop_coming(offset: float) -> bool:
-	if track.piece_type_at(offset) != "loop":
+	if not TrackPiece.turns_over(track.piece_type_at(offset)):
 		return false
 	var ahead := 0.0
 	while ahead <= LOOP_FOOT:

@@ -52,6 +52,15 @@ def piece_points(p):
             t = k / n
             pts.append((across * TILE * slant_shift(t, tiles), tiles * TILE * t, rise * smoothstep(0, 1, t)))
         return pts, (across * TILE, tiles * TILE, 0), rise
+    if kind == "corkscrew":
+        # It rolls once round while it steps a tile across, three tiles
+        # along. Seen from above it's close to a slant, and it rises about
+        # 18 m at the top of the roll.
+        side = -1 if p.get("side", "right") == "left" else 1
+        for k in range(n + 1):
+            t = k / n
+            pts.append((side * TILE * smoothstep(0.15, 0.85, t), 3 * TILE * t, 18.0 * math.sin(math.pi * smoothstep(0.1, 0.9, t)) ** 2))
+        return pts, (side * TILE, 3 * TILE, 0), 0.0
     if kind == "loop":
         side = -1 if p.get("side", "right") == "left" else 1
         for k in range(n + 1):
@@ -108,7 +117,7 @@ def parse(text):
     """Short hand for piece lists, one token per piece:
     S3 straight, R2/L2 curve right/left (size), R2b22 banked, R2c cut,
     SR4.3/SL4.3 slant right/left 4 long 3 across, U2+1/U2-1 ramp up/down a
-    level, C2 crest (C2h3 for one 3 m high), J jump, OR/OL loop. Add ^1 or ^-1 to any piece to climb
+    level, C2 crest (C2h3 for one 3 m high), J jump, OR/OL loop, XR/XL corkscrew. Add ^1 or ^-1 to any piece to climb
     or drop a level along it, !o for open edges, !d dirt, !v gravel, !i ice,
     !s sand, !g grass."""
     import re
@@ -151,6 +160,8 @@ def parse(text):
             spec = {"type": "jump"}
         elif tok in ("OR", "OL"):
             spec = {"type": "loop", "side": "right" if tok == "OR" else "left"}
+        elif tok in ("XR", "XL"):
+            spec = {"type": "corkscrew", "side": "right" if tok == "XR" else "left"}
         else:
             raise SystemExit("bad token " + tok)
         if climb:

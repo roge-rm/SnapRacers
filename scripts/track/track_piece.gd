@@ -44,8 +44,8 @@ var wall_left := true
 var wall_right := true
 ## A bend with a dirt patch inside it that you can cut across.
 var cut := false
-## Which way a loop steps across as it goes around, 1 for right and -1 for
-## left.
+## Which way a loop steps across as it goes around, or a corkscrew rolls,
+## 1 for right and -1 for left.
 var side := 1
 ## Road you stick to at speed, like the inside of a loop or a steep wall.
 var sticky := false
@@ -66,6 +66,19 @@ const LOOP_SAMPLES := 400
 ## The loop's shape in its own plane, worked out once. For every step around
 ## it there's (height, distance along, how far it has turned).
 static var _loop_shape := PackedVector3Array()
+
+# The corkscrew is a roller coaster's: a straight run in, one roll all the way
+# round, and a straight run out, three tiles along and one across. The roll
+# turns the road about one line at an angle to the way in, slowly at first,
+# then faster, then slowly again, so it never gets tight all at once. You ride
+# on the inside of it without steering, and come out a tile across facing the
+# way you went in.
+const CORKSCREW_RUN := 8.0
+const CORKSCREW_SAMPLES := 600
+## The roll's shape, worked out once: where the road is and which way is up,
+## for the right hand one, a step at a time from its start.
+static var _cork_points := PackedVector3Array()
+static var _cork_ups := PackedVector3Array()
 
 ## Bends banked steeper than this are wall rides, and stick.
 const STICKY_BANK := deg_to_rad(40.0)
@@ -104,6 +117,11 @@ static func from_spec(spec: Dictionary) -> TrackPiece:
 		"loop":
 			piece.tiles = 3
 			piece.side = -1 if str(spec.get("side", "right")) == "left" else 1
+			piece.sticky = true
+		"corkscrew":
+			piece.tiles = 3
+			piece.side = -1 if str(spec.get("side", "right")) == "left" else 1
+			piece.across = piece.side
 			piece.sticky = true
 		"slant":
 			piece.tiles = maxi(int(spec.get("length", 2)), 2)
@@ -158,7 +176,7 @@ func to_spec() -> Dictionary:
 			spec["height"] = crest_height
 		"straight":
 			spec["length"] = tiles
-		"loop":
+		"loop", "corkscrew":
 			spec["side"] = "left" if side < 0 else "right"
 		"slant":
 			spec["length"] = tiles
@@ -185,6 +203,9 @@ func path_length() -> float:
 		return sqrt(arc * arc + rise * rise)
 	if type == "loop":
 		return LOOP_IN + LOOP_ARC + _loop_out()
+	if type == "corkscrew":
+		_corkscrew_profile()
+		return 2.0 * CORKSCREW_RUN + (_cork_points.size() - 1) * _cork_step
 	if type == "slant":
 		var total := 0.0
 		for k in 32:
@@ -209,6 +230,8 @@ func point(t: float) -> Vector3:
 			return Vector3(0.0, _jump_height(run * t), -run * t)
 		"loop":
 			return _loop_point(t)
+		"corkscrew":
+			return _corkscrew_point(t)
 		"slant":
 			return Vector3(across * TILE * _slant_shift(t), rise * smoothstep(0.0, 1.0, t), -run * t)
 	return Vector3(0.0, 0.0, -run * t)
@@ -287,10 +310,88 @@ func _loop_point(t: float) -> Vector3:
 	return Vector3(side * (LOOP_AIR_STEP + (LOOP_STEP - LOOP_AIR_STEP) * rest), 0.0, -LOOP_IN - end.y - out)
 
 
+## Whether a piece of this type turns you upside down, so you need speed to
+## get round it.
+static func turns_over(piece_type: String) -> bool:
+	return piece_type == "loop" or piece_type == "corkscrew"
+
+
+static var _cork_step := 0.0
+
+
+## Works out the roll. It turns the road about a flat line at an angle to the
+## way in, by an amount that eases from nothing up to a full turn. The angle
+## and the roll's length are picked so it ends one tile across and leaves
+## CORKSCREW_RUN of straight at each end of the three tiles.
+static func _corkscrew_profile() -> void:
+	if not _cork_points.is_empty():
+		return
+	var along := 3.0 * TILE - 2.0 * CORKSCREW_RUN
+	# For a roll 1 m long at each angle, how far across and along it ends. It
+	# all grows in step with the length, so that picks the length too.
+	var lo := 0.2
+	var hi := 1.2
+	var angle := 0.0
+	var length := 0.0
+	for i in 50:
+		angle = (lo + hi) * 0.5
+		var end := _roll_end(angle)
+		length = TILE / end.x
+		if -end.z * length > along:
+			lo = angle
+		else:
+			hi = angle
+	var axis := Vector3(sin(angle), 0.0, -cos(angle))
+	_cork_step = length / CORKSCREW_SAMPLES
+	var at := Vector3(0.0, 0.0, -CORKSCREW_RUN)
+	_cork_points.append(at)
+	_cork_ups.append(Vector3.UP)
+	for i in CORKSCREW_SAMPLES:
+		at += Vector3.FORWARD.rotated(axis, _rolled((i + 0.5) / CORKSCREW_SAMPLES)) * _cork_step
+		_cork_points.append(at)
+		_cork_ups.append(Vector3.UP.rotated(axis, _rolled((i + 1.0) / CORKSCREW_SAMPLES)))
+
+
+## How far round the roll has turned `u` of the way along it.
+static func _rolled(u: float) -> float:
+	return TAU * u - sin(TAU * u)
+
+
+## Where a roll 1 m long about a line at this angle ends up.
+static func _roll_end(angle: float) -> Vector3:
+	var axis := Vector3(sin(angle), 0.0, -cos(angle))
+	var at := Vector3.ZERO
+	for i in CORKSCREW_SAMPLES:
+		at += Vector3.FORWARD.rotated(axis, _rolled((i + 0.5) / CORKSCREW_SAMPLES)) / CORKSCREW_SAMPLES
+	return at
+
+
+func _corkscrew_point(t: float) -> Vector3:
+	_corkscrew_profile()
+	var along := t * path_length()
+	var roll := (_cork_points.size() - 1) * _cork_step
+	var mirror := Vector3(side, 1.0, 1.0)
+	if along <= CORKSCREW_RUN:
+		return Vector3(0.0, 0.0, -along)
+	if along < CORKSCREW_RUN + roll:
+		var f := (along - CORKSCREW_RUN) / _cork_step
+		var i := mini(int(f), _cork_points.size() - 2)
+		return _cork_points[i].lerp(_cork_points[i + 1], f - i) * mirror
+	return Vector3(side * TILE, 0.0, -3.0 * TILE + (path_length() - along))
+
+
 ## Which way is up off the road here, before any banking, in the piece's
-## space. It's straight up everywhere except on a loop, where it points in
-## toward the middle.
+## space. It's straight up everywhere except on a loop or a corkscrew, where
+## it points in toward the middle.
 func up(t: float) -> Vector3:
+	if type == "corkscrew":
+		var along := t * path_length() - CORKSCREW_RUN
+		var roll := (_cork_points.size() - 1) * _cork_step
+		if along <= 0.0 or along >= roll:
+			return Vector3.UP
+		var f := along / _cork_step
+		var i := mini(int(f), _cork_ups.size() - 2)
+		return _cork_ups[i].slerp(_cork_ups[i + 1], f - i) * Vector3(side, 1.0, 1.0)
 	if type != "loop":
 		return Vector3.UP
 	var along := t * path_length()
@@ -337,7 +438,7 @@ func exit() -> Transform3D:
 	var end := point(1.0)
 	if type == "loop":
 		return Transform3D(Basis.IDENTITY, Vector3(side * LOOP_STEP, 0.0, -3.0 * TILE))
-	if type == "slant":
+	if type == "slant" or type == "corkscrew":
 		return Transform3D(Basis.IDENTITY, Vector3(across * TILE, rise, -tiles * TILE))
 	if type == "curve":
 		return Transform3D(Basis(Vector3.UP, -turn * PI * 0.5), end)

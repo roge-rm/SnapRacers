@@ -214,7 +214,7 @@ func build() -> void:
 func _hill(pose: Transform3D, piece: TrackPiece, t: float) -> float:
 	if hills <= 0.0:
 		return 0.0
-	if piece.type == "loop" or piece.type == "jump":
+	if TrackPiece.turns_over(piece.type) or piece.type == "jump":
 		var from := pose.origin
 		var to := (pose * piece.exit()).origin
 		return lerpf(ground_height(from.x, from.z), ground_height(to.x, to.z), t)

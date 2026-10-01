@@ -51,6 +51,7 @@ const ROOM := {
 	"sakura": 2.5, "pagoda": 6.0, "ferris_wheel": 16.0, "old_banking": 48.0,
 	"oast_house": 7.0, "standing_stones": 7.0, "control_tower": 5.0, "spectator_bank": 13.0,
 	"tire_pile": 3.0, "kart_row": 8.0, "viewing_deck": 12.0, "pallets": 2.5, "kart_office": 7.0,
+	"carousel": 7.0, "drop_tower": 5.0, "red_roof": 40.0,
 }
 
 
@@ -125,6 +126,9 @@ static func add(kit: SceneryKit, prop: String, at: Vector3, rng: RandomNumberGen
 		"viewing_deck": viewing_deck(kit, at_grid, facing, rng)
 		"pallets": pallets(kit, at_grid, rng)
 		"kart_office": kart_office(kit, at_grid, facing)
+		"carousel": carousel(kit, at_grid, rng)
+		"drop_tower": drop_tower(kit, at_grid)
+		"red_roof": red_roof(kit, at_grid)
 
 
 ## Turns an offset from a prop's middle by its facing.
@@ -819,6 +823,39 @@ static func kart_office(kit: SceneryKit, at: Vector3, facing: int) -> void:
 	_box(kit, at, Vector3(0.0, 0.8, 2.5), Vector3(8.0, 1.8, 0.1), facing, GLASS, SceneryKit.WINDOWS, false)
 	_box(kit, at, Vector3(0.0, 3.3, 0.0), Vector3(10.4, 0.3, 5.4), facing, DARK_GREY, SceneryKit.SMOOTH, false)
 	_box(kit, at, Vector3(0.0, 3.6, 2.2), Vector3(6.0, 1.2, 0.3), facing, YELLOW, SceneryKit.GLOW, false)
+
+
+# Things at a theme park.
+
+## A carousel: a round platform with horses on poles, under a striped roof.
+static func carousel(kit: SceneryKit, at: Vector3, rng: RandomNumberGenerator) -> void:
+	kit.cylinder(at, 6.0, 0.6, WHITE, SceneryKit.BRICK, true)
+	kit.cylinder(at + Vector3.UP * 0.6, 1.2, 4.0, YELLOW, SceneryKit.SMOOTH)
+	for k in 12:
+		var a := TAU * k / 12.0
+		var spot := at + Vector3(cos(a), 0.0, sin(a)) * 4.5
+		kit.cylinder(spot + Vector3.UP * 0.6, 0.08, 4.0, YELLOW, SceneryKit.SMOOTH)
+		kit.box(spot + Vector3.UP * (1.2 + 0.4 * (k % 2)), Vector3(0.5, 0.8, 1.4), [WHITE, BROWN, BLACK, TAN][rng.randi() % 4], SceneryKit.SMOOTH, false)
+	for k in 8:
+		kit.cylinder(at + Vector3.UP * (4.6 + k * 0.25), 6.4 - k * 0.8, 0.25, RED if k % 2 == 0 else WHITE, SceneryKit.SMOOTH)
+	kit.cylinder(at + Vector3.UP * 6.6, 0.3, 1.0, YELLOW, SceneryKit.GLOW)
+
+
+## A drop tower: a tall mast with a ring of seats that goes up and falls.
+static func drop_tower(kit: SceneryKit, at: Vector3) -> void:
+	kit.box(at, Vector3(4.0, 1.0, 4.0), DARK_GREY)
+	kit.box(at + Vector3.UP, Vector3(2.0, 38.0, 2.0), LIGHT_GREY)
+	kit.cylinder(at + Vector3.UP * 26.0, 3.2, 1.6, BLUE, SceneryKit.SMOOTH)
+	kit.cylinder(at + Vector3.UP * 39.0, 1.6, 1.2, RED, SceneryKit.GLOW)
+
+
+## The huge low red roof of the theme park in Abu Dhabi, sweeping down to the
+## sand at its edges.
+static func red_roof(kit: SceneryKit, at: Vector3) -> void:
+	for k in 6:
+		var r := 36.0 - k * 5.5
+		kit.cylinder(at + Vector3.UP * k * 1.6, r, 1.6, RED if k < 5 else DARK_RED, SceneryKit.SMOOTH, k == 0)
+	kit.cylinder(at + Vector3.UP * 9.6, 6.0, 2.0, YELLOW, SceneryKit.SMOOTH)
 
 
 # Things along the side of the track.

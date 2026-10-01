@@ -1,0 +1,3 @@
+Lakeshore Plunge
+width=13 laps=3 theme=park_lake
+R1 R2 L3 S3 R2 R2^2 R1 SR4.3 L1 XL S2 SL3.2 L1 C2 SL3.1 R1 R1 SL4.1 SR4.1 SL2.1^-2

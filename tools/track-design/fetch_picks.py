@@ -2,7 +2,7 @@
 """Downloads the circuits picked in picks.json straight from their
 OpenStreetMap ways, so they can be traced again without looking for them.
 
-Usage: fetch_picks.py [--local <folder>] [name ...]
+Usage: fetch_picks.py [--local <folder>] [--flat] [name ...]
 Writes <name>.json for each, the same as osm_track.py does, in metres from the
 track's first point (x east, y south). A pick of several ways (see
 find_lap.py) is joined into one line in the order it lists them, and a
@@ -10,7 +10,9 @@ negative id means that way runs backwards. With --local it uses the ways
 osm_track.py already downloaded into that folder instead of asking the
 server again. A joined lap keeps where each way starts along it, its
 surface and its level, so the tracer can tell which bits are gravel and which
-run over the top of others.
+run over the top of others. With --flat it leaves the levels out, for roller
+coasters, where the map's levels say how high the track stands and not what
+it runs over.
 """
 import json, math, os, sys, time, urllib.parse, urllib.request
 
@@ -20,6 +22,8 @@ args = sys.argv[1:]
 local = None
 if args[:1] == ["--local"]:
     local, args = args[1], args[2:]
+flat = "--flat" in args
+args = [a for a in args if a != "--flat"]
 names = args or sorted(picks)
 # Ways whose ends are closer than this meet, and a lap that ends within JOIN
 # of a point on its first way joins it there.
@@ -81,7 +85,7 @@ for name in names:
             way = by_id[abs(i)]["points"]
             way = way if i > 0 else way[::-1]
             kind = by_id[abs(i)]["tags"].get("surface", "asphalt")
-            level = int(by_id[abs(i)]["tags"].get("layer", "0") or 0)
+            level = 0 if flat else int(by_id[abs(i)]["tags"].get("layer", "0") or 0)
             if pts and math.dist(pts[-1], way[0]) <= GAP:
                 surfaces.append([len(pts) - 1, kind, level])
                 pts += way[1:]

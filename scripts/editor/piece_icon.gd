@@ -83,7 +83,7 @@ func _draw() -> void:
 	var way := (tip - line[line.size() - 3]).normalized()
 	var side := Vector2(-way.y, way.x)
 	draw_colored_polygon(PackedVector2Array([tip + way * 4.0, tip - way * 4.0 + side * 4.0, tip - way * 4.0 - side * 4.0]), Color.WHITE)
-	if piece.type == "loop":
+	if TrackPiece.turns_over(piece.type):
 		var middle: Vector2 = line[steps / 2]
 		draw_arc(middle, road * 1.6, 0.0, TAU, 24, Color.WHITE, 2.5, true)
 

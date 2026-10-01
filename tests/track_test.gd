@@ -136,24 +136,44 @@ func _initialize() -> void:
 		progress.update(at, 0.0)
 	check(progress.laps == 0, "rocking back and forth over the line gains nothing")
 
+	# Put back over the line just after finishing a lap, the way a reset can,
+	# it loses that lap and its time, and gets them back driving on, with no
+	# short lap in between.
+	progress = RaceProgress.new(length, 3, 92.0)
+	at = 92.0
+	t = 0.0
+	for step in 120:
+		t += 0.1
+		at = fposmod(at + 1.0, length)
+		progress.update(at, t)
+	var times_before := progress.lap_times.size()
+	at = fposmod(at - 20.0, length)
+	progress.update(at, t)
+	check(progress.lap_times.size() == times_before - 1, "put back over the line, it loses that lap's time too")
+	for step in 30:
+		t += 0.1
+		at = fposmod(at + 1.0, length)
+		progress.update(at, t)
+	check(progress.lap_times.size() == times_before and progress.lap_times.back() > 10.0, "and gets it back driving on, with no short lap (%s)" % [progress.lap_times])
+
 	print("All track checks passed." if failures == 0 else "%d track checks failed." % failures)
 	quit(1 if failures > 0 else 0)
 
 
 ## How close two stretches of road at ground level come, middle to middle,
-## leaving out the two sides of a loop and anything on a bridge above or
-## below.
+## leaving out the two sides of a loop or a corkscrew and anything on a
+## bridge above or below.
 func _closest_stretches(track: TrackPath) -> float:
 	var nearest := INF
 	var count := track.points.size()
 	for i in range(0, count, 4):
-		if track.points[i].y > 0.5 or track.pieces[track.piece_of[i]].type == "loop":
+		if track.points[i].y > 0.5 or TrackPiece.turns_over(track.pieces[track.piece_of[i]].type):
 			continue
 		for j in range(i + 4, count, 4):
 			var along := track.distances[j] - track.distances[i]
 			if minf(along, track.length - along) < TrackPiece.TILE * 3.0:
 				continue
-			if track.points[j].y > 0.5 or track.pieces[track.piece_of[j]].type == "loop":
+			if track.points[j].y > 0.5 or TrackPiece.turns_over(track.pieces[track.piece_of[j]].type):
 				continue
 			var a := track.points[i]
 			var b := track.points[j]

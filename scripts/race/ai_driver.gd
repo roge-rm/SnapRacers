@@ -99,12 +99,27 @@ func _physics_process(delta: float) -> void:
 
 	# Steering.
 	var look := clampf(5.0 + speed * 0.55, LOOK_NEAR, LOOK_FAR)
+	# It doesn't aim past where a corkscrew starts to roll, or it aims up
+	# and off to the side of the road it's on and runs into the wall.
+	if track.piece_type_at(offset) != "corkscrew":
+		var to_roll := 4.0
+		while to_roll < look:
+			if track.piece_type_at(offset + to_roll) == "corkscrew" and track.up_at(offset + to_roll).y < 0.97:
+				look = maxf(to_roll - 2.0, LOOK_NEAR)
+				break
+			to_roll += 2.0
 	var target := track.point_at(offset + look) + track.right_at(offset + look) * (line + _dodge())
 	var up := kart.global_basis.y
 	var to_target := target - kart.global_position
 	to_target -= up * to_target.dot(up)
 	var facing := -kart.global_basis.z
 	var angle := facing.signed_angle_to(to_target, up)
+	# On a corkscrew the point ahead is round the roll from here, and the
+	# road takes you round it without steering, so it only edges back toward
+	# its line.
+	if track.piece_type_at(offset) == "corkscrew":
+		var off_line := (kart.global_position - track.point_at(offset)).dot(track.right_at(offset)) - line
+		angle = atan(off_line / 20.0)
 	controls.steer = clampf(-angle / kart.full_lock * 1.2, -1.0, 1.0)
 
 	# For speed, find the slowest it needs to be for anything coming up, with
@@ -121,14 +136,16 @@ func _physics_process(delta: float) -> void:
 	var ahead := 4.0
 	var reach := maxf(64.0, speed * speed / (2.0 * BRAKING) + 24.0)
 	while ahead <= reach:
-		var bend := track.bend_at(offset + ahead)
+		# A corkscrew swings to the side as it rolls, but it's no bend to
+		# slow down for, any more than a loop is.
+		var bend := 0.0 if TrackPiece.turns_over(track.piece_type_at(offset + ahead)) else track.bend_at(offset + ahead)
 		if bend > 0.002:
 			var corner := sqrt(grip / bend)
 			allowed = minf(allowed, sqrt(corner * corner + 2.0 * BRAKING * ahead))
 		ahead += 4.0
 	# The bend it's in counts too, or it floors it on the way out of a hairpin
 	# while it's still turning and runs wide.
-	var here := maxf(track.bend_at(offset), track.bend_at(offset + 2.0))
+	var here := 0.0 if TrackPiece.turns_over(track.piece_type_at(offset)) else maxf(track.bend_at(offset), track.bend_at(offset + 2.0))
 	if here > 0.002:
 		allowed = minf(allowed, sqrt(grip / here))
 
@@ -178,11 +195,12 @@ func _looping() -> bool:
 	return looping
 
 
-## Whether a loop climbs up within this far ahead, or it's already on one.
+## Whether a loop or a corkscrew climbs up within this far ahead, or it's
+## already on one.
 func _loop_within(distance: float) -> bool:
 	var ahead := 0.0
 	while ahead <= distance:
-		if track.piece_type_at(offset + ahead) == "loop" and track.up_at(offset + ahead).y < 0.9:
+		if TrackPiece.turns_over(track.piece_type_at(offset + ahead)) and track.up_at(offset + ahead).y < 0.9:
 			return true
 		ahead += 4.0
 	return false

@@ -74,11 +74,12 @@ func _init(path: TrackPath) -> void:
 func _ready() -> void:
 	var d := FIRST
 	while d < track.length - 60.0:
-		# Never on a loop or where the road's open, like a jump's gap.
+		# Never on a loop or a corkscrew, or where the road's open, like a
+		# jump's gap.
 		var at := d
-		while (not track.solid_at(at) or track.piece_type_at(at) == "loop") and at < d + EVERY * 0.5:
+		while (not track.solid_at(at) or TrackPiece.turns_over(track.piece_type_at(at))) and at < d + EVERY * 0.5:
 			at += 8.0
-		if track.solid_at(at) and track.piece_type_at(at) != "loop":
+		if track.solid_at(at) and not TrackPiece.turns_over(track.piece_type_at(at)):
 			for across in ACROSS:
 				var frame := track.frame_at(at)
 				frame.origin += frame.basis.y * HEIGHT + frame.basis.x * across

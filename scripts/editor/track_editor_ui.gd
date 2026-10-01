@@ -62,7 +62,7 @@ const CATEGORIES := [
 		["Drop left", {"type": "curve", "turn": "left", "size": 2, "rise": -1}], ["Drop right", {"type": "curve", "turn": "right", "size": 2, "rise": -1}],
 	]],
 	["Stunts", "stunts", [
-		["Jump", {"type": "jump"}], ["Loop", {"type": "loop", "side": "right"}],
+		["Jump", {"type": "jump"}], ["Loop", {"type": "loop", "side": "right"}], ["Corkscrew", {"type": "corkscrew", "side": "right"}],
 		["Wall ride left", {"type": "curve", "turn": "left", "size": 3, "bank": 80}], ["Wall ride right", {"type": "curve", "turn": "right", "size": 3, "bank": 80}],
 		["Banked left", {"type": "curve", "turn": "left", "size": 3, "bank": 22}], ["Banked right", {"type": "curve", "turn": "right", "size": 3, "bank": 22}],
 		["Shortcut left", {"type": "curve", "turn": "left", "size": 2, "cut": true}], ["Shortcut right", {"type": "curve", "turn": "right", "size": 2, "cut": true}],
@@ -81,7 +81,7 @@ const LANDMARKS := [
 	["Ferris wheel", "ferris_wheel"], ["Pagoda", "pagoda"], ["Old banking", "old_banking"],
 	["Oast house", "oast_house"], ["Standing stones", "standing_stones"], ["Control tower", "control_tower"],
 	["Crowd on a bank", "spectator_bank"], ["Viewing deck", "viewing_deck"], ["Kart office", "kart_office"],
-	["Parked karts", "kart_row"],
+	["Parked karts", "kart_row"], ["Carousel", "carousel"], ["Drop tower", "drop_tower"], ["Red roof", "red_roof"],
 ]
 const SURFACES := [["Road", "asphalt"], ["Dirt", "dirt"], ["Gravel", "gravel"], ["Grass", "grass"], ["Sand", "sand"], ["Ice", "ice"]]
 ## "Auto" has walls only where you'd fall off, and grass runoff everywhere
@@ -99,6 +99,7 @@ const THEME_NAMES := {
 	"sakura": "Cherry blossom", "ardennes": "Forest hills", "royal_park": "Royal park", "golden_hills": "Golden hills",
 	"kent_downs": "Kent downs", "brittany": "Brittany", "varmland": "Swedish pines", "trondelag": "Norway",
 	"hall_red": "Red hall", "hall_green": "Green hall", "hall_blue": "Blue hall", "hall_neon": "Neon hall",
+	"park_wonder": "Theme park", "park_lake": "Lakeside park", "park_carolina": "Pine park", "park_desert": "Desert park",
 }
 const DANGER := BuilderStyle.DANGER
 const DATA := BuilderStyle.DATA

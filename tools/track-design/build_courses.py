@@ -35,6 +35,10 @@ INFO = {
  "bohemian_bends": ("Kart Centrum, Prague, Czechia", "A tangle of tight bends that fold back on each other, under the lights."),
  "spark_deck": ("TeamSport Karting, Watford, England", "Up onto the deck and back down under it, round a hall built on two levels."),
  "neon_nights": ("Kart2000, Wasserburg am Inn, Germany", "Round the hall in the glow of the lights, with the crowd watching from the deck."),
+ "serpent_summit": ("Leviathan, Canada's Wonderland, Ontario, Canada", "Up the lift and round the park on the high rails, through a corkscrew and over the camelback."),
+ "lakeshore_plunge": ("Millennium Force, Cedar Point, Ohio, USA", "Out along the lake shore and back, over an airtime hill and upside down through the corkscrew."),
+ "red_rocket": ("Formula Rossa, Ferrari World, Abu Dhabi", "A figure eight out of the desert, up over the top hat and down under the big red roof."),
+ "twister_pines": ("Afterburn, Carowinds, North Carolina, USA", "Twisting round and round itself in the pines, upside down on the way."),
 }
 def rotate_to_longest_straight(pieces):
     """Moves the start line into the longest run of straights at ground level,

@@ -1,0 +1,32 @@
+{
+	"name": "Lakeshore Plunge",
+	"inspired_by": "Millennium Force, Cedar Point, Ohio, USA",
+	"about": "Out along the lake shore and back, over an airtime hill and upside down through the corkscrew.",
+	"theme": "park_lake",
+	"laps": 3,
+	"width": 13.0,
+	"grid": 32,
+	"pieces": [
+		{"type": "straight", "length": 1},
+		{"type": "curve", "turn": "right", "size": 2},
+		{"type": "curve", "turn": "right", "size": 2, "rise": 2},
+		{"type": "curve", "turn": "right", "size": 1},
+		{"type": "slant", "turn": "right", "length": 4, "across": 3},
+		{"type": "curve", "turn": "left", "size": 1},
+		{"type": "corkscrew", "side": "left"},
+		{"type": "straight", "length": 2},
+		{"type": "slant", "turn": "left", "length": 3, "across": 2},
+		{"type": "curve", "turn": "left", "size": 1},
+		{"type": "crest", "length": 2, "height": 2.7},
+		{"type": "slant", "turn": "left", "length": 3, "across": 1},
+		{"type": "curve", "turn": "right", "size": 1},
+		{"type": "curve", "turn": "right", "size": 1},
+		{"type": "slant", "turn": "left", "length": 4, "across": 1},
+		{"type": "slant", "turn": "right", "length": 4, "across": 1},
+		{"type": "slant", "turn": "left", "length": 2, "across": 1, "rise": -2},
+		{"type": "curve", "turn": "right", "size": 1},
+		{"type": "curve", "turn": "right", "size": 2},
+		{"type": "curve", "turn": "left", "size": 3},
+		{"type": "straight", "length": 2}
+	]
+}

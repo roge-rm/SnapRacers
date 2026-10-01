@@ -1,0 +1,3 @@
+Serpent Summit
+width=13 laps=3 theme=park_wonder
+S3 L1^2 L1 L1 R1 SL3.2 SR3.2 S1 SR4.2 L1 SL4.1 C3 S1 R1 R1 S2 SL4.1 XL R2 SR6.3 SR4.1^-2

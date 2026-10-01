@@ -25,6 +25,9 @@ var lap_times: Array[float] = []
 
 var _quarters_seen := {}
 var _lap_started := 0.0
+## When the lap before this one started, so backing over the line can put it
+## back.
+var _lap_before := 0.0
 
 
 func _init(length: float, laps_needed: int, start_offset: float) -> void:
@@ -65,6 +68,7 @@ func update(new_offset: float, time: float) -> void:
 			if laps >= 0:
 				lap_times.append(time - _lap_started)
 			laps += 1
+			_lap_before = _lap_started
 			_lap_started = time
 			_quarters_seen.clear()
 			if laps >= laps_to_win:
@@ -75,8 +79,12 @@ func update(new_offset: float, time: float) -> void:
 			# count, and it doesn't cost anything either.
 			pass
 	elif new_offset - offset > half:
-		# It backed over the start line. Undo the lap it started, and treat the
-		# quarters behind as seen, so driving forward again gives it back.
+		# It backed over the start line. Undo the lap it started, and the time
+		# of the lap it finished there, and treat the quarters behind as seen,
+		# so driving forward again gives it back.
+		if laps >= 1 and not lap_times.is_empty():
+			lap_times.pop_back()
+			_lap_started = _lap_before
 		laps -= 1
 		for q in range(1, QUARTERS):
 			_quarters_seen[q] = true

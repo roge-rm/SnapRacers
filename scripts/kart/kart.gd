@@ -110,6 +110,11 @@ const STICK_HOLD := 0.4
 const STICK_ALIGN := 90.0
 const STICK_ALIGN_DAMP := 13.0
 const STICK_PITCH_DAMP := 4.0
+## On a corkscrew the kart rides the road like a roller coaster on its rails
+## (see _ride_rail()). This is how fast it moves in toward the middle of the
+## road as it goes, in metres a second, so it doesn't ride round with a wall
+## beside it.
+const RAIL_CENTRE := 3.0
 ## A little extra pull onto sticky road to keep all four wheels planted over
 ## bumps. On a loop the kart's own speed presses it down far harder than this.
 const STICK_PULL := 0.1
@@ -188,6 +193,21 @@ var sticking := false
 ## Which way is up off the road while it's sticking.
 var stick_up := Vector3.UP
 var _stick_left := 0.0
+## How fast the sticky road under the kart is turning over, from how its up
+## moved last step, so a kart rolling round a corkscrew is only damped
+## against the road and not held back from rolling with it.
+var _road_spin := Vector3.ZERO
+var _last_stick_up := Vector3.ZERO
+## How high above a corkscrew's middle line the kart rides, how far across
+## it, and how fast it was going, from when it got on. INF when it isn't on
+## one.
+var _rail_height := INF
+var _rail_across := 0.0
+var _rail_speed := 0.0
+## How far along the corkscrew's line it is, in points, and the start of the
+## last line it rode to the end of.
+var _rail_at := 0.0
+var _rail_done := Vector3.INF
 
 ## The power-ups on the two gadget buttons, "" for none, and how many goes
 ## each has left.
@@ -630,6 +650,8 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 	var space := state.get_space_state()
 	var sticky_up := Vector3.ZERO
 	var sticky_wheels := 0
+	# The corkscrew's line, if a wheel is on one.
+	var rail := []
 	var on_rough := 0
 	var on_any := 0
 	var room := INF
@@ -663,6 +685,8 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 		if ground_body != null and ground_body.get_meta("sticky", false):
 			sticky_up += normal
 			sticky_wheels += 1
+			if ground_body.has_meta("rail"):
+				rail = ground_body.get_meta("rail")
 		var contact: Vector3 = hit.position
 		var heading := -basis.z
 		var side := basis.x
@@ -753,12 +777,26 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 		# its pitch lightly, since on a loop it has to keep pitching over. On a
 		# wall ride it needs a little pitch damping, or it bounces off as the
 		# road rises.
+		if _last_stick_up != Vector3.ZERO:
+			_road_spin = _road_spin.lerp(_last_stick_up.cross(stick_up) / dt, 0.3)
+		_last_stick_up = stick_up
 		var tilt := up.cross(stick_up)
 		var forward := -basis.z
-		var roll := forward * state.angular_velocity.dot(forward)
-		var pitch := basis.x * state.angular_velocity.dot(basis.x)
+		var spin := state.angular_velocity - _road_spin
+		var roll := forward * spin.dot(forward)
+		var pitch := basis.x * spin.dot(basis.x)
 		var want := tilt * STICK_ALIGN - roll * STICK_ALIGN_DAMP - pitch * STICK_PITCH_DAMP
 		state.apply_torque(state.inverse_inertia_tensor.inverse() * want)
+		if not rail.is_empty():
+			_ride_rail(state, rail)
+		else:
+			_rail_height = INF
+			_rail_done = Vector3.INF
+	else:
+		_road_spin = Vector3.ZERO
+		_last_stick_up = Vector3.ZERO
+		_rail_height = INF
+		_rail_done = Vector3.INF
 
 	# Air drag from everything facing forward, and downforce from any wings.
 	var air := 0.5 * KartStats.AIR_DENSITY
@@ -786,6 +824,65 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 	_feel_knocks(state)
 	_last_velocity = state.linear_velocity
 	_last_applied = applied
+
+
+## On a corkscrew, once it's going fast enough to stay on, the kart rides the
+## road like a roller coaster car on its rails. It's carried along the road
+## at least as fast as it got on, at its height above the road, moving in to
+## the middle, and turns over with it. A kart can't roll over as fast as a
+## corkscrew turns by itself, and it would bounce off. At the end it's let go,
+## and it doesn't get back on that corkscrew until it's left it.
+func _ride_rail(state: PhysicsDirectBodyState3D, rail: Array) -> void:
+	var line: PackedVector3Array = rail[0]
+	if line.size() < 3 or (_rail_done == line[0] and _rail_height == INF):
+		return
+	var at := state.transform.origin
+	if _rail_height == INF:
+		var near := 1
+		for k in range(1, line.size() - 1):
+			if line[k].distance_squared_to(at) < line[near].distance_squared_to(at):
+				near = k
+		var road := _rail_frame(rail, near, 0.0)
+		var along := state.linear_velocity.dot(-road.z)
+		# It only gets on going forward, fast enough to stay on.
+		if along < STICK_SPEED_OVERHEAD:
+			return
+		_rail_height = (at - line[near]).dot(road.y)
+		_rail_across = (at - line[near]).dot(road.x)
+		_rail_speed = along
+		_rail_at = float(near)
+	var along := maxf(state.linear_velocity.dot(-state.transform.basis.z), _rail_speed)
+	_rail_across = move_toward(_rail_across, 0.0, RAIL_CENTRE * state.step)
+	# Move on along the line by how far it goes this step.
+	var k := int(_rail_at)
+	var step_length := maxf(line[k].distance_to(line[mini(k + 1, line.size() - 1)]), 0.01)
+	_rail_at += along * state.step / step_length
+	if _rail_at >= line.size() - 1.5:
+		# Off the end, carrying on the way the road goes.
+		_rail_done = line[0]
+		_rail_height = INF
+		state.linear_velocity = -_rail_frame(rail, line.size() - 2, 0.0).z * along
+		return
+	k = int(_rail_at)
+	var f := _rail_at - k
+	var road := _rail_frame(rail, k, f)
+	var spot := line[k].lerp(line[k + 1], f) + road.x * _rail_across + road.y * _rail_height
+	state.transform = Transform3D(road, spot)
+	state.linear_velocity = -road.z * along
+	var turning := Quaternion(_rail_frame(rail, k + 1, 0.0) * _rail_frame(rail, k, 0.0).inverse())
+	state.angular_velocity = turning.get_axis() * turning.get_angle() / step_length * along if turning.get_angle() > 0.0001 else Vector3.ZERO
+
+
+## Which way the road faces `f` of the way from point k to the next on a
+## corkscrew's line, as right, up and back.
+func _rail_frame(rail: Array, k: int, f: float) -> Basis:
+	var count: int = rail[0].size()
+	var frames: Array[Basis] = []
+	for i in [k, mini(k + 1, count - 1)]:
+		var ahead: Vector3 = rail[1][i]
+		var across: Vector3 = rail[2][i]
+		frames.append(Basis(across, across.cross(ahead), -ahead).orthonormalized())
+	return frames[0].slerp(frames[1], f)
 
 
 ## Stability control. When the kart turns much faster than its front wheels

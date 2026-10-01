@@ -188,6 +188,30 @@ const THEMES := {
 		"landmarks": ["viewing_deck", "kart_office", "kart_row"],
 		"fillers": {"tire_pile": 3, "pallets": 1, "kart_row": 1},
 	},
+	"park_wonder": {
+		"ground": "#4b9f4a", "curbs": ["#0d69ab", "#f2cd37"], "wall": "#0d69ab",
+		"supports": "lattice", "supports_colour": "#f2cd37",
+		"landmarks": ["mountain", "ferris_wheel", "drop_tower", "carousel"],
+		"fillers": {"broadleaf": 3, "bush": 2, "tent": 1, "pine": 2},
+	},
+	"park_lake": {
+		"ground": "#58a84e", "curbs": ["#c4281c", "#f2f3f2"], "wall": "#c4281c",
+		"supports": "lattice", "supports_colour": "#f2f3f2",
+		"landmarks": ["lake", "lighthouse", "drop_tower", "carousel"],
+		"fillers": {"broadleaf": 3, "bush": 2, "tent": 1, "reeds": 1},
+	},
+	"park_carolina": {
+		"ground": "#4f9a45", "curbs": ["#da8540", "#f2f3f2"], "wall": "#da8540",
+		"supports": "lattice", "supports_colour": "#0d69ab",
+		"landmarks": ["ferris_wheel", "carousel", "drop_tower", "tent"],
+		"fillers": {"pine": 3, "broadleaf": 2, "tent": 1, "bush": 2},
+	},
+	"park_desert": {
+		"ground": "#d9c38c", "curbs": ["#c4281c", "#f2f3f2"], "wall": "#c4281c",
+		"supports": "lattice", "supports_colour": "#c4281c", "sky": ["#3f86d6", "#f4e9d0"],
+		"landmarks": ["red_roof", "skyscraper", "dune", "dune"],
+		"fillers": {"palm": 4, "dune": 1, "cactus": 1, "rocks": 1},
+	},
 	"golden_hills": {
 		"ground": "#a8965c", "curbs": ["#d8261c", "#f2f2f2"], "wall": "#da8540",
 		"sky": ["#3f86d6", "#e8eef2"],

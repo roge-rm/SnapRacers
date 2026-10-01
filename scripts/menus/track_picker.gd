@@ -55,12 +55,14 @@ static func describe(track: TrackPath) -> String:
 		return track.pieces.any(what)
 	if has.call(func(p): return p.type == "loop"):
 		things.append("a loop")
+	if has.call(func(p): return p.type == "corkscrew"):
+		things.append("a corkscrew")
 	if has.call(func(p): return p.type == "curve" and p.sticky):
 		things.append("a wall ride")
 	var highest := 0.0
 	for point in track.points:
 		highest = maxf(highest, point.y)
-	if highest > 4.0 and not has.call(func(p): return p.type == "loop"):
+	if highest > 4.0 and not has.call(func(p): return TrackPiece.turns_over(p.type)):
 		things.append("a bridge")
 	if has.call(func(p): return p.type == "jump"):
 		things.append("a jump")
