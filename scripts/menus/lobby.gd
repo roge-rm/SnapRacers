@@ -53,6 +53,7 @@ func _ready() -> void:
 	_picker.add_theme_stylebox_override("panel", BuilderStyle.scrim(12, 0.9))
 	add_child(_picker)
 	var scroll := ScrollContainer.new()
+	scroll.follow_focus = true
 	scroll.custom_minimum_size = Vector2(520, 520)
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	_picker.add_child(scroll)
@@ -154,7 +155,7 @@ func _show_settings(host: bool) -> void:
 		heading.size_flags_horizontal = SIZE_EXPAND_FILL
 		ai_row.add_child(heading)
 		var toggle := CheckButton.new()
-		toggle.focus_mode = FOCUS_NONE
+		toggle.focus_mode = FOCUS_ALL
 		toggle.button_pressed = s.ai
 		toggle.toggled.connect(func(on: bool) -> void: Game.net.set_settings({"ai": on}))
 		ai_row.add_child(toggle)

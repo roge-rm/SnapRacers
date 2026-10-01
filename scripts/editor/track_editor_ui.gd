@@ -336,6 +336,7 @@ func _build_drawer() -> void:
 	_heading.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	column.add_child(_heading)
 	var scroll := ScrollContainer.new()
+	scroll.follow_focus = true
 	scroll.size_flags_vertical = SIZE_EXPAND_FILL
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	column.add_child(scroll)
@@ -386,7 +387,7 @@ func _show_category(index: int) -> void:
 func _tile(label: String) -> Button:
 	var tile := Button.new()
 	tile.text = label
-	tile.focus_mode = FOCUS_NONE
+	tile.focus_mode = FOCUS_ALL
 	tile.custom_minimum_size = BuilderStyle.TILE
 	tile.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	tile.vertical_icon_alignment = VERTICAL_ALIGNMENT_TOP
@@ -406,7 +407,7 @@ func _show_picture(prop: String, picture: Texture2D) -> void:
 
 func _build_card() -> void:
 	_chip = Button.new()
-	_chip.focus_mode = FOCUS_NONE
+	_chip.focus_mode = FOCUS_ALL
 	_chip.add_theme_font_size_override("font_size", 19)
 	for state in ["normal", "hover", "pressed"]:
 		_chip.add_theme_stylebox_override(state, BuilderStyle.scrim(8))
@@ -612,6 +613,7 @@ func _build_dialogs() -> void:
 	title.add_theme_font_size_override("font_size", 26)
 	box.add_child(title)
 	var scroll := ScrollContainer.new()
+	scroll.follow_focus = true
 	scroll.custom_minimum_size = Vector2(460, 460)
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	box.add_child(scroll)

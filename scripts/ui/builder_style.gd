@@ -35,7 +35,7 @@ static func word(text: String, colour: Color, action: Callable) -> Button:
 	var button := Button.new()
 	button.text = text.to_upper()
 	button.flat = true
-	button.focus_mode = Control.FOCUS_NONE
+	button.focus_mode = Control.FOCUS_ALL
 	button.custom_minimum_size = Vector2(0, 48)
 	button.add_theme_font_size_override("font_size", 19)
 	for state in ["font_color", "font_hover_color", "font_pressed_color"]:
@@ -48,7 +48,7 @@ static func word(text: String, colour: Color, action: Callable) -> Button:
 ## Dresses a button as a small tinted pill, for the smaller controls.
 static func chip(button: Button, text: String) -> void:
 	button.text = text.to_upper()
-	button.focus_mode = Control.FOCUS_NONE
+	button.focus_mode = Control.FOCUS_ALL
 	button.custom_minimum_size = Vector2(96, 48)
 	button.add_theme_font_size_override("font_size", 19)
 	for state in ["normal", "hover", "pressed", "disabled"]:
@@ -69,7 +69,7 @@ static func chip(button: Button, text: String) -> void:
 static func pill(text: String, fill: Color, ink: Color, action: Callable, height := 56.0) -> Button:
 	var button := Button.new()
 	button.text = text.to_upper()
-	button.focus_mode = Control.FOCUS_NONE
+	button.focus_mode = Control.FOCUS_ALL
 	button.custom_minimum_size = Vector2(0, height)
 	button.add_theme_font_size_override("font_size", 22)
 	for state in ["normal", "hover", "pressed", "disabled"]:
@@ -124,7 +124,7 @@ static func menu(items: Array) -> PopupMenu:
 ## The handle left at the edge of the screen when a drawer is put away.
 static func drawer_handle(action: Callable) -> Button:
 	var handle := Button.new()
-	handle.focus_mode = Control.FOCUS_NONE
+	handle.focus_mode = Control.FOCUS_ALL
 	handle.custom_minimum_size = Vector2(30, 80)
 	var tab_style := StyleBoxFlat.new()
 	tab_style.bg_color = SCRIM

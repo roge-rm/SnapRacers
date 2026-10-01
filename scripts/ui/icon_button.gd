@@ -23,7 +23,7 @@ func _init(what: String, tip := "") -> void:
 	picture = what
 	tooltip_text = tip
 	custom_minimum_size = Vector2(SIZE, SIZE)
-	focus_mode = FOCUS_NONE
+	focus_mode = FOCUS_ALL
 	_style()
 
 

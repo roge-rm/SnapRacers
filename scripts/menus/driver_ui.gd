@@ -131,7 +131,7 @@ func _show_swatches() -> void:
 	for colour in colours:
 		var swatch := Button.new()
 		swatch.custom_minimum_size = Vector2(SWATCH, SWATCH)
-		swatch.focus_mode = FOCUS_NONE
+		swatch.focus_mode = FOCUS_ALL
 		BuilderStyle.show_swatch(swatch, colour, colour.is_equal_approx(design.color_of(slot)))
 		swatch.pressed.connect(func() -> void: colour_chosen.emit(slot, colour))
 		_swatches.add_child(swatch)
@@ -189,6 +189,7 @@ func _build_drawer() -> void:
 	_heading.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	column.add_child(_heading)
 	var scroll := ScrollContainer.new()
+	scroll.follow_focus = true
 	scroll.size_flags_vertical = SIZE_EXPAND_FILL
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	column.add_child(scroll)
@@ -202,7 +203,7 @@ func _build_drawer() -> void:
 ## Their name and weight on one line in the top right, which opens into a card.
 func _build_card() -> void:
 	_chip = Button.new()
-	_chip.focus_mode = FOCUS_NONE
+	_chip.focus_mode = FOCUS_ALL
 	_chip.add_theme_font_size_override("font_size", 19)
 	for state in ["font_color", "font_hover_color", "font_pressed_color"]:
 		_chip.add_theme_color_override(state, BuilderStyle.DATA)
@@ -328,7 +329,7 @@ class DriverTile:
 		icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		vertical_icon_alignment = VERTICAL_ALIGNMENT_TOP
 		expand_icon = true
-		focus_mode = FOCUS_NONE
+		focus_mode = FOCUS_ALL
 		custom_minimum_size = BuilderStyle.TILE + Vector2(0, 16)
 		autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		add_theme_font_size_override("font_size", 14)

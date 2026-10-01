@@ -24,7 +24,7 @@ func _ready() -> void:
 		var tab := Button.new()
 		tab.text = TABS[i]
 		tab.flat = true
-		tab.focus_mode = Control.FOCUS_NONE
+		tab.focus_mode = Control.FOCUS_ALL
 		tab.add_theme_font_size_override("font_size", 24)
 		tab.pressed.connect(_show_tab.bind(i))
 		slot.add_child(tab)
@@ -42,6 +42,13 @@ func _ready() -> void:
 		column.add_child(page)
 	MenuStyle.back_at_bottom(column, Game.show_menu)
 	_show_tab(0)
+
+
+## LB and RB on a controller go to the tab before or after.
+func next_tab(by: int) -> void:
+	var now := _pages.find(_pages.filter(func(p): return p.visible)[0])
+	_show_tab(posmod(now + by, TABS.size()))
+	PadFocus.focus_first(_pages[posmod(now + by, TABS.size())])
 
 
 func _show_tab(index: int) -> void:
@@ -123,7 +130,7 @@ func _display_page() -> Control:
 	heading.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	row.add_child(heading)
 	var toggle := CheckButton.new()
-	toggle.focus_mode = Control.FOCUS_NONE
+	toggle.focus_mode = Control.FOCUS_ALL
 	toggle.button_pressed = Game.show_fps()
 	toggle.toggled.connect(func(on: bool) -> void: Game.set_setting("display", "show_fps", on))
 	row.add_child(toggle)

@@ -95,6 +95,8 @@ func _ready() -> void:
 
 	# The menu, with quit and the settings, at the top in the middle.
 	_menu = IconButton.new("pause", "Menu")
+	# The driving keys and buttons mustn't press the HUD's buttons.
+	_menu.focus_mode = FOCUS_NONE
 	add_child(_menu)
 	_menu.set_anchors_and_offsets_preset(PRESET_CENTER_TOP)
 	_menu.offset_left = -IconButton.SIZE * 0.5
@@ -105,6 +107,7 @@ func _ready() -> void:
 
 	# The camera button, left of where the touch controls put reset.
 	_camera = IconButton.new("camera", "Change the view")
+	_camera.focus_mode = FOCUS_NONE
 	add_child(_camera)
 	_camera.set_anchors_and_offsets_preset(PRESET_TOP_RIGHT)
 	_camera.offset_left = -190.0
@@ -287,7 +290,7 @@ func _build_results() -> void:
 		var button := Button.new()
 		button.text = pair[0]
 		button.custom_minimum_size = Vector2(160, 60)
-		button.focus_mode = FOCUS_NONE
+		button.focus_mode = FOCUS_ALL
 		var signal_to_send: Signal = pair[1]
 		button.pressed.connect(func() -> void: signal_to_send.emit())
 		row.add_child(button)
@@ -296,6 +299,7 @@ func _build_results() -> void:
 func show_results() -> void:
 	_results.visible = true
 	_menu.visible = false
+	PadFocus.focus_first.call_deferred(_results)
 	if touch != null:
 		touch.visible = false
 	_fill_results()

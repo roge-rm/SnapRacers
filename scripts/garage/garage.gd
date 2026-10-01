@@ -543,6 +543,11 @@ func _to_menu() -> void:
 	Game.show_editors()
 
 
+## The garage has its own way of using a controller and the keys.
+func own_controls() -> bool:
+	return true
+
+
 ## Back stops whatever you're doing first, then goes to the editors.
 func go_back() -> void:
 	if _mode == GarageUI.Mode.PLACING:

@@ -80,6 +80,17 @@ func _ready() -> void:
 	Sounds.setup(volume(Sounds.MUSIC_BUS), volume(Sounds.EFFECTS_BUS))
 	plugin = NetPlugin.new()
 	add_child(plugin)
+	# A on a controller presses buttons, like Enter. (B goes back, through
+	# PadFocus.)
+	var accept := InputEventJoypadButton.new()
+	accept.device = -1
+	accept.button_index = JOY_BUTTON_A
+	if not InputMap.action_has_event("ui_accept", accept):
+		InputMap.action_add_event("ui_accept", accept)
+	var focus := PadFocus.new()
+	focus.screen = func() -> Node: return _screen
+	focus.back = _go_back
+	add_child(focus)
 	controllers = Controllers.new()
 	controllers.settings = settings
 	controllers.changed.connect(save_settings)
@@ -503,6 +514,9 @@ func _swap(next: Node) -> void:
 		Sounds.music("menu")
 	_set_portrait(next is Race and race_split() == FACE_TO_FACE)
 	_host.add_child(next)
+	# With a controller in hand, the new screen's first button is picked out.
+	if not next is Race:
+		PadFocus.focus_first.call_deferred(next)
 
 
 ## Face to face races are played in portrait. Everything else is landscape.

@@ -15,7 +15,7 @@ var _wait := 0.0
 
 
 func _ready() -> void:
-	focus_mode = FOCUS_NONE
+	focus_mode = FOCUS_ALL
 	button_down.connect(func() -> void:
 		_held = true
 		_wait = FIRST_WAIT

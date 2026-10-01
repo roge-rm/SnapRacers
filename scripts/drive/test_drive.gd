@@ -81,6 +81,11 @@ func _ready() -> void:
 	for control in [speed_label, garage, view]:
 		safe.watch(control)
 
+## The controller and keys drive here, so they don't move round the buttons.
+func own_controls() -> bool:
+	return true
+
+
 func go_back() -> void:
 	Game.show_garage()
 

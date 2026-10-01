@@ -143,7 +143,7 @@ static func _ranges(all: Array) -> Dictionary:
 func _card(key: String, design: KartDesign, ranges: Dictionary) -> Button:
 	var card := ScrollButton.new()
 	card.custom_minimum_size = CARD
-	card.focus_mode = FOCUS_NONE
+	card.focus_mode = FOCUS_ALL
 	card.set_meta("kart", key)
 	var box := VBoxContainer.new()
 	box.name = "Box"

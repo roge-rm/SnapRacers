@@ -396,6 +396,7 @@ func _build_drawer() -> void:
 		_show_drawer(false))
 	heading.add_child(shut)
 	var scroll := ScrollContainer.new()
+	scroll.follow_focus = true
 	scroll.size_flags_vertical = SIZE_EXPAND_FILL
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	column.add_child(scroll)
@@ -466,7 +467,7 @@ func show_picture(id: String, picture: Texture2D) -> void:
 
 func _build_stats() -> void:
 	_stats_chip = Button.new()
-	_stats_chip.focus_mode = FOCUS_NONE
+	_stats_chip.focus_mode = FOCUS_ALL
 	_stats_chip.add_theme_font_size_override("font_size", 19)
 	for state in ["normal", "hover", "pressed"]:
 		_stats_chip.add_theme_stylebox_override(state, BuilderStyle.scrim(8))
@@ -668,7 +669,7 @@ func _build_painting() -> void:
 	for hex in PAINTS:
 		var swatch := Button.new()
 		swatch.custom_minimum_size = Vector2(42, 42)
-		swatch.focus_mode = FOCUS_NONE
+		swatch.focus_mode = FOCUS_ALL
 		var colour := Color(hex)
 		swatch.set_meta("colour", colour)
 		swatch.pressed.connect(func() -> void:
@@ -730,6 +731,7 @@ func _build_dialogs() -> void:
 	title.add_theme_font_size_override("font_size", 26)
 	box.add_child(title)
 	var scroll := ScrollContainer.new()
+	scroll.follow_focus = true
 	scroll.custom_minimum_size = Vector2(460, 460)
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	box.add_child(scroll)
@@ -814,7 +816,7 @@ class PartTile:
 		icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		vertical_icon_alignment = VERTICAL_ALIGNMENT_TOP
 		expand_icon = true
-		focus_mode = FOCUS_NONE
+		focus_mode = FOCUS_ALL
 		custom_minimum_size = BuilderStyle.TILE
 		autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		add_theme_font_size_override("font_size", 14)

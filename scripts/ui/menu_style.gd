@@ -36,7 +36,14 @@ static func theme() -> Theme:
 		box.content_margin_top = 10
 		box.content_margin_bottom = 10
 		if state == "focus":
+			# A white ring just outside the button picked out with a
+			# controller or the keys, so it can't be mixed up with the
+			# accent ring on a chosen one.
 			box.draw_center = false
+			box.border_color = Color.WHITE
+			box.set_border_width_all(4)
+			box.set_expand_margin_all(5)
+			box.set_corner_radius_all(int(BUTTON_HEIGHT * 0.5) + 5)
 		_theme.set_stylebox(state, "Button", box)
 	for colour_name in ["font_color", "font_hover_color", "font_pressed_color", "font_focus_color"]:
 		_theme.set_color(colour_name, "Button", Color.WHITE)
@@ -89,6 +96,7 @@ static func screen(root: Control) -> VBoxContainer:
 	root.add_child(back)
 	back.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	var scroll := ScrollContainer.new()
+	scroll.follow_focus = true
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	root.add_child(scroll)
 	scroll.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -126,7 +134,7 @@ static func button(text: String, action: Callable, subtitle := "") -> Button:
 	var b := ScrollButton.new()
 	b.text = text if subtitle == "" else "%s\n%s" % [text, subtitle]
 	b.custom_minimum_size = Vector2(0.0, BUTTON_HEIGHT)
-	b.focus_mode = Control.FOCUS_NONE
+	b.focus_mode = Control.FOCUS_ALL
 	if action.is_valid():
 		b.tapped.connect(action)
 	return b
@@ -164,7 +172,7 @@ static func link(text: String, action: Callable) -> Button:
 	var b := Button.new()
 	b.text = text
 	b.flat = true
-	b.focus_mode = Control.FOCUS_NONE
+	b.focus_mode = Control.FOCUS_ALL
 	b.add_theme_color_override("font_color", ACCENT)
 	b.add_theme_color_override("font_hover_color", ACCENT.lightened(0.2))
 	b.add_theme_color_override("font_pressed_color", ACCENT.darkened(0.2))
@@ -181,7 +189,7 @@ static func slider(value: float, changed: Callable, low := 0.0, high := 1.0, ste
 	s.max_value = high
 	s.step = step
 	s.value = value
-	s.focus_mode = Control.FOCUS_NONE
+	s.focus_mode = Control.FOCUS_ALL
 	s.custom_minimum_size = Vector2(320.0, 48.0)
 	s.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	var track := StyleBoxFlat.new()
@@ -264,6 +272,7 @@ static func page(root: Control, heading_text: String, back: Callable, width := 7
 	top.add_child(link("Back", back))
 
 	var scroll := ScrollContainer.new()
+	scroll.follow_focus = true
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
 	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL

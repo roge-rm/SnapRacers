@@ -36,7 +36,7 @@ func _ready() -> void:
 	heading.size_flags_horizontal = SIZE_EXPAND_FILL
 	two_row.add_child(heading)
 	_two = CheckButton.new()
-	_two.focus_mode = FOCUS_NONE
+	_two.focus_mode = FOCUS_ALL
 	_two.button_pressed = Game.online_two
 	_two.toggled.connect(func(on: bool) -> void:
 		Game.online_two = on

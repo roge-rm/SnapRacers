@@ -175,6 +175,11 @@ func _ready() -> void:
 	fit_view()
 
 
+## The editor has its own way of using a controller and the keys.
+func own_controls() -> bool:
+	return true
+
+
 func go_back() -> void:
 	Game.show_editors()
 

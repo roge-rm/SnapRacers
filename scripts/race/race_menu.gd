@@ -44,6 +44,7 @@ func _ready() -> void:
 	panel.grow_horizontal = GROW_DIRECTION_BOTH
 	panel.grow_vertical = GROW_DIRECTION_BOTH
 	var scroll := ScrollContainer.new()
+	scroll.follow_focus = true
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	panel.add_child(scroll)
 	var column := VBoxContainer.new()
@@ -97,7 +98,7 @@ func _ready() -> void:
 		column.add_child(_row("Map", _map_button))
 
 	var fps := CheckButton.new()
-	fps.focus_mode = Control.FOCUS_NONE
+	fps.focus_mode = Control.FOCUS_ALL
 	fps.button_pressed = Game.show_fps()
 	fps.toggled.connect(func(on: bool) -> void: Game.set_setting("display", "show_fps", on))
 	column.add_child(_row("Frame rate", fps))
@@ -108,6 +109,8 @@ func _ready() -> void:
 	scroll.custom_minimum_size = Vector2(440.0, minf(column.get_combined_minimum_size().y, room))
 	panel.reset_size()
 	panel.position = (get_viewport_rect().size - panel.size) * 0.5
+	if PadFocus.using_pad:
+		_resume.grab_focus.call_deferred()
 
 
 ## A setting's name on the left and what changes it on the right.

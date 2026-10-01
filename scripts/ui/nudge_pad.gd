@@ -27,7 +27,7 @@ func _ready() -> void:
 		var button := RepeatButton.new()
 		button.custom_minimum_size = Vector2(58, 58)
 		button.size = Vector2(58, 58)
-		button.focus_mode = FOCUS_NONE
+		button.focus_mode = FOCUS_ALL
 		for state in ["normal", "hover", "pressed"]:
 			var round := StyleBoxFlat.new()
 			round.bg_color = Color(1, 1, 1, 0.3 if state == "pressed" else 0.16)
