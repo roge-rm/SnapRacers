@@ -26,6 +26,11 @@ func _ready() -> void:
 	var bend := float(args[0]) if args.size() > 0 else 0.0
 	var time := float(args[1]) if args.size() > 1 else 0.45
 	AIDriver.slide_mode = args[2] if args.size() > 2 else "brake"
+	# SLIDE_BRAKE and SLIDE_DRIVE try other kinds of slide (see Kart).
+	if OS.has_environment("SLIDE_BRAKE"):
+		Kart.slide_brake = float(OS.get_environment("SLIDE_BRAKE"))
+	if OS.has_environment("SLIDE_DRIVE"):
+		Kart.slide_drive = float(OS.get_environment("SLIDE_DRIVE"))
 	var kart: String = args[3] if args.size() > 3 else "starter"
 	var courses: Array = args.slice(4) if args.size() > 4 else COURSES
 	AIDriver.slide_bend = bend if bend > 0.0 else 99.0
@@ -37,7 +42,7 @@ func _ready() -> void:
 		total += result[0]
 		slides += result[2]
 		print("%-16s %.2f s, %d resets, %d slides" % [course, result[0], result[1], result[2]])
-	print("TOTAL bend %.3f time %.2f %s %s: %.2f s, %d slides" % [bend, time, AIDriver.slide_mode, kart, total, slides])
+	print("TOTAL bend %.3f time %.2f %s %s, brake %.2f drive %.2f: %.2f s, %d slides" % [bend, time, AIDriver.slide_mode, kart, Kart.slide_brake, Kart.slide_drive, total, slides])
 	get_tree().quit()
 
 

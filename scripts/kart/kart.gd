@@ -68,6 +68,11 @@ const RESET_LIFT := 1.0
 const SLIDE_SPEED := 6.0
 const SLIDE_REAR_GRIP := 0.2
 const SLIDE_RECOVER := 0.5
+## How hard the back wheels brake while sliding, as a share of the brakes,
+## and how much of the engine still drives. Tuned with
+## tools/stock-karts/slide_bench.gd, so they can be changed from there.
+static var slide_brake := 1.0
+static var slide_drive := 0.0
 const RESET_SLOWDOWN_TIME := 2.5
 const RESET_SLOWDOWN := 0.5
 
@@ -784,8 +789,8 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 	elif controls.throttle > 0.0:
 		drive = controls.throttle * minf(max_force, power / maxf(absf(forward_speed), 1.0)) * push
 	if sliding:
-		# The back wheels are locked, so nothing drives.
-		drive = 0.0
+		# The back wheels are held back, so the engine only drives a little.
+		drive *= slide_drive
 	elif controls.brake > 0.0 and not locked:
 		if forward_speed > 0.5:
 			braking = true
@@ -883,7 +888,7 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 		if braking:
 			resist += BRAKE_FORCE * (1.0 if locked else controls.brake) / wheels.size()
 		elif sliding and not w.steered:
-			resist += BRAKE_FORCE / maxf(wheels.size() - _steered_count, 1)
+			resist += BRAKE_FORCE * slide_brake / maxf(wheels.size() - _steered_count, 1)
 		f_long -= signf(v_long) * minf(resist, absf(v_long) * stop_force)
 		var most := KartStats.TIRE_FRICTION * w.grip * grip_here * load
 		if slide_amount > 0.0 and not w.steered:
