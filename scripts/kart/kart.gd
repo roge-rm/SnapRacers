@@ -280,6 +280,8 @@ var _turning := []
 var _ground_y := 0.0
 ## How far the front wheels turn at full lock right now (see steer_limit()).
 var full_lock := MAX_STEER
+## How wide it is (see width()), or -1 until it's worked out again.
+var _width := -1.0
 ## Whether the kart is stuck to the road on a loop or a wall ride right now.
 var sticking := false
 ## Which way is up off the road while it's sticking.
@@ -534,6 +536,7 @@ func _assemble() -> void:
 	add_child(_looks)
 
 	stats = KartStats.compute(design, lost, _full.origin_cell, _driver_mass())
+	_width = -1.0
 	power = stats.power
 	max_force = stats.max_force
 	thrust = stats.thrust
@@ -670,11 +673,15 @@ func bumper_point() -> Vector3:
 
 ## How wide the kart is, in metres, wheels and all.
 func width() -> float:
-	var most := 0.0
-	if stats != null:
-		for info in stats.parts:
-			most = maxf(most, absf(info.centre.x) + info.extent.x * 0.5)
-	return most * 2.0 if most > 0.0 else 2.0
+	# The AI asks for every kart's width each step, so it's kept until the
+	# parts change.
+	if _width < 0.0:
+		var most := 0.0
+		if stats != null:
+			for info in stats.parts:
+				most = maxf(most, absf(info.centre.x) + info.extent.x * 0.5)
+		_width = most * 2.0 if most > 0.0 else 2.0
+	return _width
 
 
 ## How far the back of the kart is behind its middle, in metres, for the chase

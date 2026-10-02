@@ -10,6 +10,8 @@ extends RefCounted
 ## which way the AI should head, and where to put a kart back after a reset.
 
 const SAMPLE := 1.0
+## How far along the road a bend is measured over (see bend_at()).
+const BEND_SPAN := 6.0
 ## Room beside the road's edge line, where the curbs go on the corners.
 const KERB := 1.5
 ## How wide the road is. Eight karts race at once, and this is room for three
@@ -61,6 +63,9 @@ var forwards := PackedVector3Array()
 var ups := PackedVector3Array()
 var rights := PackedVector3Array()
 var distances := PackedFloat32Array()
+## See _make_lookups().
+var _metre_index := PackedInt32Array()
+var _bends := PackedFloat32Array()
 var solids: Array[bool] = []
 var stickies: Array[bool] = []
 var piece_of := PackedInt32Array()
@@ -210,6 +215,22 @@ func build() -> void:
 		distances.append(total)
 		total += points[k].distance_to(points[(k + 1) % points.size()])
 	length = total
+	_make_lookups()
+
+
+## Tables that make looking things up along the track quick, since the AI
+## does it dozens of times a step for every driver: the sample at or before
+## each whole metre, and how much the road bends at each sample.
+func _make_lookups() -> void:
+	_metre_index.resize(int(length) + 2)
+	var i := 0
+	for m in _metre_index.size():
+		while i + 1 < distances.size() and distances[i + 1] <= m:
+			i += 1
+		_metre_index[m] = i
+	_bends.resize(points.size())
+	for k in points.size():
+		_bends[k] = _bend_between(distances[k])
 
 
 ## How far banked road leaning this much lifts its middle, since it leans up
@@ -234,15 +255,10 @@ func _hill(pose: Transform3D, piece: TrackPiece, t: float) -> float:
 
 func _index_before(offset: float) -> int:
 	var d := fposmod(offset, length)
-	var lo := 0
-	var hi := distances.size() - 1
-	while lo < hi:
-		var mid := (lo + hi + 1) / 2
-		if distances[mid] <= d:
-			lo = mid
-		else:
-			hi = mid - 1
-	return lo
+	var i := _metre_index[int(d)] if int(d) < _metre_index.size() else 0
+	while i + 1 < distances.size() and distances[i + 1] <= d:
+		i += 1
+	return i
 
 
 func _blend(offset: float) -> Array:
@@ -339,7 +355,16 @@ func curvature_at(offset: float, span := 6.0) -> float:
 ## How sharply the track turns left or right here, ignoring hills and
 ## loops, as one over the corner's radius. This is what limits how fast a
 ## kart can get around.
-func bend_at(offset: float, span := 6.0) -> float:
+func bend_at(offset: float, span := BEND_SPAN) -> float:
+	if span == BEND_SPAN and not _bends.is_empty():
+		var i := _index_before(offset)
+		var j := (i + 1) % points.size()
+		var gap := (distances[j] if j != 0 else length) - distances[i]
+		return lerpf(_bends[i], _bends[j], clampf((fposmod(offset, length) - distances[i]) / maxf(gap, 0.0001), 0.0, 1.0))
+	return _bend_between(offset, span)
+
+
+func _bend_between(offset: float, span := BEND_SPAN) -> float:
 	var a := forward_at(offset - span * 0.5)
 	var b := forward_at(offset + span * 0.5)
 	# It's measured across the road itself, so the way a loop curls over the

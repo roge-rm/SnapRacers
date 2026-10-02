@@ -158,15 +158,19 @@ func _set_level(player: AudioStreamPlayer3D, amount: float, level: float) -> voi
 ## Plays a loop or pauses it. A loop only ever starts playing once it's meant
 ## to be heard, since one started and paused straight away still plays for a
 ## moment, which behind the splash screen was every kart at once.
+##
+## The pause is only changed when it needs to be. In a browser, unpausing a
+## sound starts it again from a fresh copy of the whole thing.
 func _run(player: AudioStreamPlayer3D, on: bool) -> void:
 	if player.stream == null:
 		return
 	if not on:
-		if player.playing:
+		if player.playing and not player.stream_paused:
 			player.stream_paused = true
 		return
 	if not player.playing:
 		if not Sounds.audible():
 			return
 		player.play()
-	player.stream_paused = false
+	if player.stream_paused:
+		player.stream_paused = false
