@@ -320,7 +320,7 @@
 			"mass": 0.4
 		},
 		"beanie": {
-			"name": "Bobble hat",
+			"name": "Toque",
 			"mass": 0.4
 		},
 		"hard_hat": {
@@ -595,11 +595,11 @@
 			"mass": 13.0
 		},
 		"vest": {
-			"name": "Waistcoat",
+			"name": "Vest",
 			"mass": 13.0
 		},
 		"tank_top": {
-			"name": "Vest top",
+			"name": "Tank top",
 			"mass": 11.0
 		},
 		"flowery": {
@@ -611,7 +611,7 @@
 			"mass": 12.0
 		},
 		"plaid": {
-			"name": "Check shirt",
+			"name": "Plaid shirt",
 			"mass": 12.5
 		},
 		"lab_coat": {
@@ -765,7 +765,7 @@
 	},
 	"legs": {
 		"trousers": {
-			"name": "Trousers",
+			"name": "Pants",
 			"mass": 12.0
 		},
 		"shorts": {
@@ -822,7 +822,7 @@
 			"boots": true
 		},
 		"stripy": {
-			"name": "Stripy trousers",
+			"name": "Stripy pants",
 			"mass": 12.0,
 			"print": "stripes"
 		},
@@ -838,7 +838,7 @@
 			"print": "chaps"
 		},
 		"sneakers": {
-			"name": "Trainers",
+			"name": "Running shoes",
 			"mass": 11.0,
 			"shoes": "white"
 		},

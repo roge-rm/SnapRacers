@@ -71,7 +71,7 @@ static func build(rig: CharacterRig) -> void:
 			for s: float in [-1.0, 1.0]:
 				front.call(Vector2(0.012, 0.22), GOLD, 0.062 * s, y - 0.03, 0.0, 1)
 		"vest":
-			# A waistcoat open over a white shirt.
+			# A vest open over a white shirt.
 			front.call(Vector2(0.1, R.TORSO_HEIGHT * 0.95), WHITE, 0.0, y)
 			for s: float in [-1.0, 1.0]:
 				front.call(Vector2(0.012, R.TORSO_HEIGHT * 0.9), GOLD, 0.055 * s, y, 0.0, 1)
