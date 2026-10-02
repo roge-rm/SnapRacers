@@ -5,6 +5,10 @@ extends Control
 ## the stock karts. In a race against the AI you pick how good they are here
 ## too. Each card has a picture of the kart, a line about it and bars for how
 ## it compares with the rest. It remembers what you picked last time.
+##
+## Two on one phone each pick in turn on this screen, player 1 first, with
+## a big tag in their own colour saying whose turn it is, and their name,
+## which they can change.
 
 const COLUMNS := 3
 ## A card's size. Buttons don't grow to fit what's put inside them, so it's
@@ -12,6 +16,8 @@ const COLUMNS := 3
 const CARD := Vector2(330, 490)
 ## The bars on each card, as [label, what they measure].
 const BARS := [["Speed", "speed"], ["Pull", "pull"], ["Grip", "grip"], ["Control", "control"], ["Off-road", "offroad"]]
+## Each player's colour, for their tag when two are picking.
+const PLAYER_COLOURS := [Color("#4fa8ff"), Color("#ffa63d")]
 
 var _go: Callable
 var _back: Callable
@@ -23,16 +29,21 @@ var _pictures: KartThumbnails
 var _ai := false
 var _levels := {}
 var _level_about: Label
+## Which of two players on this phone is picking, 1 or 2, or 0 when it's one.
+var player := 0
+var _name: LineEdit
 
 
-func _init(go: Callable, back: Callable, ai := false) -> void:
+func _init(go: Callable, back: Callable, ai := false, for_player := 0) -> void:
 	_go = go
 	_back = back
 	_ai = ai
+	player = for_player
 
 
 func _ready() -> void:
-	var column := MenuStyle.page(self, "Pick a kart", go_back, CARD.x * COLUMNS + 24.0 * (COLUMNS - 1))
+	var title := "Pick a kart" if player == 0 else "Player %d, pick your kart" % player
+	var column := MenuStyle.page(self, title, go_back, CARD.x * COLUMNS + 24.0 * (COLUMNS - 1))
 	_pictures = KartThumbnails.new()
 	_pictures.ready_for.connect(_show_picture)
 	add_child(_pictures)
@@ -44,15 +55,27 @@ func _ready() -> void:
 	var outer: VBoxContainer = column.get_parent().get_parent().get_parent()
 	outer.add_child(top)
 	outer.move_child(top, 1)
+	if player > 0:
+		top.add_child(_player_tag())
+	if player > 0:
+		# Player 1's name is the one in Settings, and player 2 has their own.
+		var key := "name" if player == 1 else "name_two"
+		_name = LineEdit.new()
+		_name.placeholder_text = "Player %d's name" % player
+		_name.max_length = 16
+		_name.text = Game.player_one_name() if player == 1 else Game.player_two_name()
+		_name.custom_minimum_size = Vector2(260.0, 48.0)
+		_name.text_changed.connect(func(text: String) -> void: Game.set_setting("player", key, text.strip_edges()))
+		top.add_child(_name)
 	_chosen_label = Label.new()
 	_chosen_label.size_flags_horizontal = SIZE_EXPAND_FILL
 	_chosen_label.add_theme_font_size_override("font_size", 26)
 	top.add_child(_chosen_label)
-	_race = MenuStyle.button("Race", func() -> void: _go.call())
+	_race = MenuStyle.button("Next" if player == 1 else "Race", func() -> void: _go.call())
 	_race.custom_minimum_size.x = 220.0
 	MenuStyle.mark(_race, true)
 	top.add_child(_race)
-	if _ai:
+	if _ai and player != 2:
 		outer.add_child(_difficulty_row())
 		outer.move_child(outer.get_child(outer.get_child_count() - 1), 2)
 		_show_level(Game.difficulty())
@@ -73,11 +96,31 @@ func _ready() -> void:
 	MenuStyle.back_at_bottom(column, go_back)
 	# Your own kart changes in the garage, so take its picture again each time.
 	KartThumbnails.forget(Game.OWN_KART)
-	_choose(Game.kart_choice() if not (Game.kart_choice() == Game.OWN_KART and not Game.design.problems().is_empty()) else "starter")
+	var last := Game.player_two_kart() if player == 2 else Game.kart_choice()
+	_choose(last if not (last == Game.OWN_KART and not Game.design.problems().is_empty()) else "starter")
 
 
 func go_back() -> void:
 	_back.call()
+
+
+## A big tag in the player's colour saying whose turn it is to pick.
+func _player_tag() -> PanelContainer:
+	var tag := PanelContainer.new()
+	var box := StyleBoxFlat.new()
+	box.bg_color = PLAYER_COLOURS[player - 1]
+	box.set_corner_radius_all(10)
+	box.content_margin_left = 18.0
+	box.content_margin_right = 18.0
+	box.content_margin_top = 4.0
+	box.content_margin_bottom = 4.0
+	tag.add_theme_stylebox_override("panel", box)
+	var label := Label.new()
+	label.text = "PLAYER %d" % player
+	label.add_theme_font_size_override("font_size", 30)
+	label.add_theme_color_override("font_color", BuilderStyle.ON_ACCENT)
+	tag.add_child(label)
+	return tag
 
 
 ## A button for each difficulty, and a line about the one that's picked.
@@ -112,11 +155,15 @@ func _show_level(level: String) -> void:
 
 func _choose(key: String) -> void:
 	_chosen = key
-	Game.set_kart_choice(key)
+	if player == 2:
+		Game.set_setting("race", "player_two", key)
+	else:
+		Game.set_kart_choice(key)
 	for other in _cards:
 		MenuStyle.mark(_cards[other], other == key)
 	var design: KartDesign = Game.design if key == Game.OWN_KART else Game.stock_kart(key)
-	_chosen_label.text = "Racing in %s" % ("your own kart, %s" % design.name if key == Game.OWN_KART else "the %s" % design.name)
+	var kart := "the garage kart, %s" % design.name if player == 2 else "your own kart, %s" % design.name
+	_chosen_label.text = "Racing in %s" % (kart if key == Game.OWN_KART else "the %s" % design.name)
 
 
 ## How a kart measures up on each bar, before it's compared with the others.
@@ -165,12 +212,13 @@ func _card(key: String, design: KartDesign, ranges: Dictionary) -> Button:
 	box.add_child(picture)
 	var own := key == Game.OWN_KART
 	var title := Label.new()
-	title.text = "Your kart: %s" % design.name if own else design.name
+	title.text = ("The garage kart: %s" if player == 2 else "Your kart: %s") % design.name if own else design.name
 	title.add_theme_font_size_override("font_size", 24)
 	box.add_child(title)
 	var problems: Array[String] = design.problems() if own else ([] as Array[String])
 	var about := Label.new()
-	about.text = design.about if not own else ("The one you built in the garage." if problems.is_empty() else problems[0])
+	var built := "The one in the garage." if player == 2 else "The one you built in the garage."
+	about.text = design.about if not own else (built if problems.is_empty() else problems[0])
 	about.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	about.custom_minimum_size = Vector2(CARD.x - 28.0, 0)
 	about.add_theme_font_size_override("font_size", 16)

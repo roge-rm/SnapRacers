@@ -218,9 +218,16 @@ func show_course_grid(for_mode: String, alone: bool, cup: String) -> void:
 
 
 ## Pick a kart, then `go` starts the race. Back goes to `back`. With `ai`,
-## it's a race against the AI and you pick how good they are too.
-func show_kart_picker(go: Callable, back: Callable, ai := false) -> void:
-	_swap(KartPicker.new(go, back, ai))
+## it's a race against the AI and you pick how good they are too. With `two`,
+## it's two on this phone: player 1 picks, then player 2 does, and back from
+## player 2 goes to player 1 again.
+func show_kart_picker(go: Callable, back: Callable, ai := false, two := false) -> void:
+	if not two:
+		_swap(KartPicker.new(go, back, ai))
+		return
+	var again := show_kart_picker.bind(go, back, ai, true)
+	var second := func() -> void: _swap(KartPicker.new(go, again, false, 2))
+	_swap(KartPicker.new(second, back, ai, 1))
 
 
 ## Starts a Grand Prix, of one of the game's cups by its id, or of a cup of
@@ -340,6 +347,12 @@ func player_name() -> String:
 	return name if name.strip_edges() != "" else "You"
 
 
+## Player 1's name with two on one phone, where "You" wouldn't say which.
+func player_one_name() -> String:
+	var name: String = str(settings.get_value("player", "name", "")).strip_edges()
+	return name if name != "" else "Player 1"
+
+
 ## The name other people see online. "You" would only confuse them, so
 ## without a name set, it's the phone's.
 func online_name() -> String:
@@ -372,10 +385,25 @@ func race_split() -> String:
 	return split() if mode == MODE_RACE and not racing_alone else SOLO
 
 
-## Which stock kart player 2 drives, by its file name.
+## Which kart player 2 drives: a stock kart by its file name, or the one in
+## the garage (OWN_KART).
 func player_two_kart() -> String:
 	var key: String = settings.get_value("race", "player_two", "sparky")
+	if key == OWN_KART and design.problems().is_empty():
+		return key
 	return key if stock_keys().has(key) else "sparky"
+
+
+func player_two_design() -> KartDesign:
+	var key := player_two_kart()
+	return design if key == OWN_KART else stock_kart(key)
+
+
+## Player 2's name, for two on one phone. It's "Player 2" until they give
+## one, or if it's the same as player 1's.
+func player_two_name() -> String:
+	var name := str(settings.get_value("player", "name_two", "")).strip_edges()
+	return name if name != "" and name != player_name() else "Player 2"
 
 
 ## The stock karts' file names, without .json, in order.

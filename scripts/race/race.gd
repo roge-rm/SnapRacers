@@ -139,8 +139,8 @@ func _ready() -> void:
 			var design := Game.stock_kart(karts.get(drivers[i], "starter"))
 			entries.append({ "name": who.name, "design": design, "who": who, "rank": ranks.get(drivers[i], i), "line": (i % 3 - 1) * 1.5 })
 		if people > 1:
-			entries.append({ "name": "Player 2", "design": Game.stock_kart(Game.player_two_kart()), "who": Game.roster_driver(two_driver), "human": 1 })
-	entries.append({ "name": Game.player_name(), "design": Game.chosen_design(), "who": Game.character, "human": 0 })
+			entries.append({ "name": Game.player_two_name(), "design": Game.player_two_design(), "who": Game.roster_driver(two_driver), "human": 1 })
+	entries.append({ "name": Game.player_one_name() if people > 1 else Game.player_name(), "design": Game.chosen_design(), "who": Game.character, "human": 0 })
 	# After the first race of a Grand Prix, the grid goes by the points so far.
 	if mode == Game.MODE_GRAND_PRIX and Game.grand_prix != null and Game.grand_prix.round > 0:
 		var order: Array = Game.grand_prix.grid_order()

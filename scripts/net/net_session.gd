@@ -148,10 +148,11 @@ func _me() -> Dictionary:
 	}]
 	# Two on one phone take two places.
 	if Game.split() != Game.SOLO and Game.online_two:
+		var two := Game.player_two_name()
 		players.append({
-			"name": "%s 2" % Game.online_name(),
+			"name": two if two != "Player 2" else "%s 2" % Game.online_name(),
 			"driver": Game.roster_driver(Game.ai_driver_keys()[0]).to_dict(),
-			"kart": Game.stock_kart(Game.player_two_kart()).to_dict(),
+			"kart": Game.player_two_design().to_dict(),
 		})
 	return {"name": Game.online_name(), "players": players, "ready": false}
 

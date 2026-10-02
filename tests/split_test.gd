@@ -32,11 +32,15 @@ func _ready() -> void:
 	host = Node.new()
 	add_child(host)
 	Game.start(host, false)
+	var was_name = Game.settings.get_value("player", "name_two", "")
+	var was_two = Game.settings.get_value("race", "player_two", "sparky")
 	for mode in [Game.SIDE_BY_SIDE, Game.FACE_TO_FACE]:
 		print("-- %s" % mode)
-		# Set this for the run without saving over what was last picked.
+		# Set this for the run without saving over what was last picked. Face
+		# to face, player 2 has a name and races the garage kart too.
 		Game.settings.set_value("race", "split", mode)
-		Game.settings.set_value("race", "player_two", "rocket")
+		Game.settings.set_value("race", "player_two", "rocket" if mode == Game.SIDE_BY_SIDE else Game.OWN_KART)
+		Game.settings.set_value("player", "name_two", "" if mode == Game.SIDE_BY_SIDE else "Gina")
 		Game.settings.set_value("race", "kart", Game.OWN_KART)
 		var before := race_on_screen()
 		Game.start_race(Game.TRACKS + "/peach_pit.json")
@@ -46,6 +50,9 @@ func _ready() -> void:
 			race = race_on_screen()
 		await frames(2)
 		await check_race(race, mode)
+	# Races save the settings, so these go back and are saved too.
+	Game.set_setting("player", "name_two", was_name)
+	Game.set_setting("race", "player_two", was_two)
 	print("All split screen checks passed." if failures == 0 else "%d split screen checks failed." % failures)
 	get_tree().quit(1 if failures > 0 else 0)
 
@@ -54,8 +61,11 @@ func check_race(race: Race, mode: String) -> void:
 	check(race.racers.size() == Race.KARTS, "still %d karts in all (%d)" % [Race.KARTS, race.racers.size()])
 	check(race.humans.size() == 2 and race.humans[0] == race.player, "two of them people, player 1 first")
 	var second := race.humans[1]
-	check(second.name == "Player 2" and second.kart.design.name == "Rocket", "player 2 drives the kart picked for them (%s)" % second.kart.design.name)
-	check(race.racers.filter(func(r): return r.kart.design.name == "Rocket").size() == 1, "and the AI doesn't drive another one")
+	if mode == Game.SIDE_BY_SIDE:
+		check(second.name == "Player 2" and second.kart.design.name == "Rocket", "player 2 drives the kart picked for them (%s)" % second.kart.design.name)
+		check(race.racers.filter(func(r): return r.kart.design.name == "Rocket").size() == 1, "and the AI doesn't drive another one")
+	else:
+		check(second.name == "Gina" and second.kart.design.name == Game.design.name, "player 2 goes by their own name, in the garage kart (%s, %s)" % [second.name, second.kart.design.name])
 
 	var views := race.find_children("*", "SubViewport", true, false)
 	check(views.size() == 2, "each has a view of their own (%d)" % views.size())

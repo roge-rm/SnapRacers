@@ -68,7 +68,10 @@ func _course_card(path: String, colour: Color) -> MenuCard:
 	card.line(outline.summary, 17, Color(1.0, 1.0, 1.0, 0.7))
 	if mode == Game.MODE_TIME_TRIAL and Records.best_time(id) > 0.0:
 		card.line("Record %s, best lap %s" % [RaceHud.clock(Records.best_time(id)), RaceHud.clock(Records.best_lap(id))], 17, MenuStyle.ACCENT)
-	card.tapped.connect(Game.show_kart_picker.bind(_starter(mode, path, alone), Game.show_course_grid.bind(mode, alone, cup), mode == Game.MODE_RACE))
+	# A race from the Multiplayer menu is for two on this phone, and each
+	# picks a kart.
+	var two := mode == Game.MODE_RACE and not alone
+	card.tapped.connect(Game.show_kart_picker.bind(_starter(mode, path, alone), Game.show_course_grid.bind(mode, alone, cup), mode == Game.MODE_RACE, two))
 	return card
 
 

@@ -4,8 +4,8 @@ extends Control
 ## Racing with other people: two people on one phone, sharing the screen
 ## side by side (landscape, half each) or face to face (portrait, with the
 ## phone flat between them), against six AI karts, or online against people
-## on other devices. Player 2 drives one of the stock karts, and you pick
-## which one here.
+## on other devices. Each player picks their kart once the course is picked
+## (see KartPicker).
 
 const LAYOUTS := [
 	[Game.SIDE_BY_SIDE, "Side by side", "Landscape, half the screen each"],
@@ -13,7 +13,6 @@ const LAYOUTS := [
 ]
 
 var _layout_buttons: Array[Button] = []
-var _second: Button
 
 
 func _ready() -> void:
@@ -32,8 +31,6 @@ func _ready() -> void:
 		button.set_meta("mode", layout[0])
 		layouts.add_child(button)
 		_layout_buttons.append(button)
-	_second = MenuStyle.button("", _next_kart)
-	column.add_child(_second)
 	var owners := ControlsPage.new()
 	owners.owners_only = true
 	column.add_child(owners)
@@ -53,20 +50,10 @@ func _set_layout(layout: String) -> void:
 	_show()
 
 
-## Lights up the chosen layout and shows which kart player 2 drives.
+## Lights up the chosen layout.
 func _show() -> void:
 	for button in _layout_buttons:
 		MenuStyle.mark(button, button.get_meta("mode") == Game.split())
-	var design := Game.stock_kart(Game.player_two_kart())
-	_second.text = "Player 2 drives the %s   ›" % design.name
-
-
-## Player 2 moves on to the next stock kart.
-func _next_kart() -> void:
-	var keys := Game.stock_keys()
-	var next := keys[(keys.find(Game.player_two_kart()) + 1) % keys.size()]
-	Game.set_setting("race", "player_two", next)
-	_show()
 
 
 func go_back() -> void:
