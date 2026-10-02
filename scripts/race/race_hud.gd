@@ -35,6 +35,11 @@ var _lap: Label
 ## The power-ups you're holding, for when there are no touch buttons to show them.
 var _held: Label
 var _clock: Label
+var _corner: VBoxContainer
+var _safe: SafeArea
+## Face to face with two players, where the map they share sits on the line
+## at the top of the half.
+var _face_to_face := false
 var _big: Label
 var _message: Label
 var _message_left := 0.0
@@ -56,6 +61,7 @@ func _ready() -> void:
 	# Your place, lap and power-ups, together in the top left corner so they
 	# can move out of a camera hole's way as one.
 	var corner := VBoxContainer.new()
+	_corner = corner
 	corner.mouse_filter = MOUSE_FILTER_IGNORE
 	corner.add_theme_constant_override("separation", -4)
 	add_child(corner)
@@ -117,14 +123,18 @@ func _ready() -> void:
 	_camera.offset_bottom = 16.0 + IconButton.SIZE
 	_camera.pressed.connect(func() -> void: camera_pressed.emit())
 	# Face to face, the map two players share sits on the line between them,
-	# right where the menu button would be, so the menu goes beside the
-	# camera button.
-	if race != null and race.humans.size() > 1 and race.split == Game.FACE_TO_FACE:
-		_menu.set_anchors_and_offsets_preset(PRESET_TOP_RIGHT)
-		_menu.offset_left = -190.0 - IconButton.SIZE - 20.0
-		_menu.offset_right = -190.0 - 20.0
+	# right where the menu button would be, so the menu goes in the top left
+	# corner, and your place, lap and the clock go down below the map (see
+	# make_room_for_map()).
+	_face_to_face = race != null and race.humans.size() > 1 and race.split == Game.FACE_TO_FACE
+	if _face_to_face:
+		_menu.set_anchors_and_offsets_preset(PRESET_TOP_LEFT)
+		_menu.offset_left = 24.0
+		_menu.offset_right = 24.0 + IconButton.SIZE
 		_menu.offset_top = 16.0
 		_menu.offset_bottom = 16.0 + IconButton.SIZE
+		_clock.reparent(corner)
+		_clock.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
 
 	_fps = _label(18)
 	_fps.set_anchors_and_offsets_preset(PRESET_BOTTOM_LEFT)
@@ -134,9 +144,13 @@ func _ready() -> void:
 	_build_results()
 	# Nothing hides under a camera hole.
 	var safe := SafeArea.new()
+	_safe = safe
 	add_child(safe)
-	for control in [corner, _clock, _menu, _camera, _fps]:
+	for control in [corner, _menu, _camera, _fps]:
 		safe.watch(control)
+	# Face to face the clock's in with your place and lap.
+	if not _face_to_face:
+		safe.watch(_clock)
 
 
 ## What's on a gadget button, with how many goes are left when there's more
@@ -144,6 +158,15 @@ func _ready() -> void:
 static func held_name(kart: Kart, slot: int) -> String:
 	var name := Powerups.name_of(kart.held[slot])
 	return name + (" x%d" % kart.held_uses[slot] if kart.held_uses[slot] > 1 else "")
+
+
+## Moves your place, lap and the clock down below the map two players share
+## face to face, which reaches `down` into the top of this half.
+func make_room_for_map(down: float) -> void:
+	if _face_to_face and _corner != null:
+		_corner.position.y = maxf(8.0, down + 10.0)
+		if _safe != null:
+			_safe.moved(_corner)
 
 
 func buttons() -> Array[Control]:

@@ -66,6 +66,15 @@ func watch(control: Control, wraps := false) -> void:
 	_wait = 0.0
 
 
+## A watched control has been moved on purpose, so it's kept clear of a hole
+## from where it is now.
+func moved(control: Control) -> void:
+	if not _placed.has(control):
+		return
+	_placed[control] = [control.offset_left, control.offset_top, control.offset_right, control.offset_bottom]
+	_wait = 0.0
+
+
 ## Makes this margin container widen its margin on the side a hole's on,
 ## so everything in it stays clear. Next to a hole in a corner the top or
 ## bottom margin grows, and next to one partway down a side that side's does.

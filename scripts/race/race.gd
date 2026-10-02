@@ -21,7 +21,8 @@ const DIVIDER := 4
 ## draws its buttons and words bigger to match.
 const HUD_HEIGHT := 720.0
 ## How big the map between two players' halves is, and how far down the
-## line its middle is side by side.
+## line its middle is side by side. Face to face it's twice as big, since a
+## phone held upright shows everything smaller.
 const SHARED_MAP := 250.0
 const SHARED_MAP_DOWN := 0.42
 const COUNTDOWN := 3.0
@@ -369,7 +370,7 @@ func _add_split_views() -> void:
 			holder.resized.connect(func() -> void: holder.pivot_offset = holder.size * 0.5)
 		var viewport := SubViewport.new()
 		holder.add_child(viewport)
-		holder.resized.connect(_fit_hud.bind(viewport), CONNECT_DEFERRED)
+		holder.resized.connect(_fit_hud.bind(viewport, humans[i]), CONNECT_DEFERRED)
 		var hud_layer := CanvasLayer.new()
 		viewport.add_child(hud_layer)
 		_add_view(humans[i], viewport, hud_layer)
@@ -379,11 +380,15 @@ func _add_split_views() -> void:
 ## A half that's much bigger than the game's screen draws its buttons and
 ## words bigger, so they're as big on the phone as they'd be side by side. The
 ## 3D isn't touched.
-func _fit_hud(viewport: SubViewport) -> void:
+func _fit_hud(viewport: SubViewport, human: Racer) -> void:
 	var size := Vector2(viewport.size)
 	var grow := maxf(1.0, minf(size.x, size.y) / HUD_HEIGHT)
 	viewport.size_2d_override_stretch = grow > 1.0
 	viewport.size_2d_override = Vector2i((size / grow).round()) if grow > 1.0 else Vector2i.ZERO
+	# Face to face, the shared map reaches into the top of each half, so
+	# what's there moves down out of its way.
+	if split == Game.FACE_TO_FACE and human.hud != null and human.hud.map != null:
+		human.hud.make_room_for_map(human.hud.map.across * 0.5 / grow)
 
 
 ## The one map two players share, on the line between their halves, with
@@ -394,7 +399,7 @@ func _add_shared_map(root: Control) -> void:
 	map.karts.assign(racers.map(func(r): return r.kart))
 	for i in humans.size():
 		map.players.append([humans[i].kart, KartPicker.PLAYER_COLOURS[mini(i, KartPicker.PLAYER_COLOURS.size() - 1)]])
-	map.across = SHARED_MAP
+	map.across = SHARED_MAP * (2.0 if split == Game.FACE_TO_FACE else 1.0)
 	map.mode = Game.map_view(0)
 	root.add_child(map)
 	var place := func() -> void:

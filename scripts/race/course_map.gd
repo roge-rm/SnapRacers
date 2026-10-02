@@ -21,6 +21,8 @@ const LINE := Color(1.0, 1.0, 1.0, 0.6)
 const EDGE := Color(0.0, 0.0, 0.0, 0.45)
 const YOU := Color("#f2cd37")
 const OTHERS := Color(1.0, 1.0, 1.0, 0.85)
+## The dark square behind the map, so the course stands out over the race.
+const BACKING := Color(0.0, 0.0, 0.0, 0.2)
 
 signal changed(mode: String)
 
@@ -90,26 +92,28 @@ func _draw() -> void:
 		return
 	if track == null or _line.size() < 2:
 		return
-	draw_rect(Rect2(Vector2.ZERO, size), Color(0.0, 0.0, 0.0, 0.3))
+	draw_rect(Rect2(Vector2.ZERO, size), BACKING)
 	var to_map := _whole() if mode != "close" else _close_up()
 	var shown := to_map * _line
-	draw_polyline(shown, EDGE, 7.0, true)
-	draw_polyline(shown, LINE, 3.5, true)
+	# A bigger map has thicker lines and dots to go with it.
+	var thick := maxf(1.0, across / SIZE)
+	draw_polyline(shown, EDGE, 7.0 * thick, true)
+	draw_polyline(shown, LINE, 3.5 * thick, true)
 	# The start line, across the road.
 	var start := to_map * _line[0]
-	var across := (to_map * (_line[0] + Vector2(track.start.basis.x.x, track.start.basis.x.z) * 12.0)) - start
-	draw_line(start - across, start + across, Color.WHITE, 3.0, true)
+	var tick := (to_map * (_line[0] + Vector2(track.start.basis.x.x, track.start.basis.x.z) * 12.0)) - start
+	draw_line(start - tick * thick, start + tick * thick, Color.WHITE, 3.0 * thick, true)
 	var marked: Array = players.map(func(p): return p[0])
 	if mode == "everyone":
 		for kart in karts:
 			if is_instance_valid(kart) and kart != you and not marked.has(kart):
-				draw_circle(to_map * Vector2(kart.global_position.x, kart.global_position.z), 4.5, OTHERS)
+				draw_circle(to_map * Vector2(kart.global_position.x, kart.global_position.z), 4.5 * thick, OTHERS)
 	for player in players:
 		var kart: Kart = player[0]
 		if is_instance_valid(kart):
 			var spot := to_map * Vector2(kart.global_position.x, kart.global_position.z)
-			draw_circle(spot, 9.0, Color.BLACK)
-			draw_circle(spot, 7.0, player[1])
+			draw_circle(spot, 9.0 * thick, Color.BLACK)
+			draw_circle(spot, 7.0 * thick, player[1])
 	if you != null:
 		var at := to_map * Vector2(you.global_position.x, you.global_position.z)
 		draw_circle(at, 8.0, Color.BLACK)
