@@ -20,6 +20,9 @@ const DECK := 0.6 # how thick the road is
 const WALL_HEIGHT := 1.0
 const WALL_THICKNESS := 0.5
 const LIFT := 0.02 # keeps road at ground level just above the grass
+## How far out of flat (in metres for each metre along) a strip of road can
+## be before it's cut across into narrower strips (see _sweep()).
+const TWIST_STEP := 0.05
 const PILLAR_EVERY := 16.0
 const PILLAR_SIZE := 1.5 # six studs square
 ## How wide the white lines down the road's edges are.
@@ -345,9 +348,24 @@ func _at(k: int, across: Vector2) -> Vector3:
 	return track.points[k] + track.rights[k] * across.x + track.ups[k] * (across.y + LIFT)
 
 
-## One edge of the outline, from sample a to sample b.
+## One edge of the outline, from sample a to sample b. Where the road rolls,
+## a wide strip between two samples is twisted, and its two triangles would
+## lean opposite ways and make a sawtooth to drive over, so it's cut across
+## into narrower strips that each lie nearly flat.
 func _sweep(tool: SurfaceTool, a: int, b: int, from: Vector2, to: Vector2, colour: Color, kind: float) -> void:
+	var af := _at(a, from)
+	var bf := _at(b, from)
+	var plane := (_at(a, to) - af).cross(bf - af)
+	var twist := 0.0
+	if plane.length_squared() > 0.0:
+		twist = absf((_at(b, to) - af).dot(plane.normalized())) / maxf(af.distance_to(bf), 0.01)
+	var pieces := clampi(ceili(twist / TWIST_STEP), 1, 24)
 	var out := Vector2(-(to.y - from.y), to.x - from.x).normalized()
+	for i in pieces:
+		_sweep_strip(tool, a, b, from.lerp(to, float(i) / pieces), from.lerp(to, float(i + 1) / pieces), out, colour, kind)
+
+
+func _sweep_strip(tool: SurfaceTool, a: int, b: int, from: Vector2, to: Vector2, out: Vector2, colour: Color, kind: float) -> void:
 	var normal_a := track.rights[a] * out.x + track.ups[a] * out.y
 	var normal_b := track.rights[b] * out.x + track.ups[b] * out.y
 	var af := _at(a, from)

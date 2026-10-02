@@ -178,6 +178,12 @@ func build() -> void:
 			var t_behind := maxf(t - 0.001, 0.0)
 			var ahead := pose * piece.point(t_ahead) + Vector3.UP * _hill(pose, piece, t_ahead)
 			var behind := pose * piece.point(t_behind) + Vector3.UP * _hill(pose, piece, t_behind)
+			# Banked road climbs as it leans (see the rise below), so forward
+			# climbs with it, or the road's up would lean back off the surface.
+			var base_ahead := (pose.basis * piece.up(t_ahead)).normalized()
+			var base_behind := (pose.basis * piece.up(t_behind)).normalized()
+			ahead += base_ahead * _rise(piece.bank_at(t_ahead))
+			behind += base_behind * _rise(piece.bank_at(t_behind))
 			var forward := (ahead - behind).normalized()
 			var hill := _hill(pose, piece, t)
 			var base_up := (pose.basis * piece.up(t)).normalized()
@@ -188,7 +194,7 @@ func build() -> void:
 			# Banked road leans up from its low edge instead of around its
 			# middle, so the inside edge stays at road height instead of
 			# sinking into the ground.
-			var rise := (width * 0.5 + KERB) * absf(sin(lean))
+			var rise := _rise(lean)
 			points.append(pose * piece.point(t) + Vector3.UP * hill + flat_up * rise)
 			grounds.append(hill)
 			forwards.append(forward)
@@ -206,6 +212,12 @@ func build() -> void:
 		distances.append(total)
 		total += points[k].distance_to(points[(k + 1) % points.size()])
 	length = total
+
+
+## How far banked road leaning this much lifts its middle, since it leans up
+## from its low edge.
+func _rise(lean: float) -> float:
+	return (width * 0.5 + KERB) * absf(sin(lean))
 
 
 ## How high the hills lift the road `t` of the way through a piece. Loops and
