@@ -130,9 +130,10 @@ func _row(text: String, control: Control) -> HBoxContainer:
 
 func _next_map() -> void:
 	var map: CourseMap = racer.hud.map
-	var mode: String = CourseMap.MODES[(CourseMap.MODES.find(map.mode) + 1) % CourseMap.MODES.size()]
+	var mode := map.next_mode()
 	map.mode = mode
-	Game.set_map_view(person, mode)
+	# The map two players share is kept as player 1's.
+	Game.set_map_view(0 if map.shared() else person, mode)
 	_map_button.text = CourseMap.NAMES[mode]
 
 

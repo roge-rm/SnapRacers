@@ -67,6 +67,10 @@ func check_race(race: Race, mode: String) -> void:
 	else:
 		check(second.name == "Gina" and second.kart.design.name == Game.design.name, "player 2 goes by their own name, in the garage kart (%s, %s)" % [second.name, second.kart.design.name])
 
+	var maps := race.find_children("*", "CourseMap", true, false)
+	check(maps.size() == 1 and maps[0].shared() and maps[0].players.size() == 2, "there's one map, shared, with a dot for each player (%d)" % maps.size())
+	check(race.humans.all(func(h): return h.hud.map == maps[0]), "and both players' menus change it")
+	check(maps[0].across > CourseMap.SIZE, "bigger than one player's (%d)" % maps[0].across)
 	var views := race.find_children("*", "SubViewport", true, false)
 	check(views.size() == 2, "each has a view of their own (%d)" % views.size())
 	for i in 2:

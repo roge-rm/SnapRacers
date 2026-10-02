@@ -16,6 +16,14 @@ extends Node3D
 
 ## The gap between the two halves in split screen, in pixels.
 const DIVIDER := 4
+## How tall the game's screen is meant to be, in its own units. A split
+## screen half much bigger than that (face to face, on a phone held upright)
+## draws its buttons and words bigger to match.
+const HUD_HEIGHT := 720.0
+## How big the map between two players' halves is, and how far down the
+## line its middle is side by side.
+const SHARED_MAP := 250.0
+const SHARED_MAP_DOWN := 0.42
 const COUNTDOWN := 3.0
 ## If you're further below the road than this, you've fallen off.
 const FALLEN := 4.0
@@ -324,6 +332,7 @@ func _add_view(racer: Racer, world_parent: Node, layer: CanvasLayer) -> void:
 ## Two halves of the screen, each with its own SubViewport looking at this
 ## race. Side by side, player 1 is on the left. Face to face, player 1 has the
 ## bottom half and player 2 has the top, turned around to face the other way.
+## One map sits on the line between them.
 func _add_split_views() -> void:
 	var layer := CanvasLayer.new()
 	add_child(layer)
@@ -360,9 +369,47 @@ func _add_split_views() -> void:
 			holder.resized.connect(func() -> void: holder.pivot_offset = holder.size * 0.5)
 		var viewport := SubViewport.new()
 		holder.add_child(viewport)
+		holder.resized.connect(_fit_hud.bind(viewport), CONNECT_DEFERRED)
 		var hud_layer := CanvasLayer.new()
 		viewport.add_child(hud_layer)
 		_add_view(humans[i], viewport, hud_layer)
+	_add_shared_map(root)
+
+
+## A half that's much bigger than the game's screen draws its buttons and
+## words bigger, so they're as big on the phone as they'd be side by side. The
+## 3D isn't touched.
+func _fit_hud(viewport: SubViewport) -> void:
+	var size := Vector2(viewport.size)
+	var grow := maxf(1.0, minf(size.x, size.y) / HUD_HEIGHT)
+	viewport.size_2d_override_stretch = grow > 1.0
+	viewport.size_2d_override = Vector2i((size / grow).round()) if grow > 1.0 else Vector2i.ZERO
+
+
+## The one map two players share, on the line between their halves, with
+## each of them marked in their colour.
+func _add_shared_map(root: Control) -> void:
+	var map := CourseMap.new()
+	map.track = track
+	map.karts.assign(racers.map(func(r): return r.kart))
+	for i in humans.size():
+		map.players.append([humans[i].kart, KartPicker.PLAYER_COLOURS[mini(i, KartPicker.PLAYER_COLOURS.size() - 1)]])
+	map.across = SHARED_MAP
+	map.mode = Game.map_view(0)
+	root.add_child(map)
+	var place := func() -> void:
+		var size := map.get_combined_minimum_size()
+		var middle := Vector2(0.5, SHARED_MAP_DOWN if split == Game.SIDE_BY_SIDE else 0.5) * root.size
+		map.position = middle - size * 0.5
+		map.size = size
+	root.resized.connect(place)
+	map.minimum_size_changed.connect(place)
+	place.call()
+	for human in humans:
+		human.hud.map = map
+		map.changed.connect(func(mode: String) -> void:
+			Game.set_map_view(0, mode)
+			human.hud.flash(CourseMap.NAMES[mode]))
 
 
 func _add_racer(racer_name: String, design: KartDesign, slot: int, who: CharacterDesign) -> Racer:

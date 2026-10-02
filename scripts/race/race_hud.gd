@@ -66,7 +66,8 @@ func _ready() -> void:
 	_held.add_theme_color_override("font_color", Color("#f2cd37"))
 	for label in [_place, _lap, _held]:
 		label.reparent(corner)
-	if race != null and me != null:
+	# With two on one phone they share one map between them (see Race).
+	if race != null and me != null and race.humans.size() < 2:
 		var gap := Control.new()
 		gap.custom_minimum_size.y = 12.0
 		corner.add_child(gap)
@@ -115,6 +116,15 @@ func _ready() -> void:
 	_camera.offset_top = 16.0
 	_camera.offset_bottom = 16.0 + IconButton.SIZE
 	_camera.pressed.connect(func() -> void: camera_pressed.emit())
+	# Face to face, the map two players share sits on the line between them,
+	# right where the menu button would be, so the menu goes beside the
+	# camera button.
+	if race != null and race.humans.size() > 1 and race.split == Game.FACE_TO_FACE:
+		_menu.set_anchors_and_offsets_preset(PRESET_TOP_RIGHT)
+		_menu.offset_left = -190.0 - IconButton.SIZE - 20.0
+		_menu.offset_right = -190.0 - 20.0
+		_menu.offset_top = 16.0
+		_menu.offset_bottom = 16.0 + IconButton.SIZE
 
 	_fps = _label(18)
 	_fps.set_anchors_and_offsets_preset(PRESET_BOTTOM_LEFT)
