@@ -122,7 +122,7 @@ func _ready() -> void:
 
 func _bank() -> void:
 	var tiles := garage.ui.find_children("*", "Button", true, false).filter(func(b): return b is GarageUI.PartTile)
-	var plates := PartCatalog.ids().filter(func(id): return GarageUI.category_of(PartCatalog.get_part(id)) == 0).size()
+	var plates := PartCatalog.in_garage().filter(func(id): return GarageUI.category_of(PartCatalog.get_part(id)) == 0).size()
 	check(tiles.size() == plates and plates > 20, "the bank starts on the plates and tiles (%d of %d)" % [tiles.size(), plates])
 	# Every part is in one of the drawer's tabs, and every tab has something.
 	var shown := {}
@@ -133,12 +133,19 @@ func _bank() -> void:
 		check(not ids.is_empty(), "the %s tab has parts in it" % GarageUI.CATEGORIES[i][0])
 		for id in ids:
 			shown[id] = true
-	var missing := PartCatalog.ids().filter(func(id): return not shown.has(id))
+	var missing := PartCatalog.in_garage().filter(func(id): return not shown.has(id))
 	check(missing.is_empty(), "every part is in the drawer somewhere %s" % [missing])
+	var replaced := PartCatalog.ids().filter(func(id): return PartCatalog.get_part(id).has("replaced_by"))
+	check(not replaced.is_empty() and replaced.all(func(id): return not shown.has(id)), "but not the old parts that have been replaced (%d)" % replaced.size())
+	var names := {}
+	for id in shown:
+		names[PartCatalog.get_part(id).name] = names.get(PartCatalog.get_part(id).name, 0) + 1
+	var twice := names.keys().filter(func(n): return names[n] > 1)
+	check(twice.is_empty(), "and no two parts in it have the same name %s" % [twice])
 	garage.ui._show_category(6)
 	await frames(1)
 	var extras: Array = garage.ui.find_children("*", "Button", true, false).filter(func(b): return b is GarageUI.PartTile).map(func(b): return b.id)
-	check(extras.has("steering_wheel") and extras.has("seat"), "extras have the seat and the steering wheel %s" % [extras])
+	check(extras.has("steering_wheel") and extras.has("s_seat"), "extras have the seat and the steering wheel %s" % [extras])
 	garage.ui._show_category(1)
 
 

@@ -491,7 +491,7 @@ def _lugs(n, radius, w):
 
 part(lambda: _wheel("w_kart", "Kart wheel", 0.3, 0.25, 0.2, 1.0, 0.015, color=LIGHT_GREY))
 part(lambda: _wheel("w_kart_wide", "Wide kart wheel", 0.3, 0.45, 0.2, 1.2, 0.022, color=LIGHT_GREY))
-part(lambda: _wheel("w_racing", "Racing wheel", 0.35, 0.35, 0.27, 1.15, 0.018, color=WHITE))
+part(lambda: _wheel("w_racing", "Racing tire", 0.35, 0.35, 0.27, 1.15, 0.018, color=WHITE))
 part(lambda: _wheel("w_slick", "Big slick", 0.4, 0.5, 0.28, 1.35, 0.028, color=DARK_GREY))
 part(lambda: _wheel("w_offroad", "Off-road wheel", 0.42, 0.4, 0.25, 1.05, 0.03, offroad=0.6, lugs=14, color=YELLOW))
 # Motorbike tires are thin, so they don't hold a bend as well as a kart's.

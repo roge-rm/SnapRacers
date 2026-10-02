@@ -16368,7 +16368,7 @@
 			"strength": 1200.0
 		},
 		"w_racing": {
-			"name": "Racing wheel",
+			"name": "Racing tire",
 			"kind": "wheel",
 			"group": "wheels",
 			"size": [

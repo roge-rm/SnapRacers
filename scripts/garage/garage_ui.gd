@@ -434,7 +434,7 @@ func _show_category(index: int) -> void:
 	for child in _tiles.get_children():
 		child.queue_free()
 	shown.clear()
-	var ids := PartCatalog.ids()
+	var ids := PartCatalog.in_garage()
 	ids.sort_custom(func(a, b): return PartCatalog.get_part(a).mass < PartCatalog.get_part(b).mass)
 	for id in ids:
 		var part := PartCatalog.get_part(id)

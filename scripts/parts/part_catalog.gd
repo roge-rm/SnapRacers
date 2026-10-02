@@ -21,6 +21,13 @@ static func ids() -> Array:
 	return _parts.keys()
 
 
+## The parts the garage offers: all of them but the old ones a modelled part
+## has replaced (see "replaced_by" in parts.json), which only stay so karts
+## built with them still load.
+static func in_garage() -> Array:
+	return ids().filter(func(id: String) -> bool: return not _parts[id].has("replaced_by"))
+
+
 ## The box a part fills before it's turned, in the fine unit (see Grid).
 static func fine_size(id: String) -> Vector3:
 	var def := get_part(id)

@@ -51,19 +51,19 @@ The garage works like the builder in Apogee, my physics sim. The kart fills the 
 - The card in the corner shows top speed, pull, cornering, control, off-road grip, weight and drag, and where most of the drag comes from.
 - Take it straight out for a test drive.
 
-### Over 200 parts
+### 191 parts
 
 Most of the parts are modelled for the game in `tools/parts`, and they join by their studs, clips, pins and axles the way real bricks do.
 
 | | |
 |---|---|
-| **Plates** | Forty-three, from 1x1 to long and wide chassis plates, with smooth tiles, round plates, a grille and wedge plates for a pointed nose. |
-| **Bricks** | Twenty-one, from 1x1 to 2x6, with a tall brick, round bricks, a bracket, a brick with a stud on its side, a headlight brick and a heavy ballast brick to keep the kart low. |
-| **Curves** | Forty-one: slopes, curved and inverted slopes, nose cones, bows, wheel arches, mudguards, a racing nose, an engine cowl, a tail fin, wheel fairings, side pods and a ram plate that knocks other karts' parts off. Face them forward and the air slides over them, or turn them around to smooth the back. |
+| **Plates** | Thirty-eight, from 1x1 to long and wide chassis plates, with smooth tiles, round plates, a grille and wedge plates for a pointed nose. |
+| **Bricks** | Fourteen, from 1x1 to 2x6, with a tall brick, round bricks, a bracket, a brick with a stud on its side, a headlight brick and a heavy ballast brick to keep the kart low. |
+| **Curves** | Thirty-six: slopes, curved and inverted slopes, nose cones, bows, wheel arches, mudguards, a racing nose, an engine cowl, a tail fin, wheel fairings, side pods and a ram plate that knocks other karts' parts off. Face them forward and the air slides over them, or turn them around to smooth the back. |
 | **Rods and joints** | Twenty-five: bars, clips and handles, beams with holes, pins and axles, axle plates, hinges and ball joints. |
-| **Wheels** | Twenty-two, from tiny wheels to monster wheels, with kart wheels and motorbike wheels. Slicks grip the road best and hate grass, knobbly and studded tires bite into grass, dirt and ice, balloon tires float over sand and curbs, and skinny wheels roll the furthest. |
+| **Wheels** | Twenty-one, from tiny wheels to monster wheels, with kart wheels and motorbike wheels. Slicks grip the road best and hate grass, knobbly and studded tires bite into grass, dirt and ice, balloon tires float over sand and curbs, and skinny wheels roll the furthest. |
 | **Engines** | Thirteen: small and big engines, a micro engine, a rotary, a flat four, a twin, a hybrid, two electric motors, a diesel, a V8, a jet and pedals. Each one sounds different. |
-| **Cockpit** | Twenty-four: seats (upright, racing, bucket and lay-down), a steering wheel, a racing wheel, handlebars, a yoke, a tiller, windscreens and a canopy, with lights, a mirror and an exhaust. |
+| **Cockpit** | Twenty: seats (upright, racing, bucket and lay-down), a steering wheel, a racing wheel, handlebars, a yoke, a tiller, windscreens and a canopy, with lights, a mirror and an exhaust. |
 | **Bikes** | Sixteen: frames for a sports bike, a dirt bike, a cruiser, a scooter and a trike, with forks, a swingarm, a fuel tank, a saddle, bike bars, footpegs and fairings. |
 | **Wings** | Eight: spoilers, a ducktail, front wings and big rear wings, single and double. |
 
