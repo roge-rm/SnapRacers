@@ -41,8 +41,27 @@ var _safe: SafeArea
 ## at the top of the half.
 var _face_to_face := false
 var _big: Label
+var _big_was := ""
+## Quick notes (see flash()), dropping in under the clock and fading.
 var _message: Label
 var _message_left := 0.0
+## How long the time for the lap just finished stays up, and how many laps
+## it had last time it looked.
+var _split: Label
+var _split_left := 0.0
+var _laps_seen := 0
+## Something that's going on, like the slowdown after a reset, in a pill at
+## the bottom in the middle, with a bar for how long it has left.
+var _status: Label
+var _status_bar: ProgressBar
+## Under the clock, a smaller line: your best lap, or the record.
+var _clock_more: Label
+## Where the clock goes: "top" under the menu button, "right" beside the
+## camera button, or "corner" with your place and lap.
+static var clock_at := "right"
+## The pills' colours.
+const PILL := Color(0.04, 0.04, 0.1, 0.55)
+const BEST := Color("#7dff8a")
 var _menu: IconButton
 var _camera: IconButton
 var _fps: Label
@@ -58,25 +77,25 @@ func _ready() -> void:
 	mouse_filter = MOUSE_FILTER_IGNORE
 	set_anchors_and_offsets_preset(PRESET_FULL_RECT)
 
-	# Your place, lap and power-ups, together in the top left corner so they
-	# can move out of a camera hole's way as one.
+	# Your place and lap, and the power-ups you're holding, in pills together
+	# in the top left corner so they can move out of a camera hole's way as
+	# one.
 	var corner := VBoxContainer.new()
 	_corner = corner
 	corner.mouse_filter = MOUSE_FILTER_IGNORE
-	corner.add_theme_constant_override("separation", -4)
+	corner.add_theme_constant_override("separation", 8)
 	add_child(corner)
-	corner.position = Vector2(24, 8)
-	_place = _label(56)
-	_lap = _label(28)
-	_held = _label(28)
+	corner.position = Vector2(24, 12)
+	var standing := _pill(corner)
+	var lines := VBoxContainer.new()
+	lines.add_theme_constant_override("separation", -6)
+	standing.add_child(lines)
+	_place = _label(44, lines)
+	_lap = _label(24, lines)
+	_held = _label(22, _pill(corner))
 	_held.add_theme_color_override("font_color", Color("#f2cd37"))
-	for label in [_place, _lap, _held]:
-		label.reparent(corner)
 	# With two on one phone they share one map between them (see Race).
 	if race != null and me != null and race.humans.size() < 2:
-		var gap := Control.new()
-		gap.custom_minimum_size.y = 12.0
-		corner.add_child(gap)
 		map = CourseMap.new()
 		map.track = race.track
 		map.you = me.kart
@@ -87,18 +106,95 @@ func _ready() -> void:
 			flash(CourseMap.NAMES[mode]))
 		corner.add_child(map)
 
-	_clock = _label(28)
+	# The clock, in its pill, with the lap times and quick notes dropping in
+	# under it.
+	_face_to_face = race != null and race.humans.size() > 1 and race.split == Game.FACE_TO_FACE
+	# Face to face it's with your place and lap, out of the way of the map on
+	# the line, and side by side each half's too narrow for it beside the
+	# camera button, so it goes under the menu button.
+	var where := clock_at
+	if _face_to_face:
+		where = "corner"
+	elif race != null and race.humans.size() > 1 and where == "right":
+		where = "top"
+	# Under the menu button in the middle: the clock if it goes there, then
+	# the quick notes.
+	var top := VBoxContainer.new()
+	top.mouse_filter = MOUSE_FILTER_IGNORE
+	top.add_theme_constant_override("separation", 8)
+	add_child(top)
+	top.set_anchors_and_offsets_preset(PRESET_TOP_WIDE)
+	top.offset_top = 14.0 + IconButton.SIZE + 10.0
+	# Beside the camera button on the right, if the clock goes there.
+	var right := VBoxContainer.new()
+	right.mouse_filter = MOUSE_FILTER_IGNORE
+	right.add_theme_constant_override("separation", 8)
+	add_child(right)
+	right.set_anchors_and_offsets_preset(PRESET_TOP_RIGHT)
+	right.grow_horizontal = Control.GROW_DIRECTION_BEGIN
+	right.offset_right = -210.0
+	right.offset_left = -210.0
+	right.offset_top = 16.0
+	var timing_home: Node = {"corner": corner, "right": right}.get(where, top)
+	var timing := _pill(timing_home if where != "top" else _centred(top))
+	var clock_lines := VBoxContainer.new()
+	clock_lines.add_theme_constant_override("separation", -4)
+	timing.add_child(clock_lines)
+	_clock = _label(30, clock_lines)
+	_clock.add_theme_font_override("font", _even_digits())
 	_clock.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_clock.set_anchors_and_offsets_preset(PRESET_CENTER_TOP)
-	_clock.offset_top = 76.0
+	_clock_more = _label(18, clock_lines)
+	_clock_more.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_clock_more.add_theme_color_override("font_color", MenuStyle.ACCENT.lightened(0.3))
+	_split = _label(22, _pill(timing_home if where != "top" else _centred(top)))
+	_split.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_split.get_parent().visible = false
+	if where == "corner":
+		# Right under your place and lap, above the map.
+		corner.move_child(timing, 1)
+		corner.move_child(_split.get_parent(), 2)
+	if where == "right":
+		for pill in [timing, _split.get_parent()]:
+			pill.size_flags_horizontal = Control.SIZE_SHRINK_END
+	_message = _label(24, _pill(_centred(top)))
+	_message.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_message.get_parent().visible = false
 
+	# What's going on, at the bottom in the middle between the controls.
+	var bottom := HBoxContainer.new()
+	bottom.alignment = BoxContainer.ALIGNMENT_CENTER
+	bottom.mouse_filter = MOUSE_FILTER_IGNORE
+	add_child(bottom)
+	bottom.set_anchors_and_offsets_preset(PRESET_BOTTOM_WIDE)
+	bottom.offset_top = -78.0
+	bottom.offset_bottom = -24.0
+	var status_pill := _pill(bottom)
+	var status_lines := VBoxContainer.new()
+	status_lines.add_theme_constant_override("separation", 4)
+	status_pill.add_child(status_lines)
+	_status = _label(22, status_lines)
+	_status.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_status_bar = ProgressBar.new()
+	_status_bar.show_percentage = false
+	_status_bar.custom_minimum_size = Vector2(200.0, 6.0)
+	_status_bar.mouse_filter = MOUSE_FILTER_IGNORE
+	var fill := StyleBoxFlat.new()
+	fill.bg_color = Color("#f2cd37")
+	fill.set_corner_radius_all(3)
+	var track_box := StyleBoxFlat.new()
+	track_box.bg_color = Color(1.0, 1.0, 1.0, 0.15)
+	track_box.set_corner_radius_all(3)
+	_status_bar.add_theme_stylebox_override("fill", fill)
+	_status_bar.add_theme_stylebox_override("background", track_box)
+	status_lines.add_child(_status_bar)
+	status_pill.visible = false
+
+	# The countdown and GO!, big in the middle, popping in.
 	_big = _label(120)
 	_big.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_big.set_anchors_and_offsets_preset(PRESET_CENTER)
-	_message = _label(36)
-	_message.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_message.set_anchors_and_offsets_preset(PRESET_CENTER)
-	_message.offset_top = -140.0
+	_big.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	_big.set_anchors_and_offsets_preset(PRESET_FULL_RECT)
+	_big.resized.connect(func() -> void: _big.pivot_offset = _big.size * 0.5)
 
 	# The menu, with quit and the settings, at the top in the middle.
 	_menu = IconButton.new("pause", "Menu")
@@ -126,15 +222,12 @@ func _ready() -> void:
 	# right where the menu button would be, so the menu goes in the top left
 	# corner, and your place, lap and the clock go down below the map (see
 	# make_room_for_map()).
-	_face_to_face = race != null and race.humans.size() > 1 and race.split == Game.FACE_TO_FACE
 	if _face_to_face:
 		_menu.set_anchors_and_offsets_preset(PRESET_TOP_LEFT)
 		_menu.offset_left = 24.0
 		_menu.offset_right = 24.0 + IconButton.SIZE
 		_menu.offset_top = 16.0
 		_menu.offset_bottom = 16.0 + IconButton.SIZE
-		_clock.reparent(corner)
-		_clock.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
 
 	_fps = _label(18)
 	_fps.set_anchors_and_offsets_preset(PRESET_BOTTOM_LEFT)
@@ -146,11 +239,8 @@ func _ready() -> void:
 	var safe := SafeArea.new()
 	_safe = safe
 	add_child(safe)
-	for control in [corner, _menu, _camera, _fps]:
+	for control in [corner, _menu, _camera, _fps, top, right, bottom]:
 		safe.watch(control)
-	# Face to face the clock's in with your place and lap.
-	if not _face_to_face:
-		safe.watch(_clock)
 
 
 ## What's on a gadget button, with how many goes are left when there's more
@@ -173,19 +263,57 @@ func buttons() -> Array[Control]:
 	return [_menu, _camera, _results, map] if map != null else [_menu, _camera, _results]
 
 
-func _label(size: int) -> Label:
+func _label(size: int, parent: Node = null) -> Label:
 	var label := Label.new()
 	label.add_theme_font_size_override("font_size", size)
-	label.add_theme_color_override("font_outline_color", Color.BLACK)
-	label.add_theme_constant_override("outline_size", maxi(6, size / 8))
+	label.add_theme_color_override("font_outline_color", Color(0.0, 0.0, 0.0, 0.8))
+	label.add_theme_constant_override("outline_size", maxi(4, size / 10) if parent != null else maxi(6, size / 8))
 	label.mouse_filter = MOUSE_FILTER_IGNORE
-	add_child(label)
+	(parent if parent != null else self).add_child(label)
 	return label
 
 
+## A rounded, dark, see-through pill to put words in, so they read over
+## anything behind them.
+func _pill(parent: Node) -> PanelContainer:
+	var pill := PanelContainer.new()
+	pill.mouse_filter = MOUSE_FILTER_IGNORE
+	var box := StyleBoxFlat.new()
+	box.bg_color = PILL
+	box.set_corner_radius_all(14)
+	box.content_margin_left = 16.0
+	box.content_margin_right = 16.0
+	box.content_margin_top = 4.0
+	box.content_margin_bottom = 6.0
+	pill.add_theme_stylebox_override("panel", box)
+	pill.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+	parent.add_child(pill)
+	return pill
+
+
+## A row across the top that keeps what's put in it in the middle.
+func _centred(top: VBoxContainer) -> HBoxContainer:
+	var row := HBoxContainer.new()
+	row.mouse_filter = MOUSE_FILTER_IGNORE
+	row.alignment = BoxContainer.ALIGNMENT_CENTER
+	top.add_child(row)
+	return row
+
+
+## The theme's font with every digit the same width, so a ticking clock
+## doesn't jiggle.
+static func _even_digits() -> Font:
+	var font := FontVariation.new()
+	font.base_font = ThemeDB.fallback_font
+	font.opentype_features = { TextServerManager.get_primary_interface().name_to_tag("tnum"): 1 }
+	return font
+
+
+## A quick note in a pill under the clock, which fades after a moment.
 func flash(text: String) -> void:
 	_message.text = text
-	_message_left = 1.5
+	_message_left = 1.8
+	_message.get_parent().visible = true
 
 
 static func ordinal(n: int) -> String:
@@ -227,7 +355,7 @@ func _process(delta: float) -> void:
 	for slot in Powerups.HOLD:
 		if me.kart.held[slot] != "":
 			names.append(held_name(me.kart, slot))
-	_held.visible = not trial and not names.is_empty()
+	_held.get_parent().visible = not trial and not names.is_empty()
 	_held.text = "  ".join(names)
 	if touch != null:
 		for slot in Powerups.HOLD:
@@ -238,39 +366,63 @@ func _process(delta: float) -> void:
 	if practice:
 		# The lap you're on, since the whole session could go on for ages.
 		shown = race.time - me.progress.lap_started() if me.progress.laps >= 0 else 0.0
-	var text := clock(shown)
-	if not me.progress.lap_times.is_empty():
-		text += "\nlast lap %s" % clock(me.progress.lap_times[-1])
-	if (practice or trial) and me.progress.best_lap() > 0.0:
-		text += "\nbest lap %s" % clock(me.progress.best_lap())
+	_clock.text = clock(shown)
+	var more := ""
 	if trial and Records.best_time(race.track_id) > 0.0 and not me.progress.finished:
-		text += "\nrecord %s" % clock(Records.best_time(race.track_id))
-	_clock.text = text
+		more = "record %s" % clock(Records.best_time(race.track_id))
+	elif (practice or trial) and me.progress.best_lap() > 0.0:
+		more = "best lap %s" % clock(me.progress.best_lap())
+	_clock_more.text = more
+	_clock_more.visible = more != ""
 
-	# The countdown, then GO! for a moment.
+	# The time for each lap as it's done, green when it's your best.
+	var laps := me.progress.lap_times.size()
+	if laps > _laps_seen and laps > 0:
+		var lap: float = me.progress.lap_times[-1]
+		var best := laps > 1 and lap <= me.progress.best_lap()
+		_split.text = "Lap %d   %s%s" % [laps, clock(lap), "   best" if best else ""]
+		_split.add_theme_color_override("font_color", BEST if best else Color.WHITE)
+		_split_left = 4.0
+	_laps_seen = laps
+	_split_left = maxf(_split_left - delta, 0.0)
+	_split.get_parent().visible = _split_left > 0.0
+	_split.get_parent().modulate.a = clampf(_split_left / 0.5, 0.0, 1.0)
+
+	# The countdown, then GO! for a moment, each one popping in.
+	var big := ""
 	if race.time < 0.0:
-		_big.text = str(ceili(-race.time))
+		big = str(ceili(-race.time))
 		_big.modulate.a = 1.0
 	elif race.time < 1.0:
-		_big.text = "GO!"
+		big = "GO!"
 		_big.modulate.a = 1.0 - race.time
-	else:
-		_big.text = ""
+	_big.text = big
+	if big != _big_was and big != "":
+		_big.scale = Vector2.ONE * 1.5
+		create_tween().tween_property(_big, "scale", Vector2.ONE, 0.25).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	_big_was = big
 
+	# What's going on, at the bottom.
 	var status := ""
+	var left := -1.0
 	if me.kart.slowdown_left > 0.0:
 		status = "Reset slowdown"
+		left = me.kart.slowdown_left / Kart.RESET_SLOWDOWN_TIME
 	elif not me.kart.lost.is_empty():
 		var n := me.kart.lost.size()
 		status = "%d part%s lost, reset to fix" % [n, "" if n == 1 else "s"]
 	if _results.visible:
 		status = ""
+	_status.text = status
+	_status.get_parent().get_parent().visible = status != ""
+	_status_bar.visible = left >= 0.0
+	_status_bar.value = left * 100.0
+
 	if _message_left > 0.0:
 		_message_left -= delta
-		_message.modulate.a = clampf(_message_left / 0.4, 0.0, 1.0)
+		_message.get_parent().modulate.a = clampf(_message_left / 0.4, 0.0, 1.0)
 	else:
-		_message.text = status
-		_message.modulate.a = 0.8
+		_message.get_parent().visible = false
 
 	if _results.visible:
 		_fill_results()
