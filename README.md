@@ -132,6 +132,12 @@ Close it up adds the fewest pieces it takes to bring the road back around to the
 
 Saving moves the start line onto your longest straight, and the course joins the lists for every kind of race, with its own records. Each course is one file, so when you host a game online everyone gets it.
 
+### Sharing courses and cups
+
+Share any course or cup of yours as a code or a file. The code is short enough to paste in a message (a course is about 400 characters), and on a phone both go through the share sheet, so you can send them in any chat app, email or Drive. On a computer the code is copied and the file saved where you like, and on the web the file's downloaded.
+
+To add one you've been sent, use Add a course or Add a cup and paste the code or open the file. A cup brings its own courses with it, so you can race each of them on their own too. Something you've already got isn't added twice. If you race someone else's course or cup online, Keep in the lobby adds it to yours.
+
 ### Courses
 
 Every course is based on a real circuit, with laps of 1.6 to 1.9 km and a road wide enough for three karts through a bend. Kart circuits are made as big for the karts as the real one is for real karts, and the famous race tracks in the Legends Cup are shrunk down to the same lap size. The Gravel Cup is rallycross, on real rallycross circuits that are part tarmac and part gravel. The Hangar Cup is indoors, on real indoor kart tracks made bigger, in halls with barriers all the way around, rows of lights overhead, and one that goes over itself on an upper deck. The Corkscrew Cup is traced from real roller coasters, up high on coaster supports, with big drops, airtime hills and corkscrews that turn you upside down. The Island Cup is by the sea on four islands, with the beach and the boats out on the water beside you. They're made of track pieces snapped together on a grid, with crests, jumps, bridges, a loop and plenty of scenery.
@@ -265,6 +271,7 @@ They check things like:
 - drivers hold the steering wheel, and every hat, hairdo, beard and back piece is joined on without poking through anything (`character_test`)
 - the garage, the menus and every mode, including a whole Grand Prix and two players on one phone (`garage_test`, `menu_test`, `modes_test`, `split_test`)
 - the track editor used the way a player would, and what stops a course being raced (`editor_test`, `course_test`)
+- a course or cup goes to a share code and back the same, even split over lines in a message, a tampered one is turned away, and adding one never makes a second copy (`sharing_test`)
 - each player's keys and controller buttons, the menus with a controller, and the menu in a race (`bindings_test`, `focus_test`, `pause_test`)
 - every camera view looks where it should (`camera_test`), every sound is there (`sound_test`), and the cups' trophies hold together (`trophy_test`)
 - every stock kart gets around a lap with the AI driving (`stock_test`)

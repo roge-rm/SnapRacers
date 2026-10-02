@@ -173,6 +173,30 @@ func _show_settings(host: bool) -> void:
 		label.text = "%s\n%s" % [what, ("AI drivers in the empty places, %s" % Difficulty.name_of(s.difficulty).to_lower()) if s.ai else "No AI drivers"]
 		label.add_theme_font_size_override("font_size", 22)
 		_settings.add_child(label)
+		_offer_to_keep(s, cup)
+
+
+## A button to keep the host's own course or cup, when it isn't one of the
+## game's and you haven't got it already.
+func _offer_to_keep(s: Dictionary, cup: bool) -> void:
+	var data: Dictionary = Sharing.cup_from_online(s.cup) if cup else s.course
+	var found := Sharing.read(JSON.stringify(data))
+	if found.has("why"):
+		return
+	if not cup and Sharing.is_the_games(Sharing.COURSE, found.data):
+		return
+	if cup and GrandPrix.cups().any(func(c): return c.name == found.data.name) and found.data.races.all(func(r): return str(r.from) != ""):
+		return
+	var have := Sharing.yours_already(found.kind, found.data)
+	if have != "":
+		var kept := Label.new()
+		kept.text = "It's with your cups" if cup else "It's with your courses"
+		kept.add_theme_color_override("font_color", MenuStyle.ACCENT)
+		_settings.add_child(kept)
+		return
+	_settings.add_child(MenuStyle.button("Keep this cup" if cup else "Keep this course", func() -> void:
+		Sharing.add(found)
+		_show()))
 
 
 func _set_mode(mode: String) -> void:
@@ -196,7 +220,7 @@ func _pick() -> void:
 			for path in yours:
 				var mine := CupDesign.load_file(path)
 				if mine != null and mine.problem() == "":
-					_picker_list.add_child(_choice(mine.name, {"cup": {"name": mine.name, "courses": mine.races.map(func(r): return r.course)}}))
+					_picker_list.add_child(_choice(mine.name, {"cup": {"name": mine.name, "made_by": mine.made_by, "courses": mine.races.map(func(r): return r.course)}}))
 	else:
 		for cup in GrandPrix.cups():
 			_picker_list.add_child(MenuStyle.heading(cup.name))

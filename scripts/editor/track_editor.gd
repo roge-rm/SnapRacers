@@ -141,6 +141,7 @@ func _ready() -> void:
 		fit_view())
 	ui.save_pressed.connect(save)
 	ui.load_chosen.connect(load_course)
+	ui.share_pressed.connect(share)
 	ui.name_changed.connect(func(text: String) -> void:
 		_remember()
 		course.name = text
@@ -331,6 +332,12 @@ func save() -> String:
 	ui.toast("Saved" if path != "" else "I couldn't save it")
 	_refresh()
 	return path
+
+
+## Saves the course and sends it to someone else (see ShareWindow).
+func share() -> void:
+	if save() != "":
+		ShareWindow.open(course.to_dict(), ui)
 
 
 ## Loads a course of yours, or a copy of one of the game's to build on.

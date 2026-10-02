@@ -48,5 +48,12 @@
         <meta-data
             android:name="org.godotengine.plugin.v2.SnapRacersNet"
             android:value="com.rm.snapracers.net.SnapRacersNet" />
+
+        <!-- Hands a course or cup being shared to the app it's sent to. -->
+        <provider
+            android:name="com.rm.snapracers.net.SharedFiles"
+            android:authorities="${applicationId}.shared"
+            android:exported="false"
+            android:grantUriPermissions="true" />
     </application>
 </manifest>

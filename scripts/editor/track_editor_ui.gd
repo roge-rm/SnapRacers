@@ -23,6 +23,7 @@ signal menu_pressed
 signal new_pressed
 signal save_pressed
 signal load_chosen(path: String)
+signal share_pressed
 signal name_changed(text: String)
 signal laps_changed(laps: int)
 signal theme_chosen(theme: String)
@@ -281,10 +282,10 @@ func _build_toolbar() -> void:
 	_redo.pressed.connect(func() -> void: redo_pressed.emit())
 	var fit := IconButton.new("fit", "Fit the course in view")
 	fit.pressed.connect(func() -> void: fit_pressed.emit())
-	var more := IconButton.new("more", "Save, load or start again")
+	var more := IconButton.new("more", "Save, load, share or start again")
 	for button in [close, _undo, _redo, fit, more]:
 		_toolbar.add_child(button)
-	_file_menu = BuilderStyle.menu(["Save", "Load", "Rename", "New course"])
+	_file_menu = BuilderStyle.menu(["Save", "Load", "Rename", "Share", "New course"])
 	add_child(_file_menu)
 	_file_menu.id_pressed.connect(_on_file_menu)
 	more.pressed.connect(func() -> void:
@@ -301,6 +302,8 @@ func _on_file_menu(id: int) -> void:
 		2:
 			_open_rename()
 		3:
+			share_pressed.emit()
+		4:
 			_new_dialog.popup_centered()
 
 
@@ -657,6 +660,11 @@ func _open_rename() -> void:
 func _open_load() -> void:
 	for child in _load_list.get_children():
 		child.queue_free()
+	_load_list.add_child(MenuStyle.button("Add a course you've been sent", func() -> void:
+		_load_popup.hide()
+		AddWindow.open(self, "Add a course").added.connect(func(kind: String, path: String) -> void:
+			if kind == Sharing.COURSE:
+				load_chosen.emit(path))))
 	var saved := CourseDesign.saved()
 	if not saved.is_empty():
 		_load_list.add_child(MenuStyle.heading("Your courses"))

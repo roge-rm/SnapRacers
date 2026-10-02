@@ -1,10 +1,11 @@
 class_name NetPlugin
 extends Node
 
-## The game's end of the Android network plugin (android-plugin), which finds
-## games with NSD, joins and hosts over Wi-Fi Direct, and carries a game over
-## Bluetooth. Everywhere else (a PC, the web, the server) there's no plugin,
-## and it all just says it isn't there.
+## The game's end of the Android plugin (android-plugin), which finds games
+## with NSD, joins and hosts over Wi-Fi Direct, carries a game over Bluetooth,
+## and shares courses and cups with other apps (see ShareSheet). Everywhere
+## else (a PC, the web, the server) there's no plugin, and it all just says it
+## isn't there.
 ##
 ## The plugin puts everything that happens in a queue, and this empties it
 ## every frame (and whenever the Bluetooth peer polls), turning each thing
@@ -20,6 +21,8 @@ signal looking_done(how: String, why: String)
 signal direct_hosting(ok: bool, why: String)
 ## Joined a Wi-Fi Direct group, with the host's address to race to, or why not.
 signal direct_joined(address: String, why: String)
+## A file's been picked to open, with what's in it, or "" and why not.
+signal picked(text: String, why: String)
 
 var android: Object
 ## The Bluetooth game going on, if there is one.
@@ -59,6 +62,8 @@ func pump() -> void:
 				direct_hosting.emit(bool(event.ok), str(event.why))
 			"direct_joined":
 				direct_joined.emit(str(event.address), str(event.why))
+			"picked":
+				picked.emit(str(event.get("text", "")), str(event.get("why", "")))
 			"bt_connected", "bt_packet", "bt_left", "bt_failed":
 				if bluetooth != null:
 					bluetooth.got(event)

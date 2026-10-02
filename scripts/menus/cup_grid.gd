@@ -47,6 +47,11 @@ func _ready() -> void:
 				_your_cup(mine, path)
 		var make := _card_with_words("Make a cup", "Pick its races from any course", Game.show_cup_builder.bind(""))
 		make.set_meta("make", true)
+		var add := _card_with_words("Add a cup", "From a code or a file", func() -> void:
+			AddWindow.open(self, "Add a cup").done.connect(func(any_added: bool) -> void:
+				if any_added:
+					Game.show_your_cups()))
+		add.set_meta("add", true)
 	else:
 		for cup in GrandPrix.cups():
 			var card := _cup_card(cup.id, cup.name, cup.get("trophy", {}), Color(cup.get("colour", "#a3a2a4")), cup.tracks.map(func(id): return Tracks.path_of(id)))
@@ -54,8 +59,8 @@ func _ready() -> void:
 		if mode == Game.MODE_GRAND_PRIX:
 			var mine := _card_with_words("Your cups", "Make your own, from any course", Game.show_your_cups)
 			mine.set_meta("yours", true)
-		elif not CourseGrid.your_courses().is_empty():
-			var mine := _card_with_words("Your courses", "The ones you've built", Game.show_course_grid.bind(mode, alone, CourseGrid.YOURS))
+		else:
+			var mine := _card_with_words("Your courses", "The ones you've built or been sent", Game.show_course_grid.bind(mode, alone, CourseGrid.YOURS))
 			mine.set_meta("yours", true)
 	resized.connect(_fit)
 	_fit()
@@ -154,12 +159,17 @@ func _your_cup(mine: CupDesign, path: String) -> void:
 	var card := _cup_card(id, mine.name, TrophyModel.spec_for(mine.name), TrophyModel.colour_for(mine.name), paths)
 	card.tapped.connect(func() -> void:
 		Game.show_kart_picker(_starter(mine, id), Game.show_your_cups, true))
-	var change := MenuStyle.link("Change", Game.show_cup_builder.bind(path))
-	change.add_theme_font_size_override("font_size", 20)
-	change.size_flags_horizontal = SIZE_SHRINK_CENTER
-	card.content.add_child(change)
-	# The card's words ignore the mouse, but this has to be tapped.
-	change.mouse_filter = MOUSE_FILTER_STOP
+	var links := HBoxContainer.new()
+	links.alignment = BoxContainer.ALIGNMENT_CENTER
+	links.add_theme_constant_override("separation", 24)
+	links.mouse_filter = MOUSE_FILTER_IGNORE
+	card.content.add_child(links)
+	for pair in [["Change", Game.show_cup_builder.bind(path)], ["Share", func() -> void: ShareWindow.open(mine.to_dict(), self)]]:
+		var link := MenuStyle.link(pair[0], pair[1])
+		link.add_theme_font_size_override("font_size", 20)
+		# The card's words ignore the mouse, but these have to be tapped.
+		link.mouse_filter = MOUSE_FILTER_STOP
+		links.add_child(link)
 
 
 ## A card with only words on it, for the ones at the end.

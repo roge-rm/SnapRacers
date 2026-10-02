@@ -1,6 +1,8 @@
 package com.rm.snapracers.net
 
+import android.app.Activity
 import android.content.BroadcastReceiver
+import android.content.Intent
 import android.content.Context
 import android.content.IntentFilter
 import android.content.pm.PackageManager
@@ -17,9 +19,10 @@ import org.godotengine.godot.plugin.UsedByGodot
 import java.util.concurrent.ConcurrentLinkedQueue
 
 /**
- * The game's way into Android's networking: NSD for finding games on the same
- * Wi-Fi, Wi-Fi Direct for racing with no router or hotspot, and Bluetooth for
- * racing with no Wi-Fi at all.
+ * The game's way into Android: NSD for finding games on the same Wi-Fi, Wi-Fi
+ * Direct for racing with no router or hotspot, Bluetooth for racing with no
+ * Wi-Fi at all, and the share sheet and file picker for sending courses and
+ * cups (see [Sharing]).
  *
  * The game asks for things by calling the methods here, and everything that
  * comes back (a game found, a group formed, a Bluetooth packet) goes into one
@@ -35,12 +38,17 @@ class SnapRacersNet(godot: Godot) : GodotPlugin(godot) {
     private val nsd = Nsd(this)
     private val direct = WifiDirect(this)
     private val bluetooth = Bluetooth(this)
+    private val sharing = Sharing(this)
 
     override fun getPluginName() = "SnapRacersNet"
 
     /** The app's context, once there's an activity to get it from. */
     val appContext: Context?
         get() = activity?.applicationContext
+
+    /** The game's activity, for the others to start Android's own screens from. */
+    val currentActivity: Activity?
+        get() = activity
 
     /** Puts something in the queue for the game. */
     fun tell(kind: String, vararg values: Pair<String, Any>) {
@@ -171,6 +179,22 @@ class SnapRacersNet(godot: Godot) : GodotPlugin(godot) {
 
     @UsedByGodot
     fun bt_stop_looking() = main.post { bluetooth.stopLooking() }
+
+    // Sharing courses and cups.
+
+    @UsedByGodot
+    fun share_text(text: String, title: String) = main.post { sharing.shareText(text, title) }
+
+    @UsedByGodot
+    fun share_file(name: String, contents: String, title: String) = main.post { sharing.shareFile(name, contents, title) }
+
+    @UsedByGodot
+    fun pick_file() = main.post { sharing.pickFile() }
+
+    override fun onMainActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        if (requestCode == Sharing.PICK_REQUEST) sharing.onResult(resultCode, data)
+        super.onMainActivityResult(requestCode, resultCode, data)
+    }
 
     override fun onMainDestroy() {
         nsd.stopAdvertising()
