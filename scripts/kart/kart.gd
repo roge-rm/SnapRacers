@@ -30,6 +30,10 @@ const BUMP_STIFFNESS := 14.0
 ## The bump stop is damped too, or the kart bounces off it going around a loop.
 const BUMP_DAMPING := 3.0
 const MAX_STEER := deg_to_rad(30.0)
+## How far the front wheels look turned at full lock. At speed they really
+## turn only a degree or two, which nobody could see, so they show how much of
+## the steering there is instead, the way the steering wheel does.
+const SHOWN_LOCK := deg_to_rad(25.0)
 const HIGH_SPEED_STEER := 0.35 # how much of the steering is left at full speed
 ## Full lock turns the front wheels this much past where the tires run out of
 ## grip, so the whole stick does something.
@@ -1202,9 +1206,9 @@ func _pose_driver() -> void:
 		return
 	var amount := clampf(steer_angle / full_lock, -1.0, 1.0)
 	_rig.look(amount)
-	# A motorbike's bars turn as far as the front wheel does, along with the
-	# fork.
-	var turn := clampf(steer_angle / MAX_STEER, -1.0, 1.0) if _steering != null and _steering.style == "bikebars" else amount
+	# A motorbike's bars turn as far as the front wheel looks turned, along
+	# with the fork.
+	var turn := shown_steer() / SteeringVisual.BIKE_TURN if _steering != null and _steering.style == "bikebars" else amount
 	if alongside != null and is_instance_valid(alongside):
 		_rig.glance(_rig.global_transform.affine_inverse() * alongside.global_position)
 	else:
@@ -1473,13 +1477,21 @@ func _process(delta: float) -> void:
 			w.spin += forward_speed / w.radius * delta
 	_pose_driver()
 	_lean_looks(delta)
-	var steered := Basis(Vector3.UP, -steer_angle)
+	if remote:
+		full_lock = steer_limit(remote_velocity.length())
+	var steered := Basis(Vector3.UP, -shown_steer())
 	for turning in _turning:
 		turning[0].basis = steered * turning[1]
 	for w in wheels:
 		w.visual.position = w.rest + Vector3.UP * (SUSPENSION_TRAVEL - w.length)
 		var turn := steered if w.steered else Basis.IDENTITY
 		w.visual.basis = turn * Basis(Vector3.RIGHT, -w.spin)
+
+
+## How far the front wheels look turned (see SHOWN_LOCK), right negative like
+## steer_angle.
+func shown_steer() -> float:
+	return clampf(steer_angle / maxf(full_lock, 0.001), -1.0, 1.0) * SHOWN_LOCK
 
 
 ## Leans a bike's looks into the bend, as far as it would have to lean to go
