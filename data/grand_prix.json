@@ -8,6 +8,7 @@
 		{ "id": "legends", "name": "Legends Cup", "tracks": ["royal_run", "dry_lagoon", "sakura_swirl", "rouge_ridge"], "music": "race_legends", "colour": "#6b3fa0", "trophy": { "top": "flag" } },
 		{ "id": "gravel", "name": "Gravel Cup", "tracks": ["menhir_meadow", "oast_hill", "devils_dust", "pine_hill_leap"], "music": "race_rally", "colour": "#8a5a3a", "trophy": { "top": "peak" } },
 		{ "id": "hangar", "name": "Hangar Cup", "tracks": ["neon_nights", "hairpin_hall", "bohemian_bends", "spark_deck"], "music": "race_indoor", "colour": "#e04da0", "trophy": { "top": "bolt" } },
-		{ "id": "corkscrew", "name": "Corkscrew Cup", "tracks": ["serpent_summit", "lakeshore_plunge", "red_rocket", "twister_pines"], "music": "race_coaster", "colour": "#12a5a5", "trophy": { "top": "spiral" } }
+		{ "id": "corkscrew", "name": "Corkscrew Cup", "tracks": ["serpent_summit", "lakeshore_plunge", "red_rocket", "twister_pines"], "music": "race_coaster", "colour": "#12a5a5", "trophy": { "top": "spiral" } },
+		{ "id": "island", "name": "Island Cup", "tracks": ["windsurf_way", "coral_cove", "blue_lagoon", "penguin_point"], "music": "race_beach", "colour": "#e8a33c", "trophy": { "top": "palm" } }
 	]
 }

@@ -52,6 +52,9 @@ const ROOM := {
 	"oast_house": 7.0, "standing_stones": 7.0, "control_tower": 5.0, "spectator_bank": 13.0,
 	"tire_pile": 3.0, "kart_row": 8.0, "viewing_deck": 12.0, "pallets": 2.5, "kart_office": 7.0,
 	"carousel": 7.0, "drop_tower": 5.0, "red_roof": 40.0,
+	"parasols": 2.8, "beach_hut": 2.2, "lifeguard_tower": 2.4, "windsurf": 1.6, "beach_hotel": 10.0,
+	"sandcastle": 7.0, "harbour_fort": 12.0, "penguins": 1.6, "stone_pine": 3.0, "gum_tree": 2.6,
+	"watchtower": 3.0,
 }
 
 
@@ -129,6 +132,17 @@ static func add(kit: SceneryKit, prop: String, at: Vector3, rng: RandomNumberGen
 		"carousel": carousel(kit, at_grid, rng)
 		"drop_tower": drop_tower(kit, at_grid)
 		"red_roof": red_roof(kit, at_grid)
+		"parasols": parasols(kit, at_grid, rng)
+		"beach_hut": beach_hut(kit, at_grid, facing, rng)
+		"lifeguard_tower": lifeguard_tower(kit, at_grid, facing)
+		"windsurf": windsurf(kit, at_grid, rng)
+		"beach_hotel": beach_hotel(kit, at_grid, facing, rng)
+		"sandcastle": sandcastle(kit, at_grid)
+		"harbour_fort": harbour_fort(kit, at_grid, facing)
+		"penguins": penguins(kit, at_grid, rng)
+		"stone_pine": stone_pine(kit, at_grid, rng)
+		"gum_tree": broadleaf(kit, at_grid, rng, [SAND_GREEN, OLIVE][rng.randi() % 2])
+		"watchtower": tower(kit, at_grid, TAN)
 
 
 ## Turns an offset from a prop's middle by its facing.
@@ -925,3 +939,122 @@ static func marshal_post(kit: SceneryKit, at: Vector3, facing: int) -> void:
 	_box(kit, at, Vector3(0.0, 1.2, 0.81), Vector3(1.0, 0.7, 0.05), facing, GLASS, SceneryKit.SMOOTH, false)
 	_box(kit, at, Vector3(0.9, 2.7, 0.0), Vector3(0.06, 1.4, 0.06), facing, WHITE, SceneryKit.SMOOTH, false)
 	_box(kit, at, Vector3(1.3, 3.5, 0.0), Vector3(0.8, 0.5, 0.04), facing, YELLOW, SceneryKit.SMOOTH, false)
+
+
+# By the sea.
+
+## Beach umbrellas with towels laid out under them.
+static func parasols(kit: SceneryKit, at: Vector3, rng: RandomNumberGenerator) -> void:
+	var colours := [RED, BLUE, YELLOW, ORANGE, AZURE, WHITE]
+	for k in 3:
+		var spot := at + Vector3(rng.randf_range(-1.8, 1.8), 0.0, rng.randf_range(-1.8, 1.8))
+		kit.cylinder(spot, 0.06, 2.2, WHITE, SceneryKit.SMOOTH, k == 0)
+		kit.cone(spot + Vector3.UP * 1.9, 1.2, 0.5, colours[rng.randi() % colours.size()], SceneryKit.SMOOTH)
+		kit.box(spot + Vector3(0.6, 0.0, 0.4), Vector3(0.8, 0.04, 1.8), colours[rng.randi() % colours.size()], SceneryKit.SMOOTH, false)
+
+
+## A little wooden hut in bright stripes, with a pitched roof.
+static func beach_hut(kit: SceneryKit, at: Vector3, facing: int, rng: RandomNumberGenerator) -> void:
+	var colour: Color = [RED, BLUE, YELLOW, AZURE, PINK, BRIGHT_GREEN][rng.randi() % 6]
+	_box(kit, at, Vector3.ZERO, Vector3(2.4, 2.4, 2.0), facing, WHITE)
+	for k in 3:
+		_box(kit, at, Vector3(-0.8 + k * 0.8, 0.0, 1.01), Vector3(0.4, 2.4, 0.05), facing, colour, SceneryKit.SMOOTH, false)
+	_box(kit, at, Vector3(0.0, 0.0, 1.05), Vector3(0.8, 1.8, 0.05), facing, BROWN, SceneryKit.SMOOTH, false)
+	_roof(kit, at + Vector3.UP * 2.4, 2.4, 2.0, deg_to_rad(35.0), facing, colour)
+
+
+## A lifeguard's lookout on stilts, with a ladder and a flag.
+static func lifeguard_tower(kit: SceneryKit, at: Vector3, facing: int) -> void:
+	for x in [-0.9, 0.9]:
+		for z in [-0.9, 0.9]:
+			_box(kit, at, Vector3(x, 0.0, z), Vector3(0.2, 2.4, 0.2), facing, WHITE)
+	_box(kit, at, Vector3(0.0, 2.4, 0.0), Vector3(2.4, 0.2, 2.4), facing, BROWN, SceneryKit.SMOOTH, false)
+	_box(kit, at, Vector3(0.0, 2.6, -0.2), Vector3(1.8, 1.5, 1.6), facing, RED, SceneryKit.BRICK, false)
+	_box(kit, at, Vector3(0.0, 3.1, 0.61), Vector3(1.4, 0.6, 0.05), facing, GLASS, SceneryKit.SMOOTH, false)
+	_box(kit, at, Vector3(0.0, 4.1, -0.2), Vector3(2.2, 0.2, 2.0), facing, YELLOW, SceneryKit.SMOOTH, false)
+	for k in 6:
+		_box(kit, at, Vector3(0.0, 0.3 + k * 0.38, 1.4), Vector3(0.8, 0.08, 0.12), facing, WHITE, SceneryKit.SMOOTH, false)
+	_box(kit, at, Vector3(1.0, 4.3, -1.0), Vector3(0.06, 1.6, 0.06), facing, WHITE, SceneryKit.SMOOTH, false)
+	_box(kit, at, Vector3(1.4, 5.5, -1.0), Vector3(0.8, 0.5, 0.04), facing, RED, SceneryKit.SMOOTH, false)
+
+
+## A windsurfing board and its sail, stood up on the sand.
+static func windsurf(kit: SceneryKit, at: Vector3, rng: RandomNumberGenerator) -> void:
+	var turn := Basis(Vector3.UP, rng.randf() * TAU)
+	kit.turned_box(at + Vector3.UP * 0.05, Vector3(0.6, 0.1, 2.6), turn, WHITE)
+	var sail: Color = [RED, YELLOW, AZURE, ORANGE, PINK][rng.randi() % 5]
+	kit.turned_box(at + Vector3.UP * 1.6 + turn * Vector3(0.0, 0.0, 0.3), Vector3(0.05, 3.0, 1.6), turn * Basis(Vector3.RIGHT, 0.15), sail)
+	kit.turned_cylinder(at + Vector3.UP * 1.6 + turn * Vector3(0.0, 0.0, -0.5), 0.04, 3.2, turn, LIGHT_GREY)
+	kit.soft_box(Transform3D(turn, at + Vector3.UP * 1.0), Vector3(0.6, 2.0, 1.6))
+
+
+## A tall white hotel with balconies all the way up and a terrace on top.
+static func beach_hotel(kit: SceneryKit, at: Vector3, facing: int, rng: RandomNumberGenerator) -> void:
+	var floors := 6 + rng.randi() % 4
+	var accent: Color = [AZURE, ORANGE, YELLOW, BLUE][rng.randi() % 4]
+	var h := floors * 3.0
+	_box(kit, at, Vector3.ZERO, Vector3(16.0, h, 9.0), facing, WHITE)
+	for f in floors:
+		_box(kit, at, Vector3(0.0, 2.6 + f * 3.0, 4.9), Vector3(16.4, 0.25, 1.2), facing, WHITE, SceneryKit.SMOOTH, false)
+		for x in 5:
+			_box(kit, at, Vector3(-6.4 + x * 3.2, 0.9 + f * 3.0, 4.52), Vector3(2.0, 1.6, 0.05), facing, GLASS, SceneryKit.SMOOTH, false)
+	_box(kit, at, Vector3(0.0, h, 0.0), Vector3(16.4, 0.4, 9.4), facing, accent, SceneryKit.SMOOTH, false)
+	for x in [-5.0, 0.0, 5.0]:
+		kit.cone(at + _turn(Vector3(x, h + 0.4, 0.0), facing) + Vector3.UP * 1.4, 1.0, 0.4, accent, SceneryKit.SMOOTH)
+		kit.cylinder(at + _turn(Vector3(x, h + 0.4, 0.0), facing), 0.05, 1.5, WHITE, SceneryKit.SMOOTH)
+	_box(kit, at, Vector3(0.0, 0.0, 5.2), Vector3(4.0, 3.0, 1.2), facing, accent, SceneryKit.SMOOTH, false)
+
+
+## A huge sandcastle, made of bricks, with four round towers and a flag.
+static func sandcastle(kit: SceneryKit, at: Vector3) -> void:
+	kit.box(at, Vector3(11.0, 1.2, 11.0), TAN)
+	kit.box(at + Vector3.UP * 1.2, Vector3(8.0, 3.0, 8.0), TAN)
+	for x in [-4.0, 4.0]:
+		for z in [-4.0, 4.0]:
+			kit.cylinder(at + Vector3(x, 1.2, z), 1.4, 4.4, TAN.lightened(0.08), SceneryKit.BRICK, true)
+			kit.cone(at + Vector3(x, 5.6, z), 1.6, 1.4, DARK_TAN, SceneryKit.BRICK)
+	for k in 6:
+		var x := -2.5 + k
+		for z in [-4.0, 4.0]:
+			kit.box(at + Vector3(x, 4.2, z), Vector3(0.5, 0.5, 0.5), TAN)
+	kit.box(at + Vector3.UP * 4.2, Vector3(3.0, 2.6, 3.0), TAN.lightened(0.08))
+	kit.cone(at + Vector3.UP * 6.8, 2.0, 1.6, DARK_TAN)
+	kit.cylinder(at + Vector3.UP * 8.4, 0.05, 2.0, WHITE, SceneryKit.SMOOTH)
+	kit.box(at + Vector3(0.5, 9.6, 0.0), Vector3(1.0, 0.6, 0.04), RED, SceneryKit.SMOOTH, false)
+	kit.box(at + Vector3(0.0, 1.2, 4.05), Vector3(1.6, 2.0, 0.1), DARK_TAN, SceneryKit.SMOOTH, false)
+
+
+## Thick sloping walls of honey coloured stone round a harbour, with a corner
+## bastion, a watchtower and a dome behind.
+static func harbour_fort(kit: SceneryKit, at: Vector3, facing: int) -> void:
+	var stone := Color("#d9b77e")
+	for k in 3:
+		var w := 22.0 - k * 1.2
+		_box(kit, at, Vector3(0.0, k * 2.0, 0.0), Vector3(w, 2.0, 7.0 - k * 0.8), facing, stone.darkened(k * 0.05))
+	for k in 8:
+		_box(kit, at, Vector3(-9.5 + k * 2.7, 6.0, 2.2), Vector3(1.2, 0.8, 0.8), facing, stone)
+	_box(kit, at, Vector3(10.0, 0.0, -4.0), Vector3(6.0, 7.5, 6.0), facing, stone.darkened(0.08))
+	_box(kit, at, Vector3(10.0, 7.5, -4.0), Vector3(2.6, 3.0, 2.6), facing, stone)
+	kit.cylinder(at + _turn(Vector3(-6.0, 6.0, -1.5), facing), 2.2, 2.0, stone.lightened(0.05))
+	kit.cone(at + _turn(Vector3(-6.0, 8.0, -1.5), facing), 2.3, 2.6, DARK_RED)
+	kit.cylinder(at + _turn(Vector3(-6.0, 10.6, -1.5), facing), 0.2, 1.0, stone)
+
+
+## A few little penguins waddling up from the beach, a hand high.
+static func penguins(kit: SceneryKit, at: Vector3, rng: RandomNumberGenerator) -> void:
+	for k in 4 + rng.randi() % 3:
+		var spot := at + Vector3(rng.randf_range(-1.2, 1.2), 0.0, rng.randf_range(-1.2, 1.2))
+		var face := Basis(Vector3.UP, rng.randf() * TAU)
+		kit.cylinder(spot, 0.16, 0.42, Color("#2c3e5a"), SceneryKit.SMOOTH)
+		kit.turned_box(spot + Vector3.UP * 0.2 + face * Vector3(0.0, 0.0, 0.12), Vector3(0.18, 0.3, 0.06), face, WHITE)
+		kit.cylinder(spot + Vector3.UP * 0.42, 0.12, 0.14, Color("#2c3e5a"), SceneryKit.SMOOTH)
+		kit.turned_box(spot + Vector3.UP * 0.48 + face * Vector3(0.0, 0.0, 0.14), Vector3(0.05, 0.04, 0.1), face, BLACK)
+
+
+## An umbrella pine, with a tall bare trunk and a wide flat top.
+static func stone_pine(kit: SceneryKit, at: Vector3, rng: RandomNumberGenerator) -> void:
+	var trunk := 3.6 + rng.randf() * 1.4
+	kit.box(at, Vector3(0.5, trunk, 0.5), BROWN, SceneryKit.BRICK, true)
+	var size := 4.2 + rng.randf() * 1.4
+	kit.box(at + Vector3.UP * trunk, Vector3(size, 0.8, size), GREEN.darkened(0.1), SceneryKit.BRICK, false)
+	kit.box(at + Vector3.UP * (trunk + 0.8), Vector3(size * 0.7, 0.6, size * 0.7), GREEN, SceneryKit.BRICK, false)

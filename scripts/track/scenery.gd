@@ -39,13 +39,19 @@ const BARRIER_STEP := 4.0
 const INDOOR_RUNOFF := 3.0
 const HALL_MARGIN := 40.0
 const HALL_HEIGHT := 12.0
+## How far the shore is past the furthest road on the sea's side, how wide
+## the beach is, and how far out the sea goes.
+const SHORE := 55.0
+const BEACH := 16.0
+const SEA_OUT := 900.0
 ## How far apart the hall's roof beams and the lights along them are.
 const BEAM_EVERY := 16.0
 const LIGHT_EVERY := 12.0
 
 ## Each theme: ground colour, curb and wall colours, the sky, its landmarks
 ## (placed first, biggest first) and its fillers with how often each turns
-## up. An indoor theme also has the colour behind everything, what the floor
+## up. A theme by the sea has "sea", and the sea runs along one side of the
+## course with a sandy beach, a pier and boats. An indoor theme also has the colour behind everything, what the floor
 ## is, and the colours of the hall and its lights.
 const THEMES := {
 	"orchard": {
@@ -211,6 +217,30 @@ const THEMES := {
 		"landmarks": ["ferris_wheel", "carousel", "drop_tower", "tent"],
 		"fillers": {"pine": 3, "broadleaf": 2, "tent": 1, "bush": 2},
 	},
+	"gran_canaria": {
+		"ground": "#dcc693", "curbs": ["#d8261c", "#f2f2f2"], "wall": "#f2f3f2",
+		"sky": ["#3e8fe0", "#f6ead2"], "sea": true,
+		"landmarks": ["beach_hotel", "lighthouse", "sandcastle", "beach_hotel"],
+		"fillers": {"palm": 5, "parasols": 3, "beach_hut": 2, "windsurf": 2, "lifeguard_tower": 1, "dune": 1},
+	},
+	"sardinia": {
+		"ground": "#a3a466", "curbs": ["#0d69ab", "#f2f2f2"], "wall": "#f2f3f2",
+		"sky": ["#3a86d8", "#eef2f4"], "sea": true,
+		"landmarks": ["watchtower", "villa", "lighthouse", "villa"],
+		"fillers": {"stone_pine": 4, "olive": 2, "rocks": 3, "bush": 2, "villa": 1, "parasols": 1},
+	},
+	"malta": {
+		"ground": "#cdb984", "curbs": ["#d8261c", "#f2f2f2"], "wall": "#d9b77e",
+		"sky": ["#3f8ad8", "#f4ead6"], "sea": true,
+		"landmarks": ["harbour_fort", "church", "harbour_fort", "watchtower"],
+		"fillers": {"rocks": 3, "palm": 2, "cactus": 2, "olive": 1, "house": 1},
+	},
+	"phillip_island": {
+		"ground": "#62a14b", "curbs": ["#d8261c", "#f2f2f2"], "wall": "#c4281c",
+		"sky": ["#4f8fd0", "#e6eef2"], "sea": true,
+		"landmarks": ["lighthouse", "spectator_bank", "control_tower", "penguins"],
+		"fillers": {"gum_tree": 3, "bush": 3, "penguins": 1, "rocks": 1, "fence": 1},
+	},
 	"park_desert": {
 		"ground": "#d9c38c", "curbs": ["#c4281c", "#f2f3f2"], "wall": "#c4281c",
 		"supports": "lattice", "supports_colour": "#c4281c", "sky": ["#3f86d6", "#f4e9d0"],
@@ -237,6 +267,10 @@ var keep_clear: Array = []
 var _rng := RandomNumberGenerator.new()
 var _kit := SceneryKit.new()
 var _placed: Array = [] # [position, radius]
+## The sea, seen from above, as (x, z), or empty. `_out` is the way from the
+## shore out to sea.
+var _sea := Rect2()
+var _out := Vector2.ZERO
 var _origin := Vector2.ZERO
 var _cols := 0
 var _rows := 0
@@ -268,6 +302,8 @@ func _ready() -> void:
 	var indoor: bool = theme.get("indoor", false)
 	if indoor:
 		_hall = _hall_floor()
+	if theme.get("sea", false):
+		_plan_sea()
 	if not only_landmarks:
 		_trackside()
 		_under_jumps()
@@ -286,6 +322,8 @@ func _ready() -> void:
 		_fill()
 		if indoor:
 			_build_hall()
+	if _sea.size != Vector2.ZERO:
+		_build_sea()
 	# Only things near the road need to be solid. And nothing that ended up on
 	# the road itself may be, or karts would pile into it (the walls keep
 	# them off everything else).
@@ -557,7 +595,94 @@ func _hall_floor() -> Rect2:
 ## Whether something `room` across fits inside the hall. Outdoors there's no
 ## hall and everything fits.
 func _inside_hall(at: Vector3, room: float) -> bool:
+	if _sea.size != Vector2.ZERO and _sea.grow(BEACH * 0.5 + room).has_point(Vector2(at.x, at.z)):
+		return false
 	return _hall.size == Vector2.ZERO or _hall.grow(-room - 2.0).has_point(Vector2(at.x, at.z))
+
+
+# By the sea.
+
+## Which side the sea's on, picked from the course's name so it stays put,
+## and where the shore is.
+func _plan_sea() -> void:
+	var low := Vector2(INF, INF)
+	var high := -Vector2(INF, INF)
+	for p in track.points:
+		low = low.min(Vector2(p.x, p.z))
+		high = high.max(Vector2(p.x, p.z))
+	var side := absi(hash(track.name + " sea")) % 4
+	var wide := SEA_OUT * 2.0 + (high - low).length()
+	var middle := (low + high) * 0.5
+	match side:
+		0:
+			_out = Vector2(0, 1)
+			_sea = Rect2(Vector2(middle.x - wide * 0.5, high.y + SHORE), Vector2(wide, SEA_OUT))
+		1:
+			_out = Vector2(0, -1)
+			_sea = Rect2(Vector2(middle.x - wide * 0.5, low.y - SHORE - SEA_OUT), Vector2(wide, SEA_OUT))
+		2:
+			_out = Vector2(1, 0)
+			_sea = Rect2(Vector2(high.x + SHORE, middle.y - wide * 0.5), Vector2(SEA_OUT, wide))
+		_:
+			_out = Vector2(-1, 0)
+			_sea = Rect2(Vector2(low.x - SHORE - SEA_OUT, middle.y - wide * 0.5), Vector2(SEA_OUT, wide))
+
+
+## The sea and its beach, a pier out into it, waves breaking on the sand,
+## and boats out on the water.
+func _build_sea() -> void:
+	var level := 0.0
+	# On a hilly course the sea sits as high as the ground gets near the
+	# shore, so no hill pokes up through it.
+	var shore_mid := _sea.get_center() - _out * _sea.size.dot(_out.abs()) * 0.5
+	var along := Vector2(_out.y, _out.x).abs()
+	for k in range(-20, 21):
+		for d in [0.0, 20.0, 40.0]:
+			var spot: Vector2 = shore_mid + along * k * 20.0 + _out * d
+			level = maxf(level, ground.call(spot.x, spot.y))
+	var centre := _sea.get_center()
+	var sea_size := Vector3(_sea.size.x, 0.2, _sea.size.y)
+	_kit.box(Vector3(centre.x, level - 0.05, centre.y), sea_size, Color("#1e6fb5"), SceneryKit.WATER, false)
+	# The beach, a band of sand along the shore on the land side.
+	var beach := _sea.grow_individual(
+		BEACH if _out.x > 0.0 else 0.0, BEACH if _out.y > 0.0 else 0.0,
+		BEACH if _out.x < 0.0 else 0.0, BEACH if _out.y < 0.0 else 0.0)
+	var beach_centre := beach.get_center()
+	_kit.box(Vector3(beach_centre.x, level - 0.08, beach_centre.y), Vector3(beach.size.x, 0.2, beach.size.y), Props.TAN, SceneryKit.SMOOTH, false)
+	# Waves breaking just off the sand.
+	for k in range(-24, 25):
+		var spot: Vector2 = shore_mid + along * (k * 18.0 + _rng.randf_range(-5.0, 5.0)) + _out * _rng.randf_range(2.0, 9.0)
+		var size := Vector3(along.x, 0.0, along.y) * _rng.randf_range(5.0, 11.0) + Vector3(_out.x, 0.0, _out.y).abs() * 0.5 + Vector3.UP * 0.12
+		_kit.box(Vector3(spot.x, level + 0.08, spot.y), size, Props.WHITE, SceneryKit.SMOOTH, false)
+	# A pier straight out from the middle of the shore.
+	var pier_from := shore_mid - _out * 6.0
+	for k in 12:
+		var spot: Vector2 = pier_from + _out * (k * 4.0 + 2.0)
+		var deck := Vector3(along.x, 0.0, along.y) * 4.0 + Vector3(_out.x, 0.0, _out.y).abs() * 4.1 + Vector3.UP * 0.3
+		_kit.box(Vector3(spot.x, level + 1.2, spot.y), deck, Props.BROWN, SceneryKit.SMOOTH, false)
+		for side in [-1.8, 1.8]:
+			var post: Vector2 = spot + along * side
+			_kit.box(Vector3(post.x, level - 1.0, post.y), Vector3(0.3, 2.2, 0.3), Props.DARK_TAN, SceneryKit.BRICK, false)
+	var end := pier_from + _out * 50.0
+	_kit.box(Vector3(end.x, level + 1.35, end.y), Vector3(3.0, 2.4, 3.0), Props.WHITE, SceneryKit.BRICK, false)
+	_kit.box(Vector3(end.x, level + 3.75, end.y), Vector3(3.4, 0.3, 3.4), Props.RED, SceneryKit.SMOOTH, false)
+	# Boats out on the water.
+	for k in 7:
+		var spot: Vector2 = shore_mid + along * _rng.randf_range(-260.0, 260.0) + _out * _rng.randf_range(40.0, 300.0)
+		_boat(Vector3(spot.x, level, spot.y), _rng.randf() * TAU)
+
+
+## A little boat: a hull, a deck and, for most, a mast and sail.
+func _boat(at: Vector3, heading: float) -> void:
+	var turn := Basis(Vector3.UP, heading)
+	var hull: Color = [Props.WHITE, Props.RED, Props.BLUE, Props.YELLOW][_rng.randi() % 4]
+	_kit.turned_box(at + Vector3.UP * 0.4, Vector3(2.4, 1.0, 7.0), turn, hull, SceneryKit.SMOOTH)
+	_kit.turned_box(at + Vector3.UP * 0.95 + turn * Vector3(0.0, 0.0, 2.6), Vector3(1.6, 0.4, 2.0), turn, hull.lightened(0.2), SceneryKit.SMOOTH)
+	if _rng.randf() < 0.7:
+		_kit.turned_cylinder(at + Vector3.UP * 4.5, 0.08, 7.0, turn, Props.WHITE)
+		_kit.turned_box(at + Vector3.UP * 4.0 + turn * Vector3(0.0, 0.0, -1.2), Vector3(0.05, 5.5, 2.6), turn, Props.WHITE, SceneryKit.SMOOTH)
+	else:
+		_kit.turned_box(at + Vector3.UP * 1.5 + turn * Vector3(0.0, 0.0, -1.0), Vector3(1.8, 1.2, 2.4), turn, Props.WHITE, SceneryKit.SMOOTH)
 
 
 ## The hall around an indoor course: its walls with a coloured band round

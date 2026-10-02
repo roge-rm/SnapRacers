@@ -1,0 +1,3 @@
+Coral Cove
+width=13 laps=3 theme=sardinia hills=5
+R3 S1 R1 R1 S1 L1 SR2.1 S1 L1 S1 L2 SR3.2 SL2.1 R1 R2 SL4.2 R1 L1 R1 R1 S1 L1 L1 S2 R1 SL6.3 R1 SR2.1 S3 S1

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Traces a real kart circuit with SnapRacers track pieces.
 
-Usage: tracer.py <osm name> <scale> <out.txt> [beam] [reverse]
+Usage: [TURN=<degrees>] tracer.py <osm name> <scale> <out.txt> [beam] [reverse]
 
 The real middle line (from OpenStreetMap) is scaled down, and the start is put
 on its longest straight, facing north. Then a beam search lays pieces one at
@@ -133,6 +133,9 @@ level = np.roll(level, -start)
 w = (~np.roll(straight, -start)).astype(float) * 0.05 + np.roll(straight, -start).astype(float)
 theta = np.arctan2(np.roll(real, -2, axis=0)[:, 0] - real[:, 0], np.roll(real, -2, axis=0)[:, 1] - real[:, 1])
 phi = math.atan2((w * np.sin(4 * theta)).sum(), (w * np.cos(4 * theta)).sum()) / 4
+# A circuit whose straights meet at 45 degrees can't line them all up, so
+# TURN (in degrees) turns it a bit more, to bring them all near enough a slant.
+phi += math.radians(float(os.environ.get("TURN", "0")))
 start_head = math.atan2(real[3][0] - real[0][0], real[3][1] - real[0][1])
 quarter = round((start_head - phi) / (math.pi / 2))
 head0 = phi + quarter * math.pi / 2

@@ -17,7 +17,7 @@ const SAVED := "user://pictures/outlines"
 ## Every how many of the course's samples (a metre apart) go in the line.
 const EVERY := 4
 ## Goes up when outlines are worked out differently, so the saved ones go.
-const LOOK := 1
+const LOOK := 2
 
 static var _kept := {}
 
@@ -138,10 +138,7 @@ static func describe(track: TrackPath) -> String:
 		things.append("a corkscrew")
 	if has.call(func(p): return p.type == "curve" and p.sticky):
 		things.append("a wall ride")
-	var highest := 0.0
-	for point in track.points:
-		highest = maxf(highest, point.y)
-	if highest > 4.0 and not has.call(func(p): return TrackPiece.turns_over(p.type)):
+	if crosses_over(track):
 		things.append("a bridge")
 	if has.call(func(p): return p.type == "jump"):
 		things.append("a jump")
@@ -152,6 +149,30 @@ static func describe(track: TrackPath) -> String:
 		var last: String = things.pop_back()
 		text += ", " + (", ".join(things) + " and " if not things.is_empty() else "") + last
 	return text
+
+
+## Whether the road goes over itself anywhere, on a bridge. Loops and
+## corkscrews go over themselves too, but they aren't bridges, and road that's
+## only high up because of the hills isn't either.
+static func crosses_over(track: TrackPath) -> bool:
+	var cell := track.width
+	var spots := {}
+	for k in range(0, track.points.size(), 3):
+		var piece := track.piece_of[k] if k < track.piece_of.size() else -1
+		if piece >= 0 and piece < track.pieces.size() and TrackPiece.turns_over(track.pieces[piece].type):
+			continue
+		var p := track.points[k]
+		var key := Vector2i(floori(p.x / cell), floori(p.z / cell))
+		for x in range(key.x - 1, key.x + 2):
+			for z in range(key.y - 1, key.y + 2):
+				for other in spots.get(Vector2i(x, z), []):
+					var q := track.points[other]
+					var apart := absf(track.distances[k] - track.distances[other])
+					apart = minf(apart, track.length - apart)
+					if apart > 60.0 and Vector2(p.x - q.x, p.z - q.z).length() < track.width * 0.5 and absf(p.y - q.y) > 3.0:
+						return true
+		spots.get_or_add(key, []).append(k)
+	return false
 
 
 ## Fits an outline into a rect, keeping its shape, with north up.

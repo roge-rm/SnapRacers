@@ -4,7 +4,7 @@ extends RefCounted
 ## A cup's trophy, built from bricks. Every one stands on the same plinth, a
 ## black brick with a plate in the cup's colour and a round stem, and has its
 ## own top: a two handled cup, a wheel, a gear, an arch, a chequered flag,
-## mountains, a lightning bolt or a corkscrew.
+## mountains, a lightning bolt, a corkscrew or a palm tree.
 ##
 ## It comes in plain light grey, for a cup you haven't won yet, or in gold,
 ## silver or bronze for your best finish. The plinth keeps its colours either
@@ -13,7 +13,7 @@ extends RefCounted
 ## A trophy is a little over 1 m across and up to 2 m tall, standing on its own
 ## origin.
 
-const TOPS := ["cup", "wheel", "gear", "arch", "flag", "peak", "bolt", "spiral"]
+const TOPS := ["cup", "wheel", "gear", "arch", "flag", "peak", "bolt", "spiral", "palm"]
 const FINISHES := ["grey", "gold", "silver", "bronze"]
 const GOLD := Color("#f2b632")
 const SILVER := Color("#cdd3db")
@@ -74,6 +74,8 @@ static func pieces(spec: Dictionary, colour: Color, finish := "grey") -> Array:
 			_bolt(add, metal)
 		"spiral":
 			_spiral(add, metal)
+		"palm":
+			_palm(add, metal)
 		_:
 			_cup(add, metal)
 	return out
@@ -240,3 +242,20 @@ static func _spiral(add: Callable, metal: Material) -> void:
 		var y := TOP_AT + 0.04 + 0.9 * i / steps
 		var at := _up(y, cos(angle) * 0.22, sin(angle) * 0.22)
 		add.call(MeshKit.rounded_cylinder(0.14, 0.08, 0.02, 20), at, metal)
+
+
+## A palm tree, its trunk leaning a little, with fronds and coconuts.
+static func _palm(add: Callable, metal: Material) -> void:
+	var top := Vector3.ZERO
+	for k in 7:
+		var at := Vector3(0.008 * k * k, TOP_AT + 0.08 + k * 0.15, 0.0)
+		add.call(MeshKit.rounded_cylinder(0.11 - k * 0.006, 0.16, 0.02, 16), _up(at.y, at.x), metal)
+		top = at + Vector3.UP * 0.08
+	for k in 7:
+		var a := TAU * k / 7.0
+		var leaf := Basis(Vector3.UP, a) * Basis(Vector3.RIGHT, 0.32)
+		var centre := top + Basis(Vector3.UP, a) * Vector3(0.0, -0.05, 0.24)
+		add.call(_brick(Vector3(0.15, 0.035, 0.48)), Transform3D(leaf, centre), metal)
+	for k in 3:
+		var a := TAU * k / 3.0 + 0.5
+		add.call(MeshKit.rounded_cylinder(0.06, 0.1, 0.03, 12), _up(top.y - 0.08, top.x + cos(a) * 0.08, sin(a) * 0.08), metal)

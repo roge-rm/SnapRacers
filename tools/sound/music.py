@@ -88,6 +88,15 @@ def bell(f, d, v):
     return tone * decay(n, 0.7) * adsr(n, 0.002, 0.0, 1.0, 0.02) * 0.8 * v
 
 
+def steel(f, d, v):
+    """A steel drum: a bright ringing note with the pan's out of tune
+    overtones, hit hard and dying away."""
+    n = seconds(max(d, 0.5))
+    tone = sine(f, n) + sine(f * 2.0, n) * 0.5 * decay(n, 0.25) + sine(f * 2.98, n) * 0.22 * decay(n, 0.12)
+    ping = sine(f * 4.1, n) * decay(n, 0.02) * 0.3
+    return (tone + ping) * decay(n, 0.45) * adsr(n, 0.001, 0.0, 1.0, 0.03) * 0.7 * v
+
+
 def pluck(f, d, v):
     n = seconds(max(d, 0.12))
     tone = square(f, n, 0.5, harmonics=14)
@@ -599,5 +608,48 @@ def race_legends():
     return render(bpm, bars, parts, wet=0.18)
 
 
+def race_beach():
+    """The beach cup: sunny and easy going, steel drums over a calypso beat,
+    in F."""
+    bpm = 124
+    verse = ["F", "Bb", "C", "F", "Dm", "Bb", "C7", "F"]
+    chorus = ["Bb", "C", "Am", "Dm", "Bb", "C", "Gm", "C7"]
+    breakdown = ["F", "Bb", "C", "F"]
+    chords = verse + chorus + verse + breakdown
+    a = [
+        [("C6", 2), ("A5", 2), ("F5", 2), ("A5", 2), ("C6", 3), ("D6", 1), ("C6", 4)],
+        [("D6", 2), ("F6", 2), ("D6", 2), ("Bb5", 2), ("D6", 4), ("F5", 4)],
+        [("E6", 3), ("D6", 1), ("C6", 2), ("Bb5", 2), ("G5", 4), ("C6", 4)],
+        [("A5", 6), ("C6", 2), ("F6", 6), (".", 2)],
+        [("F6", 2), ("E6", 2), ("D6", 2), ("A5", 2), ("D6", 3), ("E6", 1), ("F6", 4)],
+        [("D6", 2), ("Bb5", 2), ("F5", 2), ("Bb5", 2), ("D6", 4), ("F6", 4)],
+        [("E6", 2), ("G6", 2), ("E6", 2), ("C6", 2), ("Bb5", 4), ("G5", 4)],
+        [("F5", 8), (".", 4), ("A5", 2), ("C6", 2)],
+    ]
+    b = [
+        [("D6", 3), ("F6", 1), ("D6", 2), ("Bb5", 2), ("F6", 4), ("D6", 4)],
+        [("E6", 3), ("G6", 1), ("E6", 2), ("C6", 2), ("G6", 4), ("E6", 4)],
+        [("C6", 2), ("E6", 2), ("A6", 4), ("G6", 2), ("E6", 2), ("C6", 4)],
+        [("D6", 6), ("F6", 2), ("A6", 4), ("F6", 4)],
+        [("Bb6", 3), ("A6", 1), ("G6", 2), ("F6", 2), ("D6", 4), ("F6", 4)],
+        [("G6", 3), ("F6", 1), ("E6", 2), ("C6", 2), ("E6", 4), ("G6", 4)],
+        [("D6", 2), ("Bb5", 2), ("G5", 2), ("Bb5", 2), ("D6", 4), ("G6", 4)],
+        [("E6", 4), ("C6", 4), ("G5", 4), ("Bb5", 4)],
+    ]
+    tune = melody(16, *(a + b + a + [[(".", 16)]] * 4))
+    bars = len(chords)
+    parts = [
+        (kick, drums("x..x....x..x....", bars), 0.55, 0.0, 0.0),
+        (clap, drums("....x.......x...", bars), 0.35, 0.05, 0.15),
+        (hat, drums("x.xxx.xxx.xxx.xx", bars), 0.2, 0.35, 0.03),
+        (bass, bassline(chords, "r..5..o.r..5..o.", 2), 0.5, 0.0, 0.0),
+        (keys, comp(chords, "..x..x.x..x..x.x", 4), 0.3, -0.35, 0.2),
+        (steel, tune, 0.5, 0.15, 0.25),
+        (steel, [(at, f / 2.0, n) for at, f, n in tune], 0.16, -0.2, 0.25),
+    ]
+    return render(bpm, bars, parts, wet=0.16)
+
+
 TUNES = {"menu": menu_tune, "race_one": race_one, "race_two": race_two, "race_three": race_three, "race_four": race_four,
-         "race_indoor": race_indoor, "race_rally": race_rally, "race_coaster": race_coaster, "race_legends": race_legends}
+         "race_indoor": race_indoor, "race_rally": race_rally, "race_coaster": race_coaster, "race_legends": race_legends,
+         "race_beach": race_beach}

@@ -54,6 +54,15 @@ func _init() -> void:
 		var saved := CourseOutline.of(path)
 		check(saved.line.size() == line.size() and saved.summary == outline.summary, "  which comes back the same once it's saved")
 
+	# Only road that goes over itself is a bridge, not road up high on the
+	# hills or going round a loop.
+	for id in ["peach_pit", "launchpad_loop", "penguin_point"]:
+		var track := TrackPath.load_file(Tracks.path_of(id))
+		check(not CourseOutline.crosses_over(track), "%s has no bridge (%s)" % [track.name, CourseOutline.describe(track)])
+	for id in ["sakura_swirl", "spark_deck"]:
+		var track := TrackPath.load_file(Tracks.path_of(id))
+		check(CourseOutline.crosses_over(track), "%s has a bridge (%s)" % [track.name, CourseOutline.describe(track)])
+
 	print("All trophy checks passed." if failures == 0 else "%d trophy checks failed." % failures)
 	quit(1 if failures > 0 else 0)
 
