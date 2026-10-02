@@ -424,9 +424,12 @@ static func crane(kit: SceneryKit, at: Vector3, facing: int) -> void:
 	_box(kit, at, Vector3.ZERO, Vector3(3.0, 1.0, 3.0), facing, DARK_GREY)
 	for k in 7:
 		_box(kit, at, Vector3(0.0, 1.0 + k * 3.0, 0.0), Vector3(1.2, 3.0, 1.2), facing, YELLOW, SceneryKit.BRICK, k == 0)
+	# The jib swings slowly to and fro.
+	kit.begin_mover(Transform3D(Basis.IDENTITY, at + Vector3.UP * 22.0), { "swing": Vector3.UP, "angle": 0.4, "rate": 0.15 })
 	_box(kit, at, Vector3(4.0, 22.0, 0.0), Vector3(16.0, 1.0, 1.0), facing, YELLOW)
 	_box(kit, at, Vector3(-4.5, 21.0, 0.0), Vector3(3.0, 1.5, 2.0), facing, DARK_GREY)
 	_box(kit, at, Vector3(10.0, 12.0, 0.0), Vector3(0.1, 10.0, 0.1), facing, BLACK, SceneryKit.SMOOTH, false)
+	kit.end_mover()
 
 
 static func skyscraper(kit: SceneryKit, at: Vector3, rng: RandomNumberGenerator) -> void:
@@ -495,10 +498,13 @@ static func windmill(kit: SceneryKit, at: Vector3, facing: int, scale: float) ->
 	kit.box(at + _turn(Vector3(0.0, 0.0, 2.3 * scale), facing), _turn_size(Vector3(1.0, 1.9, 0.2), facing), BROWN, SceneryKit.SMOOTH, false)
 	var hub := at + Vector3.UP * 6.3 * scale + _turn(Vector3(0.0, 0.0, 2.6 * scale), facing)
 	var face := Basis(Vector3.UP, -posmod(facing, 4) * PI * 0.5)
+	# The sails turn slowly in the wind.
+	kit.begin_mover(Transform3D(face, hub), { "spin": Vector3.BACK, "speed": 0.5 })
 	for k in 4:
 		var blade := face * Basis(Vector3.BACK, k * PI * 0.5 + 0.4)
 		kit.turned_box(hub + blade * Vector3(0.0, 2.6 * scale, 0.0), Vector3(1.0 * scale, 5.2 * scale, 0.1), blade, WHITE)
 		kit.turned_box(hub + blade * Vector3(0.0, 2.6 * scale, 0.05), Vector3(0.15, 5.2 * scale, 0.12), blade, BROWN)
+	kit.end_mover()
 
 
 static func wind_turbine(kit: SceneryKit, at: Vector3, facing: int) -> void:
@@ -506,9 +512,11 @@ static func wind_turbine(kit: SceneryKit, at: Vector3, facing: int) -> void:
 	var face := Basis(Vector3.UP, -posmod(facing, 4) * PI * 0.5)
 	kit.turned_box(at + Vector3.UP * 26.5, Vector3(1.4, 1.4, 3.5), face, WHITE)
 	var hub := at + Vector3.UP * 26.5 + face * Vector3(0.0, 0.0, 1.9)
+	kit.begin_mover(Transform3D(face, hub), { "spin": Vector3.BACK, "speed": 0.9 })
 	for k in 3:
 		var blade := face * Basis(Vector3.BACK, k * TAU / 3.0)
 		kit.turned_box(hub + blade * Vector3(0.0, 5.5, 0.0), Vector3(0.9, 11.0, 0.2), blade, WHITE)
+	kit.end_mover()
 
 
 static func tent(kit: SceneryKit, at: Vector3, facing: int, colour: Color) -> void:
@@ -588,8 +596,11 @@ static func rocket(kit: SceneryKit, at: Vector3, facing: int) -> void:
 static func radar(kit: SceneryKit, at: Vector3, facing: int) -> void:
 	kit.box(at, Vector3(2.4, 3.0, 2.4), LIGHT_GREY)
 	var face := Basis(Vector3.UP, -posmod(facing, 4) * PI * 0.5) * Basis(Vector3.RIGHT, deg_to_rad(55.0))
+	# The dish sweeps round.
+	kit.begin_mover(Transform3D(Basis.IDENTITY, at + Vector3.UP * 4.5), { "spin": Vector3.UP, "speed": 0.7 })
 	kit.turned_cylinder(at + Vector3.UP * 4.5, 3.6, 0.4, face, WHITE)
 	kit.turned_cylinder(at + Vector3.UP * 4.5 + face * Vector3(0.0, 1.2, 0.0), 0.2, 2.4, face, DARK_GREY)
+	kit.end_mover()
 
 
 static func volcano(kit: SceneryKit, at: Vector3) -> void:
@@ -702,6 +713,8 @@ static func ferris_wheel(kit: SceneryKit, at: Vector3, facing: int) -> void:
 	kit.turned_cylinder(hub, 0.8, 6.0, Basis(Quaternion(Vector3.UP, axle)), LIGHT_GREY)
 	var colours := [RED, YELLOW, BLUE, GREEN, ORANGE, AZURE, PINK, WHITE]
 	var cars := 16
+	# The wheel goes slowly round.
+	kit.begin_mover(Transform3D(Basis.IDENTITY, hub), { "spin": axle, "speed": 0.12 })
 	for k in cars:
 		var a := TAU * k / cars
 		var out := across * cos(a) + Vector3.UP * sin(a)
@@ -711,6 +724,7 @@ static func ferris_wheel(kit: SceneryKit, at: Vector3, facing: int) -> void:
 		kit.turned_box(hub + out * radius * cos(PI / cars) + tangent * chord * 0.5, Vector3(0.4, chord, 0.4), Basis(Quaternion(Vector3.UP, tangent.normalized())), WHITE)
 		kit.turned_box(hub + out * radius * 0.5, Vector3(0.2, radius, 0.2), Basis(Quaternion(Vector3.UP, out.normalized())), LIGHT_GREY)
 		kit.box(hub + out * radius - Vector3.UP * 2.2, Vector3(1.6, 1.6, 1.6), colours[k % colours.size()], SceneryKit.SMOOTH, false)
+	kit.end_mover()
 
 
 ## A stretch of steep old concrete banking, a quarter of a big circle, like
@@ -773,10 +787,9 @@ static func spectator_bank(kit: SceneryKit, at: Vector3, facing: int, rng: Rando
 		var x := -across * 0.5 + 1.0
 		while x < across * 0.5 - 1.0 - k * 0.6:
 			if rng.randf() < 0.75:
-				var coat: Color = [RED, BLUE, YELLOW, WHITE, ORANGE, GREEN, DARK_BLUE, AZURE][rng.randi() % 8]
-				_box(kit, at, Vector3(x, 0.9 + k * 0.9, -k * 1.8 + rng.randf_range(-0.3, 0.3)), Vector3(0.5, 0.9, 0.4), facing, coat, SceneryKit.SMOOTH, false)
-				_box(kit, at, Vector3(x, 1.8 + k * 0.9, -k * 1.8), Vector3(0.36, 0.36, 0.36), facing, YELLOW, SceneryKit.SMOOTH, false)
+				fan(kit, at, Vector3(x, 0.9 + k * 0.9, -k * 1.8 + rng.randf_range(-0.3, 0.3)), facing, rng)
 			x += rng.randf_range(0.8, 1.4)
+	kit.new_crowd()
 
 
 # Things inside an indoor kart hall.
@@ -816,10 +829,9 @@ static func viewing_deck(kit: SceneryKit, at: Vector3, facing: int, rng: RandomN
 	var x := -length * 0.5 + 1.0
 	while x < length * 0.5 - 1.0:
 		if rng.randf() < 0.7:
-			var coat: Color = [RED, BLUE, YELLOW, WHITE, ORANGE, GREEN, DARK_BLUE, AZURE][rng.randi() % 8]
-			_box(kit, at, Vector3(x, 4.4, 2.3), Vector3(0.5, 0.9, 0.4), facing, coat, SceneryKit.SMOOTH, false)
-			_box(kit, at, Vector3(x, 5.3, 2.3), Vector3(0.36, 0.36, 0.36), facing, YELLOW, SceneryKit.SMOOTH, false)
+			fan(kit, at, Vector3(x, 4.4, 2.3), facing, rng)
 		x += rng.randf_range(0.9, 1.6)
+	kit.new_crowd()
 
 
 ## Pallets stacked up, the way they are at the back of a warehouse.
@@ -844,6 +856,8 @@ static func kart_office(kit: SceneryKit, at: Vector3, facing: int) -> void:
 ## A carousel: a round platform with horses on poles, under a striped roof.
 static func carousel(kit: SceneryKit, at: Vector3, rng: RandomNumberGenerator) -> void:
 	kit.cylinder(at, 6.0, 0.6, WHITE, SceneryKit.BRICK, true)
+	# Everything on top goes round.
+	kit.begin_mover(Transform3D(Basis.IDENTITY, at), { "spin": Vector3.UP, "speed": 0.6 })
 	kit.cylinder(at + Vector3.UP * 0.6, 1.2, 4.0, YELLOW, SceneryKit.SMOOTH)
 	for k in 12:
 		var a := TAU * k / 12.0
@@ -853,13 +867,17 @@ static func carousel(kit: SceneryKit, at: Vector3, rng: RandomNumberGenerator) -
 	for k in 8:
 		kit.cylinder(at + Vector3.UP * (4.6 + k * 0.25), 6.4 - k * 0.8, 0.25, RED if k % 2 == 0 else WHITE, SceneryKit.SMOOTH)
 	kit.cylinder(at + Vector3.UP * 6.6, 0.3, 1.0, YELLOW, SceneryKit.GLOW)
+	kit.end_mover()
 
 
 ## A drop tower: a tall mast with a ring of seats that goes up and falls.
 static func drop_tower(kit: SceneryKit, at: Vector3) -> void:
 	kit.box(at, Vector3(4.0, 1.0, 4.0), DARK_GREY)
 	kit.box(at + Vector3.UP, Vector3(2.0, 38.0, 2.0), LIGHT_GREY)
-	kit.cylinder(at + Vector3.UP * 26.0, 3.2, 1.6, BLUE, SceneryKit.SMOOTH)
+	# The seats ride up and down the tower.
+	kit.begin_mover(Transform3D(Basis.IDENTITY, at + Vector3.UP * 20.0), { "bob": 14.0, "rate": 0.35 })
+	kit.cylinder(at + Vector3.UP * 20.0, 3.2, 1.6, BLUE, SceneryKit.SMOOTH)
+	kit.end_mover()
 	kit.cylinder(at + Vector3.UP * 39.0, 1.6, 1.2, RED, SceneryKit.GLOW)
 
 
@@ -890,14 +908,14 @@ static func grandstand(kit: SceneryKit, at: Vector3, length: float, facing: int,
 	var rows := 5
 	for r in rows:
 		_box(kit, at, Vector3(0.0, 0.0, -r * 1.1), Vector3(length, 0.9 + r * 0.9, 1.1), facing, LIGHT_GREY if r % 2 == 0 else Color("#bcbcbc"))
-		# The crowd, as heads and shirts in all sorts of colours.
-		var shirts := [RED, BLUE, YELLOW, GREEN, WHITE, ORANGE, PINK, AZURE]
+		# The crowd, minifigs in all sorts of colours, in bunches along it that
+		# cheer as the karts go past them.
 		var x := -length * 0.5 + 0.6
 		while x < length * 0.5 - 0.4:
+			if int((x + length * 0.5) / 8.0) != int((x - 0.8 + length * 0.5) / 8.0):
+				kit.new_crowd()
 			if rng.randf() < 0.75:
-				var seat := Vector3(x, 0.9 + r * 0.9, -r * 1.1)
-				_box(kit, at, seat, Vector3(0.5, 0.5, 0.35), facing, shirts[rng.randi() % shirts.size()], SceneryKit.SMOOTH, false)
-				_box(kit, at, seat + Vector3.UP * 0.5, Vector3(0.3, 0.3, 0.3), facing, YELLOW, SceneryKit.SMOOTH, false)
+				fan(kit, at, Vector3(x, 0.9 + r * 0.9, -r * 1.1 + 0.15), facing, rng)
 			x += 0.8
 	# A roof on posts, in a team colour.
 	for x in [-length * 0.5, 0.0, length * 0.5]:
@@ -930,7 +948,10 @@ static func billboard(kit: SceneryKit, at: Vector3, facing: int, colour: Color) 
 
 static func flag(kit: SceneryKit, at: Vector3, colour: Color) -> void:
 	kit.cylinder(at, 0.08, 6.0, WHITE, SceneryKit.SMOOTH, true)
+	# The flag flaps about the pole.
+	kit.begin_mover(Transform3D(Basis.IDENTITY, at + Vector3.UP * 5.3), { "swing": Vector3.UP, "angle": 0.35, "rate": 2.2 })
 	kit.box(at + Vector3(0.8, 4.8, 0.0), Vector3(1.6, 1.0, 0.06), colour, SceneryKit.SMOOTH, false)
+	kit.end_mover()
 
 
 static func marshal_post(kit: SceneryKit, at: Vector3, facing: int) -> void:
@@ -1058,3 +1079,30 @@ static func stone_pine(kit: SceneryKit, at: Vector3, rng: RandomNumberGenerator)
 	var size := 4.2 + rng.randf() * 1.4
 	kit.box(at + Vector3.UP * trunk, Vector3(size, 0.8, size), GREEN.darkened(0.1), SceneryKit.BRICK, false)
 	kit.box(at + Vector3.UP * (trunk + 0.8), Vector3(size * 0.7, 0.6, size * 0.7), GREEN, SceneryKit.BRICK, false)
+
+
+# Fans.
+
+const SHIRTS := [RED, BLUE, YELLOW, GREEN, WHITE, ORANGE, PINK, AZURE, DARK_BLUE, LIME]
+const TROUSERS := [BLUE, BLACK, DARK_GREY, TAN, DARK_BLUE, WHITE, BROWN]
+## Hair, and some caps in team colours.
+const HAIR := [BROWN, BLACK, YELLOW, ORANGE, DARK_GREY, BROWN, BLACK, RED, BLUE]
+
+
+## A minifig fan standing at `offset` in a prop facing `facing`, looking out
+## the front of it (towards +Z before it's turned).
+static func fan(kit: SceneryKit, at: Vector3, offset: Vector3, facing: int, rng: RandomNumberGenerator) -> void:
+	var where := Transform3D(Basis(Vector3.UP, posmod(facing, 4) * PI * 0.5 + PI + rng.randf_range(-0.25, 0.25)), at + _turn(offset, facing))
+	kit.fan(where, SHIRTS[rng.randi() % SHIRTS.size()], TROUSERS[rng.randi() % TROUSERS.size()], HAIR[rng.randi() % HAIR.size()])
+
+
+## A few fans behind a little fence, for a corner.
+static func fan_line(kit: SceneryKit, at: Vector3, facing: int, rng: RandomNumberGenerator) -> void:
+	for k in 4:
+		_box(kit, at, Vector3(-3.0 + k * 2.0, 0.0, 0.6), Vector3(0.15, 1.0, 0.15), facing, WHITE, SceneryKit.SMOOTH, false)
+	_box(kit, at, Vector3(0.0, 0.8, 0.6), Vector3(6.2, 0.12, 0.1), facing, WHITE, SceneryKit.SMOOTH, false)
+	var x := -2.6
+	while x < 2.6:
+		fan(kit, at, Vector3(x, 0.0, rng.randf_range(-0.6, 0.1)), facing, rng)
+		x += rng.randf_range(0.55, 0.9)
+	kit.new_crowd()

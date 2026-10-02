@@ -500,6 +500,11 @@ func _trackside() -> void:
 						_kit.begin("marshal_post", true)
 						Props.marshal_post(_kit, post, _facing_for(p - post))
 						_kit.done()
+						# Every other corner has a few fans watching too.
+						var fans_at := _grounded(p + track.rights[k] * outside * (edge + 9.0))
+						if corners % 2 == 0 and _free(fans_at, 3.5) and not _near_other_road(fans_at, edge + 7.0, k, 25.0):
+							Props.fan_line(_kit, fans_at, _facing_for(p - fans_at), _rng)
+							_placed.append([fans_at, 3.5])
 						_placed.append([post, 1.5])
 		elif flat_ground:
 			straight_run += 1.0
@@ -675,6 +680,8 @@ func _build_sea() -> void:
 ## A little boat: a hull, a deck and, for most, a mast and sail.
 func _boat(at: Vector3, heading: float) -> void:
 	var turn := Basis(Vector3.UP, heading)
+	# It rocks gently on the water.
+	_kit.begin_mover(Transform3D(Basis.IDENTITY, at), { "swing": turn * Vector3.BACK, "angle": 0.06, "rate": 1.1 })
 	var hull: Color = [Props.WHITE, Props.RED, Props.BLUE, Props.YELLOW][_rng.randi() % 4]
 	_kit.turned_box(at + Vector3.UP * 0.4, Vector3(2.4, 1.0, 7.0), turn, hull, SceneryKit.SMOOTH)
 	_kit.turned_box(at + Vector3.UP * 0.95 + turn * Vector3(0.0, 0.0, 2.6), Vector3(1.6, 0.4, 2.0), turn, hull.lightened(0.2), SceneryKit.SMOOTH)
@@ -683,6 +690,7 @@ func _boat(at: Vector3, heading: float) -> void:
 		_kit.turned_box(at + Vector3.UP * 4.0 + turn * Vector3(0.0, 0.0, -1.2), Vector3(0.05, 5.5, 2.6), turn, Props.WHITE, SceneryKit.SMOOTH)
 	else:
 		_kit.turned_box(at + Vector3.UP * 1.5 + turn * Vector3(0.0, 0.0, -1.0), Vector3(1.8, 1.2, 2.4), turn, Props.WHITE, SceneryKit.SMOOTH)
+	_kit.end_mover()
 
 
 ## The hall around an indoor course: its walls with a coloured band round
@@ -809,7 +817,8 @@ func _start_area(edge: float) -> void:
 			break
 		var front: Vector3 = frame.origin + right * side * (edge + 3.0) - fwd * 4.0
 		front = _grounded(front)
-		if not _clear_of_other_road(front, fwd, -right * side, 32.0, 8.0, start_k):
+		# The building goes back away from the road, so that's the way to look.
+		if not _clear_of_other_road(front, fwd, right * side, 32.0, 8.0, start_k):
 			continue
 		_kit.begin("grandstand" if built == 0 else "pit_building", false)
 		if built == 0:

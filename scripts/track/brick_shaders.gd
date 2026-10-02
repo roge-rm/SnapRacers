@@ -184,6 +184,9 @@ void fragment() {
 		float flicker = 0.8 + 0.2 * sin(TIME * 2.0 + world.x * 0.4 + world.z * 0.3);
 		EMISSION = col * 1.6 * flicker;
 		rough = 0.9;
+	} else if (pattern > 4.5) {
+		// Plain plastic, for parts that move.
+		rough = 0.5;
 	} else {
 		float wave = sin(world.x * 0.6 + TIME * 0.8) * sin(world.z * 0.5 - TIME * 0.6);
 		col *= 0.85 + 0.15 * wave;

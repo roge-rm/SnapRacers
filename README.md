@@ -126,6 +126,8 @@ The road runs out onto grass that slows you down, and there are only walls where
 
 The scenery breaks. Drive through a tree, a fence or a billboard and it comes down in pieces, and a crash into a house or the grandstand knocks a hole in it. The loose bricks stay where they land until the race is over, and you can push them about, so the places people crash fill up with rubble. A hard hit on a tire stack knocks its top tires off, but the bottom ones stay, so you still can't cut across.
 
+There's a crowd. Minifigs fill the grandstands and stand along the fence at some corners, and they jump up and wave their arms as you go by. Windmills and wind turbines turn, flags wave, the big wheel and the carousel go round, cranes swing and the boats rock on the water.
+
 | Cup | Courses |
 |---|---|
 | **Baseplate** | Peach Pit, Trulli Turns, Lemon Lake, Pithead Park |

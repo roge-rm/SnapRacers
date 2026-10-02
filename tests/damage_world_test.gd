@@ -2,7 +2,8 @@ extends Node
 
 ## Scenery breaking (WorldDamage). A small prop comes down whole, a big one
 ## gets a hole where it's hit and the rest stays up and solid, and a tire stack
-## loses its top tire but keeps its bottom one. Then in a race, a kart driven
+## loses its top tire but keeps its bottom one. A flag flaps until it's
+## knocked down, and fans cheer as a kart goes by. Then in a race, a kart driven
 ## into a marshal post knocks it down and keeps going.
 ##
 ##   tools/godot/Godot_v4.7.2-stable_linux.x86_64 --headless --fixed-fps 60 --path . res://tests/damage_world_test.tscn
@@ -89,6 +90,42 @@ func _ready() -> void:
 	await frames(2)
 	moving = damage.rubble_count()
 	check(moving.y == WorldDamage.MOST_MOVING and moving.x > moving.y, "past that the oldest stop moving and stay where they are (%s)" % moving)
+	damage.queue_free()
+	await frames(2)
+
+	print("-- Moving and watching")
+	kit = SceneryKit.new()
+	kit.box(Vector3(0, 0, 40), Vector3(40, 0.2, 40), Props.GREEN, SceneryKit.BRICK, true)
+	kit.begin("flag", true)
+	Props.flag(kit, Vector3(0, 0.2, 0), Props.RED)
+	kit.done()
+	kit.begin("fans", false)
+	Props.fan_line(kit, Vector3(10, 0.2, 0), 0, rng)
+	kit.done()
+	damage = kit.build(stand)
+	await frames(2)
+	check(damage._movers.size() == 1, "the flag moves (%d moving)" % damage._movers.size())
+	var flag_was: Transform3D = damage._movers[0][0]
+	await frames(30)
+	check(not damage._movers[0][0].is_equal_approx(flag_was), "and flaps about")
+	var crowds := damage.get_children().filter(func(n): return n is Crowd)
+	check(crowds.size() == 1 and crowds[0]._phases.size() >= 4, "there are fans behind the fence (%d)" % (crowds[0]._phases.size() if not crowds.is_empty() else 0))
+	if not crowds.is_empty():
+		var bunch: Dictionary = crowds[0]._bunches.values()[0]
+		check(is_equal_approx(bunch.cheer, Crowd.AT_REST), "they wait quietly")
+		var passing := Node3D.new()
+		passing.add_to_group("karts")
+		add_child(passing)
+		passing.global_position = Vector3(10, 0.2, -8)
+		await frames(60)
+		check(bunch.cheer > 0.9, "they cheer when a kart comes by (%.2f)" % bunch.cheer)
+		passing.global_position = Vector3(300, 0, 0)
+		await frames(150)
+		check(bunch.cheer < Crowd.AT_REST + 0.01, "and calm down once it's gone (%.2f)" % bunch.cheer)
+		passing.queue_free()
+	damage.break_at(0, Vector3(0, 1, -0.1), Vector3(0, 0, 20))
+	await frames(4)
+	check(damage._movers[0][0].basis.get_scale() == Vector3.ZERO, "a flag knocked down goes with its pole")
 	damage.queue_free()
 	await frames(2)
 

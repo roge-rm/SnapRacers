@@ -16,6 +16,10 @@ extends Node3D
 ##
 ## Everything's still drawn as one batch per shape, the scenery and the rubble
 ## each, with room left over in the scenery's for the chunks that stay up.
+##
+## The moving parts (see SceneryKit.begin_mover()) are drawn on their own, each
+## turning or bobbing about its pivot, and go with their prop if it comes
+## down whole. The crowd's a Crowd.
 
 ## How big a chunk a wall is split into where it's hit, at most, and how few
 ## it's split into at least along the way it's longest.
@@ -59,6 +63,13 @@ var _cushion: StaticBody3D
 var _rng := RandomNumberGenerator.new()
 static var _bouncy: PhysicsMaterial
 static var _gritty: PhysicsMaterial
+## Each moving part: [where it is now, pivot, motion, group, shown]. Their
+## pieces are all drawn together, one batch for each shape, and for each
+## kind of shape, each piece as [which moving part, where it is on it].
+var _movers: Array = []
+var _mover_draws := {}
+var _mover_pieces := {}
+var _clock := 0.0
 
 
 ## Builds what `kit` collected.
@@ -98,6 +109,24 @@ func _init(kit: SceneryKit) -> void:
 		add_child(_cushion)
 		for thing in kit.soft:
 			_shape_for(_cushion, thing[0], thing[1], thing[2] if thing.size() > 2 else -1)
+	for kind in KINDS:
+		_mover_pieces[kind] = []
+	for m in kit.movers.size():
+		var mover: Dictionary = kit.movers[m]
+		_movers.append([mover.pivot, mover.pivot, mover.motion, mover.group, true])
+		for kind in KINDS:
+			for piece in mover[kind + "es" if kind == "box" else kind + "s"]:
+				_mover_pieces[kind].append([m, piece[0], piece[1], piece[2]])
+	for kind in KINDS:
+		var pieces: Array = _mover_pieces[kind]
+		if pieces.is_empty():
+			continue
+		var draw := _batch(kind, pieces.size())
+		for i in pieces.size():
+			_place(draw.multimesh, i, kit.movers[pieces[i][0]].pivot * pieces[i][1], pieces[i][2], pieces[i][3])
+		_mover_draws[kind] = draw
+	if not kit.fans.is_empty():
+		add_child(Crowd.new(kit.fans))
 	if not kit.solids.is_empty():
 		_body = StaticBody3D.new()
 		_body.collision_layer = Kart.LAYER_WORLD
@@ -113,6 +142,8 @@ func _ready() -> void:
 	for kind in KINDS:
 		add_child(_scenery[kind])
 		add_child(_rubble_draw[kind])
+		if _mover_draws.has(kind):
+			add_child(_mover_draws[kind])
 
 
 func _batch(kind: String, room: int) -> MultiMeshInstance3D:
@@ -203,6 +234,11 @@ func _bring_down(g: Dictionary, velocity: Vector3) -> void:
 	for shape in g.shapes:
 		shape.set_deferred("disabled", true)
 	g.pieces.clear()
+	# Its moving parts come down with it.
+	var group := groups.find(g)
+	for mover in _movers:
+		if mover[3] == group:
+			mover[4] = false
 
 
 ## The top tires come off the stacks near the hit.
@@ -416,6 +452,37 @@ func _draw_rubble(piece: Array) -> void:
 	if not is_instance_valid(body) or not body.is_inside_tree():
 		return
 	_rubble_draw[piece[1]].multimesh.set_instance_transform(piece[2], body.global_transform.scaled_local(piece[3]))
+
+
+## Turns, swings and bobs the moving parts.
+func _process(delta: float) -> void:
+	if _movers.is_empty():
+		return
+	_clock += delta
+	# They turn slowly enough that every other frame is plenty, and it
+	# halves the cost on the phone.
+	if Engine.get_process_frames() % 2 == 1:
+		return
+	for i in _movers.size():
+		var mover: Array = _movers[i]
+		var motion: Dictionary = mover[2]
+		var pivot: Transform3D = mover[1]
+		if not mover[4]:
+			mover[0] = Transform3D(Basis.from_scale(Vector3.ZERO), pivot.origin)
+			continue
+		# Each starts somewhere different, so a row of them don't move as one.
+		var t := _clock + i * 1.7
+		if motion.has("spin"):
+			mover[0] = pivot * Transform3D(Basis(motion.spin, t * motion.speed), Vector3.ZERO)
+		elif motion.has("swing"):
+			mover[0] = pivot * Transform3D(Basis(motion.swing, sin(t * motion.rate) * motion.angle), Vector3.ZERO)
+		elif motion.has("bob"):
+			mover[0] = pivot * Transform3D(Basis.IDENTITY, Vector3.UP * sin(t * motion.rate) * motion.bob)
+	for kind in _mover_draws:
+		var multi: MultiMesh = _mover_draws[kind].multimesh
+		var pieces: Array = _mover_pieces[kind]
+		for p in pieces.size():
+			multi.set_instance_transform(p, _movers[pieces[p][0]][0] * pieces[p][1])
 
 
 func _physics_process(_delta: float) -> void:

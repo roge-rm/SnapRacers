@@ -12,8 +12,12 @@ extends RefCounted
 ##
 ## Everything added between begin() and done() is one prop, which breaks
 ## together when a kart hits it (see WorldDamage).
+##
+## Parts added between begin_mover() and end_mover() move, like a windmill's
+## sails or a ferris wheel, and are drawn on their own (see WorldDamage). And
+## fan() adds a minifig to watch the race (see Crowd).
 
-enum { BRICK, WINDOWS, SMOOTH, GLOW, WATER }
+enum { BRICK, WINDOWS, SMOOTH, GLOW, WATER, PLAIN }
 
 static var _shader: Shader
 static var _material: ShaderMaterial
@@ -34,6 +38,17 @@ var soft: Array = []
 ## tires.
 var groups: Array = []
 var _group := -1
+## The moving parts: each { pivot, motion, group, boxes, cylinders, cones },
+## with the parts' transforms from the pivot. A motion is one of
+## { "spin": axis, "speed": radians a second },
+## { "swing": axis, "angle": radians, "rate": radians a second } or
+## { "bob": distance, "rate": radians a second }, about the pivot's own axes.
+var movers: Array = []
+var _mover := {}
+## The minifigs watching, each [feet, shirt, legs, hair or a cap, crowd],
+## the crowd being which bunch of them they're in, so they cheer together.
+var fans: Array = []
+var _crowd := 0
 
 
 static func material() -> ShaderMaterial:
@@ -52,6 +67,39 @@ func begin(prop: String, small: bool, tires := false) -> void:
 
 func done() -> void:
 	_group = -1
+
+
+## Starts a moving part, turning or bobbing about `pivot`. Everything added
+## until end_mover() moves with it, and none of it is solid.
+func begin_mover(pivot: Transform3D, motion: Dictionary) -> void:
+	_mover = { "pivot": pivot, "motion": motion, "group": _group, "boxes": [], "cylinders": [], "cones": [] }
+
+
+func end_mover() -> void:
+	if not _mover.is_empty():
+		movers.append(_mover)
+	_mover = {}
+
+
+## A minifig standing on `feet`, facing its -Z (towards the road), in these
+## colours. Fans added together until the next new_crowd() cheer together.
+func fan(feet: Transform3D, shirt: Color, legs: Color, hair: Color) -> void:
+	fans.append([feet, shirt, legs, hair, _crowd])
+
+
+func new_crowd() -> void:
+	_crowd += 1
+
+
+## Where a shape goes: into the moving part being built, if there is one.
+func _add(kind: String, where: Transform3D, colour: Color, surface: int) -> bool:
+	if _mover.is_empty():
+		return false
+	# Brick patterns are worked out from where they are in the world, so on
+	# a moving part they'd slide about. Those are plain plastic instead.
+	var plain := PLAIN if surface != GLOW else GLOW
+	_mover[kind].append([_mover.pivot.affine_inverse() * where, colour, plain])
+	return true
 
 
 static func mesh_for(kind: String) -> Mesh:
@@ -81,6 +129,8 @@ static func mesh_for(kind: String) -> Mesh:
 ## A box standing on `bottom` (the middle of its base), lined up with the grid.
 func box(bottom: Vector3, size: Vector3, colour: Color, surface := BRICK, solid := true) -> void:
 	var where := Transform3D(Basis.IDENTITY, bottom + Vector3.UP * size.y * 0.5)
+	if _add("boxes", where.scaled_local(size), colour, surface):
+		return
 	boxes.append([where.scaled_local(size), colour, surface, _group])
 	if solid:
 		solids.append([where, size, _group])
@@ -94,11 +144,15 @@ func soft_box(where: Transform3D, size: Vector3) -> void:
 ## A box turned or tipped by `basis`, for roofs, blades and the like. It's
 ## never solid.
 func turned_box(centre: Vector3, size: Vector3, basis: Basis, colour: Color, surface := SMOOTH) -> void:
+	if _add("boxes", Transform3D(basis, centre).scaled_local(size), colour, surface):
+		return
 	boxes.append([Transform3D(basis, centre).scaled_local(size), colour, surface, _group])
 
 
 func cylinder(bottom: Vector3, radius: float, height: float, colour: Color, surface := BRICK, solid := false) -> void:
 	var where := Transform3D(Basis.IDENTITY, bottom + Vector3.UP * height * 0.5)
+	if _add("cylinders", where.scaled_local(Vector3(radius * 2.0, height, radius * 2.0)), colour, surface):
+		return
 	cylinders.append([where.scaled_local(Vector3(radius * 2.0, height, radius * 2.0)), colour, surface, _group])
 	if solid:
 		solids.append([where, Vector3(radius * 1.6, height, radius * 1.6), _group])
@@ -107,11 +161,15 @@ func cylinder(bottom: Vector3, radius: float, height: float, colour: Color, surf
 ## A cylinder lying along `basis`'s Y, like a wheel or a pipe, centred on
 ## `centre`.
 func turned_cylinder(centre: Vector3, radius: float, length: float, basis: Basis, colour: Color, surface := SMOOTH) -> void:
+	if _add("cylinders", Transform3D(basis, centre).scaled_local(Vector3(radius * 2.0, length, radius * 2.0)), colour, surface):
+		return
 	cylinders.append([Transform3D(basis, centre).scaled_local(Vector3(radius * 2.0, length, radius * 2.0)), colour, surface, _group])
 
 
 func cone(bottom: Vector3, radius: float, height: float, colour: Color, surface := BRICK) -> void:
 	var where := Transform3D(Basis.IDENTITY, bottom + Vector3.UP * height * 0.5)
+	if _add("cones", where.scaled_local(Vector3(radius * 2.0, height, radius * 2.0)), colour, surface):
+		return
 	cones.append([where.scaled_local(Vector3(radius * 2.0, height, radius * 2.0)), colour, surface, _group])
 
 
