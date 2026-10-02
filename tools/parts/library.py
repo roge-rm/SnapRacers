@@ -287,7 +287,7 @@ def bar_holder_clip():
     return Part("p_bar_holder", "Bar holder with clip", "body", "bars", (STUD, BRICK * 0.5, STUD), union([body, ring, studs([(0, 0)], BRICK * 0.5)]), con, DARK_GREY, solids=[[0, 0, 0, STUD, BRICK * 0.5, STUD]])
 
 
-# Technic beams, pins and axles. Holes go across (x) through beams a stud
+# Beams, pins and axles. Holes go across (x) through beams a stud
 # apart, and pins and axles go through them.
 
 HOLE = 0.06  # radius of a pin hole

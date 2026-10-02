@@ -49,7 +49,7 @@ const SETTINGS := {
 	},
 	"hard": {
 		"name": "Hard",
-		"about": "Quick drivers who rarely slip and make the most of their gadgets.",
+		"about": "Quick drivers who rarely slip and make the most of their power-ups.",
 		"skill": [0.8, 0.9],
 		"pace": 0.89,
 		"mistakes": 0.02,

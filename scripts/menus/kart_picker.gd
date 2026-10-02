@@ -212,7 +212,7 @@ func _card(key: String, design: KartDesign, ranges: Dictionary) -> Button:
 	box.add_child(picture)
 	var own := key == Game.OWN_KART
 	var title := Label.new()
-	title.text = ("The garage kart: %s" if player == 2 else "Your kart: %s") % design.name if own else design.name
+	title.text = ("The garage kart, %s" if player == 2 else "Your kart, %s") % design.name if own else design.name
 	title.add_theme_font_size_override("font_size", 24)
 	box.add_child(title)
 	var problems: Array[String] = design.problems() if own else ([] as Array[String])

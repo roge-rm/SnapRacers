@@ -215,7 +215,7 @@ func _check(info: Dictionary) -> String:
 	for p in players:
 		var kart := KartDesign.from_dict(p.get("kart", {}))
 		if not kart.problems().is_empty():
-			return "Your kart can't race yet: %s" % kart.problems()[0]
+			return "Your kart can't race yet. %s" % kart.problems()[0]
 	return ""
 
 

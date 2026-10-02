@@ -65,7 +65,43 @@ static func theme() -> Theme:
 	_theme.set_stylebox("focus", "LineEdit", field_focus)
 	_theme.set_color("font_color", "LineEdit", Color.WHITE)
 	_theme.set_color("caret_color", "LineEdit", ACCENT)
+	add_switches(_theme)
 	return _theme
+
+
+## Pictures for the on and off switches (CheckButton). The engine's own are
+## drawn from SVG, which our cut down engine leaves out, so on a phone or the
+## web they'd be blank.
+static func add_switches(to: Theme) -> void:
+	var on := _switch(true, 1.0)
+	var off := _switch(false, 1.0)
+	var on_dim := _switch(true, 0.4)
+	var off_dim := _switch(false, 0.4)
+	for side in ["", "_mirrored"]:
+		to.set_icon("checked" + side, "CheckButton", on)
+		to.set_icon("unchecked" + side, "CheckButton", off)
+		to.set_icon("checked_disabled" + side, "CheckButton", on_dim)
+		to.set_icon("unchecked_disabled" + side, "CheckButton", off_dim)
+
+
+## A switch drawn as a picture: a pill with a round handle at one end, in the
+## accent colour when it's on.
+static func _switch(on: bool, alpha: float) -> ImageTexture:
+	var width := 60
+	var height := 32
+	var image := Image.create_empty(width, height, false, Image.FORMAT_RGBA8)
+	var radius := (height - 1) * 0.5
+	var track: Color = Color(ACCENT, alpha) if on else Color(1.0, 1.0, 1.0, 0.22 * alpha)
+	var knob_at := Vector2(width - 1 - radius if on else radius, radius)
+	for y in height:
+		for x in width:
+			# How far inside the pill this pixel is, for a soft edge.
+			var along := clampf(x, radius, width - 1 - radius)
+			var inside := radius - Vector2(x - along, y - radius).length() + 0.5
+			var colour := Color(track, track.a * clampf(inside, 0.0, 1.0))
+			var knob := clampf(radius - 4.0 - Vector2(x, y).distance_to(knob_at) + 0.5, 0.0, 1.0)
+			image.set_pixel(x, y, colour.blend(Color(1.0, 1.0, 1.0, knob * alpha)))
+	return ImageTexture.create_from_image(image)
 
 
 ## Fills the whole screen with the backdrop, top to bottom.

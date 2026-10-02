@@ -184,7 +184,7 @@ func _on_changed() -> void:
 
 
 func _on_race_over(_order: Array) -> void:
-	say("The race is over: %s" % ", ".join(_order))
+	say("The race is over. They finished %s." % ", ".join(_order))
 	var net := Game.net
 	if net.setup.get("mode", NetSession.SINGLE) != NetSession.CUP:
 		# After one race everyone's straight back in the lobby.

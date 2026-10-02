@@ -81,6 +81,7 @@ func _ready() -> void:
 	character = CharacterDesign.load_file(CURRENT_DRIVER if FileAccess.file_exists(CURRENT_DRIVER) else ROSTER + "/racer.json")
 	theme = Theme.new()
 	theme.default_font_size = 22
+	MenuStyle.add_switches(theme)
 	Sounds.setup(volume(Sounds.MUSIC_BUS), volume(Sounds.EFFECTS_BUS))
 	plugin = NetPlugin.new()
 	add_child(plugin)

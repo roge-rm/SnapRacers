@@ -22,12 +22,16 @@ Dan
 
 <table>
   <tr>
-    <td align="center"><img src="screenshots/garage.png" width="400" alt="The garage"><br>The garage, with the Streamliner loaded</td>
-    <td align="center"><img src="screenshots/race.png" width="400" alt="The start of a race"><br>The start of a Grand Prix at Peach Pit</td>
+    <td align="center"><img src="screenshots/race.png" width="400" alt="A race at Peach Pit"><br>Past the crowd at the start of a race at Peach Pit</td>
+    <td align="center"><img src="screenshots/garage.png" width="400" alt="The garage"><br>The garage, with the Classic loaded</td>
   </tr>
   <tr>
-    <td align="center"><img src="screenshots/karts.png" width="400" alt="The kart picker"><br>Picking a kart before a race</td>
+    <td align="center"><img src="screenshots/cups.png" width="400" alt="The Grand Prix cups"><br>Every cup with its trophy and courses</td>
+    <td align="center"><img src="screenshots/karts.png" width="400" alt="The kart picker"><br>Picking a kart, bike or trike before a race</td>
+  </tr>
+  <tr>
     <td align="center"><img src="screenshots/driver.png" width="400" alt="The driver screen"><br>Building a driver</td>
+    <td align="center"><img src="screenshots/editor.png" width="400" alt="The track editor"><br>Pithead Park in the track editor</td>
   </tr>
 </table>
 
@@ -39,25 +43,29 @@ Dan
 
 The garage works like the builder in Apogee, my physics sim. The kart fills the screen and everything else floats over it.
 
-- Drag a part from the drawer onto the kart, or tap it and nudge it into place a stud at a time with the arrows.
-- Tap a part on the kart to move, turn, copy or delete it.
+- Drag a part from the drawer onto the kart and it snaps on wherever its studs, clips, pins or axles fit. Dots show where it can go, and tapping one puts it there.
+- Tap a part on the kart to move, turn, flip, slide, copy or delete it, or to change which way on it goes.
 - Mirror puts every part down on both sides at once.
 - Paint any part in sixteen brick colours.
-- Undo and redo anything, and save as many karts as you like.
+- Undo and redo anything, and save as many karts as you like. You can start from any of the stock karts too.
 - The card in the corner shows top speed, pull, cornering, control, off-road grip, weight and drag, and where most of the drag comes from.
 - Take it straight out for a test drive.
 
-### 90 parts
+### Over 200 parts
+
+Most of the parts are modelled for the game in `tools/parts`, and they join by their studs, clips, pins and axles the way real bricks do.
 
 | | |
 |---|---|
-| **Plates** | Eleven, from a 1x4 to a long 6x12 chassis and a wide 8x10, with wedge plates for a pointed nose and a smooth tile. |
-| **Bricks** | Eleven, from 1x1 to 2x6, a tall brick, a round brick and a heavy ballast brick to keep the kart low. |
-| **Bodywork** | Twenty-one: slopes, long slopes, curved and inverted slopes, nose cones, mudguards, a tail fin, wheel fairings, side pods and a ram plate that knocks other karts' parts off. Face them forward and the air slides over them, or turn them around to smooth the back. |
-| **Wheels** | Fourteen, from tiny wheels to monster wheels. Slicks grip the road best and hate grass, knobbly and studded tires bite into grass, dirt and ice, balloon tires float over sand and curbs, and skinny bicycle wheels roll the furthest. |
+| **Plates** | Forty-three, from 1x1 to long and wide chassis plates, with smooth tiles, round plates, a grille and wedge plates for a pointed nose. |
+| **Bricks** | Twenty-one, from 1x1 to 2x6, with a tall brick, round bricks, a bracket, a brick with a stud on its side, a headlight brick and a heavy ballast brick to keep the kart low. |
+| **Curves** | Forty-one: slopes, curved and inverted slopes, nose cones, bows, wheel arches, mudguards, a racing nose, an engine cowl, a tail fin, wheel fairings, side pods and a ram plate that knocks other karts' parts off. Face them forward and the air slides over them, or turn them around to smooth the back. |
+| **Rods and joints** | Twenty-five: bars, clips and handles, beams with holes, pins and axles, axle plates, hinges and ball joints. |
+| **Wheels** | Twenty-two, from tiny wheels to monster wheels, with kart wheels and motorbike wheels. Slicks grip the road best and hate grass, knobbly and studded tires bite into grass, dirt and ice, balloon tires float over sand and curbs, and skinny wheels roll the furthest. |
 | **Engines** | Thirteen: small and big engines, a micro engine, a rotary, a flat four, a twin, a hybrid, two electric motors, a diesel, a V8, a jet and pedals. Each one sounds different. |
-| **Cockpit** | Thirteen: four seats (upright, racing, bucket and lay-down), a steering wheel, a racing wheel, handlebars, a yoke, a tiller and windscreens in four sizes. |
-| **Wings** | Seven: spoilers, a ducktail, front wings and big rear wings, single and double. |
+| **Cockpit** | Twenty-four: seats (upright, racing, bucket and lay-down), a steering wheel, a racing wheel, handlebars, a yoke, a tiller, windscreens and a canopy, with lights, a mirror and an exhaust. |
+| **Bikes** | Sixteen: frames for a sports bike, a dirt bike, a cruiser, a scooter and a trike, with forks, a swingarm, a fuel tank, a saddle, bike bars, footpegs and fairings. |
+| **Wings** | Eight: spoilers, a ducktail, front wings and big rear wings, single and double. |
 
 ### Air and ergonomics
 
@@ -65,28 +73,34 @@ The shape of the kart decides its drag. Seen from the front, a flat brick face c
 
 How the driver sits matters too. Lying down keeps them out of the wind, but they steer more slowly. The steering has to be right in front of the seat, and every stud they have to reach for it slows their hands.
 
-### Sixteen stock karts
+### Stock karts, bikes and trikes
 
-If you'd rather not build, you can pick one of the stock karts, bikes and trikes before any race, and the AI drivers race in them too. Each AI driver gets one at random for a race, or for a whole Grand Prix. They're all within about ten percent of each other around a lap, but they get there in different ways.
+If you'd rather not build, you can pick one of the 22 stock karts, bikes and trikes before any race, and the AI drivers race in them too. Each AI driver gets one at random for a race, or for a whole Grand Prix. They're all within about ten percent of each other around a lap, but they get there in different ways.
 
 | | |
 |---|---|
 | **Starter** | A bit of everything, good to learn on and to build from. |
-| **Featherlight** | Light and low, with tiny front wheels, handlebars and a little rotary engine. |
-| **Bruiser** | A heavy slab with a diesel, a ram and ballast. |
-| **Slingshot** | A dragster with a V8 in the back and big slicks right at the tail. |
-| **Streamliner** | Faired in from nose to tail, with the driver lying down behind the screen. |
+| **Featherlight** | Light and low, with skinny front wheels, handlebars and a little rotary engine. |
+| **Bruiser** | A heavy slab with a diesel and a ram. |
+| **Slingshot** | A dragster with the driver lying down, a V8 in the back and big slicks right at the tail. |
+| **Streamliner** | Faired in from nose to tail, with the driver lying down under a bubble. |
 | **Mudlark** | Knobbly tires and a diesel, sitting up high. |
-| **Trike** | One wheel at the front and a big electric motor at the back. |
 | **Six-wheeler** | Four small wheels steering at the front, and a flat four at the back. |
 | **Monster** | Monster wheels and a hybrid engine. |
 | **Rocket** | A jet engine, slicks and wings. |
-| **Classic** | A proper go-kart, with a flat frame, a little engine and handlebars. |
+| **Classic** | A proper go-kart, with a nose cone, a little engine off to one side and handlebars. |
 | **Downforce** | Big wings front and back, and slicks. |
-| **Brick Tank** | Two layers of bricks all around and a diesel. |
+| **Brick Tank** | Thick armour all around and a diesel. |
 | **Sparky** | An electric all rounder, quick away from the line. |
 | **Hot Rod** | A V8 out in front and big wheels at the back. |
 | **Soapbox** | Tall thin wheels, a nose cone and a little rotary engine. |
+| **Superbike** | A light sports bike with a fairing and a twin. |
+| **Dirt Bike** | Knobbly tires and a light little engine. |
+| **Chopper** | Long and low, with a big engine. |
+| **Scooter** | Little wheels and a quiet electric motor. |
+| **Trike** | One wheel at the front and an electric motor at the back. |
+| **Tourer** | A big touring trike with two wheels at the back. |
+| **Trikester** | A trike with a knobbly tire up front and two wheels at the back. |
 
 ### Power-ups
 
@@ -120,13 +134,13 @@ Saving moves the start line onto your longest straight, and the course joins the
 
 ### Courses
 
-Every course is based on a real circuit, with laps of 1.6 to 1.9 km and a road wide enough for three karts through a bend. Kart circuits are made as big for the karts as the real one is for real karts, and the famous race tracks in the Legends Cup are shrunk down to the same lap size. The Gravel Cup is rallycross, on real rallycross circuits that are part tarmac and part gravel. The Hangar Cup is indoors, on real indoor kart tracks made bigger, in halls with barriers all the way round, rows of lights overhead, and one that goes over itself on an upper deck. The Corkscrew Cup is traced from real roller coasters, up high on coaster supports, with big drops, airtime hills and corkscrews that turn you upside down. The Island Cup is by the sea on four islands, with the beach and the boats out on the water beside you. They're made of track pieces snapped together on a grid, with crests, jumps, bridges, a loop and plenty of scenery.
+Every course is based on a real circuit, with laps of 1.6 to 1.9 km and a road wide enough for three karts through a bend. Kart circuits are made as big for the karts as the real one is for real karts, and the famous race tracks in the Legends Cup are shrunk down to the same lap size. The Gravel Cup is rallycross, on real rallycross circuits that are part tarmac and part gravel. The Hangar Cup is indoors, on real indoor kart tracks made bigger, in halls with barriers all the way around, rows of lights overhead, and one that goes over itself on an upper deck. The Corkscrew Cup is traced from real roller coasters, up high on coaster supports, with big drops, airtime hills and corkscrews that turn you upside down. The Island Cup is by the sea on four islands, with the beach and the boats out on the water beside you. They're made of track pieces snapped together on a grid, with crests, jumps, bridges, a loop and plenty of scenery.
 
 The road runs out onto grass that slows you down, and there are only walls where you'd fall off. The corners have red and white curbs you can ride, but at speed they bounce your wheels into the air. Where two bits of road run close together there are soft tire stacks between them. The ground rolls in gentle hills, a little by the lakes and a lot in the mountains.
 
 The scenery breaks. Drive through a tree, a fence or a billboard and it comes down in pieces, and a crash into a house or the grandstand knocks a hole in it. The loose bricks stay where they land until the race is over, and you can push them about, so the places people crash fill up with rubble. A hard hit on a tire stack knocks its top tires off, but the bottom ones stay, so you still can't cut across.
 
-There's a crowd. Minifigs fill the grandstands and stand along the fence at some corners, and they jump up and wave their arms as you go by. Windmills and wind turbines turn, flags wave, the big wheel and the carousel go round, cranes swing and the boats rock on the water.
+There's a crowd. Minifigs fill the grandstands and stand along the fence at some corners, and they jump up and wave their arms as you go by. Windmills and wind turbines turn, flags wave, the big wheel and the carousel go around, cranes swing and the boats rock on the water.
 
 | Cup | Courses |
 |---|---|
@@ -147,10 +161,15 @@ There's a crowd. Minifigs fill the grandstands and stand along the fence at some
 - **Single race:** one race against the AI on any course. Pick a cup, then one of its courses.
 - **Time trial:** race the clock, with your best times kept.
 - **Practice:** drive any course on your own for as long as you like.
-- **Two players on one phone:** side by side in landscape, or face to face in portrait with the phone flat between you.
+- **Two players on one phone:** side by side in landscape, or face to face in portrait with the phone flat between you. Each player picks a kart and gives their name in turn, and one map sits on the line between the halves.
 - **Six camera views:** close and far chase, first person from your driver's eyes, a bumper cam, overhead and TV cameras beside the track. Hold look back to see who's coming. After the finish the camera circles your kart and the AI drives you home.
-- **Sliding:** while steering, hold the gas and brake together, or slide your thumb from GO down onto the brake and back up, to kick the tail out. Keep the gas on and keep steering into the bend and the slide holds, with the tail out further the harder you steer. Straighten up or let go of the gas and it grips again. A held slide keeps its speed round a hairpin better than braking for it, but the longer you hold it the more it scrubs off.
+- **Sliding:** while steering, hold the gas and brake together, or slide your thumb from GO down onto the brake and back up, to kick the tail out. Keep the gas on and keep steering into the bend and the slide holds, with the tail out further the harder you steer. Straighten up or let go of the gas and it grips again. A held slide keeps its speed around a hairpin better than braking for it, but the longer you hold it the more it scrubs off.
+- **A menu in races,** from the button in the corner or Start on a controller. In a race on your own it pauses everything, and in split screen each player has their own while the race carries on.
 - **Four AI levels,** picked before a race or a cup. Easy drivers take it gently, slip up now and then and wait for you. Expert drivers are right on the limit. Trophies are kept for each level.
+
+### Controllers and keys
+
+Everything works with a controller or the keys as well as touch: the menus, races, the garage, the driver screen and the track editor. In Settings each player picks their own controller, and sets their own keys and buttons by tapping one and pressing the new one.
 
 ### Online
 
@@ -237,13 +256,17 @@ They check things like:
 - the building rules (`design_test`)
 - every part can be built and turned, and shapes, windscreens, seats, jets and tires do what they should (`parts_test`)
 - a gentle bump costs nothing, a crash at full speed knocks parts off and a reset puts them back (`damage_test`)
-- small scenery comes down whole, buildings only where they're hit, tire stacks keep their bottom tire, and a kart driving into something small knocks it down and keeps going (`damage_world_test`)
+- small scenery comes down whole, buildings only where they're hit, tire stacks keep their bottom tire, a kart driving into something small knocks it down and keeps going, flags flap until they're knocked down and the crowd cheers as a kart goes by (`damage_world_test`)
 - every course closes into a loop without running into itself (`track_test`)
-- a fast kart sticks to the loop all the way around and a slow one drops off (`loop_test`)
+- a fast kart sticks to the loop all the way around and a slow one drops off (`loop_test`), and the same on a corkscrew (`corkscrew_test`)
+- bikes and trikes stay upright, lean into bends the right way and don't tip over in a hard turn (`bike_test`)
 - every power-up does what it says, the boxes hand them out and the karts at the back get the strong ones more often (`gadget_test`)
-- gas and brake together slide the kart round a bend tighter than steering alone, a slide held on the gas keeps going with the tail out steadily without spinning, and it grips again once you straighten up (`drift_test`)
+- gas and brake together slide the kart around a bend tighter than steering alone, a slide held on the gas keeps going with the tail out steadily without spinning, and it grips again once you straighten up (`drift_test`)
 - drivers hold the steering wheel, and every hat, hairdo, beard and back piece is joined on without poking through anything (`character_test`)
 - the garage, the menus and every mode, including a whole Grand Prix and two players on one phone (`garage_test`, `menu_test`, `modes_test`, `split_test`)
+- the track editor used the way a player would, and what stops a course being raced (`editor_test`, `course_test`)
+- each player's keys and controller buttons, the menus with a controller, and the menu in a race (`bindings_test`, `focus_test`, `pause_test`)
+- every camera view looks where it should (`camera_test`), every sound is there (`sound_test`), and the cups' trophies hold together (`trophy_test`)
 - every stock kart gets around a lap with the AI driving (`stock_test`)
 - each AI level laps about as far behind Expert as it should (`difficulty_test`)
 - whole races with eight karts, around the loop too (`race_test`)
