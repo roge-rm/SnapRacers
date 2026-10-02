@@ -18,6 +18,8 @@ extends RefCounted
 ## - catch_up: how much extra push they get when they're a long way behind
 ##   you, as a fraction.
 ## - ease_off: how much they lift off when they're a long way ahead of you.
+## - slides: whether they slide round the tightest bends (see Kart.sliding),
+##   which only the best drivers do, and only where it's quicker.
 
 const LEVELS := ["easy", "normal", "hard", "expert"]
 const DEFAULT := "normal"
@@ -66,6 +68,7 @@ const SETTINGS := {
 		"gadgets": 1.0,
 		"catch_up": 0.0,
 		"ease_off": 0.0,
+		"slides": true,
 	},
 }
 ## How far behind you (or ahead) the AI have to be, in metres, before catch
@@ -97,6 +100,7 @@ static func apply(ai: AIDriver, level: String, rank: int, field: int) -> void:
 	ai.mistakes = s.mistakes
 	ai.loop_nerves = s.loop_nerves
 	ai.gadget_sense = s.gadgets
+	ai.slides = s.get("slides", false)
 	ai.catch_up = s.catch_up
 	ai.ease_off = s.ease_off
 

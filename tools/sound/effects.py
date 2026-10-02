@@ -294,12 +294,35 @@ def turbo():
     return normalise(roar + whine, 0.8)
 
 
-def spring():
-    n = seconds(0.55)
+def rope():
+    """A tow rope: a whip through the air, then a clunk as it catches."""
+    n = seconds(0.45)
+    whip = bandpass(noise(n, 91), 900, 4000) * ramp(n, [(0.0, 0.0), (0.18, 1.0), (0.24, 0.0), (1.0, 0.0)])
+    clunk = np.roll(resonator(320, 0.08, n) + resonator(780, 0.05, n) * 0.5, seconds(0.22))
+    return normalise(mix((whip, 0.0), (clunk * 0.9, 0.0), (thud(180, 90, 0.12, 92) * 0.6, 0.22)), 0.8)
+
+
+def wall():
+    """A brick wall dropped: a pile of bricks clattering into place."""
+    clacks = [(clack(100 + i, 0.8 + 0.08 * (i % 4), 0.04) * (0.9 - i * 0.07), i * 0.045) for i in range(10)]
+    return normalise(mix((thud(200, 90, 0.18, 99), 0.0), *clacks), 0.85)
+
+
+def shockwave():
+    """A shockwave: a deep thump and a whoosh going out."""
+    n = seconds(0.8)
+    thump = sine(np.geomspace(110, 38, n), n) * decay(n, 0.3)
+    whoosh = bandpass(noise(n, 95), 300, 2500) * ramp(n, [(0.0, 0.0), (0.08, 1.0), (1.0, 0.0)]) * 0.7
+    return normalise(drive(thump * 1.4 + whoosh, 1.6), 0.9)
+
+
+def glue():
+    """Glue: a wet splat."""
+    n = seconds(0.35)
     t = times(n)
-    pitch = np.geomspace(160, 420, n) * (1.0 + 0.12 * np.sin(2 * np.pi * 22 * t) * decay(n, 0.5))
-    tone = sine(pitch, n) + sine(pitch * 2.0, n) * 0.25
-    return normalise(tone * decay(n, 0.55) * adsr(n, 0.005, 0.0, 1.0, 0.05), 0.8)
+    splat = lowpass(noise(n, 97), 1400) * decay(n, 0.08)
+    blob = sine(np.geomspace(240, 120, n) * (1.0 + 0.05 * np.sin(2 * np.pi * 30 * t)), n) * decay(n, 0.12) * 0.6
+    return normalise(splat + blob, 0.8)
 
 
 def drop():
@@ -396,7 +419,7 @@ ONE_SHOTS = {
     "bump": bump, "crash": crash, "bricks": bricks, "powerup": powerup,
     "beep": lambda: beep("A5", 0.16), "go": lambda: beep("A6", 0.5),
     "lap": lap, "final_lap": final_lap, "finish": finish, "win": win,
-    "reset": reset, "turbo": turbo, "spring": spring, "drop": drop, "cannon": cannon,
+    "reset": reset, "turbo": turbo, "rope": rope, "wall": wall, "shockwave": shockwave, "glue": glue, "drop": drop, "cannon": cannon,
     "hit": hit, "repair": repair, "shield": shield, "ghost": ghost, "lightning": lightning, "ram": ram,
     "click": click, "back": back, "snap": snap, "unsnap": unsnap, "pick": pick, "nope": nope,
 }

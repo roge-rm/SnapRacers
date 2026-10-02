@@ -196,7 +196,9 @@ func _finish_setting_up(people: int) -> void:
 			racer.ai.others = karts
 		racer.kart.gadget_used.connect(func(kind: String) -> void:
 			if kind == "lightning":
-				strike_from(racer.kart))
+				strike_from(racer.kart)
+			elif kind == "shockwave":
+				shockwave_from(racer.kart))
 
 	# Time trials are just driving, with no power-ups to pick up.
 	if mode != Game.MODE_TIME_TRIAL:
@@ -617,6 +619,19 @@ func strike_from(kart: Kart) -> void:
 			break
 		if not racer.kart.remote:
 			racer.kart.zap()
+
+
+## A shockwave from this kart shoves every kart near it that's driven here
+## away. Over a network each device does the same for its own karts, when it
+## hears the kart used it (see NetRace). The ring shows everywhere.
+func shockwave_from(kart: Kart) -> void:
+	var ring := ShockRing.new()
+	ring.reach = Kart.SHOCK_REACH
+	add_child(ring)
+	ring.global_position = kart.global_position + Vector3.UP * 0.3
+	for racer in racers:
+		if racer.kart != kart and is_instance_valid(racer.kart) and not racer.kart.remote:
+			racer.kart.shoved_from(kart.global_position)
 
 
 ## Everyone in order, with finishers by time and then the rest by how far

@@ -24,6 +24,20 @@ var mistakes := 0.0
 var loop_nerves := 0.0
 ## How often it uses a gadget when the moment's right, from 0 to 1.
 var gadget_sense := 1.0
+## Whether it slides round the tightest bends instead of braking for them
+## (see Kart.sliding). Only Expert drivers do.
+var slides := false
+## How tight a bend has to be to slide round it (its curvature, one over its
+## radius), and how long it holds the slide, tuned with
+## tools/stock-karts/slide_bench.gd. So far no setting has been quicker than
+## braking, so it's set past any real bend and nobody slides yet.
+static var slide_bend := 99.0
+static var slide_time := 0.45
+## Whether it slides instead of braking into the bend ("brake"), or brakes as
+## usual and flicks into a short slide at the turn in to swing round ("turn").
+static var slide_mode := "brake"
+var _slide_left := 0.0
+var _slid_this_bend := false
 ## How much extra push it gets a long way behind the people racing, and how
 ## much it lifts off a long way ahead of them.
 var catch_up := 0.0
@@ -151,7 +165,17 @@ func _physics_process(delta: float) -> void:
 	if here > 0.002:
 		allowed = minf(allowed, sqrt(grip / here))
 
-	if _backing > 0.0:
+	# The bend coming up next, for sliding into.
+	var tight := maxf(here, track.bend_at(offset + speed * 0.3))
+	if tight < slide_bend * 0.5:
+		_slid_this_bend = false
+
+	if _slide_left > 0.0:
+		# Holding a slide: gas and brake together, steering round.
+		_slide_left -= delta
+		controls.throttle = 1.0
+		controls.brake = 1.0
+	elif _backing > 0.0:
 		# Backing off whatever it ran into, steering the other way.
 		_backing -= delta
 		controls.throttle = 0.0
@@ -173,6 +197,17 @@ func _physics_process(delta: float) -> void:
 	# it run a little over before braking.
 	elif speed > allowed + (0.4 if here > 0.05 else 1.5):
 		controls.throttle = 0.0
+		controls.brake = 1.0
+		# Into the tightest bends a top driver slides round instead, once.
+		if slide_mode == "brake" and slides and not _slid_this_bend and tight > slide_bend and speed > Kart.SLIDE_SPEED + 3.0:
+			_slid_this_bend = true
+			_slide_left = slide_time
+			controls.throttle = 1.0
+	elif slide_mode == "turn" and slides and not _slid_this_bend and here > slide_bend and speed > Kart.SLIDE_SPEED + 3.0:
+		# Braked down for the bend, it flicks the tail round at the turn in.
+		_slid_this_bend = true
+		_slide_left = slide_time
+		controls.throttle = 1.0
 		controls.brake = 1.0
 	elif speed > allowed:
 		controls.throttle = 0.0 if here > 0.05 else 0.2
@@ -252,7 +287,9 @@ func _dodge() -> float:
 ## cannon at a kart dead ahead, a homing brick or lightning when anyone's
 ## ahead, bricks or oil for a kart right behind, a repair once it's lost a
 ## couple of parts, a shield when someone's close, a ghost to get through a
-## kart in the way and a spring to hop free when it's stuck.
+## kart in the way or free when it's stuck, a tow rope onto a kart ahead on a
+## clear bit of road, a brick wall or glue for a kart close behind, and a
+## shockwave in a crowd.
 func _use_gadgets(delta: float, speed: float) -> void:
 	_think -= delta
 	if _think > 0.0:
@@ -304,10 +341,28 @@ func _worth_using(kind: String, speed: float) -> bool:
 			return kart.lost.size() >= 2
 		"ghost":
 			return _nearest(2.0, 12.0, 2.5) != null or (speed < 2.0 and not kart.locked)
-		"spring", "super_spring":
-			# A hop gets it free when something's holding it up.
-			return speed < 2.0 and not kart.locked
+		"tow":
+			if _nearest(10.0, TowRope.REACH, 30.0) == null:
+				return false
+			# Not into a tight bend, which it would be pulled wide of.
+			var ahead := 0.0
+			while ahead <= 40.0:
+				if track.bend_at(offset + ahead) > 0.02:
+					return false
+				ahead += 4.0
+			return true
+		"wall":
+			return _nearest(-20.0, -3.0, 6.0) != null
+		"glue":
+			return _nearest(-14.0, -2.0, 4.0) != null
+		"shockwave":
+			return _count_near(6.0) >= 2 or _nearest(-3.0, 3.0, 3.0) != null
 	return false
+
+
+## How many other karts are within this far.
+func _count_near(reach: float) -> int:
+	return others.filter(func(k): return is_instance_valid(k) and k != kart and k.global_position.distance_to(kart.global_position) < reach).size()
 
 
 ## The closest other kart between these distances ahead (negative is behind)

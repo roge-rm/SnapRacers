@@ -11,8 +11,8 @@ extends Control
 ## same height is a big GO button with the brake right under it and the gadget
 ## buttons up and to the left, and a small reset button up top with a look back
 ## button under it that you hold. You can slide a finger from GO down to the
-## brake without lifting it, or up onto a gadget, which uses it and keeps GO
-## held.
+## brake without lifting it, which keeps the gas on too and slides the kart
+## round a corner, or up onto a gadget, which uses it and keeps GO held.
 ##
 ## Instead of the stick there can be a left and a right button that steer all
 ## the way while you hold them, and you can slide your thumb from one to the
@@ -251,7 +251,12 @@ func _input(event: InputEvent) -> void:
 			elif name != _slid_onto.get(event.index, ""):
 				_slid_onto.erase(event.index)
 			# A thumb can slide onto GO or brake, and between left and right.
-			if name == "gas" or name == "brake":
+			# Sliding from GO onto brake keeps the gas on as well, which puts
+			# the kart into a slide (see Kart.sliding), and back onto GO goes
+			# back to plain gas.
+			if name == "brake" and was in ["gas", "slide"]:
+				_fingers[event.index] = "slide"
+			elif name == "gas" or name == "brake":
 				_fingers[event.index] = name
 			elif (name == "left" or name == "right") and was in ["left", "right"]:
 				_fingers[event.index] = name
@@ -284,12 +289,14 @@ func _update() -> void:
 	if _stick_finger == -1:
 		_knob = 0.0
 	var held := _fingers.values()
+	if held.has("slide"):
+		held.append_array(["gas", "brake"])
 	if steering == "buttons":
 		steer = buttons_to_steer(held.has("left"), held.has("right"))
 	else:
 		steer = stick_to_steer(_knob)
-	throttle = 1.0 if held.has("gas") else 0.0
-	brake = 1.0 if held.has("brake") else 0.0
+	throttle = 1.0 if held.has("gas") or held.has("slide") else 0.0
+	brake = 1.0 if held.has("brake") or held.has("slide") else 0.0
 	reset = held.has("reset")
 	look_back = held.has("look")
 	queue_redraw()
@@ -315,6 +322,8 @@ func _draw() -> void:
 		return # not laid out yet
 	var buttons := _buttons()
 	var held := _fingers.values()
+	if held.has("slide"):
+		held.append_array(["gas", "brake"])
 	var labels := { "gas": "GO", "brake": "BRAKE", "reset": "RESET", "look": "LOOK\nBACK", "gadget0": gadget_names[0], "gadget1": gadget_names[1], "left": "", "right": "" }
 	var font := get_theme_default_font()
 	for name in buttons:

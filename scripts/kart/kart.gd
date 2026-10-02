@@ -15,6 +15,8 @@ extends RigidBody3D
 signal was_reset
 signal parts_lost(indices: Array[int])
 signal gadget_used(kind: String)
+## It's thrown a tow rope onto this kart (see TowRope), so others can show it.
+signal towed(to: Kart)
 ## It broke some scenery (see WorldDamage), so other devices can too.
 signal broke_scenery(group: int, at: Vector3, velocity: Vector3)
 ## Its lost parts are back on, after a reset or from a repair kit.
@@ -59,6 +61,13 @@ const REVERSE_PUSH := 1000.0
 const REVERSE_TOP_SPEED := 6.0
 const ROLL_HELP := 0.6 # lifts the cornering forces toward the centre of mass so it doesn't flip in every corner
 const RESET_LIFT := 1.0
+## A slide: gas and brake held together above this speed lock the back wheels,
+## which lose most of their sideways grip, so the tail swings round as you
+## steer and the kart turns in tighter. Once you let go the grip comes back
+## over SLIDE_RECOVER seconds.
+const SLIDE_SPEED := 6.0
+const SLIDE_REAR_GRIP := 0.2
+const SLIDE_RECOVER := 0.5
 const RESET_SLOWDOWN_TIME := 2.5
 const RESET_SLOWDOWN := 0.5
 
@@ -85,8 +94,12 @@ const BIG_TURBO_TIME := 2.8
 const TRIPLE_TURBO_TIME := 1.2
 const TURBO_FORCE := 1000.0
 const TURBO_TOP_SPEED := 1.3 # how much further past its usual top speed a turbo can push
-const SPRING_SPEED := 5.5 # upward kick from a spring, in m/s
-const SUPER_SPRING_SPEED := 8.5
+## A shockwave shoves karts this far away from it, up to this hard (as a
+## change in speed, in m/s) nearest, and closer than KNOCK_REACH knocks a
+## part loose.
+const SHOCK_REACH := 8.0
+const SHOCK_SHOVE := 7.0
+const SHOCK_KNOCK_REACH := 4.0
 const SHIELD_TIME := 4.0
 ## How long a ghost goes through karts, bricks and oil.
 const GHOST_TIME := 3.0
@@ -162,7 +175,8 @@ const KERB_WHEEL := 0.3
 ## The sound each power-up makes when it's used (see sound/fx).
 const GADGET_SOUNDS := {
 	"turbo": "fx/turbo", "big_turbo": "fx/turbo", "triple_turbo": "fx/turbo",
-	"spring": "fx/spring", "super_spring": "fx/spring", "dropper": "fx/drop", "oil": "fx/drop",
+	"tow": "fx/rope", "wall": "fx/wall", "shockwave": "fx/shockwave", "glue": "fx/glue",
+	"dropper": "fx/drop", "oil": "fx/drop",
 	"cannon": "fx/cannon", "homing": "fx/cannon", "repair": "fx/repair", "shield": "fx/shield",
 	"ghost": "fx/ghost", "lightning": "fx/lightning",
 }
@@ -265,10 +279,15 @@ var pickups := 0
 var boost_left := 0.0
 var ghost_left := 0.0
 var zapped_left := 0.0
-## How hard the last spring used kicks (a super spring kicks harder).
-var _spring_speed := SPRING_SPEED
 var shield_left := 0.0
-var _spring_asked := false
+## The tow rope it's on the end of, if any (see TowRope).
+var tow: TowRope
+## A shove from a shockwave, to be added to its speed next step.
+var _shove := Vector3.ZERO
+## Whether it's sliding right now (see SLIDE_SPEED), and how far into the
+## slide it still is, from 1 while sliding down to 0 once it's gripping again.
+var sliding := false
+var slide_amount := 0.0
 var _repair_asked := false
 var _gadget_held: Array[bool] = [false, false]
 var _gadget_wait: Array[float] = [0.0, 0.0]
@@ -311,6 +330,7 @@ var _reset_held := false
 var _reset_asked := false
 var _repair_pending := false
 var _driven_count := 0
+var _steered_count := 0
 var _full: KartStats # the kart as built, before anything broke
 var _wheel_setup := {} # part index -> [steered, driven, spring, damper]
 var _impact := {} # part index -> recent knocks, in newton seconds
@@ -551,9 +571,12 @@ func _assemble() -> void:
 	mass = maxf(stats.mass, 1.0)
 	center_of_mass = stats.center_of_mass
 	_driven_count = 0
+	_steered_count = 0
 	for w in wheels:
 		if w.driven:
 			_driven_count += 1
+		if w.steered:
+			_steered_count += 1
 
 
 ## The part's collision shapes: its box, or for a modelled part with gaps in
@@ -715,9 +738,13 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 		_reset(state)
 	_reset_held = controls.reset
 	slowdown_left = maxf(slowdown_left - dt, 0.0)
-	if _spring_asked:
-		_spring_asked = false
-		state.linear_velocity += state.transform.basis.y * _spring_speed
+	if _shove != Vector3.ZERO:
+		state.linear_velocity += _shove
+		_shove = Vector3.ZERO
+	if tow != null and is_instance_valid(tow):
+		var pull := tow.pull_on(self)
+		state.apply_central_force(pull)
+		applied += pull
 
 	var basis := state.transform.basis
 	var up := basis.y
@@ -739,7 +766,12 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 		# make the tail step out further.
 		if absf(toward) < PI * 0.5 and controls.steer * toward < 0.0:
 			slide = absf(toward)
+	sliding = not locked and stats.steering != null and controls.throttle > 0.5 and controls.brake > 0.5 and forward_speed > SLIDE_SPEED
+	slide_amount = 1.0 if sliding else move_toward(slide_amount, 0.0, dt / SLIDE_RECOVER)
 	full_lock = steer_limit(speed, slide)
+	# The front wheels turn all the way while the tail's out.
+	if slide_amount > 0.0:
+		full_lock = lerpf(full_lock, MAX_STEER, slide_amount)
 	var wanted_steer := controls.steer * full_lock if stats.steering != null else 0.0
 	# A driver who sits awkwardly or has to reach steers more slowly.
 	steer_angle = move_toward(steer_angle, wanted_steer, STEER_RATE * stats.control * MAX_STEER * dt)
@@ -751,7 +783,10 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 		braking = forward_speed > 0.05
 	elif controls.throttle > 0.0:
 		drive = controls.throttle * minf(max_force, power / maxf(absf(forward_speed), 1.0)) * push
-	if controls.brake > 0.0 and not locked:
+	if sliding:
+		# The back wheels are locked, so nothing drives.
+		drive = 0.0
+	elif controls.brake > 0.0 and not locked:
 		if forward_speed > 0.5:
 			braking = true
 		elif forward_speed > -REVERSE_TOP_SPEED:
@@ -847,8 +882,12 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 		var resist := w.rolling * load * drag_here
 		if braking:
 			resist += BRAKE_FORCE * (1.0 if locked else controls.brake) / wheels.size()
+		elif sliding and not w.steered:
+			resist += BRAKE_FORCE / maxf(wheels.size() - _steered_count, 1)
 		f_long -= signf(v_long) * minf(resist, absf(v_long) * stop_force)
 		var most := KartStats.TIRE_FRICTION * w.grip * grip_here * load
+		if slide_amount > 0.0 and not w.steered:
+			most *= lerpf(1.0, SLIDE_REAR_GRIP, slide_amount)
 		# Traction control. Holding the kart in line comes first and the engine
 		# only gets the grip that's left over, so full throttle can't use up
 		# the grip the back tires need to hold the tail. With the wheels
@@ -861,7 +900,7 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 			var left_over := sqrt(maxf(most * most - f_lat * f_lat, 0.0))
 			var standing := w.spring * SUSPENSION_TRAVEL
 			room = minf(room, left_over / maxf(standing, 1.0))
-			f_long = minf(f_long, lerpf(minf(left_over, _drive_room * standing), left_over, turned))
+			f_long = minf(f_long, lerpf(minf(left_over, _drive_room * standing), left_over, maxf(turned, slide_amount)))
 		var tire := Vector2(f_long, f_lat).limit_length(most)
 
 		# A bike's springs push along the bike, through its middle, so they
@@ -949,7 +988,9 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 		state.apply_central_force(push)
 		applied += push
 
-	_steady(state, up)
+	# Coming out of a slide it's up to you to catch it.
+	if slide_amount <= 0.0:
+		_steady(state, up)
 	_break_scenery(state)
 	_feel_knocks(state)
 	_last_velocity = state.linear_velocity
@@ -1288,12 +1329,18 @@ func use_gadget(slot: int) -> bool:
 			boost_left = BIG_TURBO_TIME
 		"triple_turbo":
 			boost_left = TRIPLE_TURBO_TIME
-		"spring":
-			_spring_asked = true
-			_spring_speed = SPRING_SPEED
-		"super_spring":
-			_spring_asked = true
-			_spring_speed = SUPER_SPRING_SPEED
+		"tow":
+			var rope := TowRope.throw(self, BrickShot._kart_ahead(self))
+			if rope != null:
+				get_parent().add_child(rope)
+				towed.emit(rope.to)
+			else:
+				# With nobody in reach it's a turbo.
+				boost_left = TURBO_TIME
+		"wall":
+			get_parent().add_child(BrickWall.drop_behind(self))
+		"glue":
+			get_parent().add_child(OilSlick.drop_behind(self, "glue"))
 		"oil":
 			get_parent().add_child(OilSlick.drop_behind(self))
 		"dropper":
@@ -1313,7 +1360,8 @@ func use_gadget(slot: int) -> bool:
 	var noise: String = GADGET_SOUNDS.get(kind, "")
 	if noise != "":
 		Sounds.play_at(noise, sound)
-	# Lightning is the race's to hand out (see Race), to every kart ahead.
+	# Lightning and shockwaves are the race's to hand out (see Race), to every
+	# kart they reach.
 	gadget_used.emit(kind)
 	return true
 
@@ -1322,6 +1370,22 @@ func use_gadget(slot: int) -> bool:
 func start_ghost() -> void:
 	ghost_left = GHOST_TIME
 	_set_ghostly(true)
+
+
+## Shoved by a shockwave from `from`, harder the closer it is, and knocked
+## about if it's very close.
+func shoved_from(from: Vector3) -> void:
+	if ghost_left > 0.0:
+		return
+	var away := global_position - from
+	away.y = 0.0
+	var far := away.length()
+	if far > SHOCK_REACH:
+		return
+	var push := SHOCK_SHOVE * (1.0 - far / SHOCK_REACH * 0.6)
+	_shove += (away.normalized() if far > 0.1 else -global_basis.x) * push + Vector3.UP * 1.0
+	if far < SHOCK_KNOCK_REACH and shield_left <= 0.0:
+		knock_off_a_part.call_deferred()
 
 
 ## Slows the kart right down for a moment, from lightning.

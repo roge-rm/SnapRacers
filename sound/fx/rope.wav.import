@@ -2,13 +2,13 @@
 
 importer="wav"
 type="AudioStreamWAV"
-uid="uid://bol5sn6jrldp7"
-path="res://.godot/imported/spring.wav-b0bdfb07c157df1ebdfec7676381cfce.sample"
+uid="uid://q0g7cbd8xld"
+path="res://.godot/imported/rope.wav-5a2e4aa47c04f9e1a293aca00ada6568.sample"
 
 [deps]
 
-source_file="res://sound/fx/spring.wav"
-dest_files=["res://.godot/imported/spring.wav-b0bdfb07c157df1ebdfec7676381cfce.sample"]
+source_file="res://sound/fx/rope.wav"
+dest_files=["res://.godot/imported/rope.wav-5a2e4aa47c04f9e1a293aca00ada6568.sample"]
 
 [params]
 

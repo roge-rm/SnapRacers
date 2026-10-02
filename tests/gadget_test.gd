@@ -53,7 +53,9 @@ class Runner:
 
 		karts.turbo = kart_with(["turbo"], Vector3(-80, 0.05, 100))
 		karts.plain = kart_with([], Vector3(-70, 0.05, 100))
-		karts.spring = kart_with(["spring"], Vector3(-60, 0.05, 100))
+		karts.tower = kart_with(["tow"], Vector3(-60, 0.05, 100))
+		karts.towed = kart_with([], Vector3(-60, 0.05, 50))
+		karts.lone_tower = kart_with(["tow"], Vector3(-115, 0.05, -100))
 		karts.gunner = kart_with(["cannon", "shield"], Vector3(-40, 0.05, 100))
 		karts.target = kart_with([], Vector3(-40, 0.05, 88))
 		karts.shielded = kart_with(["shield"], Vector3(-20, 0.05, 88))
@@ -65,7 +67,14 @@ class Runner:
 		karts.bumper = kart_with([], Vector3(60, 0.05, 110))
 		karts.bumped = kart_with([], Vector3(60, 0.05, 92))
 		karts.big_turbo = kart_with(["big_turbo"], Vector3(80, 0.05, 100))
-		karts.super_spring = kart_with(["super_spring"], Vector3(-60, 0.05, 80))
+		karts.waller = kart_with(["wall"], Vector3(100, 0.05, -60))
+		karts.wall_hitter = kart_with([], Vector3(85, 0.05, -40))
+		karts.shocked = kart_with([], Vector3(-100, 0.05, -60))
+		karts.shocked_far = kart_with([], Vector3(-100, 0.05, -80))
+		karts.shocked_shielded = kart_with(["shield"], Vector3(-95, 0.05, -60))
+		karts.gluer = kart_with(["glue"], Vector3(60, 0.05, -110))
+		karts.glued = kart_with([], Vector3(100, 0.05, -10))
+		karts.unglued = kart_with([], Vector3(115, 0.05, -10))
 		karts.oiler = kart_with(["oil"], Vector3(100, 0.05, 100))
 		karts.slider = kart_with([], Vector3(120, 0.05, 60))
 		karts.gripper = kart_with([], Vector3(130, 0.05, 60))
@@ -76,7 +85,7 @@ class Runner:
 		karts.zapped = kart_with([], Vector3(-100, 0.05, 115))
 		karts.unzapped = kart_with([], Vector3(-110, 0.05, 115))
 
-		steps = [_start, _turbo, _turbo_check, _others, _springs_check, _others_check, _repair_check, _ram_check, _oil, _oil_check, _ghost, _ghost_check, _boxes]
+		steps = [_start, _turbo, _turbo_check, _others, _tow_check, _others_check, _repair_check, _ram_check, _oil, _oil_check, _wall, _wall_check, _shockwave, _shockwave_check, _glue, _glue_check, _ghost, _ghost_check, _boxes]
 
 	func _start() -> int:
 		for kart in [karts.turbo, karts.plain, karts.rammer, karts.bumper, karts.zapped, karts.unzapped]:
@@ -111,8 +120,15 @@ class Runner:
 		return 1
 
 	func _others() -> int:
-		for name in ["spring", "gunner", "shielded", "gunner2", "dropper", "super_spring", "big_turbo", "homer"]:
+		for name in ["gunner", "shielded", "gunner2", "dropper", "big_turbo", "homer"]:
 			karts[name].use_gadget(0)
+		# A tow rope onto the kart ahead. Here there's no race to say who's
+		# ahead, so the rope's thrown by hand, and one used with nobody in
+		# reach is a turbo instead.
+		var rope := TowRope.throw(karts.tower, karts.towed)
+		add_child(rope)
+		karts.tower.set_meta("start_z", karts.tower.global_position.z)
+		check(karts.lone_tower.use_gadget(0) and karts.lone_tower.boost_left > 0.0, "a tow rope with nobody in reach is a turbo")
 		# The homing brick goes after the kart ahead and off to one side.
 		for shot in get_children().filter(func(n): return n is BrickShot and n.shooter == karts.homer):
 			shot.chasing = karts.hunted
@@ -122,9 +138,9 @@ class Runner:
 		check(karts.triple.held[0] == "", "three times, then it's gone")
 		return 20
 
-	func _springs_check() -> int:
-		check(karts.spring.global_position.y > 0.7, "a spring hops the kart up (%.2f m)" % karts.spring.global_position.y)
-		check(karts.super_spring.global_position.y > karts.spring.global_position.y + 0.3, "a super spring hops it higher (%.2f m)" % karts.super_spring.global_position.y)
+	func _tow_check() -> int:
+		var pulled: float = karts.tower.get_meta("start_z") - karts.tower.global_position.z
+		check(pulled > 0.3 and karts.tower.tow != null, "a tow rope pulls the kart towards the one ahead (%.1f m)" % pulled)
 		return 40
 
 	func _others_check() -> int:
@@ -169,6 +185,66 @@ class Runner:
 		check(slid > gripped + 1.5, "a kart on oil keeps sliding where one off it grips (%.1f against %.1f m/s)" % [slid, gripped])
 		return 0
 
+	## A brick wall goes down behind a kart, and a kart driving into it sets
+	## the bricks tumbling.
+	func _wall() -> int:
+		check(karts.waller.use_gadget(0), "a brick wall can be used")
+		var walls := get_children().filter(func(n): return n is BrickWall)
+		check(walls.size() == 1 and walls[0].global_position.z > karts.waller.global_position.z, "and goes down behind the kart")
+		karts.wall_hitter.global_position = walls[0].global_position + Vector3(0.0, 0.05, 12.0)
+		karts.wall_hitter.linear_velocity = Vector3(0.0, 0.0, -14.0)
+		karts.wall_hitter.controls.throttle = 1.0
+		return 70
+
+	func _wall_check() -> int:
+		var wall: BrickWall = get_children().filter(func(n): return n is BrickWall)[0]
+		var loose: int = wall._bricks.filter(func(b): return not b.freeze).size()
+		check(loose > 0, "a kart driving into it sets bricks tumbling (%d)" % loose)
+		check(karts.wall_hitter.forward_speed < 12.0, "and it slows the kart down (%.1f m/s)" % karts.wall_hitter.forward_speed)
+		karts.wall_hitter.controls.throttle = 0.0
+		return 0
+
+	## A shockwave shoves the karts near it away, and knocks parts off one
+	## close by, unless its shield's up.
+	func _shockwave() -> int:
+		var at: Vector3 = karts.shocked.global_position + Vector3(2.5, 0.0, 0.0)
+		for kart in [karts.shocked, karts.shocked_far, karts.shocked_shielded]:
+			kart.set_meta("was", kart.global_position)
+		karts.shocked_shielded.use_gadget(0)
+		karts.shocked.shoved_from(at)
+		karts.shocked_far.shoved_from(at)
+		karts.shocked_shielded.shoved_from(at)
+		return 20
+
+	func _shockwave_check() -> int:
+		var moved: float = karts.shocked.get_meta("was").x - karts.shocked.global_position.x
+		check(moved > 0.5, "a shockwave shoves a kart beside it away (%.1f m)" % moved)
+		check(karts.shocked.lost.size() >= 1, "and knocks a part off it, being so close (%d)" % karts.shocked.lost.size())
+		check(karts.shocked_shielded.lost.is_empty(), "but not off a kart with its shield up")
+		var far_moved: float = karts.shocked_far.global_position.distance_to(karts.shocked_far.get_meta("was"))
+		check(far_moved < 0.05, "and a kart out of reach isn't touched (%.2f m)" % far_moved)
+		return 0
+
+	## Glue leaves a sticky patch that slows a kart driving over it, without
+	## spinning it.
+	func _glue() -> int:
+		check(karts.gluer.use_gadget(0), "glue can be used")
+		var patch := OilSlick.new("glue")
+		add_child(patch)
+		patch.global_position = Vector3(100, 0.03, -16)
+		for kart in [karts.glued, karts.unglued]:
+			kart.linear_velocity = Vector3(0.0, 0.0, -10.0)
+			kart.set_meta("heading", kart.global_basis.z)
+		return 50
+
+	func _glue_check() -> int:
+		var stuck: float = karts.glued.forward_speed
+		var free: float = karts.unglued.forward_speed
+		check(stuck < free - 1.5, "a kart over glue is slowed (%.1f against %.1f m/s)" % [stuck, free])
+		var turned := rad_to_deg(absf(karts.glued.get_meta("heading").signed_angle_to(karts.glued.global_basis.z, Vector3.UP)))
+		check(turned < 10.0, "without being spun round (%.0f degrees)" % turned)
+		return 0
+
 	## A ghost drives straight through a kart parked in its way.
 	func _ghost() -> int:
 		check(karts.ghost.use_gadget(0) and karts.ghost.ghost_left > 0.0, "a ghost can be used")
@@ -209,6 +285,8 @@ class Runner:
 		check(leader.get("oil", 0) + leader.get("dropper", 0) > last.get("oil", 0) + last.get("dropper", 0) + 300, "and the leader gets more oil and bricks")
 		var strong := func(counts: Dictionary) -> int: return counts.get("big_turbo", 0) + counts.get("triple_turbo", 0)
 		check(strong.call(last) > strong.call(leader) + 300, "while last place gets more big and triple turbos (%d against %d)" % [strong.call(last), strong.call(leader)])
+		check(last.get("tow", 0) > leader.get("tow", 0) + 200 and leader.get("wall", 0) + leader.get("glue", 0) > last.get("wall", 0) + last.get("glue", 0) + 300, "tow ropes go to the back, and walls and glue to the front")
+		check(not leader.has("spring") and not last.has("spring"), "and there are no springs any more")
 		return 0
 
 	func _physics_process(_delta: float) -> void:

@@ -69,8 +69,20 @@ func add(slot: int, racer: Race.Racer, owner: int) -> void:
 	kart.repaired.connect(func() -> void: session.kart_event.rpc(slot, "repaired", null))
 	kart.was_reset.connect(func() -> void: session.kart_event.rpc(slot, "reset", null))
 	kart.gadget_used.connect(func(kind: String) -> void: session.kart_event.rpc(slot, "gadget", kind))
+	kart.towed.connect(func(to: Kart) -> void: session.kart_event.rpc(slot, "tow", _slot_of_kart(to)))
 	kart.broke_scenery.connect(func(group: int, at: Vector3, velocity: Vector3) -> void:
 		session.kart_event.rpc(slot, "broke", [group, at.x, at.y, at.z, velocity.x, velocity.y, velocity.z]))
+
+
+func _slot_of_kart(kart: Kart) -> int:
+	for slot in racers:
+		if racers[slot].kart == kart:
+			return slot
+	return -1
+
+
+func _kart_in(slot: int) -> Kart:
+	return racers[slot].kart if racers.has(slot) and is_instance_valid(racers[slot].kart) else null
 
 
 func slot_of(racer: Race.Racer) -> int:
@@ -161,6 +173,13 @@ func got_event(sender: int, slot: int, kind: String, data: Variant) -> void:
 			kart.repair_now()
 		"reset":
 			Sounds.play_at("fx/reset", kart.sound)
+		"tow":
+			var to := _kart_in(int(data))
+			if to != null:
+				var rope := TowRope.new()
+				rope.from = kart
+				rope.to = to
+				race.add_child(rope)
 		"broke":
 			var damage := WorldDamage.in_tree(get_tree())
 			if damage != null and data is Array and data.size() == 7:
@@ -180,6 +199,12 @@ func got_event(sender: int, slot: int, kind: String, data: Variant) -> void:
 					kart.start_ghost()
 				"lightning":
 					race.strike_from(kart)
+				"shockwave":
+					race.shockwave_from(kart)
+				"wall":
+					race.add_child(BrickWall.drop_behind(kart))
+				"glue":
+					race.add_child(OilSlick.drop_behind(kart, "glue"))
 				"dropper":
 					for brick in BrickPile.drop_behind(kart):
 						race.add_child(brick)

@@ -34,7 +34,7 @@ static func audible() -> bool:
 ## Every sound the game has, so they can all be loaded up front.
 const ALL := [
 	"fx/bump", "fx/crash", "fx/bricks", "fx/powerup", "fx/beep", "fx/go", "fx/lap", "fx/final_lap",
-	"fx/finish", "fx/win", "fx/reset", "fx/turbo", "fx/spring", "fx/drop", "fx/cannon", "fx/hit",
+	"fx/finish", "fx/win", "fx/reset", "fx/turbo", "fx/rope", "fx/wall", "fx/shockwave", "fx/glue", "fx/drop", "fx/cannon", "fx/hit",
 	"fx/repair", "fx/shield", "fx/ghost", "fx/lightning", "fx/ram", "fx/click", "fx/back", "fx/snap", "fx/unsnap",
 	"fx/pick", "fx/nope",
 	"engine/engine_small", "engine/engine_micro", "engine/engine_big", "engine/engine_twin",
