@@ -90,18 +90,18 @@ If you'd rather not build, you can pick one of the stock karts, bikes and trikes
 
 ### Power-ups
 
-Every 400 m or so there's a row of power-up boxes right across the road. Drive through one and you get a power-up on one of your two gadget buttons, so you can hold two at once. What you get is random, but the further back you are the better your chances of a strong one, and the leader gets more of the ones for keeping others behind.
+Every 400 m or so there's a row of giant see-through gold studs right across the road. Drive through one and you get a power-up on one of your two gadget buttons, so you can hold two at once. What you get is random, but the further back you are the better your chances of a strong one, and the leader gets more of the ones for keeping others behind.
 
 | | |
 |---|---|
 | **Turbos** | A turbo, a big turbo that lasts longer, and a triple turbo with three goes. |
 | **Tow rope** | Latches onto the kart ahead and pulls you along behind it for three seconds, then lets go with a burst. |
-| **Bricks, walls, oil and glue** | Drop a pile of bricks, a brick wall across the road, a slick of oil or a patch of sticky glue behind you for whoever's following. |
+| **Bricks, walls, marbles and spikes** | Drop a pile of bricks, a brick wall across the road, a scatter of round bricks that roll under the wheels, or a spike trap that slows karts and knocks parts off, behind you for whoever's following. |
 | **Shockwave** | Shoves every kart near you away, and knocks parts off any right next to you. |
 | **Cannon** | Fires a brick straight ahead, and a homing brick follows the road to the kart in front. Whoever it hits loses a part. |
 | **Shield** | Nothing can knock your parts off for four seconds. |
 | **Repair kit** | Puts back everything you've lost, without the reset slowdown. |
-| **Ghost** | For three seconds you go straight through karts, bricks and oil. |
+| **Ghost** | For three seconds you go straight through karts, bricks and traps. |
 | **Lightning** | Every kart ahead of you slows right down for two seconds. |
 
 ### Drivers

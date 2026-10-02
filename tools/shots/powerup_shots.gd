@@ -1,7 +1,7 @@
 extends Node
 
 ## Takes pictures of the newer power-ups in a race on Peach Pit: a tow rope
-## onto the kart ahead, a brick wall and a patch of glue behind, and a
+## onto the kart ahead, a brick wall, marbles and a spike trap behind, and a
 ## shockwave. It needs a screen, and saves in /tmp/snapracers-build/shots.
 ##   DISPLAY=:0 tools/godot/Godot_v4.7.2-stable_linux.x86_64 --path . res://tools/shots/powerup_shots.tscn
 
@@ -76,14 +76,16 @@ func _ready() -> void:
 	await shot("wall")
 
 	await frames(90)
-	kart.held = ["glue", ""]
-	kart.held_uses = [1, 0]
-	kart._gadget_wait = [0.0, 0.0]
-	kart.use_gadget(0)
-	await frames(12)
-	look(true, 4.0, 11.0)
-	await frames(2)
-	await shot("glue")
+	for trap in ["marbles", "spikes"]:
+		kart.held = [trap, ""]
+		kart.held_uses = [1, 0]
+		kart._gadget_wait = [0.0, 0.0]
+		kart.use_gadget(0)
+		await frames(12)
+		look(true, 3.0, 9.0)
+		await frames(2)
+		await shot(trap)
+		await frames(90)
 
 	await frames(60)
 	kart.held = ["shockwave", ""]

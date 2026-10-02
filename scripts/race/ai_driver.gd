@@ -315,10 +315,10 @@ func _dodge() -> float:
 ## Every so often it looks at the power-ups it's holding and uses one if the
 ## moment's right. That's a turbo on a straight with no jump coming, the
 ## cannon at a kart dead ahead, a homing brick or lightning when anyone's
-## ahead, bricks or oil for a kart right behind, a repair once it's lost a
+## ahead, bricks or marbles for a kart right behind, a repair once it's lost a
 ## couple of parts, a shield when someone's close, a ghost to get through a
 ## kart in the way or free when it's stuck, a tow rope onto a kart ahead on a
-## clear bit of road, a brick wall or glue for a kart close behind, and a
+## clear bit of road, a brick wall or spikes for a kart close behind, and a
 ## shockwave in a crowd.
 func _use_gadgets(delta: float, speed: float) -> void:
 	_think -= delta
@@ -363,7 +363,7 @@ func _worth_using(kind: String, speed: float) -> bool:
 			return _nearest(3.0, 120.0, 40.0) != null
 		"lightning":
 			return _nearest(3.0, 400.0, 400.0) != null
-		"dropper", "oil":
+		"dropper", "marbles":
 			return _nearest(-14.0, -2.0, 4.0) != null
 		"shield":
 			return _nearest(-5.0, 5.0, 4.0) != null
@@ -383,7 +383,7 @@ func _worth_using(kind: String, speed: float) -> bool:
 			return true
 		"wall":
 			return _nearest(-20.0, -3.0, 6.0) != null
-		"glue":
+		"spikes":
 			return _nearest(-14.0, -2.0, 4.0) != null
 		"shockwave":
 			return _count_near(6.0) >= 2 or _nearest(-3.0, 3.0, 3.0) != null

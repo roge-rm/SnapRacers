@@ -48,7 +48,7 @@ class Runner:
 		var holder := Kart.new()
 		holder.build(KartDesign.load_file(OLD_STARTER))
 		check(holder.give("turbo") and holder.give("shield"), "a kart can hold two power-ups")
-		check(not holder.give("oil") and holder.full(), "but not a third")
+		check(not holder.give("marbles") and holder.full(), "but not a third")
 		holder.free()
 
 		karts.turbo = kart_with(["turbo"], Vector3(-80, 0.05, 100))
@@ -72,10 +72,10 @@ class Runner:
 		karts.shocked = kart_with([], Vector3(-100, 0.05, -60))
 		karts.shocked_far = kart_with([], Vector3(-100, 0.05, -80))
 		karts.shocked_shielded = kart_with(["shield"], Vector3(-95, 0.05, -60))
-		karts.gluer = kart_with(["glue"], Vector3(60, 0.05, -110))
-		karts.glued = kart_with([], Vector3(100, 0.05, -10))
-		karts.unglued = kart_with([], Vector3(115, 0.05, -10))
-		karts.oiler = kart_with(["oil"], Vector3(100, 0.05, 100))
+		karts.spiker = kart_with(["spikes"], Vector3(60, 0.05, -110))
+		karts.spiked = kart_with([], Vector3(100, 0.05, -10))
+		karts.unspiked = kart_with([], Vector3(115, 0.05, -10))
+		karts.marbler = kart_with(["marbles"], Vector3(100, 0.05, 100))
 		karts.slider = kart_with([], Vector3(120, 0.05, 60))
 		karts.gripper = kart_with([], Vector3(130, 0.05, 60))
 		karts.homer = kart_with(["homing"], Vector3(-100, 0.05, 60))
@@ -85,7 +85,7 @@ class Runner:
 		karts.zapped = kart_with([], Vector3(-100, 0.05, 115))
 		karts.unzapped = kart_with([], Vector3(-110, 0.05, 115))
 
-		steps = [_start, _turbo, _turbo_check, _others, _tow_check, _others_check, _repair_check, _ram_check, _oil, _oil_check, _wall, _wall_check, _shockwave, _shockwave_check, _glue, _glue_check, _ghost, _ghost_check, _boxes]
+		steps = [_start, _turbo, _turbo_check, _others, _tow_check, _others_check, _repair_check, _ram_check, _marbles, _marbles_check, _wall, _wall_check, _shockwave, _shockwave_check, _spikes, _spikes_check, _ghost, _ghost_check, _boxes]
 
 	func _start() -> int:
 		for kart in [karts.turbo, karts.plain, karts.rammer, karts.bumper, karts.zapped, karts.unzapped]:
@@ -166,23 +166,23 @@ class Runner:
 		check(karts.rammer.lost.is_empty() or karts.rammer.lost.size() < karts.rammed.lost.size(), "and the rammer comes off better")
 		return 0
 
-	## Oil leaves a slick behind the kart. Then one kart slides sideways across
-	## a slick while another does the same on the ground beside it.
-	func _oil() -> int:
-		check(karts.oiler.use_gadget(0), "oil can be used")
-		var slicks := get_children().filter(func(n): return n is OilSlick)
-		check(slicks.size() == 1 and slicks[0].global_position.z > karts.oiler.global_position.z, "and leaves a slick behind the kart")
-		var slick := OilSlick.new()
-		add_child(slick)
-		slick.global_position = Vector3(120, 0.03, 60)
+	## Marbles are scattered behind the kart. Then one kart slides sideways across
+	## them while another does the same on the ground beside it.
+	func _marbles() -> int:
+		check(karts.marbler.use_gadget(0), "marbles can be used")
+		var traps := get_children().filter(func(n): return n is BrickTrap)
+		check(traps.size() == 1 and traps[0].global_position.z > karts.marbler.global_position.z, "and scatters them behind the kart")
+		var trap := BrickTrap.new()
+		add_child(trap)
+		trap.global_position = Vector3(120, 0.03, 60)
 		for kart in [karts.slider, karts.gripper]:
 			kart.linear_velocity = Vector3(6.0, 0.0, 0.0)
 		return 30
 
-	func _oil_check() -> int:
+	func _marbles_check() -> int:
 		var slid: float = karts.slider.linear_velocity.x
 		var gripped: float = karts.gripper.linear_velocity.x
-		check(slid > gripped + 1.5, "a kart on oil keeps sliding where one off it grips (%.1f against %.1f m/s)" % [slid, gripped])
+		check(slid > gripped + 1.5, "a kart on marbles keeps sliding where one off it grips (%.1f against %.1f m/s)" % [slid, gripped])
 		return 0
 
 	## A brick wall goes down behind a kart, and a kart driving into it sets
@@ -227,22 +227,23 @@ class Runner:
 
 	## Glue leaves a sticky patch that slows a kart driving over it, without
 	## spinning it.
-	func _glue() -> int:
-		check(karts.gluer.use_gadget(0), "glue can be used")
-		var patch := OilSlick.new("glue")
+	func _spikes() -> int:
+		check(karts.spiker.use_gadget(0), "a spike trap can be used")
+		var patch := BrickTrap.new("spikes")
 		add_child(patch)
 		patch.global_position = Vector3(100, 0.03, -16)
-		for kart in [karts.glued, karts.unglued]:
-			kart.linear_velocity = Vector3(0.0, 0.0, -10.0)
+		for kart in [karts.spiked, karts.unspiked]:
+			kart.linear_velocity = Vector3(0.0, 0.0, -14.0)
 			kart.set_meta("heading", kart.global_basis.z)
 		return 50
 
-	func _glue_check() -> int:
-		var stuck: float = karts.glued.forward_speed
-		var free: float = karts.unglued.forward_speed
-		check(stuck < free - 1.5, "a kart over glue is slowed (%.1f against %.1f m/s)" % [stuck, free])
-		var turned := rad_to_deg(absf(karts.glued.get_meta("heading").signed_angle_to(karts.glued.global_basis.z, Vector3.UP)))
+	func _spikes_check() -> int:
+		var stuck: float = karts.spiked.forward_speed
+		var free: float = karts.unspiked.forward_speed
+		check(stuck < free - 1.5, "a kart over spikes is slowed (%.1f against %.1f m/s)" % [stuck, free])
+		var turned := rad_to_deg(absf(karts.spiked.get_meta("heading").signed_angle_to(karts.spiked.global_basis.z, Vector3.UP)))
 		check(turned < 10.0, "without being spun round (%.0f degrees)" % turned)
+		check(karts.spiked.lost.size() >= 1 and karts.unspiked.lost.is_empty(), "and it knocks a part off a kart that hits it fast (%d lost)" % karts.spiked.lost.size())
 		return 0
 
 	## A ghost drives straight through a kart parked in its way.
@@ -282,10 +283,10 @@ class Runner:
 			leader[a] = leader.get(a, 0) + 1
 			last[b] = last.get(b, 0) + 1
 		check(not leader.has("lightning") and last.get("lightning", 0) > 100, "the leader never gets lightning and last place often does (%d)" % last.get("lightning", 0))
-		check(leader.get("oil", 0) + leader.get("dropper", 0) > last.get("oil", 0) + last.get("dropper", 0) + 300, "and the leader gets more oil and bricks")
+		check(leader.get("marbles", 0) + leader.get("dropper", 0) > last.get("marbles", 0) + last.get("dropper", 0) + 300, "and the leader gets more marbles and bricks")
 		var strong := func(counts: Dictionary) -> int: return counts.get("big_turbo", 0) + counts.get("triple_turbo", 0)
 		check(strong.call(last) > strong.call(leader) + 300, "while last place gets more big and triple turbos (%d against %d)" % [strong.call(last), strong.call(leader)])
-		check(last.get("tow", 0) > leader.get("tow", 0) + 200 and leader.get("wall", 0) + leader.get("glue", 0) > last.get("wall", 0) + last.get("glue", 0) + 300, "tow ropes go to the back, and walls and glue to the front")
+		check(last.get("tow", 0) > leader.get("tow", 0) + 200 and leader.get("wall", 0) + leader.get("spikes", 0) > last.get("wall", 0) + last.get("spikes", 0) + 300, "tow ropes go to the back, and walls and spikes to the front")
 		check(not leader.has("spring") and not last.has("spring"), "and there are no springs any more")
 		return 0
 

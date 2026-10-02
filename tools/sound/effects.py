@@ -316,13 +316,18 @@ def shockwave():
     return normalise(drive(thump * 1.4 + whoosh, 1.6), 0.9)
 
 
-def glue():
-    """Glue: a wet splat."""
-    n = seconds(0.35)
-    t = times(n)
-    splat = lowpass(noise(n, 97), 1400) * decay(n, 0.08)
-    blob = sine(np.geomspace(240, 120, n) * (1.0 + 0.05 * np.sin(2 * np.pi * 30 * t)), n) * decay(n, 0.12) * 0.6
-    return normalise(splat + blob, 0.8)
+def marbles():
+    """Marbles: a handful of little round bricks rattling out across the road."""
+    clicks = [(clack(120 + i, 1.5 + 0.1 * (i % 5), 0.015) * (0.8 - i * 0.04), i * 0.03 + 0.01 * (i % 3)) for i in range(16)]
+    return normalise(mix(*clicks), 0.8)
+
+
+def spikes():
+    """A spike trap: sharp little pieces clattering down, with a bright ring."""
+    n = seconds(0.4)
+    ring = sum(resonator(f, 0.12, n) * a for f, a in [(2400, 0.6), (3600, 0.4), (5200, 0.25)])
+    clacks = [(clack(140 + i, 1.8, 0.01) * 0.7, i * 0.035) for i in range(8)]
+    return normalise(mix((ring, 0.0), *clacks), 0.8)
 
 
 def drop():
@@ -419,7 +424,7 @@ ONE_SHOTS = {
     "bump": bump, "crash": crash, "bricks": bricks, "powerup": powerup,
     "beep": lambda: beep("A5", 0.16), "go": lambda: beep("A6", 0.5),
     "lap": lap, "final_lap": final_lap, "finish": finish, "win": win,
-    "reset": reset, "turbo": turbo, "rope": rope, "wall": wall, "shockwave": shockwave, "glue": glue, "drop": drop, "cannon": cannon,
+    "reset": reset, "turbo": turbo, "rope": rope, "wall": wall, "shockwave": shockwave, "marbles": marbles, "spikes": spikes, "drop": drop, "cannon": cannon,
     "hit": hit, "repair": repair, "shield": shield, "ghost": ghost, "lightning": lightning, "ram": ram,
     "click": click, "back": back, "snap": snap, "unsnap": unsnap, "pick": pick, "nope": nope,
 }

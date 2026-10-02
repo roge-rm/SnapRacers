@@ -203,13 +203,13 @@ func got_event(sender: int, slot: int, kind: String, data: Variant) -> void:
 					race.shockwave_from(kart)
 				"wall":
 					race.add_child(BrickWall.drop_behind(kart))
-				"glue":
-					race.add_child(OilSlick.drop_behind(kart, "glue"))
+				"spikes":
+					race.add_child(BrickTrap.drop_behind(kart, "spikes"))
 				"dropper":
 					for brick in BrickPile.drop_behind(kart):
 						race.add_child(brick)
-				"oil":
-					race.add_child(OilSlick.drop_behind(kart))
+				"marbles":
+					race.add_child(BrickTrap.drop_behind(kart))
 
 
 ## The host's word that a kart's finished, and when.

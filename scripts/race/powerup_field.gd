@@ -24,32 +24,8 @@ const SIZE := 1.1
 ## after it.
 const FIRST_LAYER := 11
 
-const BOX_SHADER := """
-shader_type spatial;
-render_mode cull_disabled;
-
-varying float seed;
-
-void vertex() {
-	seed = float(INSTANCE_ID);
-	float a = TIME * 1.6 + seed * 0.9;
-	mat3 spin = mat3(vec3(cos(a), 0.0, -sin(a)), vec3(0.0, 1.0, 0.0), vec3(sin(a), 0.0, cos(a)));
-	VERTEX = spin * VERTEX + vec3(0.0, sin(TIME * 2.0 + seed) * 0.1, 0.0);
-	NORMAL = spin * NORMAL;
-}
-
-void fragment() {
-	// A colour that shifts slowly through the rainbow.
-	float h = fract(TIME * 0.25 + seed * 0.13);
-	vec3 rainbow = clamp(abs(mod(h * 6.0 + vec3(0.0, 4.0, 2.0), 6.0) - 3.0) - 1.0, 0.0, 1.0);
-	ALBEDO = mix(vec3(1.0), rainbow, 0.75);
-	EMISSION = rainbow * 0.45;
-	ROUGHNESS = 0.25;
-	ALPHA = 0.8;
-}
-"""
-
-static var _shader: Shader
+## What the boxes look like (see PowerupLook).
+static var look := "stud"
 
 var track: TrackPath
 ## The race, for each kart's place when it picks a box up. It isn't named as
@@ -86,22 +62,14 @@ func _ready() -> void:
 				spots.append(frame)
 		d += EVERY
 
-	var box := BoxMesh.new()
-	box.size = Vector3.ONE * SIZE
-	if _shader == null:
-		_shader = TrackBuilder.shader_for(BOX_SHADER)
-	var material := ShaderMaterial.new()
-	material.shader = _shader
+	var box := PowerupLook.mesh(look)
 	for v in viewers.size():
 		var multi := MultiMesh.new()
 		multi.transform_format = MultiMesh.TRANSFORM_3D
 		multi.mesh = box
 		multi.instance_count = spots.size()
-		for i in spots.size():
-			multi.set_instance_transform(i, spots[i])
 		var draw := MultiMeshInstance3D.new()
 		draw.multimesh = multi
-		draw.material_override = material
 		if viewers.size() > 1:
 			draw.layers = 1 << (layer_of(v) - 1)
 		add_child(draw)
@@ -125,9 +93,6 @@ func collect(kart: Kart) -> String:
 			continue
 		if spots[i].origin.distance_squared_to(middle) < REACH * REACH:
 			back[i] = _time + BACK_AFTER
-			var v := viewers.find(kart)
-			if v >= 0:
-				_multis[v].set_instance_transform(i, spots[i].scaled_local(Vector3.ONE * 0.001))
 			var field: int = race.racers.size() if race != null else 1
 			var kind := Powerups.pick(_place_of(kart), field, _rng)
 			kart.give(kind)
@@ -161,3 +126,24 @@ func _physics_process(delta: float) -> void:
 			if back[i] > 0.0 and back[i] <= _time:
 				back[i] = 0.0
 				_multis[v].set_instance_transform(i, spots[i])
+
+
+## Turns and bobs each viewer's boxes, and hides the ones they've taken.
+func _process(_delta: float) -> void:
+	if _multis.is_empty():
+		return
+	var spin: float = PowerupLook.SPIN.get(look, 1.0)
+	var bob: float = PowerupLook.BOB.get(look, 0.0)
+	for v in viewers.size():
+		if not is_instance_valid(viewers[v]):
+			continue
+		var back := _times_for(viewers[v])
+		var multi := _multis[v]
+		for i in spots.size():
+			var spot := spots[i]
+			var foot := spot.origin - spot.basis.y * HEIGHT
+			if back[i] > _time:
+				multi.set_instance_transform(i, Transform3D(Basis.from_scale(Vector3.ONE * 0.001), foot))
+				continue
+			var turn := spot.basis * Basis(Vector3.UP, _time * spin + i * 0.9)
+			multi.set_instance_transform(i, Transform3D(turn, foot + spot.basis.y * sin(_time * 2.0 + i) * bob))

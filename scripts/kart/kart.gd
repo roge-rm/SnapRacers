@@ -127,8 +127,12 @@ const TURBO_TOP_SPEED := 1.3 # how much further past its usual top speed a turbo
 const SHOCK_REACH := 8.0
 const SHOCK_SHOVE := 7.0
 const SHOCK_KNOCK_REACH := 4.0
+## A kart going over a spike trap faster than this loses a part, and can't
+## lose another to it for SPIKE_EVERY seconds.
+const SPIKE_SPEED := 10.0
+const SPIKE_EVERY := 1.0
 const SHIELD_TIME := 4.0
-## How long a ghost goes through karts, bricks and oil.
+## How long a ghost goes through karts, bricks and traps.
 const GHOST_TIME := 3.0
 ## How long lightning slows the karts it hits, and how much of their push
 ## they keep meanwhile.
@@ -202,8 +206,8 @@ const KERB_WHEEL := 0.3
 ## The sound each power-up makes when it's used (see sound/fx).
 const GADGET_SOUNDS := {
 	"turbo": "fx/turbo", "big_turbo": "fx/turbo", "triple_turbo": "fx/turbo",
-	"tow": "fx/rope", "wall": "fx/wall", "shockwave": "fx/shockwave", "glue": "fx/glue",
-	"dropper": "fx/drop", "oil": "fx/drop",
+	"tow": "fx/rope", "wall": "fx/wall", "shockwave": "fx/shockwave", "spikes": "fx/spikes",
+	"dropper": "fx/drop", "marbles": "fx/marbles",
 	"cannon": "fx/cannon", "homing": "fx/cannon", "repair": "fx/repair", "shield": "fx/shield",
 	"ghost": "fx/ghost", "lightning": "fx/lightning",
 }
@@ -311,6 +315,7 @@ var shield_left := 0.0
 var tow: TowRope
 ## A shove from a shockwave, to be added to its speed next step.
 var _shove := Vector3.ZERO
+var _spike_wait := 0.0
 ## Whether it's sliding right now (see SLIDE_SPEED), whether that's still the
 ## kick, which way round (1 right, -1 left), and how far into the slide it
 ## still is, from 1 while sliding down to 0 once it's gripping again.
@@ -377,6 +382,8 @@ var _drive_room := INF
 
 
 func _init() -> void:
+	# The crowd looks for karts to cheer at (see Crowd).
+	add_to_group("karts")
 	collision_layer = LAYER_KARTS
 	collision_mask = LAYER_WORLD | LAYER_KARTS | LAYER_HAZARD | LAYER_RUBBLE
 	center_of_mass_mode = CENTER_OF_MASS_MODE_CUSTOM
@@ -771,6 +778,7 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 		_reset(state)
 	_reset_held = controls.reset
 	slowdown_left = maxf(slowdown_left - dt, 0.0)
+	_spike_wait = maxf(_spike_wait - dt, 0.0)
 	if _shove != Vector3.ZERO:
 		state.linear_velocity += _shove
 		_shove = Vector3.ZERO
@@ -905,8 +913,12 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 		var ground: Object = hit.get("collider")
 		var grip_here: float = ground.get_meta("grip", 1.0) if ground != null else 1.0
 		var drag_here: float = ground.get_meta("drag", 1.0) if ground != null else 1.0
-		# A ghost drives over oil as if it isn't there.
-		if ghost_left > 0.0 and ground != null and ground.get_meta("oil", false):
+		# A ghost drives over a trap as if it isn't there, and spikes hit fast
+		# knock a part off.
+		if ground != null and ground.get_meta("trap", "") == "spikes" and speed > SPIKE_SPEED and _spike_wait <= 0.0 and ghost_left <= 0.0 and shield_left <= 0.0 and not remote:
+			_spike_wait = SPIKE_EVERY
+			knock_off_a_part.call_deferred()
+		if ghost_left > 0.0 and ground != null and ground.has_meta("trap"):
 			grip_here = 1.0
 			drag_here = 1.0
 		on_any += 1
@@ -1438,10 +1450,10 @@ func use_gadget(slot: int) -> bool:
 				boost_left = TURBO_TIME
 		"wall":
 			get_parent().add_child(BrickWall.drop_behind(self))
-		"glue":
-			get_parent().add_child(OilSlick.drop_behind(self, "glue"))
-		"oil":
-			get_parent().add_child(OilSlick.drop_behind(self))
+		"spikes":
+			get_parent().add_child(BrickTrap.drop_behind(self, "spikes"))
+		"marbles":
+			get_parent().add_child(BrickTrap.drop_behind(self))
 		"dropper":
 			for brick in BrickPile.drop_behind(self):
 				get_parent().add_child(brick)
@@ -1465,7 +1477,7 @@ func use_gadget(slot: int) -> bool:
 	return true
 
 
-## Goes through karts, bricks and oil for a while, see-through.
+## Goes through karts, bricks and traps for a while, see-through.
 func start_ghost() -> void:
 	ghost_left = GHOST_TIME
 	_set_ghostly(true)
