@@ -8,18 +8,19 @@ extends Control
 ## where your thumb holds the phone (a quarter in a split screen half, see
 ## HEIGHT). Put your thumb anywhere on it and the knob goes where your thumb
 ## is, and it springs back to the middle when you let go. On the right at the
-## same height is a big GO button with the brake right under it and the gadget
-## buttons up and to the left, and a small reset button up top with a look back
-## button under it that you hold. You can slide a finger from GO down to the
-## brake without lifting it, which keeps the gas on too and slides the kart
-## round a corner, or up onto a gadget, which uses it and keeps GO held.
+## same height is a big GO button with the brake right under it, the gadget
+## buttons up and to the left, a look back button up and to the right that
+## you hold, and a small reset button up top. You can slide a finger from GO
+## down to the brake without lifting it, which keeps the gas on too and slides
+## the kart around a corner, up onto a gadget, which uses it and keeps GO
+## held, or up onto look back, which looks behind you with the gas still on.
 ##
 ## Instead of the stick there can be a left and a right button that steer all
 ## the way while you hold them, and you can slide your thumb from one to the
 ## other.
 
 ## They all keep clear of a camera hole. They move in groups (the steering,
-## the pedals and gadgets, and reset with look back), each group sliding
+## the pedals with the gadgets and look back, and reset), each group sliding
 ## together by as little as clears the hole, so nothing ends up on top of
 ## anything else.
 
@@ -37,6 +38,9 @@ const STICK_DEADZONE := 0.06
 ## up in each half of a split screen.
 const HEIGHT := 0.4
 const HEIGHT_SPLIT := 0.25
+## How far look back and the gadgets sit from the middle of GO, in GO's
+## radius, which leaves a small gap between them.
+const REACH := 1.9
 
 ## How far up this one's controls sit (see HEIGHT).
 var height := HEIGHT
@@ -113,8 +117,8 @@ func _stick() -> Array:
 func _buttons() -> Dictionary:
 	var out := _placed_buttons()
 	_clear_of_holes(out, ["left", "right"])
-	_clear_of_holes(out, ["gas", "brake", "gadget0", "gadget1"])
-	_clear_of_holes(out, ["reset", "look"])
+	_clear_of_holes(out, ["gas", "brake", "gadget0", "gadget1", "look"])
+	_clear_of_holes(out, ["reset"])
 	return out
 
 
@@ -159,11 +163,17 @@ func _placed_buttons() -> Dictionary:
 	# GO, with the brake right under it, both kept on the screen.
 	var drop := r * 1.95
 	var y := minf(_middle(r), s.y - drop - r * 0.75 - r * 0.2)
+	var gas := Vector2(s.x - r * 1.5, y)
+	# Look back and the gadgets sit close around the top of GO, all the same
+	# reach away, so a thumb can slide onto any of them and back without
+	# letting go: look back up and to the right, the gadgets up and to the
+	# left.
+	var around := func(degrees: float) -> Vector2: return gas + Vector2.from_angle(deg_to_rad(degrees)) * r * REACH
 	var out := {
-		"gas": [Vector2(s.x - r * 1.5, y), r],
-		"brake": [Vector2(s.x - r * 1.5, y + drop), r * 0.75],
+		"gas": [gas, r],
+		"brake": [Vector2(gas.x, y + drop), r * 0.75],
 		"reset": [Vector2(s.x - r * 0.9, r * 0.9), r * 0.5],
-		"look": [Vector2(s.x - r * 0.9, r * 2.2), r * 0.5],
+		"look": [around.call(-67.0), r * 0.55],
 	}
 	if steering == "buttons":
 		# The left and right buttons sit where the stick would be, big enough
@@ -172,13 +182,11 @@ func _placed_buttons() -> Dictionary:
 		var ay := _middle(arrow * 1.3)
 		out["left"] = [Vector2(arrow * 1.3, ay), arrow]
 		out["right"] = [Vector2(arrow * 3.75, ay), arrow]
-	# The gadgets go up and to the left of GO, where your thumb can slide
-	# onto them without letting go of it.
 	var small := r * 0.62
 	if gadget_names[0] != "":
-		out["gadget0"] = [Vector2(s.x - r * 2.25, y - r * 1.9), small]
+		out["gadget0"] = [around.call(-112.0), small]
 	if gadget_names[1] != "":
-		out["gadget1"] = [Vector2(s.x - r * 3.9, y - r * 1.2), small]
+		out["gadget1"] = [around.call(-157.0), small]
 	return out
 
 
@@ -244,7 +252,7 @@ func _input(event: InputEvent) -> void:
 			var name := _button_at(event.position)
 			var was: String = _fingers[event.index]
 			# Sliding from GO onto a gadget uses it, and GO stays held.
-			if was == "gas" and name.begins_with("gadget"):
+			if was in ["gas", "gas_look"] and name.begins_with("gadget"):
 				if _slid_onto.get(event.index, "") != name:
 					_slid_onto[event.index] = name
 					_gadget_tapped[int(name.substr(6))] = true
@@ -254,10 +262,17 @@ func _input(event: InputEvent) -> void:
 			# Sliding from GO onto brake keeps the gas on as well, which puts
 			# the kart into a slide (see Kart.sliding), and back onto GO goes
 			# back to plain gas.
-			if name == "brake" and was in ["gas", "slide"]:
+			if name == "brake" and was in ["gas", "slide", "gas_look"]:
 				_fingers[event.index] = "slide"
+			# Sliding from GO onto look back looks behind with the gas still
+			# on, until the thumb slides back onto GO or lets go.
+			elif name == "look" and was in ["gas", "gas_look"]:
+				_fingers[event.index] = "gas_look"
 			elif name == "gas" or name == "brake":
 				_fingers[event.index] = name
+			elif was == "gas_look" and name == "":
+				# Between look back and GO it's still GO.
+				_fingers[event.index] = "gas"
 			elif (name == "left" or name == "right") and was in ["left", "right"]:
 				_fingers[event.index] = name
 	_update()
@@ -291,12 +306,14 @@ func _update() -> void:
 	var held := _fingers.values()
 	if held.has("slide"):
 		held.append_array(["gas", "brake"])
+	if held.has("gas_look"):
+		held.append_array(["gas", "look"])
 	if steering == "buttons":
 		steer = buttons_to_steer(held.has("left"), held.has("right"))
 	else:
 		steer = stick_to_steer(_knob)
-	throttle = 1.0 if held.has("gas") or held.has("slide") else 0.0
-	brake = 1.0 if held.has("brake") or held.has("slide") else 0.0
+	throttle = 1.0 if held.has("gas") else 0.0
+	brake = 1.0 if held.has("brake") else 0.0
 	reset = held.has("reset")
 	look_back = held.has("look")
 	queue_redraw()
@@ -324,6 +341,8 @@ func _draw() -> void:
 	var held := _fingers.values()
 	if held.has("slide"):
 		held.append_array(["gas", "brake"])
+	if held.has("gas_look"):
+		held.append_array(["gas", "look"])
 	var labels := { "gas": "GO", "brake": "BRAKE", "reset": "RESET", "look": "LOOK\nBACK", "gadget0": gadget_names[0], "gadget1": gadget_names[1], "left": "", "right": "" }
 	var font := get_theme_default_font()
 	for name in buttons:

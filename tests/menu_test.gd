@@ -98,7 +98,7 @@ func _ready() -> void:
 	check(touch.throttle == 0.0, "letting go lets go of GO")
 	# On a whole phone screen, half of one side by side, and half of one face
 	# to face (which is portrait), nothing overlaps or runs off the edge.
-	touch.gadget_names = ["Turbo", "Magnet"]
+	touch.gadget_names = ["Turbo", "Shield"]
 	for how in ["buttons", "stick"]:
 		touch.steering = how
 		for layout in [[Vector2(2340, 1080), TouchControls.HEIGHT], [Vector2(1170, 1080), TouchControls.HEIGHT_SPLIT], [Vector2(1080, 1170), TouchControls.HEIGHT_SPLIT]]:

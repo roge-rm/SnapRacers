@@ -1,12 +1,13 @@
 extends SceneTree
 
-## Sliding round a corner. Starter karts go into a hard right turn at the
+## Sliding around a corner. Starter karts go into a hard right turn at the
 ## same speed, one just steering and one with the gas and the brake held
 ## together for a moment. A third kicks the tail out the same way and then
-## holds the slide on the gas, round and round without spinning. The sliding one swings its tail out and turns
+## holds the slide on the gas, around and around without spinning. The sliding one swings its tail out and turns
 ## further, and once it's let go and the steering's straightened it grips
 ## and runs straight again. Plain braking still stops straight. And a thumb
-## slid from GO onto the brake holds both.
+## slid from GO onto the brake holds both, and onto look back looks behind
+## with the gas still on.
 ##
 ##   tools/godot/Godot_v4.7.2-stable_linux.x86_64 --headless --fixed-fps 60 --path . -s tests/drift_test.gd
 
@@ -130,6 +131,15 @@ class Runner:
 		drag.position = buttons.gas[0]
 		touch._input(drag)
 		check(touch.throttle == 1.0 and touch.brake == 0.0, "and back up onto GO it's just the gas")
+		drag.position = buttons.look[0]
+		touch._input(drag)
+		check(touch.throttle == 1.0 and touch.look_back, "slid up onto look back it looks behind and keeps the gas on")
+		drag.position = (buttons.look[0] + buttons.gas[0]) * 0.5
+		touch._input(drag)
+		check(touch.throttle == 1.0 and not touch.look_back, "sliding back off it looks forward again")
+		drag.position = buttons.gas[0]
+		touch._input(drag)
+		check(touch.throttle == 1.0 and not touch.look_back and touch.brake == 0.0, "and back on GO it's just the gas")
 		var fresh := InputEventScreenTouch.new()
 		fresh.index = 1
 		fresh.pressed = true
