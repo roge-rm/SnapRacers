@@ -205,7 +205,7 @@ class Runner:
 				check(hand_at(rig, 0).distance_to(left) < 0.03, "and the hands follow the wheel around (%.3f m off)" % hand_at(rig, 0).distance_to(left))
 				var straight: Vector3 = wheel.global_transform * wheel.grips(0.0)[0]
 				check(left.distance_to(straight) > 0.04, "which really has turned (the left hand moved %.2f m)" % left.distance_to(straight))
-				# Minifig arms only swing forward and back at the shoulder.
+				# Brick figure arms only swing forward and back at the shoulder.
 				for side in 2:
 					var across: Vector3 = rig._arm[side].basis.x
 					check(absf(across.x) > 0.999, "arm %d only swings at the shoulder (%s)" % [side, across])

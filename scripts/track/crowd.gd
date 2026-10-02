@@ -1,7 +1,7 @@
 class_name Crowd
 extends Node3D
 
-## The minifigs watching the race, from a SceneryKit's fans. However many
+## The brick figures watching the race, from a SceneryKit's fans. However many
 ## there are, they're drawn as one batch for each piece of them (legs, body,
 ## head, hair, face and each arm), so a full grandstand costs the phone the same
 ## as one fan.

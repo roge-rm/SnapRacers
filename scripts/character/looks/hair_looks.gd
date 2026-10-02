@@ -2,7 +2,7 @@ class_name HairLooks
 extends RefCounted
 
 ## Hair, in its own colour. Most hair is a dome over the top of the head and a
-## band down around the back and sides, like a minifig's hair piece, with
+## band down around the back and sides, like a brick figure's hair piece, with
 ## extras like spikes, buns and tails.
 ##
 ## Under a hat that covers the top of the head, only the band below the hat's

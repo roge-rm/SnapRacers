@@ -2,7 +2,7 @@ class_name TorsoLooks
 extends RefCounted
 
 ## The torso, a flat fronted block narrower at the shoulders, in the torso's
-## colour, with its style printed on the front the way a real minifig's is.
+## colour, with its style printed on the front the way a toy figure's is.
 ## Anything raised, like a belt buckle or a control panel, sits on the surface
 ## and never sinks into it.
 

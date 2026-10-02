@@ -15,7 +15,7 @@ extends RefCounted
 ##
 ## Parts added between begin_mover() and end_mover() move, like a windmill's
 ## sails or a ferris wheel, and are drawn on their own (see WorldDamage). And
-## fan() adds a minifig to watch the race (see Crowd).
+## fan() adds a brick figure to watch the race (see Crowd).
 
 enum { BRICK, WINDOWS, SMOOTH, GLOW, WATER, PLAIN }
 
@@ -45,7 +45,7 @@ var _group := -1
 ## { "bob": distance, "rate": radians a second }, about the pivot's own axes.
 var movers: Array = []
 var _mover := {}
-## The minifigs watching, each [feet, shirt, legs, hair or a cap, crowd],
+## The brick figures watching, each [feet, shirt, legs, hair or a cap, crowd],
 ## the crowd being which bunch of them they're in, so they cheer together.
 var fans: Array = []
 var _crowd := 0
@@ -81,7 +81,7 @@ func end_mover() -> void:
 	_mover = {}
 
 
-## A minifig standing on `feet`, facing its -Z (towards the road), in these
+## A brick figure standing on `feet`, facing its -Z (towards the road), in these
 ## colours. Fans added together until the next new_crowd() cheer together.
 func fan(feet: Transform3D, shirt: Color, legs: Color, hair: Color) -> void:
 	fans.append([feet, shirt, legs, hair, _crowd])

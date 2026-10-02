@@ -122,7 +122,7 @@ Every 400 m or so there's a row of giant see-through gold studs right across the
 
 Build your driver from a face, hair, facial hair, headgear, something around the neck, a torso, something on the back, arms and legs, each in its own colours. There are at least twenty of each, from caps, crowns and space helmets to moustaches, capes, shells and wings. What they wear decides how heavy they are, and a heavier driver makes a steadier kart. The seven AI drivers are built the same way.
 
-They're brick minifigs, a bit cuter, with bigger heads, shiny eyes and rosy cheeks. They blink, look over at karts beside them, look surprised when they get hit, grin when they pass someone and look cross when they get passed. The winner throws their fists in the air. On the driver screen they fidget, look around, wave now and then and hop when you try something new on them.
+They're little brick figures, a bit cuter, with bigger heads, shiny eyes and rosy cheeks. They blink, look over at karts beside them, look surprised when they get hit, grin when they pass someone and look cross when they get passed. The winner throws their fists in the air. On the driver screen they fidget, look around, wave now and then and hop when you try something new on them.
 
 ### Track editor
 
@@ -146,7 +146,7 @@ The road runs out onto grass that slows you down, and there are only walls where
 
 The scenery breaks. Drive through a tree, a fence or a billboard and it comes down in pieces, and a crash into a house or the grandstand knocks a hole in it. The loose bricks stay where they land until the race is over, and you can push them about, so the places people crash fill up with rubble. A hard hit on a tire stack knocks its top tires off, but the bottom ones stay, so you still can't cut across.
 
-There's a crowd. Minifigs fill the grandstands and stand along the fence at some corners, and they jump up and wave their arms as you go by. Windmills and wind turbines turn, flags wave, the big wheel and the carousel go around, cranes swing and the boats rock on the water.
+There's a crowd. Little brick figures fill the grandstands and stand along the fence at some corners, and they jump up and wave their arms as you go by. Windmills and wind turbines turn, flags wave, the big wheel and the carousel go around, cranes swing and the boats rock on the water.
 
 | Cup | Courses |
 |---|---|
@@ -154,11 +154,11 @@ There's a crowd. Minifigs fill the grandstands and stand along the fence at some
 | **Axle** | Delta Dash, Bucketwheel Bend, Foundry Flats, Amber Arc |
 | **Gearbox** | Timberline, Frostbite Forest, Dune Drift, Whistlestop Woods |
 | **Keystone** | Windmill Ridge, Launchpad Loop, Magma Mile, Castle Keep |
-| **Legends** | Royal Run (Monza), Dry Lagoon (Laguna Seca), Sakura Swirl (Suzuka), Rouge Ridge (Spa) |
-| **Gravel** | Menhir Meadow (Lohéac), Oast Hill (Lydden Hill), Devil's Dust (Hell), Pine Hill Leap (Höljes) |
-| **Hangar** | Neon Nights (Kart2000 Wasserburg), Hairpin Hall (Daytona Essen), Bohemian Bends (Kart Centrum Prague), Spark Deck (TeamSport Watford) |
-| **Corkscrew** | Serpent Summit (Leviathan), Lakeshore Plunge (Millennium Force), Red Rocket (Formula Rossa), Twister Pines (Afterburn) |
-| **Island** | Windsurf Way (Karting Club Gran Canaria), Coral Cove (Alghero, Sardinia), Blue Lagoon (La Rève, Malta), Penguin Point (Phillip Island) |
+| **Legends** | Royal Run, Dry Lagoon, Sakura Swirl, Rouge Ridge |
+| **Gravel** | Menhir Meadow, Oast Hill, Devil's Dust, Pine Hill Leap |
+| **Hangar** | Neon Nights, Hairpin Hall, Bohemian Bends, Spark Deck |
+| **Corkscrew** | Serpent Summit, Lakeshore Plunge, Red Rocket, Twister Pines |
+| **Island** | Windsurf Way, Coral Cove, Blue Lagoon, Penguin Point |
 
 ### Racing
 

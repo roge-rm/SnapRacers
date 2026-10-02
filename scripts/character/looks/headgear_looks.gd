@@ -54,7 +54,7 @@ static func build(rig: CharacterRig) -> void:
 			rig.add(head, rig.ring(band - 0.006, band + 0.012), c, Vector3(0.0, 0.06, 0.0))
 			rig.goggles(0.07, band + 0.012)
 		"top_hat":
-			# It fits down over the top of the head, like a minifig's, with the
+			# It fits down over the top of the head, like a brick figure's, with the
 			# brim at the brow.
 			var brim := top - 0.045
 			rig.add(head, MeshKit.rounded_cylinder(r + 0.05, 0.014, 0.006, 32), c, Vector3(0.0, brim, 0.0))

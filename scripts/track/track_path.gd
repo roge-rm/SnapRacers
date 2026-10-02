@@ -37,8 +37,7 @@ const SURFACES := {
 var name := "Track"
 ## Which scenery the course has (see Scenery.THEMES).
 var theme := "orchard"
-## The real kart circuit it's based on, and a line about it.
-var inspired_by := ""
+## A line about it.
 var about := ""
 var laps := 3
 var width := WIDTH
@@ -83,7 +82,6 @@ static func from_dict(data: Dictionary) -> TrackPath:
 	var track := TrackPath.new()
 	track.name = str(data.get("name", "Track"))
 	track.theme = str(data.get("theme", "orchard"))
-	track.inspired_by = str(data.get("inspired_by", ""))
 	track.about = str(data.get("about", ""))
 	track.laps = int(data.get("laps", 3))
 	track.width = float(data.get("width", WIDTH))
@@ -115,7 +113,7 @@ func to_dict() -> Dictionary:
 	var specs := []
 	for piece in pieces:
 		specs.append(piece.to_spec())
-	var out := { "name": name, "theme": theme, "inspired_by": inspired_by, "about": about, "laps": laps, "width": width, "grid": TrackPiece.TILE, "pieces": specs }
+	var out := { "name": name, "theme": theme, "about": about, "laps": laps, "width": width, "grid": TrackPiece.TILE, "pieces": specs }
 	if hills > 0.0:
 		out.hills = hills
 	return out

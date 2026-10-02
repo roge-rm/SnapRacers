@@ -2,7 +2,7 @@ class_name LegLooks
 extends RefCounted
 
 ## The hips and legs. Sitting, the legs stick straight out in front with the
-## feet up, like a minifig sitting down. Standing, they go straight down with
+## feet up, like a brick figure sitting down. Standing, they go straight down with
 ## the feet forward.
 ##
 ## Each leg is made of lengths in different colours from the hip down, so
@@ -96,7 +96,7 @@ static func _segment(rig: CharacterRig, x: float, start: float, length: float, w
 	if rig.seated:
 		rig.add(rig, MeshKit.rounded_box(Vector3(width, 0.13, length), 0.034), colour, Vector3(x, 0.065, -start - length * 0.5), Basis.IDENTITY, shine)
 	else:
-		# A hairline gap under the hips, like a real minifig's, so the two
+		# A hairline gap under the hips, like a toy figure's, so the two
 		# don't flicker where they meet.
 		var gap := 0.004 if start == 0.0 else 0.0
 		rig.add(rig, MeshKit.rounded_box(Vector3(width, length - gap, 0.13), 0.034), colour, Vector3(x, -start - length * 0.5 - gap * 0.5, 0.0), Basis.IDENTITY, shine)

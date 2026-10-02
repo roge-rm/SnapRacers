@@ -3,7 +3,7 @@ extends RefCounted
 
 ## An arm, one piece from the rounded shoulder down to the fixed bend at the
 ## elbow and on to the wrist, then the C shaped hand. Sleeves and the like are
-## printed on it in their own colours, the way a real minifig's are. How long
+## printed on it in their own colours, the way a toy figure's are. How long
 ## the sleeves are, what's on the hands and extras like cuffs, bracers, pads or
 ## a watch come from the arms piece's settings in pieces.json.
 

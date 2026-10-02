@@ -1,5 +1,5 @@
-# Turns the course short hand into the game's track files, with where each
-# one comes from and a line about it.
+# Turns the course short hand into the game's track files, with a line about
+# each one.
 import importlib.util, json, os, sys
 here = os.path.dirname(os.path.abspath(__file__))
 spec = importlib.util.spec_from_file_location("design", os.path.join(here, "design.py"))
@@ -7,42 +7,42 @@ src = open(os.path.join(here, "design.py")).read().replace("\nmain()\n", "\n")
 design = {"__file__": os.path.join(here, "design.py"), "__name__": "design"}
 exec(compile(src, "design.py", "exec"), design)
 INFO = {
- "peach_pit": ("Atlanta Motorsports Park, Georgia, USA", "An easy first lap through the peach orchards and past the big red barns."),
- "trulli_turns": ("La Conca, Muro Leccese, Italy", "Twisty lanes between the trulli and the olive groves, with a hump on the first straight."),
- "lemon_lake": ("South Garda Karting, Lonato, Italy", "Tight hairpins by the lake among the lemon trees and cypresses, and a banked sweeper on the way home."),
- "pithead_park": ("Karting Genk, Belgium", "A fast, flowing lap around an old coal mine, with the pithead towers watching and a hump over the slag heap."),
- "delta_dash": ("Adria Karting Raceway, Italy", "Out across the marshes of the river delta, past the fishing huts on stilts and over a hump bridge."),
- "bucketwheel_bend": ("Erftlandring, Kerpen, Germany", "Around the rim of an open pit mine where the giant bucket wheel digger works, with dirt on the back section."),
- "foundry_flats": ("Prokart Raceland, Wackersdorf, Germany", "Long straights between the factory halls and the container stacks, and a jump off the loading ramp."),
- "amber_arc": ("Kandavas Kartodroms, Latvia", "A quiet old town by the river, and over the hump of the stone bridge."),
- "timberline": ("Greg Moore Raceway, Chilliwack, BC, Canada", "A mountain road through the pines and maples of the Fraser Valley that climbs up and drops back down."),
- "frostbite_forest": ("Kristianstad Karting, Sweden", "Snow on the ground, red cottages in the woods and icy patches on the road, so take it easy."),
- "dune_drift": ("Dubai Kartdrome, United Arab Emirates", "A figure eight in the desert under the skyscrapers, over a bridge, with sand blown across the back straight."),
- "whistlestop_woods": ("Karting des Fagnes, Mariembourg, Belgium", "Through the Ardennes woods and past the old steam railway, over the level crossing."),
- "windmill_ridge": ("Circuito Internacional de Zuera, Spain", "Up and over the ridges past the windmills, and a wall ride banked almost on its side."),
- "launchpad_loop": ("Orlando Kart Center, Florida, USA", "At the space centre, where a loop sends you upside down in the shadow of the rocket."),
- "magma_mile": ("Circuito Internazionale Napoli, Sarno, Italy", "In the shadow of the volcano, with a jump over the lava."),
- "castle_keep": ("New Castle Motorsports Park, Indiana, USA", "Around the castle walls and over the drawbridge, in the last race of the Keystone Cup."),
- "sakura_swirl": ("Suzuka Circuit, Japan", "A figure eight under the cherry blossom, under the bridge and back over it, with the big wheel watching."),
- "rouge_ridge": ("Circuit de Spa-Francorchamps, Belgium", "Down to the stream and straight back up the steep climb, then out through the forest hills of the Ardennes."),
- "royal_run": ("Autodromo Nazionale Monza, Italy", "Flat out through the royal park and past the old banking, braking hard for the chicanes."),
- "dry_lagoon": ("Laguna Seca, Monterey, California, USA", "Over the golden California hills and down the famous corkscrew drop."),
- "oast_hill": ("Lydden Hill, Kent, England", "Down the hill past the oast houses, then off the tarmac and over the crest on the gravel."),
- "windsurf_way": ("Karting Club Gran Canaria, Maspalomas, Gran Canaria, Spain", "Twisting around between the palms and the parasols, a stone's throw from the beach."),
- "coral_cove": ("The kart track at Alghero, Sardinia, Italy", "Fast and open on the coast, past the old watchtower and the white villas."),
- "blue_lagoon": ("La Rève Karting Track, Malta", "Tight and twisty under the walls of the old harbour fort."),
- "penguin_point": ("Phillip Island Grand Prix Circuit, Victoria, Australia", "Big fast bends along the clifftops, where the little penguins come up from the sea."),
- "menhir_meadow": ("Circuit de Lohéac, Brittany, France", "Half tarmac and half gravel, among the standing stones and the crowd on the banks."),
- "pine_hill_leap": ("Höljes Motorstadion, Värmland, Sweden", "Through the pine forest and the red cottages, in and out of the gravel all the way around."),
- "devils_dust": ("Lånkebanen, Hell, Norway", "Around the tarmac by the airport, then a long twisty stretch of gravel and over the crest on the way home."),
- "hairpin_hall": ("Daytona Kart-Center, Essen, Germany", "Hairpin after hairpin between the barriers, around and around the hall."),
- "bohemian_bends": ("Kart Centrum, Prague, Czechia", "A tangle of tight bends that fold back on each other, under the lights."),
- "spark_deck": ("TeamSport Karting, Watford, England", "Up onto the deck and back down under it, around a hall built on two levels."),
- "neon_nights": ("Kart2000, Wasserburg am Inn, Germany", "Around the hall in the glow of the lights, with the crowd watching from the deck."),
- "serpent_summit": ("Leviathan, Canada's Wonderland, Ontario, Canada", "Up the lift and around the park on the high rails, through a corkscrew and over the camelback."),
- "lakeshore_plunge": ("Millennium Force, Cedar Point, Ohio, USA", "Out along the lake shore and back, over an airtime hill and upside down through the corkscrew."),
- "red_rocket": ("Formula Rossa, Ferrari World, Abu Dhabi", "A figure eight out of the desert, up over the top hat and down under the big red roof."),
- "twister_pines": ("Afterburn, Carowinds, North Carolina, USA", "Twisting around and around itself in the pines, upside down on the way."),
+ "peach_pit": "An easy first lap through the peach orchards and past the big red barns.",
+ "trulli_turns": "Twisty lanes between the trulli and the olive groves, with a hump on the first straight.",
+ "lemon_lake": "Tight hairpins by the lake among the lemon trees and cypresses, and a banked sweeper on the way home.",
+ "pithead_park": "A fast, flowing lap around an old coal mine, with the pithead towers watching and a hump over the slag heap.",
+ "delta_dash": "Out across the marshes of the river delta, past the fishing huts on stilts and over a hump bridge.",
+ "bucketwheel_bend": "Around the rim of an open pit mine where the giant bucket wheel digger works, with dirt on the back section.",
+ "foundry_flats": "Long straights between the factory halls and the container stacks, and a jump off the loading ramp.",
+ "amber_arc": "A quiet old town by the river, and over the hump of the stone bridge.",
+ "timberline": "A mountain road through the pines and maples of the Fraser Valley that climbs up and drops back down.",
+ "frostbite_forest": "Snow on the ground, red cottages in the woods and icy patches on the road, so take it easy.",
+ "dune_drift": "A figure eight in the desert under the skyscrapers, over a bridge, with sand blown across the back straight.",
+ "whistlestop_woods": "Through the Ardennes woods and past the old steam railway, over the level crossing.",
+ "windmill_ridge": "Up and over the ridges past the windmills, and a wall ride banked almost on its side.",
+ "launchpad_loop": "At the space centre, where a loop sends you upside down in the shadow of the rocket.",
+ "magma_mile": "In the shadow of the volcano, with a jump over the lava.",
+ "castle_keep": "Around the castle walls and over the drawbridge, in the last race of the Keystone Cup.",
+ "sakura_swirl": "A figure eight under the cherry blossom, under the bridge and back over it, with the big wheel watching.",
+ "rouge_ridge": "Down to the stream and straight back up the steep climb, then out through the forest hills of the Ardennes.",
+ "royal_run": "Flat out through the royal park and past the old banking, braking hard for the chicanes.",
+ "dry_lagoon": "Over the golden California hills and down the steep corkscrew drop.",
+ "oast_hill": "Down the hill past the oast houses, then off the tarmac and over the crest on the gravel.",
+ "windsurf_way": "Twisting around between the palms and the parasols, a stone's throw from the beach.",
+ "coral_cove": "Fast and open on the coast, past the old watchtower and the white villas.",
+ "blue_lagoon": "Tight and twisty under the walls of the old harbour fort.",
+ "penguin_point": "Big fast bends along the clifftops, where the little penguins come up from the sea.",
+ "menhir_meadow": "Half tarmac and half gravel, among the standing stones and the crowd on the banks.",
+ "pine_hill_leap": "Through the pine forest and the red cottages, in and out of the gravel all the way around.",
+ "devils_dust": "Around the tarmac by the airport, then a long twisty stretch of gravel and over the crest on the way home.",
+ "hairpin_hall": "Hairpin after hairpin between the barriers, around and around the hall.",
+ "bohemian_bends": "A tangle of tight bends that fold back on each other, under the lights.",
+ "spark_deck": "Up onto the deck and back down under it, around a hall built on two levels.",
+ "neon_nights": "Around the hall in the glow of the lights, with the crowd watching from the deck.",
+ "serpent_summit": "Up the lift and around the park on the high rails, through a corkscrew and over the camelback.",
+ "lakeshore_plunge": "Out along the lake shore and back, over an airtime hill and upside down through the corkscrew.",
+ "red_rocket": "A figure eight out of the desert, up over the top hat and down under the big red roof.",
+ "twister_pines": "Twisting around and around itself in the pines, upside down on the way.",
 }
 def rotate_to_longest_straight(pieces):
     """Moves the start line into the longest run of straights at ground level,
@@ -96,8 +96,8 @@ for name in sys.argv[2:]:
     assert not clashes, "%s clashes after turning: %s" % (name, clashes)
     if min(p[2] for p in line) < -0.1:
         raise SystemExit(name + " goes underground")
-    where, about = INFO[name]
-    ordered = {"name": data["name"], "inspired_by": where, "about": about, "theme": data.get("theme", "orchard"),
+    about = INFO[name]
+    ordered = {"name": data["name"], "about": about, "theme": data.get("theme", "orchard"),
                "laps": data.get("laps", 3), "width": data.get("width", 13.0), "grid": 32}
     # How much the ground rises and falls around it (see TrackPath.hills).
     if data.get("hills", 0):

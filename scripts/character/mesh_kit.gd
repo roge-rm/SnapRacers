@@ -10,7 +10,7 @@ static var _cache: Dictionary = {}
 
 
 ## A box with rounded edges and corners, rounded to `radius`. `taper` narrows the
-## top face to that fraction of the bottom's width, like a minifig torso.
+## top face to that fraction of the bottom's width, like a brick figure torso.
 static func rounded_box(size: Vector3, radius: float, taper := 1.0, steps := 5) -> ArrayMesh:
 	var key := "box %s %s %s %s" % [size, radius, taper, steps]
 	if _cache.has(key):
@@ -95,7 +95,7 @@ static func fix_winding(mesh: ArrayMesh) -> void:
 	mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
 
 
-## A minifig arm as one piece, from a rounded shoulder at `top` straight down
+## A brick figure arm as one piece, from a rounded shoulder at `top` straight down
 ## to the elbow at `elbow`, around a smooth bend and along `dir` to a flat end
 ## at `end`, all in the arm's own space. It's a tube with a rounded square
 ## cross section, and only the stretch from `from` to `to` metres along it is
@@ -336,7 +336,7 @@ static func lathe(profile: PackedVector2Array, sides := 32, from := 0.0, to := T
 	return mesh
 
 
-## A cylinder with its top and bottom edges rounded over, like a minifig
+## A cylinder with its top and bottom edges rounded over, like a brick figure
 ## head or a stud. Its middle is at the origin.
 static func rounded_cylinder(radius: float, height: float, round := 0.02, sides := 32) -> ArrayMesh:
 	var profile := PackedVector2Array()
@@ -352,7 +352,7 @@ static func rounded_cylinder(radius: float, height: float, round := 0.02, sides 
 	return lathe(profile, sides)
 
 
-## A minifig hand, a thick C shape with flat faces front and back, softly
+## A brick figure hand, a thick C shape with flat faces front and back, softly
 ## rounded edges and a gap to grip through. The hole runs along Z, and the ring
 ## goes around from `from` to `to` in the XY plane like arc_tube(), so the gap
 ## is centred on -Y.

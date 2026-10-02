@@ -38,7 +38,7 @@ func _initialize() -> void:
 		var close := _closest_stretches(track)
 		check(close > TrackPiece.TILE - 1.0, "%s keeps its stretches of road apart, for grass between them (%.0f m middle to middle)" % [track.name, close])
 		check(Scenery.THEMES.has(track.theme), "%s has a theme we know (%s)" % [track.name, track.theme])
-		check(track.inspired_by != "" and track.about != "", "%s says what it's based on" % track.name)
+		check(track.about != "", "%s has a line about it" % track.name)
 		var stuck := track.stickies.count(true)
 		if stuck > 0:
 			print("    %d m of it sticky" % stuck)
@@ -78,8 +78,8 @@ func _initialize() -> void:
 
 	check(names.size() == unique.size(), "and they all have different names")
 
-	# Dune Drift is a figure eight, like the real Dubai Kartdrome, so one bit
-	# of road has to go over the other on a bridge.
+	# Dune Drift is a figure eight, so one bit of road has to go over the
+	# other on a bridge.
 	var dune := TrackPath.load_file(Tracks.path_of("dune_drift"))
 	var over := 0
 	for i in range(0, dune.points.size(), 4):

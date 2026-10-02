@@ -14,15 +14,15 @@ extends Node3D
 ## would have to reach right over the top of it.
 const TURN := PI / 3.0
 ## Hands slide around the rim a little as it turns, so they follow this much
-## of its turn. A minifig's arms only swing forward and back, so their hands
+## of its turn. A brick figure's arms only swing forward and back, so their hands
 ## can't go far around a wheel.
 const HANDS_FOLLOW := 0.5
 ## How far a motorbike's bars turn at full lock, the same as the wheels.
 const BIKE_TURN := Kart.MAX_STEER
 
 var style := "wheel"
-## Big, like a minifig's steering wheel, so hands at quarter to three are
-## right where a minifig's arms reach.
+## Big, like a brick figure's steering wheel, so hands at quarter to three are
+## right where a brick figure's arms reach.
 var radius := 0.16
 var _wheel: Node3D
 var _base := Basis.IDENTITY
@@ -38,7 +38,7 @@ func _init(def: Dictionary, extent: Vector3) -> void:
 	var colour: Color = def.get("color", Color("#1b1b1b"))
 	var bottom := -extent.y * 0.5
 	# The wheel reaches back over the seat's edge toward the driver, to where a
-	# minifig's hands land when its arms swing forward from sitting in the
+	# brick figure's hands land when its arms swing forward from sitting in the
 	# seat behind.
 	var hub := Vector3(0.0, extent.y * 0.5 + 0.015, extent.z * 0.5 + 0.013)
 	var foot := Vector3(0.0, bottom + 0.03, -extent.z * 0.3)
@@ -69,7 +69,7 @@ func _init(def: Dictionary, extent: Vector3) -> void:
 	hub_mesh.radial_segments = 16
 	_add(hub_mesh, colour, Transform3D.IDENTITY, 0.0, _wheel)
 	if style == "bars":
-		# Handlebars no wider than a minifig can hold.
+		# Handlebars no wider than a brick figure can hold.
 		radius = 0.19
 		var bar := CylinderMesh.new()
 		bar.top_radius = 0.016

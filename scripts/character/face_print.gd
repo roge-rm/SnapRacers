@@ -1,8 +1,8 @@
 class_name FacePrint
 extends RefCounted
 
-## Paints a minifig face onto a texture that wraps around the head, the way a
-## real minifig's face is printed. A face is eyes, brows, a mouth and sometimes
+## Paints a brick figure face onto a texture that wraps around the head, the way a
+## toy figure's face is printed. A face is eyes, brows, a mouth and sometimes
 ## extras like freckles (see FACES), with any facial hair printed underneath in
 ## its own colour.
 ##

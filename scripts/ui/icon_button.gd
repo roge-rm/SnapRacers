@@ -113,7 +113,7 @@ func _draw() -> void:
 			draw_rect(Rect2(c + Vector2(-9, 2), Vector2(18, 5)), ink)
 			draw_rect(Rect2(c + Vector2(4, -11), Vector2(5, 14)), ink)
 		"head":
-			# A minifig head with its stud and two eyes.
+			# A brick figure head with its stud and two eyes.
 			draw_rect(Rect2(c + Vector2(-9, -7), Vector2(18, 17)), ink, false, w)
 			draw_rect(Rect2(c + Vector2(-4, -12), Vector2(8, 4)), ink)
 			draw_circle(c + Vector2(-4, 0), 2.0, ink)
@@ -143,7 +143,7 @@ func _draw() -> void:
 		"torso":
 			draw_colored_polygon(PackedVector2Array([c + Vector2(-7, -10), c + Vector2(7, -10), c + Vector2(11, 10), c + Vector2(-11, 10)]), ink)
 		"arms":
-			# An arm with the minifig's bend and a C shaped hand.
+			# An arm with the brick figure's bend and a C shaped hand.
 			draw_line(c + Vector2(-8, -11), c + Vector2(-6, 2), ink, 5.0, true)
 			draw_line(c + Vector2(-6, 2), c + Vector2(4, 6), ink, 5.0, true)
 			draw_arc(c + Vector2(9, 6), 4.0, PI * 0.25, PI * 1.75, 12, ink, w, true)

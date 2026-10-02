@@ -728,7 +728,7 @@ static func ferris_wheel(kit: SceneryKit, at: Vector3, facing: int) -> void:
 
 
 ## A stretch of steep old concrete banking, a quarter of a big circle, like
-## the old oval that still stands in the park at Monza.
+## an old oval left standing in a park.
 static func old_banking(kit: SceneryKit, at: Vector3, facing: int) -> void:
 	var radius := 42.0
 	var pieces := 18
@@ -908,7 +908,7 @@ static func grandstand(kit: SceneryKit, at: Vector3, length: float, facing: int,
 	var rows := 5
 	for r in rows:
 		_box(kit, at, Vector3(0.0, 0.0, -r * 1.1), Vector3(length, 0.9 + r * 0.9, 1.1), facing, LIGHT_GREY if r % 2 == 0 else Color("#bcbcbc"))
-		# The crowd, minifigs in all sorts of colours, in bunches along it that
+		# The crowd, brick figures in all sorts of colours, in bunches along it that
 		# cheer as the karts go past them.
 		var x := -length * 0.5 + 0.6
 		while x < length * 0.5 - 0.4:
@@ -1089,7 +1089,7 @@ const TROUSERS := [BLUE, BLACK, DARK_GREY, TAN, DARK_BLUE, WHITE, BROWN]
 const HAIR := [BROWN, BLACK, YELLOW, ORANGE, DARK_GREY, BROWN, BLACK, RED, BLUE]
 
 
-## A minifig fan standing at `offset` in a prop facing `facing`, looking out
+## A brick figure fan standing at `offset` in a prop facing `facing`, looking out
 ## the front of it (towards +Z before it's turned).
 static func fan(kit: SceneryKit, at: Vector3, offset: Vector3, facing: int, rng: RandomNumberGenerator) -> void:
 	var where := Transform3D(Basis(Vector3.UP, posmod(facing, 4) * PI * 0.5 + PI + rng.randf_range(-0.25, 0.25)), at + _turn(offset, facing))

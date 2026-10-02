@@ -2,15 +2,15 @@ class_name CharacterRig
 extends Node3D
 
 ## A driver's model, built from a CharacterDesign, and the thing that poses it.
-## It's a minifig, with a round head with its face printed on, a flat fronted
+## It's a brick figure, with a round head with its face printed on, a flat fronted
 ## torso that's narrower at the shoulders, hips, two leg blocks with feet
 ## sticking out the front and short arms with C shaped hands. What each piece
 ## looks like is in scripts/character/looks, one file for each kind.
 ##
-## It's a little cuter than a real minifig, with a bigger head, more rounded
+## It's a little cuter than a toy figure, with a bigger head, more rounded
 ## blocks, shiny plastic and a face with big shiny eyes and rosy cheeks.
 ##
-## It moves the way a minifig does. The legs only hinge at the hips, so sitting
+## It moves the way a brick figure does. The legs only hinge at the hips, so sitting
 ## they stick straight out in front. The arms are rigid with a fixed bend at
 ## the elbow and only swing at the shoulder, and the hands twist at the wrist.
 ## To hold a steering wheel each arm swings to the angle that brings its hand
@@ -36,8 +36,8 @@ const TORSO_DEPTH := 0.2
 const NECK_Y := HIPS_TOP + TORSO_HEIGHT + 0.015
 const HEAD_RADIUS := 0.12
 const HEAD_HEIGHT := 0.2
-## How much bigger the head is than a minifig's, which is most of what makes
-## them look cute. Everything on the head is made at minifig size and grows
+## How much bigger the head is than a toy figure's, which is most of what makes
+## them look cute. Everything on the head is made at toy figure size and grows
 ## with it.
 const HEAD_SCALE := 1.2
 ## The middle of the head, which grows up from where it sits on the neck.
@@ -324,7 +324,7 @@ func _process(delta: float) -> void:
 		turn = 0.0
 	_head.rotation.y = lerpf(_head.rotation.y, turn, 1.0 - exp(-delta * 8.0))
 
-	# The arms, when nobody else is posing them. Minifig arms are too short to
+	# The arms, when nobody else is posing them. Brick figure arms are too short to
 	# reach over the head, so cheering is pumping both fists out in front, and
 	# waving is one hand up in front of the shoulder, twisting at the wrist.
 	if _cheer_left > 0.0:
