@@ -204,7 +204,13 @@ Music and effects each have their own volume in Settings.
 
 ## Installing
 
-Download the APK from the [Releases](https://github.com/roge-rm/SnapRacers/releases) page and sideload it. It needs Android 8.1 or newer.
+The easiest way to install SnapRacers and keep it up to date is through my F-Droid repo:
+
+[https://roge-rm.gitlab.io/repo](https://roge-rm.gitlab.io/repo?fingerprint=80438B253C257BCCE05CDCB9E3AC9B6174C2250659962B14FCBE7F32FD42D53E)
+
+Then search for SnapRacers in F-Droid. When a new version comes out, F-Droid will offer it as an update.
+
+You can also download the APK from the [Releases](https://github.com/roge-rm/SnapRacers/releases) page and sideload it. It needs Android 8.1 or newer.
 
 ## Playing in a browser
 
