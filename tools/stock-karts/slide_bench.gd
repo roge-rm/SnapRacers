@@ -3,10 +3,9 @@ extends Node
 ## Times a top AI driver (see Difficulty, Expert) round the tight courses, with
 ## and without sliding round the tightest bends, to see whether sliding saves
 ## time and how tight a bend should be to slide round. Run it with:
-##   tools/godot/Godot_v4.7.2-stable_linux.x86_64 --headless --fixed-fps 60 --path . res://tools/stock-karts/slide_bench.tscn -- <bend> <time> [brake|turn] [kart] [course ...]
-## A bend of 0 means no sliding at all. "brake" slides instead of braking for
-## the bend, and "turn" brakes as usual and flicks into a slide at the turn in
-## (see AIDriver.slide_mode). It prints each course's time, and the
+##   tools/godot/Godot_v4.7.2-stable_linux.x86_64 --headless --fixed-fps 60 --path . res://tools/stock-karts/slide_bench.tscn -- <bend> <kick> [kart] [course ...]
+## A bend of 0 means no sliding at all, and kick is how long the AI holds
+## the brake to start a slide (see AIDriver). It prints each course's time, and the
 ## total, on the last line.
 
 const COURSES := ["hairpin_hall", "windsurf_way", "blue_lagoon", "bucketwheel_bend"]
@@ -25,14 +24,15 @@ func _ready() -> void:
 	var args := OS.get_cmdline_user_args()
 	var bend := float(args[0]) if args.size() > 0 else 0.0
 	var time := float(args[1]) if args.size() > 1 else 0.45
-	AIDriver.slide_mode = args[2] if args.size() > 2 else "brake"
-	# SLIDE_BRAKE and SLIDE_DRIVE try other kinds of slide (see Kart).
-	if OS.has_environment("SLIDE_BRAKE"):
-		Kart.slide_brake = float(OS.get_environment("SLIDE_BRAKE"))
-	if OS.has_environment("SLIDE_DRIVE"):
-		Kart.slide_drive = float(OS.get_environment("SLIDE_DRIVE"))
-	var kart: String = args[3] if args.size() > 3 else "starter"
-	var courses: Array = args.slice(4) if args.size() > 4 else COURSES
+	# SLIDE_CORNER and SLIDE_SCRUB try other kinds of slide (see Kart).
+	if OS.has_environment("SLIDE_CORNER"):
+		Kart.slide_corner = float(OS.get_environment("SLIDE_CORNER"))
+	if OS.has_environment("SLIDE_SCRUB"):
+		Kart.slide_scrub = float(OS.get_environment("SLIDE_SCRUB"))
+	if OS.has_environment("SLIDE_PLAN"):
+		AIDriver.slide_plan = float(OS.get_environment("SLIDE_PLAN"))
+	var kart: String = args[2] if args.size() > 2 else "starter"
+	var courses: Array = args.slice(3) if args.size() > 3 else COURSES
 	AIDriver.slide_bend = bend if bend > 0.0 else 99.0
 	AIDriver.slide_time = time
 	var total := 0.0
@@ -42,7 +42,7 @@ func _ready() -> void:
 		total += result[0]
 		slides += result[2]
 		print("%-16s %.2f s, %d resets, %d slides" % [course, result[0], result[1], result[2]])
-	print("TOTAL bend %.3f time %.2f %s %s, brake %.2f drive %.2f: %.2f s, %d slides" % [bend, time, AIDriver.slide_mode, kart, Kart.slide_brake, Kart.slide_drive, total, slides])
+	print("TOTAL bend %.3f kick %.2f %s, corner %.2f scrub %.2f plan %.2f: %.2f s, %d slides" % [bend, time, kart, Kart.slide_corner, Kart.slide_scrub, AIDriver.slide_plan, total, slides])
 	get_tree().quit()
 
 
@@ -75,6 +75,15 @@ func _time(key: String, course: String, sliding: bool) -> Array:
 		await get_tree().physics_frame
 		if race.player.kart.sliding and not was_sliding:
 			slides += 1
+		# LAP_TRACE prints where it is and how fast every half second, to
+		# compare runs.
+		if OS.has_environment("LAP_TRACE") and Engine.get_physics_frames() % 30 == 0:
+			print("    LAP %.1f %.0f %.1f %s" % [race.time, race.player.offset, race.player.kart.linear_velocity.length(), race.player.kart.sliding])
+		# SLIDE_TRACE prints how each slide goes, ten times a second.
+		var k := race.player.kart
+		if OS.has_environment("SLIDE_TRACE") and (k.sliding or was_sliding) and Engine.get_physics_frames() % 6 == 0:
+			var off_line := (k.global_position - race.track.point_at(race.player.offset)).dot(race.track.right_at(race.player.offset))
+			print("    %.0f m: %.1f m/s, %s, steer %+.2f, bend %.3f, %+.1f m across, tail %.0f" % [race.player.offset, k.linear_velocity.length(), "kick" if k.slide_kick else ("held" if k.sliding else "out"), k.controls.steer, race.track.bend_at(race.player.offset), off_line, rad_to_deg((-k.global_basis.z).signed_angle_to(k.linear_velocity, k.global_basis.y))])
 		was_sliding = race.player.kart.sliding
 	var laps: Array = race.player.progress.lap_times.slice(0, LAPS)
 	var total: float = laps.reduce(func(a, b): return a + b, 0.0) if laps.size() >= LAPS else GIVE_UP * 2.0

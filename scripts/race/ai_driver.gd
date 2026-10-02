@@ -28,16 +28,18 @@ var gadget_sense := 1.0
 ## (see Kart.sliding). Only Expert drivers do.
 var slides := false
 ## How tight a bend has to be to slide round it (its curvature, one over its
-## radius), and how long it holds the slide, tuned with
-## tools/stock-karts/slide_bench.gd. So far no setting has been quicker than
-## braking, so it's set past any real bend and nobody slides yet.
+## radius), and how long it kicks the brake to start the slide, tuned with
+## tools/stock-karts/slide_bench.gd. It plans to take a bend it'll slide this
+## much faster than it could grip round it. So far it still loses time over a
+## lap sliding (it runs wide out of some hairpins), so it's set past any real
+## bend and nobody slides yet.
 static var slide_bend := 99.0
-static var slide_time := 0.45
-## Whether it slides instead of braking into the bend ("brake"), or brakes as
-## usual and flicks into a short slide at the turn in to swing round ("turn").
-static var slide_mode := "brake"
+static var slide_time := 0.15
+static var slide_plan := 1.15
 var _slide_left := 0.0
 var _slid_this_bend := false
+## Which way the bend it's sliding round goes, 1 right and -1 left, or 0.
+var _slide_way := 0.0
 ## How much extra push it gets a long way behind the people racing, and how
 ## much it lifts off a long way ahead of them.
 var catch_up := 0.0
@@ -156,25 +158,50 @@ func _physics_process(delta: float) -> void:
 		# slow down for, any more than a loop is.
 		var bend := 0.0 if TrackPiece.turns_over(track.piece_type_at(offset + ahead)) else track.bend_at(offset + ahead)
 		if bend > 0.002:
-			var corner := sqrt(grip / bend)
+			var corner := sqrt(grip * (slide_plan if slides and bend > slide_bend else 1.0) / bend)
 			allowed = minf(allowed, sqrt(corner * corner + 2.0 * BRAKING * ahead))
 		ahead += 4.0
 	# The bend it's in counts too, or it floors it on the way out of a hairpin
 	# while it's still turning and runs wide.
 	var here := 0.0 if TrackPiece.turns_over(track.piece_type_at(offset)) else maxf(track.bend_at(offset), track.bend_at(offset + 2.0))
-	if here > 0.002:
+	if here > 0.002 and not kart.sliding:
 		allowed = minf(allowed, sqrt(grip / here))
 
 	# The bend coming up next, for sliding into.
 	var tight := maxf(here, track.bend_at(offset + speed * 0.3))
-	if tight < slide_bend * 0.5:
+	if tight < slide_bend * 0.5 and not kart.sliding:
 		_slid_this_bend = false
+		_slide_way = 0.0
+	if slides and not _slid_this_bend and tight > slide_bend and speed > Kart.SLIDE_SPEED + 3.0 and not _loop_within(LOOP_AHEAD):
+		# Into the tightest bends a top driver kicks the tail out and slides
+		# round on the gas.
+		_slid_this_bend = true
+		_slide_left = slide_time
+		var ahead_of := track.point_at(offset + 15.0) - track.point_at(offset)
+		_slide_way = 1.0 if ahead_of.dot(track.right_at(offset)) > 0.0 else -1.0
 
 	if _slide_left > 0.0:
-		# Holding a slide: gas and brake together, steering round.
+		# The kick: gas and brake together, steering round.
 		_slide_left -= delta
 		controls.throttle = 1.0
 		controls.brake = 1.0
+		controls.steer = _slide_way
+	elif kart.sliding and _slide_way != 0.0 and here > slide_bend * 0.4 and _slide_on_line():
+		# Holding the slide on the gas, steering harder the tighter the bend
+		# and if it's running wide.
+		controls.throttle = 1.0
+		controls.brake = 0.0
+		# Enough to go round the bend at this speed, and more if it's running
+		# wide (see Kart._hold_slide).
+		var wide := -(kart.global_position - track.point_at(offset)).dot(track.right_at(offset)) * _slide_way
+		var slide_grip := kart.stats.cornering() * KartStats.gravity() * Kart.slide_corner
+		controls.steer = _slide_way * clampf(speed * speed * maxf(here, track.bend_at(offset + 6.0)) / slide_grip + maxf(wide - 1.5, 0.0) * 0.15 + minf(wide + 1.5, 0.0) * 0.15, 0.25, 1.0)
+	elif kart.sliding and _slide_way != 0.0:
+		# Out of the hairpin it straightens up, which ends the slide, and
+		# drives on.
+		controls.throttle = 1.0
+		controls.brake = 0.0
+		controls.steer = 0.0
 	elif _backing > 0.0:
 		# Backing off whatever it ran into, steering the other way.
 		_backing -= delta
@@ -198,17 +225,6 @@ func _physics_process(delta: float) -> void:
 	elif speed > allowed + (0.4 if here > 0.05 else 1.5):
 		controls.throttle = 0.0
 		controls.brake = 1.0
-		# Into the tightest bends a top driver slides round instead, once.
-		if slide_mode == "brake" and slides and not _slid_this_bend and tight > slide_bend and speed > Kart.SLIDE_SPEED + 3.0:
-			_slid_this_bend = true
-			_slide_left = slide_time
-			controls.throttle = 1.0
-	elif slide_mode == "turn" and slides and not _slid_this_bend and here > slide_bend and speed > Kart.SLIDE_SPEED + 3.0:
-		# Braked down for the bend, it flicks the tail round at the turn in.
-		_slid_this_bend = true
-		_slide_left = slide_time
-		controls.throttle = 1.0
-		controls.brake = 1.0
 	elif speed > allowed:
 		controls.throttle = 0.0 if here > 0.05 else 0.2
 		controls.brake = 0.0
@@ -221,6 +237,20 @@ func _physics_process(delta: float) -> void:
 	# A loop needs everything the kart's got, whatever the level.
 	if _on_loop and not _lost_nerve:
 		kart.push = maxf(kart.push, 1.0)
+
+
+## Whether a slide's still following the road: not turned in past it, or
+## cut right across the inside.
+func _slide_on_line() -> bool:
+	var road := track.point_at(offset + 6.0) - track.point_at(offset)
+	var flat := kart.linear_velocity - kart.global_basis.y * kart.linear_velocity.dot(kart.global_basis.y)
+	if road.length() < 0.1 or flat.length() < 1.0:
+		return false
+	# Going round to the right, the way it's going turned in past the road is
+	# negative.
+	var turned_in := -road.signed_angle_to(flat, kart.global_basis.y) * _slide_way
+	var inside := (kart.global_position - track.point_at(offset)).dot(track.right_at(offset)) * _slide_way
+	return turned_in < deg_to_rad(25.0) and inside < 4.0
 
 
 ## Whether it's on the way around a loop, or about to start up one.

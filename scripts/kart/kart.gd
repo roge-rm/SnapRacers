@@ -61,18 +61,40 @@ const REVERSE_PUSH := 1000.0
 const REVERSE_TOP_SPEED := 6.0
 const ROLL_HELP := 0.6 # lifts the cornering forces toward the centre of mass so it doesn't flip in every corner
 const RESET_LIFT := 1.0
-## A slide: gas and brake held together above this speed lock the back wheels,
-## which lose most of their sideways grip, so the tail swings round as you
-## steer and the kart turns in tighter. Once you let go the grip comes back
-## over SLIDE_RECOVER seconds.
+## A slide starts with a kick: gas and brake together above SLIDE_SPEED while
+## steering lock the back wheels, so the tail steps out. Then it's held on the
+## gas: as long as you keep the gas on and steer into the bend, the back
+## wheels slide with only some of their grip, the engine drives, and the kart
+## holds its tail out at a steady angle, more the harder you steer, so it
+## won't spin. Straighten up or let go of the gas and it grips again over
+## SLIDE_RECOVER seconds.
+##
+## A held slide keeps its speed, losing slide_scrub a second, and corners up
+## to slide_corner times as hard as gripping, so it's quicker round a hairpin
+## than braking for it, but the longer it's held the more it loses, so it's
+## slower round a gentle bend. These were tuned with
+## tools/stock-karts/slide_bench.gd, so they can be changed from there.
 const SLIDE_SPEED := 6.0
 const SLIDE_REAR_GRIP := 0.2
-const SLIDE_RECOVER := 0.5
-## How hard the back wheels brake while sliding, as a share of the brakes,
-## and how much of the engine still drives. Tuned with
-## tools/stock-karts/slide_bench.gd, so they can be changed from there.
+static var slide_hold_grip := 0.5
+const SLIDE_RECOVER := 0.4
+## How far the tail's held out, from the least steering into the bend to full.
+const SLIDE_ANGLE := [deg_to_rad(15.0), deg_to_rad(32.0)]
+## How hard the angle's held, per second.
+const SLIDE_HOLD := 7.0
+## How long steering straight (or the other way) can last before the slide
+## ends, so the thumb can wobble.
+const SLIDE_LET_GO := 0.2
+## How far into the bend the front wheels point, past the way it's going,
+## while a slide's held.
+const SLIDE_FRONT := deg_to_rad(8.0)
+static var slide_corner := 1.3
+static var slide_scrub := 1.0
+## How fast a held slide gets back to its speed when the tires drag it down.
+const SLIDE_CARRY := 10.0
+## Once it's going, a slide keeps going down to this speed.
+const SLIDE_KEEP_SPEED := 4.0
 static var slide_brake := 1.0
-static var slide_drive := 0.0
 const RESET_SLOWDOWN_TIME := 2.5
 const RESET_SLOWDOWN := 0.5
 
@@ -289,10 +311,16 @@ var shield_left := 0.0
 var tow: TowRope
 ## A shove from a shockwave, to be added to its speed next step.
 var _shove := Vector3.ZERO
-## Whether it's sliding right now (see SLIDE_SPEED), and how far into the
-## slide it still is, from 1 while sliding down to 0 once it's gripping again.
+## Whether it's sliding right now (see SLIDE_SPEED), whether that's still the
+## kick, which way round (1 right, -1 left), and how far into the slide it
+## still is, from 1 while sliding down to 0 once it's gripping again.
 var sliding := false
+var slide_kick := false
+var slide_way := 0.0
 var slide_amount := 0.0
+var _slide_straight := 0.0
+var _slide_speed := 0.0
+var _last_flat_velocity := Vector3.ZERO
 var _repair_asked := false
 var _gadget_held: Array[bool] = [false, false]
 var _gadget_wait: Array[float] = [0.0, 0.0]
@@ -771,13 +799,19 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 		# make the tail step out further.
 		if absf(toward) < PI * 0.5 and controls.steer * toward < 0.0:
 			slide = absf(toward)
-	sliding = not locked and stats.steering != null and controls.throttle > 0.5 and controls.brake > 0.5 and forward_speed > SLIDE_SPEED
-	slide_amount = 1.0 if sliding else move_toward(slide_amount, 0.0, dt / SLIDE_RECOVER)
+	_update_slide(dt)
 	full_lock = steer_limit(speed, slide)
 	# The front wheels turn all the way while the tail's out.
 	if slide_amount > 0.0:
 		full_lock = lerpf(full_lock, MAX_STEER, slide_amount)
 	var wanted_steer := controls.steer * full_lock if stats.steering != null else 0.0
+	# Holding a slide, the driver counter-steers, so the front wheels point
+	# the way the kart's going and a little into the bend, the way a real
+	# drift's held. Pointed into the bend with the nose, they'd only scrub.
+	if sliding and not slide_kick and flat_velocity.length() > 2.0:
+		var off := (-basis.z).signed_angle_to(flat_velocity, up)
+		var into := clampf(controls.steer * slide_way, 0.0, 1.0)
+		wanted_steer = clampf(-off + slide_way * SLIDE_FRONT * into, -MAX_STEER, MAX_STEER)
 	# A driver who sits awkwardly or has to reach steers more slowly.
 	steer_angle = move_toward(steer_angle, wanted_steer, STEER_RATE * stats.control * MAX_STEER * dt)
 
@@ -788,9 +822,11 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 		braking = forward_speed > 0.05
 	elif controls.throttle > 0.0:
 		drive = controls.throttle * minf(max_force, power / maxf(absf(forward_speed), 1.0)) * push
-	if sliding:
-		# The back wheels are held back, so the engine only drives a little.
-		drive *= slide_drive
+	if slide_kick:
+		# The kick locks the back wheels, so nothing drives.
+		drive = 0.0
+	elif sliding:
+		pass
 	elif controls.brake > 0.0 and not locked:
 		if forward_speed > 0.5:
 			braking = true
@@ -887,12 +923,12 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 		var resist := w.rolling * load * drag_here
 		if braking:
 			resist += BRAKE_FORCE * (1.0 if locked else controls.brake) / wheels.size()
-		elif sliding and not w.steered:
+		elif slide_kick and not w.steered:
 			resist += BRAKE_FORCE * slide_brake / maxf(wheels.size() - _steered_count, 1)
 		f_long -= signf(v_long) * minf(resist, absf(v_long) * stop_force)
 		var most := KartStats.TIRE_FRICTION * w.grip * grip_here * load
 		if slide_amount > 0.0 and not w.steered:
-			most *= lerpf(1.0, SLIDE_REAR_GRIP, slide_amount)
+			most *= lerpf(1.0, SLIDE_REAR_GRIP if slide_kick else slide_hold_grip, slide_amount)
 		# Traction control. Holding the kart in line comes first and the engine
 		# only gets the grip that's left over, so full throttle can't use up
 		# the grip the back tires need to hold the tail. With the wheels
@@ -993,13 +1029,71 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 		state.apply_central_force(push)
 		applied += push
 
-	# Coming out of a slide it's up to you to catch it.
-	if slide_amount <= 0.0:
+	if sliding and not slide_kick:
+		_hold_slide(state, up)
+	elif slide_amount <= 0.0:
 		_steady(state, up)
+	_last_flat_velocity = state.linear_velocity - up * state.linear_velocity.dot(up)
 	_break_scenery(state)
 	_feel_knocks(state)
 	_last_velocity = state.linear_velocity
 	_last_applied = applied
+
+
+## Starts, holds and ends a slide (see SLIDE_SPEED) from the controls.
+func _update_slide(dt: float) -> void:
+	var can := not locked and stats.steering != null and forward_speed > (SLIDE_KEEP_SPEED if sliding else SLIDE_SPEED) and not sticking
+	var into := controls.steer * slide_way
+	if not sliding:
+		if can and controls.throttle > 0.5 and controls.brake > 0.5 and absf(controls.steer) > 0.2:
+			sliding = true
+			slide_way = signf(controls.steer)
+			_slide_straight = 0.0
+			_slide_speed = forward_speed
+	elif not can or controls.throttle < 0.5:
+		sliding = false
+	else:
+		_slide_straight = _slide_straight + dt if into < 0.15 else 0.0
+		if _slide_straight > SLIDE_LET_GO:
+			sliding = false
+	slide_kick = sliding and controls.brake > 0.5
+	# The kick loses speed, which the held slide starts from.
+	if slide_kick:
+		_slide_speed = forward_speed
+	slide_amount = 1.0 if sliding else move_toward(slide_amount, 0.0, dt / SLIDE_RECOVER)
+
+
+## A held slide: the tail's kept out at its angle, and the kart keeps its
+## speed, losing only slide_scrub a second, and goes round the line the
+## steering asks for, up to slide_corner times as hard as its tires could.
+func _hold_slide(state: PhysicsDirectBodyState3D, up: Vector3) -> void:
+	var flat := state.linear_velocity - up * state.linear_velocity.dot(up)
+	var speed := flat.length()
+	if speed < 1.0:
+		return
+	var dt := state.step
+	var heading := -state.transform.basis.z
+	# Positive is the velocity off to the left of where it's pointing, which
+	# going round to the right is the tail out.
+	var off := heading.signed_angle_to(flat, up)
+	var into := clampf(controls.steer * slide_way, 0.0, 1.0)
+	var want := lerpf(SLIDE_ANGLE[0], SLIDE_ANGLE[1], into)
+	# How fast the way it's going is turning, and how fast it should, going
+	# right negative.
+	var turning := 0.0
+	if _last_flat_velocity.length() > 1.0:
+		turning = _last_flat_velocity.signed_angle_to(flat, up) / dt
+	var should := -slide_way * into * stats.cornering() * KartStats.gravity() * slide_corner / speed
+	var fix := clampf((should - turning) * dt * 0.8, -0.05, 0.05)
+	var vertical := state.linear_velocity - flat
+	# It keeps its speed, losing only the scrub, whatever the tires did.
+	_slide_speed = minf(_slide_speed - slide_scrub * dt, speed + SLIDE_CARRY * dt)
+	var keep := maxf(speed, _slide_speed)
+	state.linear_velocity = (flat / speed).rotated(up, fix) * keep + vertical
+	# The nose turns with it, and a bit more or less to hold the angle.
+	var spin := turning + (off - slide_way * want) * SLIDE_HOLD
+	var now := state.angular_velocity.dot(up)
+	state.angular_velocity += up * (spin - now) * minf(1.0, 12.0 * dt)
 
 
 ## Keeps a bike or trike from falling over, by turning it back upright about

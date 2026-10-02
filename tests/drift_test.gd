@@ -1,8 +1,9 @@
 extends SceneTree
 
-## Sliding round a corner. Two starter karts go into a hard right turn at the
+## Sliding round a corner. Starter karts go into a hard right turn at the
 ## same speed, one just steering and one with the gas and the brake held
-## together for a moment. The sliding one swings its tail out and turns
+## together for a moment. A third kicks the tail out the same way and then
+## holds the slide on the gas, round and round without spinning. The sliding one swings its tail out and turns
 ## further, and once it's let go and the steering's straightened it grips
 ## and runs straight again. Plain braking still stops straight. And a thumb
 ## slid from GO onto the brake holds both.
@@ -20,6 +21,9 @@ class Runner:
 	var steerer: Kart
 	var slider: Kart
 	var braker: Kart
+	var holder: Kart
+	var held_tail := []
+	var held_slowest := INF
 	var start_yaw := {}
 	var most_tail := 0.0
 
@@ -48,12 +52,16 @@ class Runner:
 		steerer = kart_at(-60.0)
 		slider = kart_at(0.0)
 		braker = kart_at(60.0)
+		holder = kart_at(-110.0)
 
 	func _physics_process(_delta: float) -> void:
 		tick += 1
+		if tick > 70 and tick < 170:
+			held_tail.append(tail_out(holder))
+			held_slowest = minf(held_slowest, holder.linear_velocity.length())
 		match tick:
 			40:
-				for kart in [steerer, slider, braker]:
+				for kart in [steerer, slider, braker, holder]:
 					kart.linear_velocity = Vector3(0.0, 0.0, -SPEED)
 					kart.controls.throttle = 1.0
 					start_yaw[kart] = kart.global_rotation.y
@@ -63,6 +71,11 @@ class Runner:
 				slider.controls.brake = 1.0
 				braker.controls.throttle = 0.0
 				braker.controls.brake = 1.0
+				holder.controls.steer = 1.0
+				holder.controls.brake = 1.0
+			54:
+				# The kick's done, and it's held on the gas.
+				holder.controls.brake = 0.0
 			46:
 				check(slider.sliding and not steerer.sliding, "gas and brake together at speed slide the kart")
 			53, 60, 70:
@@ -81,6 +94,14 @@ class Runner:
 			100:
 				slider.controls.steer = 0.0
 			170:
+				var tail: float = held_tail.reduce(func(a, b): return a + b, 0.0) / maxf(held_tail.size(), 1)
+				var turned := rad_to_deg(absf(angle_difference(start_yaw[holder], holder.global_rotation.y)))
+				check(holder.sliding and not holder.slide_kick, "a slide kicked off and then held on the gas keeps going")
+				check(tail > 12.0 and held_tail.max() < 50.0, "with the tail held out steadily, not spun (%.0f degrees on average, %.0f at most)" % [tail, held_tail.max()])
+				check(turned > 90.0 and held_slowest > 7.0, "round the bend without stalling (%.0f degrees, never under %.1f m/s)" % [turned, held_slowest])
+				holder.controls.steer = 0.0
+			200:
+				check(not holder.sliding, "straightening up ends it")
 				check(tail_out(slider) < 8.0, "let go and steered straight, it grips again (%.0f degrees)" % tail_out(slider))
 				check(slider.global_basis.y.y > 0.9, "the right way up")
 				_touch()

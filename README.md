@@ -147,8 +147,8 @@ The scenery breaks. Drive through a tree, a fence or a billboard and it comes do
 - **Practice:** drive any course on your own for as long as you like.
 - **Two players on one phone:** side by side in landscape, or face to face in portrait with the phone flat between you.
 - **Six camera views:** close and far chase, first person from your driver's eyes, a bumper cam, overhead and TV cameras beside the track. Hold look back to see who's coming. After the finish the camera circles your kart and the AI drives you home.
-- **Sliding:** hold the gas and the brake together, or slide your thumb from GO down onto the brake, and the back wheels lock so the tail swings round and you turn in tighter. Let go and steer straight to catch it. It's quicker round the tightest bends.
-- **Four AI levels,** picked before a race or a cup. Easy drivers take it gently, slip up now and then and wait for you. Expert drivers are right on the limit, and slide round the tightest bends. Trophies are kept for each level.
+- **Sliding:** while steering, hold the gas and brake together, or slide your thumb from GO down onto the brake and back up, to kick the tail out. Keep the gas on and keep steering into the bend and the slide holds, with the tail out further the harder you steer. Straighten up or let go of the gas and it grips again. A held slide keeps its speed round a hairpin better than braking for it, but the longer you hold it the more it scrubs off.
+- **Four AI levels,** picked before a race or a cup. Easy drivers take it gently, slip up now and then and wait for you. Expert drivers are right on the limit. Trophies are kept for each level.
 
 ### Online
 
@@ -239,7 +239,7 @@ They check things like:
 - every course closes into a loop without running into itself (`track_test`)
 - a fast kart sticks to the loop all the way around and a slow one drops off (`loop_test`)
 - every power-up does what it says, the boxes hand them out and the karts at the back get the strong ones more often (`gadget_test`)
-- gas and brake together slide the kart round a bend tighter than steering alone, and it grips again once you let go (`drift_test`)
+- gas and brake together slide the kart round a bend tighter than steering alone, a slide held on the gas keeps going with the tail out steadily without spinning, and it grips again once you straighten up (`drift_test`)
 - drivers hold the steering wheel, and every hat, hairdo, beard and back piece is joined on without poking through anything (`character_test`)
 - the garage, the menus and every mode, including a whole Grand Prix and two players on one phone (`garage_test`, `menu_test`, `modes_test`, `split_test`)
 - every stock kart gets around a lap with the AI driving (`stock_test`)
