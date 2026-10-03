@@ -51,12 +51,14 @@ static func open_spots(design: KartDesign) -> Array:
 
 
 ## The spots on the kart this part could go onto by one of its connectors.
-static func spots_for(design: KartDesign, id: String) -> Array:
+## `open` is open_spots() for the kart, if it's already been worked out.
+static func spots_for(design: KartDesign, id: String, open: Variant = null) -> Array:
 	var types := {}
 	for c in Connectors.of(id):
 		for t in Connectors.PAIRS.get(c.type, {}):
 			types[t] = true
-	return open_spots(design).filter(func(s: Dictionary) -> bool: return types.has(s.type))
+	var all: Array = open if open != null else open_spots(design)
+	return all.filter(func(s: Dictionary) -> bool: return types.has(s.type))
 
 
 ## How the part's connector and the spot have to line up to join: "facing",

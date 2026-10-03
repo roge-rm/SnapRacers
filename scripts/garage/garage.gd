@@ -90,6 +90,16 @@ var _last_snap := []
 ## Which cells the part in hand works in, turned the way it is (see
 ## BuildMath.nearest_cell). It starts again with _last_aim.
 var _known_cells := {}
+## What each part's model was made for (see _rebuild()).
+var _node_keys: Array[String] = []
+## The stats for the card to show on the next frame, or null.
+var _card_stats: KartStats
+## Whether the part in hand's spots are still to be found.
+var _spots_due := false
+## The kart's open spots, and the parts they were worked out for (see
+## _open_spots()).
+var _open := []
+var _open_for: Array[Dictionary] = []
 ## A drag on the picked out part moves it.
 var _grab_selected := false
 ## When a part on the kart is being moved, where it came from, so Cancel can
@@ -220,7 +230,7 @@ func redo() -> void:
 ## Starts placing a part, turned by `turn`. It shows up where you're looking
 ## unless `at` says where, as a Transform3D place or a Vector3i spot on the
 ## grid.
-func start_placing(id: String, turn := Basis.IDENTITY, colour: Variant = null, at: Variant = null) -> void:
+func start_placing(id: String, turn := Basis.IDENTITY, colour: Variant = null, at: Variant = null, spots_later := false) -> void:
 	if _mode == GarageUI.Mode.PLACING and not _moving.is_empty():
 		cancel()
 	_holding = id
@@ -229,7 +239,7 @@ func start_placing(id: String, turn := Basis.IDENTITY, colour: Variant = null, a
 	_way = {}
 	ui.set_held_picture(PartThumbnails.picture(id))
 	_set_mode(GarageUI.Mode.PLACING)
-	_find_spots()
+	_find_spots(spots_later)
 	if KartDesign.is_wheel(id):
 		turn = Basis.IDENTITY
 	if at is Transform3D:
@@ -244,6 +254,7 @@ func start_placing(id: String, turn := Basis.IDENTITY, colour: Variant = null, a
 
 func _stop_placing() -> void:
 	_holding = ""
+	_spots_due = false
 	_moving = {}
 	_spot = {}
 	_way = {}
@@ -428,7 +439,7 @@ func move_selected() -> void:
 	Sounds.play("fx/unsnap")
 	_selected = -1
 	_rebuild()
-	start_placing(p.id, KartDesign.place_of(p).basis, p.get("color"), KartDesign.place_of(p))
+	start_placing(p.id, KartDesign.place_of(p).basis, p.get("color"), KartDesign.place_of(p), true)
 	_moving = { "index": index, "entry": p }
 	_show_ghost()
 
@@ -597,19 +608,40 @@ func _set_mode(mode: GarageUI.Mode) -> void:
 
 
 func _rebuild() -> void:
+	# Parts that haven't changed keep their models, since making them all
+	# again is most of the time a change takes.
+	var old := {}
+	for i in _part_nodes.size():
+		if i < _node_keys.size():
+			var key: String = _node_keys[i]
+			if not old.has(key):
+				old[key] = []
+			old[key].append(_part_nodes[i])
 	for child in _parts_root.get_children():
-		child.queue_free()
+		if child is CharacterRig:
+			child.queue_free()
 	_part_nodes.clear()
+	_node_keys.clear()
 	_last_aim = []
 	_last_snap = []
 	var stats := KartStats.compute(design, {}, null, Game.character.mass())
 	for i in design.parts.size():
 		var p: Dictionary = design.parts[i]
-		var place := KartDesign.place_of(p)
-		var node := _part_node(p.id, place.basis, p.get("color"))
-		node.position = _world_centre(p.id, place)
-		_parts_root.add_child(node)
+		var key := str(p)
+		var node: Node3D
+		if old.has(key) and not old[key].is_empty():
+			node = old[key].pop_back()
+			PartVisuals.set_highlight(node, false)
+		else:
+			var place := KartDesign.place_of(p)
+			node = _part_node(p.id, place.basis, p.get("color"))
+			node.position = _world_centre(p.id, place)
+			_parts_root.add_child(node)
 		_part_nodes.append(node)
+		_node_keys.append(key)
+	for left in old.values():
+		for node in left:
+			node.queue_free()
 	if stats.has_seat:
 		# The stats put the kart's origin under the middle of it, so put that
 		# back onto the grid to find the seat.
@@ -634,7 +666,9 @@ func _rebuild() -> void:
 	elif _mode == GarageUI.Mode.SELECTED:
 		_mode = GarageUI.Mode.IDLE
 	ui.set_kart_name(design.name)
-	ui.show_stats(stats, design.problems())
+	# Checking for problems takes a while, so the card catches up on the
+	# next frame instead of holding this one up.
+	_card_stats = stats
 	_refresh_ui()
 
 
@@ -836,11 +870,25 @@ void fragment() {
 	add_child(_dot_here)
 
 
-## Works out the spots the part in hand could join.
-func _find_spots() -> void:
-	_spots = Snap.spots_for(design, _holding) if _holding != "" else []
+## Works out the spots the part in hand could join. When the kart's just
+## changed and `later` is set, that waits a frame (see _process()).
+func _find_spots(later := false) -> void:
+	if later and _holding != "" and _open_for != design.parts:
+		_spots = []
+		_spots_due = true
+	else:
+		_spots = Snap.spots_for(design, _holding, _open_spots()) if _holding != "" else []
 	_last_aim = []
 	_last_snap = []
+
+
+## Every open spot on the kart, kept until the kart changes, since picking
+## up each new part needs them.
+func _open_spots() -> Array:
+	if _open_for != design.parts:
+		_open = Snap.open_spots(design)
+		_open_for = design.parts.duplicate(true)
+	return _open
 
 
 func _show_dots() -> void:
@@ -952,6 +1000,18 @@ func _view_middle() -> Vector2:
 
 ## Keeps a picked out part's actions beside it as the view moves.
 func _process(_delta: float) -> void:
+	# What a change leaves to do is spread over the next few frames, one
+	# thing a frame: the card, then the spots for a part that's been
+	# grabbed, then the open spots, ready for the next part picked up.
+	if _card_stats != null:
+		ui.show_stats(_card_stats, design.problems())
+		_card_stats = null
+	elif _spots_due:
+		_spots_due = false
+		_find_spots()
+		_show_dots()
+	elif _open_for != design.parts:
+		_open_spots()
 	if _selected != -1 and _selected < _part_nodes.size():
 		var node := _part_nodes[_selected]
 		ui.set_selection_anchor(_camera.unproject_position(node.global_position))
