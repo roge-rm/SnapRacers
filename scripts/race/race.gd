@@ -489,7 +489,8 @@ func _physics_process(delta: float) -> void:
 		var below := (kart.global_position - middle).dot(track.up_at(racer.offset))
 		if kart.slowdown_left <= 0.0 and (below < -FALLEN or kart.global_position.distance_to(middle) > LOST):
 			if OS.has_environment("RACE_DEBUG"):
-				print("OFF %s at %.0f m: below %.1f, away %.1f, height %.1f" % [racer.name, racer.offset, below, kart.global_position.distance_to(middle), kart.global_position.y])
+				var truly := track.offset_of(kart.global_position)
+				print("OFF %s at %.0f m: below %.1f, away %.1f, height %.1f, speed %.1f, really at %.0f m %.1f away" % [racer.name, racer.offset, below, kart.global_position.distance_to(middle), kart.global_position.y, kart.linear_velocity.length(), truly, kart.global_position.distance_to(track.point_at(truly))])
 			kart.request_reset()
 			if racer.hud != null:
 				racer.hud.flash("Back on the track")
@@ -529,7 +530,7 @@ func _clear_spot(racer: Racer) -> Transform3D:
 		for side in across:
 			var spot := track.place_at(start - back)
 			spot.origin += spot.basis.x * side
-			var clear := true
+			var clear := not _by_a_wall(spot.origin)
 			for other in racers:
 				if other != racer and other.kart.global_position.distance_to(spot.origin) < room:
 					clear = false
@@ -541,6 +542,16 @@ func _clear_spot(racer: Racer) -> Transform3D:
 				return spot
 	racer.offset = fposmod(start, track.length)
 	return track.place_at(start)
+
+
+## Whether a brick wall still standing is here or just in front, so a kart
+## put back here would be stuck against it again.
+func _by_a_wall(at: Vector3) -> bool:
+	for wall in get_tree().get_nodes_in_group("brick_walls"):
+		var local: Vector3 = wall.global_transform.affine_inverse() * at
+		if absf(local.x) < BrickWall.HALF + 1.5 and local.z > -2.0 and local.z < 8.0 and wall.standing():
+			return true
+	return false
 
 
 ## Whether this is the flat run in to a loop, or its foot where it's only

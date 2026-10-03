@@ -1596,7 +1596,9 @@ func rammed_with(point: Vector3) -> bool:
 
 
 ## When a fired brick hits, one part comes off, working from the outside in,
-## unless a shield is up.
+## unless a shield is up. It's never a wheel or the steering, or anything
+## holding them on, which would leave the kart unable to drive until it's
+## reset.
 func knock_off_a_part() -> void:
 	if shield_left > 0.0 or stats == null:
 		return
@@ -1604,15 +1606,33 @@ func knock_off_a_part() -> void:
 	var outermost := -1
 	var furthest := -1.0
 	for info in stats.parts:
-		if info.def.kind in ["seat", "plate"]:
+		if info.def.kind in ["seat", "plate"] or _needed_to_drive(info.index):
 			continue
 		var reach := (info.centre - center_of_mass).length()
-		if reach > furthest:
+		if reach > furthest and not _takes_with_it_what_drives(info.index):
 			furthest = reach
 			outermost = info.index
 	if outermost != -1:
 		var one: Array[int] = [outermost]
 		lose_parts(one)
+
+
+## Whether this part is a wheel or the steering.
+func _needed_to_drive(index: int) -> bool:
+	return KartDesign.is_wheel(design.parts[index].id) or PartCatalog.get_part(design.parts[index].id).get("kind", "") == "steering"
+
+
+## Whether knocking this part off would take a wheel or the steering with it.
+func _takes_with_it_what_drives(index: int) -> bool:
+	var seat := design.seat_index()
+	if seat == -1:
+		return false
+	var gone := lost.duplicate()
+	gone[index] = true
+	for i in design.detached_after(gone, seat):
+		if _needed_to_drive(i):
+			return true
+	return false
 
 
 func _show_bubble() -> void:

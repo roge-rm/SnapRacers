@@ -56,6 +56,10 @@ const STUCK_AFTER := 2.5
 ## tries again. Only if that doesn't work does it reset.
 const BACK_AFTER := 0.8
 const BACK_FOR := 1.0
+## With a wheel knocked off it can't steer or drive properly, so after this
+## long it resets to get it back on, the way a person would, unless it has
+## a repair to use.
+const WHEEL_GONE_FOR := 1.0
 ## How far on around the track it has to get before it counts as unstuck.
 const FREE_AFTER := 6.0
 ## How far ahead it looks for a loop, so it has its foot down for the whole
@@ -69,6 +73,15 @@ const SEE_AHEAD := 12.0 # how far ahead it watches for karts in its way
 ## How far to the side another kart has to be to be out of the way, past
 ## touching. Bikes are narrower, so they get by with less.
 const KART_GAP := 0.8
+## Pointing further than this from where it's going, it slows down enough
+## to turn onto it, though never below TURN_ROUND_SPEED.
+const TURN_ROUND_ANGLE := 0.5
+const TURN_ROUND_SPEED := 4.0
+## How far ahead it watches for a brick wall across the road. A wall can't
+## move out of the way, so it starts going round one sooner than a kart.
+const SEE_WALL := 45.0
+## How much further than touching it keeps from the end of a wall.
+const WALL_GAP := 1.2
 
 var kart: Kart
 var track: TrackPath
@@ -96,6 +109,11 @@ var _backing := 0.0
 var _backed := false
 ## Where it was on the track when it got stuck.
 var _stuck_at := 0.0
+## How long it's been going with a wheel knocked off.
+var _wheel_gone := 0.0
+## Where each brick wall is along the track, worked out once since a wall
+## doesn't move.
+var _wall_offsets := {}
 
 const THINK_EVERY := 0.3 # seconds between looking at its gadgets
 ## After holding a power-up this long it uses it at the next moment that
@@ -166,6 +184,12 @@ func _physics_process(delta: float) -> void:
 	var here := 0.0 if TrackPiece.turns_over(track.piece_type_at(offset)) else maxf(track.bend_at(offset), track.bend_at(offset + 2.0))
 	if here > 0.002 and not kart.sliding:
 		allowed = minf(allowed, sqrt(grip / here))
+	# Pointing well away from where it's going, like after a spin or out on
+	# the grass, it slows to what it can turn onto it at, or it goes round
+	# in a big circle and away from the road.
+	if absf(angle) > TURN_ROUND_ANGLE and not kart.sliding:
+		var across := 1.0 if absf(angle) > PI * 0.5 else sin(absf(angle))
+		allowed = minf(allowed, maxf(sqrt(grip * to_target.length() / (2.0 * across)), TURN_ROUND_SPEED))
 
 	# The bend coming up next, for sliding into.
 	var tight := maxf(here, track.bend_at(offset + speed * 0.3))
@@ -294,6 +318,9 @@ func _dodge() -> float:
 	var right := kart.global_basis.x
 	var half_road := track.width * 0.5 - 1.5
 	var here := (kart.global_position - track.point_at(offset)).dot(track.right_at(offset))
+	var wall := _dodge_wall(facing)
+	if not is_nan(wall):
+		return wall
 	for other in others:
 		# A kart can go mid-race, like when someone online leaves.
 		if other == kart or not is_instance_valid(other):
@@ -310,6 +337,29 @@ func _dodge() -> float:
 				go_right = true
 			return (room if go_right else -room) * (1.0 - ahead / SEE_AHEAD * 0.5)
 	return 0.0
+
+
+## How far to move over to get past the end of a brick wall ahead, or NAN
+## when there's none in the way. It goes round whichever end has more road
+## beyond it.
+func _dodge_wall(facing: Vector3) -> float:
+	for wall in kart.get_tree().get_nodes_in_group("brick_walls"):
+		var ahead: float = (wall.global_position - kart.global_position).dot(facing)
+		# It keeps going round until its back end is past it.
+		if ahead < -2.0 or ahead > SEE_WALL or not wall.standing():
+			continue
+		var key: int = wall.get_instance_id()
+		if not _wall_offsets.has(key):
+			_wall_offsets[key] = track.offset_of(wall.global_position, offset + ahead, 40.0)
+		var at: float = _wall_offsets[key]
+		var across: float = (wall.global_position - track.point_at(at)).dot(track.right_at(at))
+		var room := BrickWall.HALF + kart.width() * 0.5 + WALL_GAP
+		if absf(line - across) >= room:
+			continue
+		var edge := track.width * 0.5 - kart.width() * 0.5 - 0.3
+		var want := across + room if across < 0.0 else across - room
+		return clampf(want, -edge, edge) - line
+	return NAN
 
 
 ## Every so often it looks at the power-ups it's holding and uses one if the
@@ -368,7 +418,7 @@ func _worth_using(kind: String, speed: float) -> bool:
 		"shield":
 			return _nearest(-5.0, 5.0, 4.0) != null
 		"repair":
-			return kart.lost.size() >= 2
+			return kart.lost.size() >= 2 or _lost_a_wheel()
 		"ghost":
 			return _nearest(2.0, 12.0, 2.5) != null or (speed < 2.0 and not kart.locked)
 		"tow":
@@ -428,8 +478,18 @@ func _stuck_check(delta: float, speed: float, up: Vector3) -> void:
 	if not upside_down and _stuck > BACK_AFTER and not _backed:
 		_backed = true
 		_backing = BACK_FOR
-	if _stuck > STUCK_AFTER:
+	_wheel_gone = _wheel_gone + delta if _lost_a_wheel() and not kart.locked and not kart.held.has("repair") else 0.0
+	if _stuck > STUCK_AFTER or _wheel_gone > WHEEL_GONE_FOR:
 		_stuck = 0.0
+		_wheel_gone = 0.0
 		_backed = false
 		_backing = 0.0
 		controls.reset = true
+
+
+## Whether any of its wheels have been knocked off.
+func _lost_a_wheel() -> bool:
+	for i in kart.lost:
+		if KartDesign.is_wheel(kart.design.parts[i].id):
+			return true
+	return false

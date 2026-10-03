@@ -68,15 +68,24 @@ func _ready() -> void:
 	race.player.kart.controls = driver.controls
 	for racer in race.racers:
 		resets[racer.name] = 0
+		if OS.has_environment("RACE_DEBUG"):
+			racer.kart.parts_lost.connect(func(indices: Array[int]) -> void:
+				print("LOST %s (%s) at %.1f s, %.0f m: %s, speed %.1f, nearest kart %.1f m" % [racer.name, racer.kart.design.name, race.time, racer.offset, indices.map(func(i): return racer.kart.design.parts[i].id), racer.kart.linear_velocity.length(), race.racers.filter(func(r): return r != racer).map(func(r): return r.kart.global_position.distance_to(racer.kart.global_position)).min()]))
 		racer.kart.gadget_used.connect(func(kind: String) -> void: used[kind] = used.get(kind, 0) + 1)
 		racer.kart.was_reset.connect(func() -> void:
 			resets[racer.name] += 1
 			if OS.has_environment("RACE_DEBUG"):
+				for line in _history.get(racer, []):
+					print("    " + line)
+				_history[racer] = []
 				print("RESET %s (%s) at %.0f m (piece %d %s) speed %.1f, %s" % [racer.name, racer.kart.design.name, racer.offset, race.track.piece_of[race.track._index_before(racer.offset)], race.track.pieces[race.track.piece_of[race.track._index_before(racer.offset)]].type, racer.kart.linear_velocity.length(), _last_touch.get(racer, "")]))
 	print("%s, %.0f m a lap, %d karts" % [race.track.name, race.track.length, race.racers.size()])
 
 
 var _last_touch := {}
+## For RACE_DEBUG, each kart's last few seconds: where it was and what it
+## was doing, printed when it's reset.
+var _history := {}
 
 
 ## What a kart that's been reset was up against, for RACE_DEBUG: how far
@@ -109,6 +118,17 @@ func _physics_process(delta: float) -> void:
 	if race == null:
 		return
 	# For RACE_DEBUG, what each kart was up against just before any reset.
+	if OS.has_environment("RACE_DEBUG") and Engine.get_physics_frames() % 20 == 0:
+		for racer in race.racers:
+			var k: Kart = racer.kart
+			var across := (k.global_position - race.track.point_at(racer.offset)).dot(race.track.right_at(racer.offset))
+			var heading := rad_to_deg((-k.global_basis.z).signed_angle_to(race.track.forward_at(racer.offset), Vector3.UP))
+			var line := "%.1f s at %.0f m, %.1f across, %.1f up, speed %.1f, heading off %.0f, steer %.2f throttle %.2f brake %.2f, ground %s, ghost %.1f tow %s held %s, lost %s, sliding %s %.1f, slip %.0f, spin %.2f" % [race.time, racer.offset, across, (k.global_position - race.track.point_at(racer.offset)).dot(race.track.up_at(racer.offset)), k.linear_velocity.length(), heading, k.controls.steer, k.controls.throttle, k.controls.brake, k.wheels.any(func(w): return w.grounded), k.ghost_left, k.tow != null, k.held, k.lost.keys().map(func(i): return k.design.parts[i].id), k.sliding, k.slide_amount, rad_to_deg((-k.global_basis.z).signed_angle_to(k.linear_velocity, k.global_basis.y)) if k.linear_velocity.length() > 1.0 else 0.0, k.angular_velocity.dot(k.global_basis.y)]
+			var past: Array = _history.get(racer, [])
+			past.append(line)
+			if past.size() > 15:
+				past.pop_front()
+			_history[racer] = past
 	if OS.has_environment("RACE_DEBUG") and Engine.get_physics_frames() % 10 == 0:
 		for racer in race.racers:
 			if racer.kart.linear_velocity.length() < 1.0:

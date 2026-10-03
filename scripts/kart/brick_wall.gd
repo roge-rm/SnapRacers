@@ -11,6 +11,8 @@ const BRICK := Vector3(1.0, 0.55, 0.5)
 const ACROSS := 6
 const HIGH := 2
 const BEHIND := 3.5
+## Half the wall's width, from the middle to the end of the longer row.
+const HALF := (ACROSS + 0.5) * BRICK.x * 0.5
 const COLOURS := [Color("#c4281c"), Color("#f2cd37"), Color("#0d69ab"), Color("#f2f3f2")]
 
 var _age := 0.0
@@ -34,6 +36,8 @@ static func drop_behind(from: Kart) -> BrickWall:
 
 
 func _ready() -> void:
+	# So the AI can steer round it.
+	add_to_group("brick_walls")
 	for row in HIGH:
 		# Every other row is staggered half a brick, like a real wall.
 		var shift := 0.5 * BRICK.x if row % 2 == 1 else 0.0
@@ -78,6 +82,11 @@ func _hit_by(body: Node3D) -> void:
 	for brick in _bricks:
 		if brick.freeze and brick.global_position.distance_to(body.global_position) < 2.5:
 			brick.set_deferred("freeze", false)
+
+
+## Whether any of it is still standing, not all knocked down.
+func standing() -> bool:
+	return _bricks.any(func(brick: RigidBody3D) -> bool: return brick.freeze)
 
 
 func _physics_process(delta: float) -> void:

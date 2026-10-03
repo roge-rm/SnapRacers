@@ -17,6 +17,7 @@ class Runner:
 	var failures := 0
 	var hard_speed := 0.0
 	var gentle_speed := 0.0
+	var shot: Array[Kart] = []
 
 	func _ready() -> void:
 		add_child(TestTrack.new())
@@ -40,6 +41,13 @@ class Runner:
 		hard.build(design)
 		hard.transform = Transform3D(Basis.IDENTITY, Vector3(80.0, 0.05, 100.0))
 		add_child(hard)
+		# A kart and a bike hit by power-ups, well off to the side.
+		for which in ["starter", "dirt_bike"]:
+			var hit := Kart.new()
+			hit.build(KartDesign.load_file("res://data/karts/stock/%s.json" % which))
+			hit.transform = Transform3D(Basis.IDENTITY, Vector3(-60.0 - shot.size() * 10.0, 0.05, 100.0))
+			add_child(hit)
+			shot.append(hit)
 
 	func check(ok: bool, what: String) -> void:
 		print(("  ok    " if ok else "  FAIL  ") + what)
@@ -86,6 +94,15 @@ class Runner:
 				gentle.lose_parts([wheel] as Array[int])
 			335:
 				check(gentle.wheels.size() == 3, "losing a wheel leaves three")
+			410:
+				# Power-up hits knock bodywork off, never what it needs to
+				# drive. A bike has no bodywork, so nothing comes off it.
+				for kart in shot:
+					var wheels := kart.wheels.size()
+					for n in 4:
+						kart.knock_off_a_part()
+					var gone: Array = kart.lost.keys().map(func(i): return kart.design.parts[i].id)
+					check((not gone.is_empty() or kart.design.name == "Dirt Bike") and kart.wheels.size() == wheels and kart.stats.steering != null, "four power-up hits on the %s leave its wheels and steering (lost %s)" % [kart.design.name, gone])
 			420:
 				var tilt := rad_to_deg(gentle.global_basis.y.angle_to(Vector3.UP))
 				check(tilt > 3.0, "and the kart sags onto that corner (%.1f degrees)" % tilt)
