@@ -3,8 +3,8 @@ plugins {
     id 'org.jetbrains.kotlin.android'
 }
 
-// Builds go in /tmp, like the game's own, since /home is a slow hard drive.
-layout.buildDirectory = file('/tmp/snapracers-build/plugin')
+// It builds in the game's own build/ folder, beside the game's.
+layout.buildDirectory = file('../build/plugin')
 
 android {
     namespace 'com.rm.snapracers.net'

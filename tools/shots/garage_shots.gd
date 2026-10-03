@@ -2,10 +2,10 @@ extends Node
 
 ## Takes a picture of the garage with each drawer tab open, for checking how
 ## the parts look without a phone. Like course_shots, it needs a screen, and
-## saves them in /tmp/snapracers-build/shots.
+## saves them in build/shots.
 ##   DISPLAY=:0 tools/godot/Godot_v4.7.2-stable_linux.x86_64 --path . res://tools/shots/garage_shots.tscn
 
-const OUT := "/tmp/snapracers-build/shots"
+const OUT := "res://build/shots"
 
 
 func _ready() -> void:

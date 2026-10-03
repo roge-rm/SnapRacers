@@ -18,8 +18,9 @@ import ssl
 import subprocess
 import sys
 
-PAGE = "/tmp/snapracers-build/web"
-CERTS = "/tmp/snapracers-build/cert"
+BUILD = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "build")
+PAGE = os.path.join(BUILD, "web")
+CERTS = os.path.join(BUILD, "cert")
 
 
 def addresses():

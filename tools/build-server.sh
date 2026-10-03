@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 # Builds the dedicated server to run on a Linux PC without Docker: the game
 # packed up the way the "Linux server" export does it, and the Godot we
-# already have to run it with. It goes in /tmp like the other builds.
+# already have to run it with. It goes in build/ like the other builds.
 #
-#   tools/build-server.sh          the server, in /tmp/snapracers-build/server
+#   tools/build-server.sh          the server, in build/server
 #   tools/build-server.sh --run    and start it, with its settings and any
 #                                  courses and cups of its own in ~/.snapracers-server
 #
@@ -14,7 +14,9 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 VERSION=4.7.2
 GODOT="tools/godot/Godot_v${VERSION}-stable_linux.x86_64"
-OUT=/tmp/snapracers-build/server
+OUT="$PWD/build/server"
+mkdir -p "$PWD/build"
+touch "$PWD/build/.gdignore"
 
 mkdir -p "$OUT"
 "$GODOT" --headless --path . --export-pack "Linux server" "$OUT/snapracers.pck" > "$OUT/export.log" 2>&1 \

@@ -3,10 +3,10 @@ extends Node
 ## Takes pictures of scenery breaking, for checking how it looks without a
 ## phone: a kart driven through something small beside the road, with the
 ## camera behind it, and a hole knocked in a building. It needs a screen,
-## and it saves them in /tmp/snapracers-build/shots.
+## and it saves them in build/shots.
 ##   DISPLAY=:0 tools/godot/Godot_v4.7.2-stable_linux.x86_64 --path . res://tools/shots/damage_shots.tscn -- peach_pit
 
-const OUT := "/tmp/snapracers-build/shots"
+const OUT := "res://build/shots"
 
 
 func frames(n: int) -> void:

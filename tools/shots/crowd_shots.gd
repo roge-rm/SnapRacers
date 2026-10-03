@@ -3,10 +3,10 @@ extends Node
 ## Takes pictures of the crowd and the moving scenery on a course: the fans
 ## nearest the start as the pack goes by, the same fans a moment later, and
 ## the first few things that move, twice each a second apart. It needs a
-## screen, and saves in /tmp/snapracers-build/shots.
+## screen, and saves in build/shots.
 ##   DISPLAY=:0 tools/godot/Godot_v4.7.2-stable_linux.x86_64 --path . res://tools/shots/crowd_shots.tscn -- peach_pit
 
-const OUT := "/tmp/snapracers-build/shots"
+const OUT := "res://build/shots"
 const AT_REST_SHOT := 0.2
 
 var _course := ""

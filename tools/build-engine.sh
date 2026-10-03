@@ -3,11 +3,10 @@
 # game uses (see tools/engine/profile.py). The APK comes out far smaller than
 # with the stock engine.
 #
-# The source and all the compiling go in /tmp, which is a RAM disk on my build
-# machine, and scons keeps a cache there too, so building again after a small
-# change is quick. The finished libraries are copied into tools/godot/custom,
-# which is on the hard drive, so after a reboot tools/build-android.sh still
-# has them. This only needs running again for a new Godot version or a change
+# The source and all the compiling go in build/godot, and scons keeps a cache
+# there too, so building again after a small change is quick. The finished
+# libraries are copied into tools/godot/custom, where tools/build-android.sh
+# picks them up. This only needs running again for a new Godot version or a change
 # to the profile.
 #
 # Everyday builds skip link time optimisation, which takes most of the time.
@@ -29,7 +28,9 @@ fi
 
 cd "$(dirname "$0")/.."
 VERSION=4.7.2
-WORK=/tmp/godot-build
+WORK="$PWD/build/godot"
+mkdir -p "$PWD/build"
+touch "$PWD/build/.gdignore"
 SOURCE="$WORK/godot"
 OUT=tools/godot/custom
 PROFILE="$PWD/tools/engine/profile.py"

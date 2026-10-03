@@ -2,12 +2,12 @@
 # Builds the Android network plugin (android-plugin, see its settings.gradle)
 # into addons/snapracers_net/bin, where the export picks it up. It uses the
 # Gradle from Godot's Android build template, which tools/build-android.sh
-# unpacks into /tmp, and builds in /tmp too. tools/build-android.sh runs this
+# unpacks into build/, and builds in build/ too. tools/build-android.sh runs this
 # by itself whenever the plugin's changed.
 set -euo pipefail
 
 cd "$(dirname "$0")/.."
-BUILD=/tmp/snapracers-build
+BUILD="$PWD/build"
 GRADLEW="$BUILD/android/build/gradlew"
 OUT=addons/snapracers_net/bin/snapracers-net.aar
 

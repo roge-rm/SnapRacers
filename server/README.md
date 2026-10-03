@@ -77,7 +77,7 @@ Then they're in the lists on the Settings page. On a Linux PC the game keeps you
 
 ## Running it without Docker
 
-On a Linux PC with this repo, `tools/build-server.sh --run` builds the server into `/tmp/snapracers-build/server` and starts it. Its settings go in `~/.snapracers-server/server.json`, and there's no admin page that way. `tools/run-server-test.sh` races one player joining like a phone and one like a web page on it.
+On a Linux PC with this repo, `tools/build-server.sh --run` builds the server into `build/server` and starts it. Its settings go in `~/.snapracers-server/server.json`, and there's no admin page that way. `tools/run-server-test.sh` races one player joining like a phone and one like a web page on it.
 
 ## How the admin page talks to the server
 

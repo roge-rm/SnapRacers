@@ -3,10 +3,10 @@ extends Node
 ## Takes a picture of the race screen with everything it can show at once: a
 ## lap time just done, a quick note, and the slowdown after a reset. Name the
 ## clock's place after the course: top, right or corner (see RaceHud.clock_at).
-## It needs a screen, and saves in /tmp/snapracers-build/shots.
+## It needs a screen, and saves in build/shots.
 ##   DISPLAY=:0 tools/godot/Godot_v4.7.2-stable_linux.x86_64 --path . res://tools/shots/hud_shots.tscn -- hairpin_hall top
 
-const OUT := "/tmp/snapracers-build/shots"
+const OUT := "res://build/shots"
 
 
 func frames(n: int) -> void:

@@ -2,10 +2,10 @@ extends SceneTree
 
 ## Takes a picture of every stock kart, bike and trike, from in front and a
 ## little to one side, and puts them all on one sheet with their names. Like
-## the other shots it needs a screen, and saves in /tmp/snapracers-build/shots.
+## the other shots it needs a screen, and saves in build/shots.
 ##   DISPLAY=:0 tools/godot/Godot_v4.7.2-stable_linux.x86_64 --path . -s tools/shots/stock_shots.gd
 
-const OUT := "/tmp/snapracers-build/shots"
+const OUT := "res://build/shots"
 const DIR := "res://data/karts/stock"
 const TILE := Vector2i(480, 340)
 ## Only these, bigger, when named after --.

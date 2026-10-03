@@ -4,7 +4,7 @@ extends Node
 ## looks without a phone. There's the pack of eight after the start, the whole
 ## course from above, a kart riding a curb, a kart run wide onto the grass and
 ## the tire stacks. It needs a screen, so it runs on the computer's own display
-## (not headless), and it saves them in /tmp/snapracers-build/shots.
+## (not headless), and it saves them in build/shots.
 ##   DISPLAY=:0 tools/godot/Godot_v4.7.2-stable_linux.x86_64 --path . res://tools/shots/course_shots.tscn -- peach_pit
 ## With "at" and a distance around the lap after the course, like
 ## -- windmill_ridge at 1083, it only takes two pictures of that spot, one
@@ -12,7 +12,7 @@ extends Node
 ## races for ten seconds as fast as it can and says how many frames a second
 ## it drew.
 
-const OUT := "/tmp/snapracers-build/shots"
+const OUT := "res://build/shots"
 
 var race: Race
 var which := "peach_pit"

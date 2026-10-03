@@ -230,7 +230,7 @@ tools/build-engine.sh --release   # the same, fully optimised, for a release (mu
 tools/build-android.sh            # the phone APK (arm64)
 tools/build-android.sh --install  # the emulator APK (x86_64), installed on the running emulator
 tools/build-engine.sh web         # our own cut down engine for the web page
-tools/build-web.sh                # the web page, in /tmp/snapracers-build/web
+tools/build-web.sh                # the web page, in build/web
 tools/build-web.sh --serve        # the same, served over HTTPS on port 8060 to try it
 tools/build-plugin.sh             # the Android network plugin (build-android.sh does this when it's needed)
 tools/build-server.sh --run       # the dedicated server, to run on this PC (Docker's in server/)
@@ -244,7 +244,7 @@ The web page is built without threads so it runs on any web host. Its engine nee
 
 `tools/build-engine.sh` builds Godot from source with only what the game uses (the list is in `tools/engine/profile.py`), which makes the APK a lot smaller. It needs the Android NDK version Godot asks for and `uv` for installing scons. The finished engine goes in `tools/godot/custom` and the Android build puts it into the APK. Without it, the build uses the stock engine.
 
-The heavy parts of the builds happen in `/tmp`, because my `/home` is on a slow hard drive. The engine keeps a compile cache there too. `/tmp` is emptied on a reboot, but the finished engine is kept, so it only needs building again for a new Godot or a change to the list.
+Everything the builds make goes in `build/`, which git ignores. The engine keeps a compile cache there too, and the finished engine is kept in `tools/godot/custom`, so it only needs building again for a new Godot or a change to the list.
 
 | | |
 |---|---|

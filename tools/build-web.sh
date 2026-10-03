@@ -5,10 +5,10 @@
 # GitLab Pages can't).
 #
 # It uses our own cut down engine for the web (tools/build-engine.sh web),
-# building it first if it isn't there. Everything goes in /tmp, like the
+# building it first if it isn't there. It goes in build/, like the
 # Android builds.
 #
-#   tools/build-web.sh            the page, in /tmp/snapracers-build/web
+#   tools/build-web.sh            the page, in build/web
 #   tools/build-web.sh --serve    and serve it over HTTPS on port 8060 to try it
 #                                 on other devices (see tools/serve_web.py)
 #   tools/build-web.sh --publish  and put it on my site at /play/snapracers
@@ -19,7 +19,9 @@ cd "$(dirname "$0")/.."
 VERSION=4.7.2
 GODOT="tools/godot/Godot_v${VERSION}-stable_linux.x86_64"
 ENGINE=tools/godot/custom/web/web_nothreads_release.zip
-OUT=/tmp/snapracers-build/web
+OUT="$PWD/build/web"
+mkdir -p "$PWD/build"
+touch "$PWD/build/.gdignore"
 SITE="$HOME/Projects/fdroid"
 
 if [ ! -f "$ENGINE" ]; then

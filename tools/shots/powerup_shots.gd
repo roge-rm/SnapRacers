@@ -2,10 +2,10 @@ extends Node
 
 ## Takes pictures of the newer power-ups in a race on Peach Pit: a tow rope
 ## onto the kart ahead, a brick wall, marbles and a spike trap behind, and a
-## shockwave. It needs a screen, and saves in /tmp/snapracers-build/shots.
+## shockwave. It needs a screen, and saves in build/shots.
 ##   DISPLAY=:0 tools/godot/Godot_v4.7.2-stable_linux.x86_64 --path . res://tools/shots/powerup_shots.tscn
 
-const OUT := "/tmp/snapracers-build/shots"
+const OUT := "res://build/shots"
 
 var race: Race
 var camera: Camera3D

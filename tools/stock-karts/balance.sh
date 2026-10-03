@@ -12,7 +12,7 @@ set -euo pipefail
 cd "$(dirname "$0")/../.."
 GODOT="tools/godot/Godot_v4.7.2-stable_linux.x86_64"
 JOBS="${JOBS:-8}"
-OUT=/tmp/snapracers-build/balance
+OUT="$PWD/build/balance"
 mkdir -p "$OUT"
 rm -f "$OUT"/part_*.json "$OUT"/log_*.txt
 

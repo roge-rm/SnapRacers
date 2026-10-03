@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# Builds the debug APK. Everything heavy happens in /tmp, which is a RAM disk
-# on my build machine, because /home is on a slow hard drive. /tmp is emptied
-# on a reboot, so this puts the Android build template back when it's missing.
+# Builds the debug APK. Everything goes in build/, which Godot and git both
+# leave alone, and this puts the Android build template back there when it's
+# missing.
 #
 # Phones and the emulator get separate APKs, each with only the engine they
 # need, since the engine is most of the size. They're about 19 MB for phones
@@ -15,7 +15,7 @@ cd "$(dirname "$0")/.."
 VERSION=4.7.2
 GODOT="tools/godot/Godot_v${VERSION}-stable_linux.x86_64"
 TEMPLATES="tools/godot/editor_data/export_templates/${VERSION}.stable"
-BUILD=/tmp/snapracers-build
+BUILD="$PWD/build"
 PRESET="Android"
 APK="$BUILD/snapracers-debug.apk"
 if [ "${1:-}" = "--install" ]; then
@@ -29,6 +29,9 @@ if [ ! -x "$GODOT" ] || [ ! -f "$TEMPLATES/android_source.zip" ]; then
 	echo "Godot $VERSION or its export templates aren't in tools/godot. See README.md." >&2
 	exit 1
 fi
+
+mkdir -p "$BUILD"
+touch "$BUILD/.gdignore"
 
 if [ ! -f "$BUILD/android/.build_version" ]; then
 	echo "Unpacking the Android build template into $BUILD/android"

@@ -3,10 +3,10 @@ extends Node
 ## Takes a picture of the first row of power-up boxes on a course, from the
 ## driver's seat a little way back, and a close up. Name the look after the
 ## course: crate, stud or bag (see PowerupLook). It needs a screen, and saves
-## in /tmp/snapracers-build/shots.
+## in build/shots.
 ##   DISPLAY=:0 tools/godot/Godot_v4.7.2-stable_linux.x86_64 --path . res://tools/shots/box_shots.tscn -- peach_pit crate
 
-const OUT := "/tmp/snapracers-build/shots"
+const OUT := "res://build/shots"
 
 
 func frames(n: int) -> void:
