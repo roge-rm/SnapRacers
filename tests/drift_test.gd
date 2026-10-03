@@ -103,6 +103,8 @@ class Runner:
 				holder.controls.steer = 0.0
 			200:
 				check(not holder.sliding, "straightening up ends it")
+				check(holder.boost_left > 0.0 and holder.boost_left <= Kart.slide_boost_most, "with a little turbo for holding it (%.2f s left)" % holder.boost_left)
+				check(slider.boost_left == 0.0, "but not for a slide let go of before it was held")
 				check(tail_out(slider) < 8.0, "let go and steered straight, it grips again (%.0f degrees)" % tail_out(slider))
 				check(slider.global_basis.y.y > 0.9, "the right way up")
 				_touch()

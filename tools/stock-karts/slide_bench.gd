@@ -24,11 +24,16 @@ func _ready() -> void:
 	var args := OS.get_cmdline_user_args()
 	var bend := float(args[0]) if args.size() > 0 else 0.0
 	var time := float(args[1]) if args.size() > 1 else 0.45
-	# SLIDE_CORNER and SLIDE_SCRUB try other kinds of slide (see Kart).
+	# SLIDE_CORNER, SLIDE_SCRUB and SLIDE_BOOST try other kinds of slide (see
+	# Kart).
 	if OS.has_environment("SLIDE_CORNER"):
 		Kart.slide_corner = float(OS.get_environment("SLIDE_CORNER"))
 	if OS.has_environment("SLIDE_SCRUB"):
 		Kart.slide_scrub = float(OS.get_environment("SLIDE_SCRUB"))
+	if OS.has_environment("SLIDE_BOOST"):
+		Kart.slide_boost = float(OS.get_environment("SLIDE_BOOST"))
+	if OS.has_environment("SLIDE_BOOST_MOST"):
+		Kart.slide_boost_most = float(OS.get_environment("SLIDE_BOOST_MOST"))
 	if OS.has_environment("SLIDE_PLAN"):
 		AIDriver.slide_plan = float(OS.get_environment("SLIDE_PLAN"))
 	var kart: String = args[2] if args.size() > 2 else "starter"
@@ -42,7 +47,7 @@ func _ready() -> void:
 		total += result[0]
 		slides += result[2]
 		print("%-16s %.2f s, %d resets, %d slides" % [course, result[0], result[1], result[2]])
-	print("TOTAL bend %.3f kick %.2f %s, corner %.2f scrub %.2f plan %.2f: %.2f s, %d slides" % [bend, time, kart, Kart.slide_corner, Kart.slide_scrub, AIDriver.slide_plan, total, slides])
+	print("TOTAL bend %.3f kick %.2f %s, corner %.2f scrub %.2f plan %.2f boost %.2f most %.2f: %.2f s, %d slides" % [bend, time, kart, Kart.slide_corner, Kart.slide_scrub, AIDriver.slide_plan, Kart.slide_boost, Kart.slide_boost_most, total, slides])
 	get_tree().quit()
 
 

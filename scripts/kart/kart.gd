@@ -95,6 +95,12 @@ const SLIDE_CARRY := 10.0
 ## Once it's going, a slide keeps going down to this speed.
 const SLIDE_KEEP_SPEED := 4.0
 static var slide_brake := 1.0
+## A slide held on the gas at least SLIDE_BOOST_AFTER seconds and finished
+## by straightening up gives a turbo of slide_boost seconds for each second
+## held, up to slide_boost_most.
+const SLIDE_BOOST_AFTER := 0.5
+static var slide_boost := 1.5
+static var slide_boost_most := 1.0
 const RESET_SLOWDOWN_TIME := 2.5
 const RESET_SLOWDOWN := 0.5
 
@@ -341,6 +347,8 @@ var slide_way := 0.0
 var slide_amount := 0.0
 var _slide_straight := 0.0
 var _slide_speed := 0.0
+## How long the slide's been held on the gas, past the kick.
+var _slide_held := 0.0
 var _last_flat_velocity := Vector3.ZERO
 var _repair_asked := false
 var _gadget_held: Array[bool] = [false, false]
@@ -1125,12 +1133,20 @@ func _update_slide(dt: float) -> void:
 			slide_way = signf(controls.steer)
 			_slide_straight = 0.0
 			_slide_speed = forward_speed
+			_slide_held = 0.0
 	elif not can or controls.throttle < 0.5:
 		sliding = false
 	else:
 		_slide_straight = _slide_straight + dt if into < 0.15 else 0.0
+		if controls.brake <= 0.5:
+			_slide_held += dt
 		if _slide_straight > SLIDE_LET_GO:
 			sliding = false
+			# Straightening up out of a slide held long enough, on the gas
+			# the whole way, gives a little turbo, more the longer it was held.
+			if _slide_held >= SLIDE_BOOST_AFTER:
+				boost_left = maxf(boost_left, minf(_slide_held * slide_boost, slide_boost_most))
+				Sounds.play_at.call_deferred("fx/turbo", sound, -8.0)
 	slide_kick = sliding and controls.brake > 0.5
 	# The kick loses speed, which the held slide starts from.
 	if slide_kick:

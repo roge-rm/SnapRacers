@@ -30,11 +30,11 @@ var slides := false
 ## How tight a bend has to be to slide round it (its curvature, one over its
 ## radius), and how long it kicks the brake to start the slide, tuned with
 ## tools/stock-karts/slide_bench.gd. It plans to take a bend it'll slide this
-## much faster than it could grip round it. So far it still loses time over a
-## lap sliding (it runs wide out of some hairpins), so it's set past any real
-## bend and nobody slides yet.
-static var slide_bend := 99.0
-static var slide_time := 0.15
+## much faster than it could grip round it. With the turbo at the end of a
+## slide it comes out about even with braking: a little quicker on some
+## courses, a little slower on Hairpin Hall, where it runs wide.
+static var slide_bend := 0.06
+static var slide_time := 0.25
 static var slide_plan := 1.15
 var _slide_left := 0.0
 var _slid_this_bend := false

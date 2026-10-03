@@ -169,7 +169,7 @@ There's a crowd. Little brick figures fill the grandstands and stand along the f
 - **Practice:** drive any course on your own for as long as you like.
 - **Two players on one phone:** side by side in landscape, or face to face in portrait with the phone flat between you. Each player picks a kart and gives their name in turn, and one map sits on the line between the halves.
 - **Six camera views:** close and far chase, first person from your driver's eyes, a bumper cam, overhead and TV cameras beside the track. Hold look back to see who's coming. After the finish the camera circles your kart and the AI drives you home.
-- **Sliding:** while steering, hold the gas and brake together, or slide your thumb from GO down onto the brake and back up, to kick the tail out. Keep the gas on and keep steering into the bend and the slide holds, with the tail out further the harder you steer. Straighten up or let go of the gas and it grips again. A held slide keeps its speed around a hairpin better than braking for it, but the longer you hold it the more it scrubs off.
+- **Sliding:** while steering, hold the gas and brake together, or slide your thumb from GO down onto the brake and back up, to kick the tail out. Keep the gas on and keep steering into the bend and the slide holds, with the tail out further the harder you steer. Straighten up or let go of the gas and it grips again. A held slide keeps its speed around a hairpin better than braking for it, but the longer you hold it the more it scrubs off. Hold it at least half a second and straighten up out of it with the gas still on and you get a little turbo, longer the longer you held it. Expert drivers slide too.
 - **A menu in races,** from the button in the corner or Start on a controller. In a race on your own it pauses everything, and in split screen each player has their own while the race carries on.
 - **Four AI levels,** picked before a race or a cup. Easy drivers take it gently, slip up now and then and wait for you. Expert drivers are right on the limit. Trophies are kept for each level.
 
@@ -275,7 +275,7 @@ They check things like:
 - every power-up does what it says, the boxes hand them out and the karts at the back get the strong ones more often (`gadget_test`)
 - a faster kart gets past one it's racing wheel to wheel, instead of their wheels hooking together (`wheels_test`)
 - the AI steers round a brick wall across its line, and resets when it loses a wheel (`ai_wall_test`)
-- gas and brake together slide the kart around a bend tighter than steering alone, a slide held on the gas keeps going with the tail out steadily without spinning, and it grips again once you straighten up (`drift_test`)
+- gas and brake together slide the kart around a bend tighter than steering alone, a slide held on the gas keeps going with the tail out steadily without spinning, and it grips again once you straighten up with a little turbo for holding it (`drift_test`)
 - drivers hold the steering wheel, and every hat, hairdo, beard and back piece is joined on without poking through anything (`character_test`)
 - the garage, the menus and every mode, including a whole Grand Prix and two players on one phone (`garage_test`, `menu_test`, `modes_test`, `split_test`)
 - the track editor used the way a player would, and what stops a course being raced (`editor_test`, `course_test`)
