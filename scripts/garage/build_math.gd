@@ -114,8 +114,8 @@ static func nearest_spot(design: KartDesign, id: String, at: Vector3i, rot: int)
 ## The same for a part turned by `basis`, any way up. `known` remembers
 ## which cells work, so a finger dragging it along only has to try the new
 ## ones. Pass the same one only while the kart, the part and how it's turned
-## stay the same.
-static func nearest_cell(design: KartDesign, id: String, at: Vector3i, basis: Basis, known := {}) -> Vector3i:
+## stay the same. With `loose`, anywhere it fits will do, joined on or not.
+static func nearest_cell(design: KartDesign, id: String, at: Vector3i, basis: Basis, known := {}, loose := false) -> Vector3i:
 	var near: KartDesign = null
 	for offset in _nearest_first():
 		var spot := at + offset
@@ -129,7 +129,7 @@ static func nearest_cell(design: KartDesign, id: String, at: Vector3i, basis: Ba
 				if near.parts.is_empty() and not design.parts.is_empty():
 					return at
 			var place := KartDesign.box_place(id, basis, spot)
-			known[spot] = near.fits_place(id, place) and near.attaches_place(id, place)
+			known[spot] = near.fits_place(id, place) and (loose or near.attaches_place(id, place))
 		if known[spot]:
 			return spot
 	return at

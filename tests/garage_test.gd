@@ -113,6 +113,7 @@ func _ready() -> void:
 	await _controller(parts)
 	await _camera()
 	await _camera_hole()
+	await _loose_and_new(parts)
 	garage.ui.drive_pressed.emit()
 	await frames(6)
 	check(host.get_child(host.get_child_count() - 1) is TestDrive, "drive takes the kart out to the track")
@@ -147,6 +148,35 @@ func _bank() -> void:
 	var extras: Array = garage.ui.find_children("*", "Button", true, false).filter(func(b): return b is GarageUI.PartTile).map(func(b): return b.id)
 	check(extras.has("steering_wheel") and extras.has("s_seat"), "extras have the seat and the steering wheel %s" % [extras])
 	garage.ui._show_category(1)
+
+
+## A part goes anywhere it fits, joined on or not, but the kart can't go out
+## until everything's joined. A new kart starts empty with the base plate in
+## hand.
+func _loose_and_new(parts: int) -> void:
+	var away := Vector3i(0, 0, 0)
+	garage.start_placing("brick_2x2", Basis.IDENTITY, null, away)
+	check(garage._ghost_ok, "a part off on its own can be put down")
+	garage.place()
+	garage.cancel()
+	check(count("brick_2x2", away) == 1, "and it's there")
+	check(garage.design.problems().has("Some parts aren't attached to the rest."), "but the kart has to be joined up before it can race")
+	garage.ui.drive_pressed.emit()
+	await frames(3)
+	check(host.get_child(host.get_child_count() - 1) == garage, "so Drive doesn't take it out")
+	garage.undo()
+	check(garage.design.parts.size() == parts and garage.design.problems().is_empty(), "undo takes it away again")
+
+	garage.ui.new_pressed.emit()
+	await frames(2)
+	check(garage.design.parts.is_empty(), "a new kart starts empty")
+	check(garage._holding == Garage.BASE_PART and garage._ghost_ok, "with the base plate in hand, ready to put down")
+	garage.place()
+	garage.cancel()
+	check(garage.design.parts.size() == 1, "and it goes down")
+	garage.undo()
+	garage.undo()
+	check(garage.design.parts.size() == parts, "undo goes back to the kart before")
 
 
 func _placing(parts: int) -> void:

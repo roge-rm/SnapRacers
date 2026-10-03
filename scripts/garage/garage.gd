@@ -33,6 +33,10 @@ const DOT_COLOURS := {
 const MIN_DISTANCE := 2.0
 const MAX_DISTANCE := 16.0
 const UNDO_LIMIT := 100
+## What a new kart starts with in hand, and the kart whose base plate it
+## lines up with.
+const BASE_PART := "p_plate_6x10"
+const STARTER := "res://data/karts/stock/starter.json"
 const VIEWS := {
 	"front": [180.0, -14.0],
 	"side": [90.0, -14.0],
@@ -307,7 +311,7 @@ func turn() -> void:
 		if KartDesign.is_wheel(p.id):
 			return
 		var place := _turned_in_place(p.id, KartDesign.place_of(p), Grid.yaw(1))
-		if design.fits_place(p.id, place, _selected) and design.attaches_place(p.id, place, _selected):
+		if design.fits_place(p.id, place, _selected):
 			_remember()
 			design.parts[_selected] = KartDesign.placed_entry(p.id, place, p.get("color"))
 			_rebuild()
@@ -382,7 +386,7 @@ func place() -> void:
 	if mirror and _moving.is_empty():
 		var twin := mirrored(entry)
 		var twin_place := KartDesign.place_of(twin)
-		if not twin_place.is_equal_approx(_ghost_place) and design.fits_place(twin.id, twin_place) and design.attaches_place(twin.id, twin_place):
+		if not twin_place.is_equal_approx(_ghost_place) and design.fits_place(twin.id, twin_place):
 			design.parts.append(twin)
 	if not _moving.is_empty():
 		# A part that was being moved is done, so pick it out where it landed.
@@ -440,7 +444,7 @@ func copy_selected() -> void:
 	var spot := from
 	for offset in [Vector3(size.x, 0, 0), Vector3(-size.x, 0, 0), Vector3(0, 0, size.z), Vector3(0, 0, -size.z), Vector3(0, size.y, 0)]:
 		var place := Transform3D(from.basis, from.origin + offset)
-		if design.fits_place(p.id, place) and design.attaches_place(p.id, place):
+		if design.fits_place(p.id, place):
 			spot = place
 			break
 	start_placing(p.id, from.basis, p.get("color"), spot)
@@ -517,6 +521,8 @@ func select(index: int) -> void:
 		_refresh_ui()
 
 
+## A new kart starts empty, with the base plate in hand where the Starter
+## has its own, high enough for wheels underneath.
 func _new_kart() -> void:
 	_remember()
 	_stop_placing()
@@ -525,6 +531,12 @@ func _new_kart() -> void:
 	_selected = -1
 	_rebuild()
 	show_view("fit")
+	var at := KartDesign.box_place(BASE_PART, Basis.IDENTITY, Vector3i.ZERO)
+	for p in KartDesign.load_file(STARTER).parts:
+		if p.id == BASE_PART:
+			at = KartDesign.place_of(p)
+			break
+	start_placing(BASE_PART, at.basis, null, at)
 
 
 func _save() -> void:
@@ -695,7 +707,7 @@ func _aim_ghost(screen_pos: Vector2) -> void:
 	if _last_aim.is_empty() or _last_aim[0] != aim:
 		if _last_aim.is_empty() or _last_aim[0][0] != _holding or _last_aim[0][2] != basis:
 			_known_cells = {}
-		_last_aim = [aim, BuildMath.nearest_cell(design, _holding, at, basis, _known_cells)]
+		_last_aim = [aim, BuildMath.nearest_cell(design, _holding, at, basis, _known_cells, true)]
 	var place := _clamped(_holding, KartDesign.box_place(_holding, basis, _last_aim[1]))
 	if place == _ghost_place and _spot.is_empty() and _way.is_empty():
 		return
@@ -748,7 +760,9 @@ func _show_ghost() -> void:
 		_refresh_ui()
 		return
 	_make_ghosts()
-	_ghost_ok = design.fits_place(_holding, _ghost_place) and design.attaches_place(_holding, _ghost_place)
+	# It can go anywhere it fits. Parts not joined on are one of the things
+	# to fix before the kart can race.
+	_ghost_ok = design.fits_place(_holding, _ghost_place)
 	_ghost.position = _world_centre(_holding, _ghost_place)
 	_ghost.visible = true
 	PartVisuals.set_ghost(_ghost, _ghost_ok)
