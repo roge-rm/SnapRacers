@@ -815,7 +815,7 @@ func _load_button(text: String, path: String) -> Button:
 ## A part in the drawer: its picture and name. Tap it to get it on the kart,
 ## or drag it sideways out onto the kart. Dragging up or down scrolls instead.
 class PartTile:
-	extends Button
+	extends ScrollButton
 
 	signal chosen
 	signal dragged(finger: int)
@@ -823,11 +823,14 @@ class PartTile:
 	const DRAG_START := 22.0
 
 	var id := ""
-	var _press := Vector2.ZERO
+	var _down := Vector2.ZERO
 	var _pressing := false
 	var _dragged := false
 
 	func _init(part_id: String, label: String) -> void:
+		# ScrollButton's own set up (the tap, and letting drags scroll the
+		# list) only happens if it's asked for.
+		super()
 		id = part_id
 		text = label
 		icon = PartThumbnails.picture(part_id)
@@ -840,28 +843,29 @@ class PartTile:
 		add_theme_font_size_override("font_size", 14)
 		for state in ["normal", "hover", "pressed"]:
 			add_theme_stylebox_override(state, BuilderStyle.tile_box(state))
-		pressed.connect(func() -> void:
+		tapped.connect(func() -> void:
 			if not _dragged:
 				chosen.emit())
 
 	func _gui_input(event: InputEvent) -> void:
+		super(event)
 		if event is InputEventScreenTouch:
 			_pressing = event.pressed
 			if event.pressed:
-				_press = event.position
+				_down = event.position
 				_dragged = false
 		elif event is InputEventScreenDrag and _pressing and not _dragged:
-			var moved: Vector2 = event.position - _press
+			var moved: Vector2 = event.position - _down
 			if moved.length() > DRAG_START and absf(moved.x) > absf(moved.y):
 				_dragged = true
 				dragged.emit(event.index)
 		elif event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and not DisplayServer.is_touchscreen_available():
 			_pressing = event.pressed
 			if event.pressed:
-				_press = event.position
+				_down = event.position
 				_dragged = false
 		elif event is InputEventMouseMotion and _pressing and not _dragged and not DisplayServer.is_touchscreen_available():
-			var moved: Vector2 = event.position - _press
+			var moved: Vector2 = event.position - _down
 			if moved.length() > DRAG_START and absf(moved.x) > absf(moved.y):
 				_dragged = true
 				dragged.emit(-1)

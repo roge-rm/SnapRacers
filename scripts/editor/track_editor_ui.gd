@@ -373,7 +373,7 @@ func _show_category(index: int) -> void:
 			tile.add_child(picture)
 			picture.set_anchors_and_offsets_preset(PRESET_FULL_RECT)
 			picture.offset_bottom = -26.0
-			tile.pressed.connect(func() -> void: piece_chosen.emit(spec.duplicate()))
+			tile.tapped.connect(func() -> void: piece_chosen.emit(spec.duplicate()))
 			_tiles.add_child(tile)
 	else:
 		_heading.text = "LANDMARKS"
@@ -383,12 +383,12 @@ func _show_category(index: int) -> void:
 			var tile := _tile(entry[0])
 			tile.set_meta("prop", prop)
 			tile.icon = LandmarkThumbnails.picture(prop)
-			tile.pressed.connect(func() -> void: landmark_chosen.emit(prop))
+			tile.tapped.connect(func() -> void: landmark_chosen.emit(prop))
 			_tiles.add_child(tile)
 
 
-func _tile(label: String) -> Button:
-	var tile := Button.new()
+func _tile(label: String) -> ScrollButton:
+	var tile := ScrollButton.new()
 	tile.text = label
 	tile.focus_mode = FOCUS_ALL
 	tile.custom_minimum_size = BuilderStyle.TILE

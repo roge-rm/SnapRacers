@@ -143,6 +143,25 @@ func _bank() -> void:
 		names[PartCatalog.get_part(id).name] = names.get(PartCatalog.get_part(id).name, 0) + 1
 	var twice := names.keys().filter(func(n): return names[n] > 1)
 	check(twice.is_empty(), "and no two parts in it have the same name %s" % [twice])
+	# A finger dragging up through a part is scrolling, so letting go doesn't
+	# pick it. A tap does.
+	var tile: GarageUI.PartTile = garage.ui.find_children("*", "Button", true, false).filter(func(b): return b is GarageUI.PartTile and not b.is_queued_for_deletion())[0]
+	var picked := []
+	tile.chosen.connect(func() -> void: picked.append(tile.id))
+	var down := InputEventScreenTouch.new()
+	down.pressed = true
+	down.position = Vector2(50, 50)
+	tile._gui_input(down)
+	var drag := InputEventScreenDrag.new()
+	drag.position = Vector2(54, -60)
+	drag.relative = Vector2(4, -110)
+	tile._gui_input(drag)
+	tile.pressed.emit()
+	check(picked.is_empty() and garage._mode != GarageUI.Mode.PLACING, "dragging up through a part in the bank doesn't pick it")
+	tile._gui_input(down)
+	tile.pressed.emit()
+	check(picked == [tile.id], "and a tap does")
+	garage.cancel()
 	garage.ui._show_category(6)
 	await frames(1)
 	var extras: Array = garage.ui.find_children("*", "Button", true, false).filter(func(b): return b is GarageUI.PartTile).map(func(b): return b.id)
