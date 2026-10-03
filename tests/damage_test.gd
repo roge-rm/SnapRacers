@@ -95,14 +95,20 @@ class Runner:
 			335:
 				check(gentle.wheels.size() == 3, "losing a wheel leaves three")
 			410:
-				# Power-up hits knock bodywork off, never what it needs to
-				# drive. A bike has no bodywork, so nothing comes off it.
+				# Power-up hits mostly knock bodywork off. Now and then one
+				# takes a wheel or the steering, on a bike as much as a kart.
+				Kart.wheel_knock_chance = 0.0
 				for kart in shot:
 					var wheels := kart.wheels.size()
 					for n in 4:
 						kart.knock_off_a_part()
 					var gone: Array = kart.lost.keys().map(func(i): return kart.design.parts[i].id)
-					check((not gone.is_empty() or kart.design.name == "Dirt Bike") and kart.wheels.size() == wheels and kart.stats.steering != null, "four power-up hits on the %s leave its wheels and steering (lost %s)" % [kart.design.name, gone])
+					check((not gone.is_empty() or kart.design.name == "Dirt Bike") and kart.wheels.size() == wheels and kart.stats.steering != null, "most power-up hits on the %s leave its wheels and steering (lost %s)" % [kart.design.name, gone])
+				Kart.wheel_knock_chance = 1.0
+				var bike: Kart = shot[1]
+				bike.knock_off_a_part()
+				check(bike.wheels.size() < 2 or bike.stats.steering == null, "but an unlucky one can take a wheel off a bike (lost %s)" % [bike.lost.keys().map(func(i): return bike.design.parts[i].id)])
+				Kart.wheel_knock_chance = 0.2
 			420:
 				var tilt := rad_to_deg(gentle.global_basis.y.angle_to(Vector3.UP))
 				check(tilt > 3.0, "and the kart sags onto that corner (%.1f degrees)" % tilt)

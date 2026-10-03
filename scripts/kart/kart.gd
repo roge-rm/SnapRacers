@@ -155,6 +155,9 @@ const SOFT_KNOCK := 0.35
 ## touches the ground when the suspension is squashed hard, like a bump stop,
 ## but it still catches walls from the side.
 const WHEEL_BODY := 0.55
+## How likely a power-up hit is to take a wheel or the steering, instead of
+## only bodywork (see knock_off_a_part()). Tests set it.
+static var wheel_knock_chance := 0.2
 ## Karts' wheels slide off each other instead of hooking together (see
 ## _keep_wheels_apart()). Other karts this close, middle to middle, are
 ## looked at, and wheels this much further apart than touching already
@@ -1596,20 +1599,22 @@ func rammed_with(point: Vector3) -> bool:
 
 
 ## When a fired brick hits, one part comes off, working from the outside in,
-## unless a shield is up. It's never a wheel or the steering, or anything
-## holding them on, which would leave the kart unable to drive until it's
-## reset.
+## unless a shield is up. Mostly it's bodywork, but now and then (see
+## wheel_knock_chance) it can be a wheel or the steering, which leaves the
+## kart limping until it's reset or repaired. Karts, bikes and trikes all take
+## the same chance, so a bike with no bodywork mostly loses nothing.
 func knock_off_a_part() -> void:
 	if shield_left > 0.0 or stats == null:
 		return
 	Sounds.play_at("fx/hit", sound)
+	var anything := randf() < wheel_knock_chance
 	var outermost := -1
 	var furthest := -1.0
 	for info in stats.parts:
-		if info.def.kind in ["seat", "plate"] or _needed_to_drive(info.index):
+		if info.def.kind in ["seat", "plate"] or (not anything and _needed_to_drive(info.index)):
 			continue
 		var reach := (info.centre - center_of_mass).length()
-		if reach > furthest and not _takes_with_it_what_drives(info.index):
+		if reach > furthest and (anything or not _takes_with_it_what_drives(info.index)):
 			furthest = reach
 			outermost = info.index
 	if outermost != -1:
