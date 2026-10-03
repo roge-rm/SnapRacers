@@ -155,6 +155,17 @@ const SOFT_KNOCK := 0.35
 ## touches the ground when the suspension is squashed hard, like a bump stop,
 ## but it still catches walls from the side.
 const WHEEL_BODY := 0.55
+## Karts' wheels slide off each other instead of hooking together (see
+## _keep_wheels_apart()). Other karts this close, middle to middle, are
+## looked at, and wheels this much further apart than touching already
+## count. Overlapping more than this share of the way across, they're nose
+## to tail and just bump. The push is in metres a second squared for each
+## metre of overlap, with a damping on how fast they're closing.
+const WHEELS_NEAR := 6.0
+const WHEEL_ROOM := 0.12
+const WHEEL_SQUARE := 0.7
+const WHEEL_PUSH := 60.0
+const WHEEL_PUSH_DAMP := 4.0
 ## On loops and wall rides the road is sticky. With two wheels on it and going
 ## at least this fast, gravity pulls you toward the road instead of down. Any
 ## slower and you drop off. Hanging upside down near the top of a loop takes
@@ -566,12 +577,10 @@ func _assemble() -> void:
 			_looks.add_child(w.visual)
 			wheels.append(w)
 			var body := CollisionShape3D.new()
-			var cylinder := CylinderShape3D.new()
-			cylinder.radius = w.radius * WHEEL_BODY
-			cylinder.height = w.width
-			body.shape = cylinder
+			var ball := SphereShape3D.new()
+			ball.radius = w.radius * WHEEL_BODY
+			body.shape = ball
 			body.position = info.centre
-			body.rotation.z = PI * 0.5
 			add_child(body)
 			continue
 		_add_bodies(info)
@@ -669,6 +678,48 @@ func bumper_point() -> Vector3:
 		for info in stats.parts:
 			front = minf(front, info.centre.z - info.extent.z * 0.5)
 	return Vector3(0.0, 0.3, front - 0.05)
+
+
+## Pushes the kart sideways away from any other kart whose wheels are about
+## to meet its own while they're only partly side by side, which is how
+## wheels hook together. The push grows the further they overlap, so the
+## wheels slide past each other instead. Two karts squarely nose to tail are
+## left to bump. Each kart only moves itself, so it works online too.
+## Returns the force.
+func _keep_wheels_apart(state: PhysicsDirectBodyState3D) -> Vector3:
+	if remote or ghost_left > 0.0 or wheels.is_empty():
+		return Vector3.ZERO
+	var me := state.transform
+	var right := me.basis.x.normalized()
+	var forward := -me.basis.z.normalized()
+	var push := 0.0
+	for other in get_tree().get_nodes_in_group("karts"):
+		if other == self or not is_instance_valid(other) or other.ghost_left > 0.0 or other.wheels.is_empty():
+			continue
+		var apart: Vector3 = other.global_position - me.origin
+		if apart.length_squared() > WHEELS_NEAR * WHEELS_NEAR:
+			continue
+		for mine in wheels:
+			var at: Vector3 = me * mine.rest
+			for theirs in other.wheels:
+				var gap: Vector3 = other.global_transform * theirs.rest - at
+				var along := absf(gap.dot(forward))
+				var across := gap.dot(right)
+				var reach: float = (mine.width + theirs.width) * 0.5 + WHEEL_ROOM
+				if along > mine.radius + theirs.radius + WHEEL_ROOM or absf(across) > reach:
+					continue
+				# Squarely behind each other, it's a bump, not a hook.
+				var overlap := reach - absf(across)
+				if overlap > reach * WHEEL_SQUARE:
+					continue
+				push -= signf(across) * overlap
+	if push == 0.0:
+		return Vector3.ZERO
+	# Firmer the further in, and steadied by how fast they're closing.
+	var closing := state.linear_velocity.dot(right) * signf(push)
+	var force := right * (push * WHEEL_PUSH - minf(closing, 0.0) * WHEEL_PUSH_DAMP * signf(push)) * mass
+	state.apply_central_force(force)
+	return force
 
 
 ## How wide the kart is, in metres, wheels and all.
@@ -1025,6 +1076,8 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 	# the way into a loop.
 	if upright > 0.0:
 		_hold_upright(state, ground_up)
+
+	applied += _keep_wheels_apart(state)
 
 	# Air drag from everything facing forward, and downforce from any wings.
 	var air := 0.5 * KartStats.AIR_DENSITY

@@ -72,13 +72,47 @@ func _ready() -> void:
 		racer.kart.was_reset.connect(func() -> void:
 			resets[racer.name] += 1
 			if OS.has_environment("RACE_DEBUG"):
-				print("RESET %s (%s) at %.0f m (piece %d %s) speed %.1f" % [racer.name, racer.kart.design.name, racer.offset, race.track.piece_of[race.track._index_before(racer.offset)], race.track.pieces[race.track.piece_of[race.track._index_before(racer.offset)]].type, racer.kart.linear_velocity.length()]))
+				print("RESET %s (%s) at %.0f m (piece %d %s) speed %.1f, %s" % [racer.name, racer.kart.design.name, racer.offset, race.track.piece_of[race.track._index_before(racer.offset)], race.track.pieces[race.track.piece_of[race.track._index_before(racer.offset)]].type, racer.kart.linear_velocity.length(), _last_touch.get(racer, "")]))
 	print("%s, %.0f m a lap, %d karts" % [race.track.name, race.track.length, race.racers.size()])
+
+
+var _last_touch := {}
+
+
+## What a kart that's been reset was up against, for RACE_DEBUG: how far
+## across the road it was, the nearest kart, and what it was touching.
+func _stuck_on(racer) -> String:
+	var kart: Kart = racer.kart
+	var across := (kart.global_position - race.track.point_at(racer.offset)).dot(race.track.right_at(racer.offset))
+	var nearest := INF
+	for other in race.racers:
+		if other != racer:
+			nearest = minf(nearest, other.kart.global_position.distance_to(kart.global_position))
+	var touching := []
+	for body in kart.get_colliding_bodies():
+		var what := "kart" if body is Kart else str(body.get_class())
+		if body.has_meta("trap"):
+			what = str(body.get_meta("trap"))
+		elif body.has_meta("breakable"):
+			what = "scenery"
+		elif body.has_meta("piece"):
+			what = "road"
+		elif not body is Kart:
+			var script = body.get_script()
+			var parent_script = body.get_parent().get_script() if body.get_parent() != null else null
+			what = (script.get_global_name() if script != null else what) + " in " + (str(parent_script.get_global_name()) if parent_script != null else str(body.get_parent().name))
+		touching.append(what)
+	return "%.1f m across, nearest kart %.1f m, touching %s" % [across, nearest, ", ".join(touching) if not touching.is_empty() else "nothing"]
 
 
 func _physics_process(delta: float) -> void:
 	if race == null:
 		return
+	# For RACE_DEBUG, what each kart was up against just before any reset.
+	if OS.has_environment("RACE_DEBUG") and Engine.get_physics_frames() % 10 == 0:
+		for racer in race.racers:
+			if racer.kart.linear_velocity.length() < 1.0:
+				_last_touch[racer] = _stuck_on(racer)
 	for racer in race.racers:
 		if racer.progress.lap_times.size() >= 1 and not first_lap.has(racer.name):
 			first_lap[racer.name] = racer.progress.lap_times[0]

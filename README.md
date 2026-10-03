@@ -273,6 +273,7 @@ They check things like:
 - a fast kart sticks to the loop all the way around and a slow one drops off (`loop_test`), and the same on a corkscrew (`corkscrew_test`)
 - bikes and trikes stay upright, lean into bends the right way and don't tip over in a hard turn (`bike_test`)
 - every power-up does what it says, the boxes hand them out and the karts at the back get the strong ones more often (`gadget_test`)
+- a faster kart gets past one it's racing wheel to wheel, instead of their wheels hooking together (`wheels_test`)
 - gas and brake together slide the kart around a bend tighter than steering alone, a slide held on the gas keeps going with the tail out steadily without spinning, and it grips again once you straighten up (`drift_test`)
 - drivers hold the steering wheel, and every hat, hairdo, beard and back piece is joined on without poking through anything (`character_test`)
 - the garage, the menus and every mode, including a whole Grand Prix and two players on one phone (`garage_test`, `menu_test`, `modes_test`, `split_test`)
