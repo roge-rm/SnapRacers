@@ -71,22 +71,22 @@ static func how(own: Dictionary, spot: Dictionary) -> String:
 ## centred over the spot you picked.
 static func ways(id: String, spot: Dictionary, keep: Basis, near: Vector3) -> Array:
 	var out := []
-	var wheel := KartDesign.is_wheel(id)
 	var middle := PartCatalog.fine_size(id) * 0.5
+	var turns := Grid.turns()
+	if KartDesign.is_wheel(id):
+		# Wheels keep their axles across the kart.
+		turns = turns.filter(func(turn: Basis) -> bool: return absf(turn.x.x) >= 0.99)
 	for own in Connectors.placed(id, Transform3D.IDENTITY):
 		if own.step % SPOT_EVERY != 0:
 			continue
 		var join := how(own, spot)
 		if join == "":
 			continue
-		for turn in Grid.turns():
+		for turn in turns:
 			var axis: Vector3 = turn * own.axis
 			if join == "facing" and axis.dot(spot.axis) > -0.99:
 				continue
 			if join == "along" and absf(axis.dot(spot.axis)) < 0.99:
-				continue
-			# Wheels keep their axles across the kart.
-			if wheel and absf(turn.x.x) < 0.99:
 				continue
 			var place := Transform3D(turn, spot.at - turn * own.at)
 			var off: Vector3 = place * middle - near
@@ -104,8 +104,14 @@ static func apart(a: Basis, b: Basis) -> float:
 ## The first of these ways on where the part fits, or the first of them
 ## anyway if it doesn't fit anywhere. Empty if there are none.
 static func best(design: KartDesign, id: String, choices: Array) -> Dictionary:
+	# Only the parts near one of the ways on can be in the way.
+	var area := AABB()
+	for i in choices.size():
+		var box := KartDesign.fine_box(id, choices[i].place)
+		area = box if i == 0 else area.merge(box)
+	var near := design.only_near(area.grow(0.1))
 	for way in choices:
-		if design.fits_place(id, way.place):
+		if near.fits_place(id, way.place):
 			way["fits"] = true
 			return way
 	if choices.is_empty():

@@ -31,6 +31,14 @@ var about := ""
 ## on the grid flat side down. Make entries with grid_entry() or
 ## placed_entry() so these agree.
 var parts: Array[Dictionary] = []
+## The connectors of parts on the kart, by where they've been put (see
+## _keyed_part).
+var _keyed_parts := {}
+## Where the parts are, the boxes they fill and the boxes around their
+## connectors, kept by a kart from only_near.
+var _places: Array[Transform3D] = []
+var _boxes: Array[AABB] = []
+var _connector_boxes: Array[AABB] = []
 
 
 static func from_dict(data: Dictionary) -> KartDesign:
@@ -250,8 +258,13 @@ func fits_place(id: String, place: Transform3D, ignore := -1) -> bool:
 	var area := AABB(Vector3.ZERO, Vector3(BUILD_SIZE) * Grid.UNIT_FINE)
 	if not area.grow(0.01).encloses(box):
 		return false
+	var kept := _kept()
 	for i in parts.size():
-		if i != ignore and clash(id, place, parts[i].id, place_of(parts[i])):
+		if i == ignore:
+			continue
+		var other := _places[i] if kept else place_of(parts[i])
+		var other_box := _boxes[i] if kept else fine_box(parts[i].id, other)
+		if box.intersects(other_box) and clash(id, place, parts[i].id, other):
 			return false
 	return true
 
@@ -259,16 +272,36 @@ func fits_place(id: String, place: Transform3D, ignore := -1) -> bool:
 ## Whether these two parts, where they've been put, hold onto each other.
 ## Each needs an "id" and a "place".
 static func joined(a: Dictionary, b: Dictionary) -> bool:
+	var place_a := place_of(a)
+	var place_b := place_of(b)
+	if not Connectors.near(a.id, place_a, b.id, place_b):
+		return false
+	return _meets(_keyed(a.id, place_a), _keyed(b.id, place_b))
+
+
+## The part's placed connectors, by Connectors.key_of.
+static func _keyed(id: String, place: Transform3D) -> Dictionary:
 	var spots := {}
-	for c in Connectors.placed(a.id, place_of(a)):
+	for c in Connectors.placed(id, place):
 		var key := Connectors.key_of(c.at)
 		if not spots.has(key):
 			spots[key] = []
 		spots[key].append(c)
-	for c in Connectors.placed(b.id, place_of(b)):
-		for other in spots.get(Connectors.key_of(c.at), []):
-			if Connectors.meet(c, other):
-				return true
+	return spots
+
+
+## Whether any of one part's keyed connectors join any of another's.
+static func _meets(a: Dictionary, b: Dictionary) -> bool:
+	if a.size() > b.size():
+		var swap := a
+		a = b
+		b = swap
+	for key in a:
+		if b.has(key):
+			for c in a[key]:
+				for other in b[key]:
+					if Connectors.meet(c, other):
+						return true
 	return false
 
 
@@ -279,15 +312,59 @@ func attaches(id: String, at: Vector3i, rot: int, ignore := -1) -> bool:
 
 
 func attaches_place(id: String, place: Transform3D, ignore := -1) -> bool:
-	var entry := { "id": id, "place": place }
+	var reach := Connectors.reach(id, place)
+	var mine := {}
 	var others := 0
+	var kept := _kept()
 	for i in parts.size():
 		if i == ignore:
 			continue
 		others += 1
-		if joined(entry, parts[i]):
+		var other := _places[i] if kept else place_of(parts[i])
+		if not reach.intersects(_connector_boxes[i] if kept else other * Connectors.bounds(parts[i].id)):
+			continue
+		if mine.is_empty():
+			mine = _keyed(id, place)
+		if _meets(mine, _keyed_part(parts[i].id, other)):
 			return true
 	return others == 0
+
+
+## Just the parts that could go through or hold on a part somewhere inside
+## `area`, in the fine unit, as a kart of its own. Checking lots of places
+## close together against it with fits_place and attaches_place is quicker.
+## It keeps where its parts are, so it's only good until the kart changes.
+## With no parts in it attaches_place says yes, as it does for any empty
+## kart.
+func only_near(area: AABB) -> KartDesign:
+	var near := KartDesign.new()
+	near._keyed_parts = _keyed_parts
+	for p in parts:
+		var place := place_of(p)
+		var box := fine_box(p.id, place)
+		var connector_box := place * Connectors.bounds(p.id)
+		if area.intersects(box) or area.intersects(connector_box):
+			near.parts.append(p)
+			near._places.append(place)
+			near._boxes.append(box)
+			near._connector_boxes.append(connector_box)
+	return near
+
+
+## Whether this is one from only_near, which keeps where its parts are.
+func _kept() -> bool:
+	return not _places.is_empty() and _places.size() == parts.size()
+
+
+## The same as _keyed for a part on the kart, remembered, since the garage
+## checks lots of places against the same parts.
+func _keyed_part(id: String, place: Transform3D) -> Dictionary:
+	var key := [id, place]
+	if not _keyed_parts.has(key):
+		if _keyed_parts.size() >= 256:
+			_keyed_parts.clear()
+		_keyed_parts[key] = _keyed(id, place)
+	return _keyed_parts[key]
 
 
 ## Which parts each part is joined to, as lists of indices.
@@ -443,9 +520,12 @@ func problems() -> Array[String]:
 		out.append("Two wheels have to be one behind the other.")
 	if groups().size() > 1:
 		out.append("Some parts aren't attached to the rest.")
+	var boxes: Array[AABB] = []
+	for i in parts.size():
+		boxes.append(fine_box(parts[i].id, place_of(parts[i])))
 	for i in parts.size():
 		for j in range(i + 1, parts.size()):
-			if clash(parts[i].id, place_of(parts[i]), parts[j].id, place_of(parts[j])):
+			if boxes[i].intersects(boxes[j]) and clash(parts[i].id, place_of(parts[i]), parts[j].id, place_of(parts[j])):
 				out.append("Two parts are inside each other.")
 				return out
 	if wheels > 0 and lowest_other < lowest_wheel + CLEARANCE - 0.01:

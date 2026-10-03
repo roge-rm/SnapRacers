@@ -290,12 +290,15 @@ func toast(text: String) -> void:
 func _show_status() -> void:
 	if _toast_left > 0.0:
 		return
+	var colour := Color(1, 1, 1, 0.85)
 	if _problem_count > 0 and _mode == Mode.IDLE:
 		_status.text = "%d thing%s to fix before it can race (see the card)" % [_problem_count, "" if _problem_count == 1 else "s"]
-		_status.add_theme_color_override("font_color", DANGER)
+		colour = DANGER
 	else:
 		_status.text = _hint
-		_status.add_theme_color_override("font_color", Color(1, 1, 1, 0.85))
+	# Setting it again lays the panel out again, so only when it changes.
+	if not _status.has_theme_color_override("font_color") or _status.get_theme_color("font_color") != colour:
+		_status.add_theme_color_override("font_color", colour)
 	_status_panel.visible = _status.text != ""
 
 

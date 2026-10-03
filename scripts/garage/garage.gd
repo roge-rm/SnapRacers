@@ -76,6 +76,16 @@ var _way := {}
 var _spots := []
 var _dots: MultiMeshInstance3D
 var _dot_here: MeshInstance3D
+## The spots the dots were last put on, so they're only moved for new ones.
+var _dots_shown := []
+## The last place a drag looked for and what it found, as [what, found], so
+## it doesn't work it out again until the finger gets somewhere new. Empty
+## once the kart changes.
+var _last_aim := []
+var _last_snap := []
+## Which cells the part in hand works in, turned the way it is (see
+## BuildMath.nearest_cell). It starts again with _last_aim.
+var _known_cells := {}
 ## A drag on the picked out part moves it.
 var _grab_selected := false
 ## When a part on the kart is being moved, where it came from, so Cancel can
@@ -578,6 +588,8 @@ func _rebuild() -> void:
 	for child in _parts_root.get_children():
 		child.queue_free()
 	_part_nodes.clear()
+	_last_aim = []
+	_last_snap = []
 	var stats := KartStats.compute(design, {}, null, Game.character.mass())
 	for i in design.parts.size():
 		var p: Dictionary = design.parts[i]
@@ -678,7 +690,16 @@ func _aim_ghost(screen_pos: Vector2) -> void:
 		return
 	var basis := _ghost_place.basis
 	var at := BuildMath.placement(hit, KartDesign.grid_size(_holding, basis))
-	_ghost_place = _clamped(_holding, KartDesign.box_place(_holding, basis, BuildMath.nearest_cell(design, _holding, at, basis)))
+	# A finger moves a pixel at a time, so only look again on a new cell.
+	var aim := [_holding, at, basis]
+	if _last_aim.is_empty() or _last_aim[0] != aim:
+		if _last_aim.is_empty() or _last_aim[0][0] != _holding or _last_aim[0][2] != basis:
+			_known_cells = {}
+		_last_aim = [aim, BuildMath.nearest_cell(design, _holding, at, basis, _known_cells)]
+	var place := _clamped(_holding, KartDesign.box_place(_holding, basis, _last_aim[1]))
+	if place == _ghost_place and _spot.is_empty() and _way.is_empty():
+		return
+	_ghost_place = place
 	_spot = {}
 	_way = {}
 	_show_ghost()
@@ -689,9 +710,14 @@ func _aim_ghost(screen_pos: Vector2) -> void:
 func snap_to(spot: Dictionary) -> bool:
 	if spot.is_empty() or _holding == "":
 		return false
-	var way := Snap.best(design, _holding, Snap.ways(_holding, spot, _ghost_place.basis, spot.at))
+	var aim := [_holding, spot, _ghost_place.basis]
+	if _last_snap.is_empty() or _last_snap[0] != aim:
+		_last_snap = [aim, Snap.best(design, _holding, Snap.ways(_holding, spot, _ghost_place.basis, spot.at))]
+	var way: Dictionary = _last_snap[1]
 	if way.is_empty():
 		return false
+	if spot == _spot and way == _way and way.place == _ghost_place:
+		return true
 	_spot = spot
 	_take_way(way)
 	return true
@@ -799,15 +825,19 @@ void fragment() {
 ## Works out the spots the part in hand could join.
 func _find_spots() -> void:
 	_spots = Snap.spots_for(design, _holding) if _holding != "" else []
+	_last_aim = []
+	_last_snap = []
 
 
 func _show_dots() -> void:
-	var multi := _dots.multimesh
-	multi.instance_count = _spots.size()
-	for i in _spots.size():
-		var spot: Dictionary = _spots[i]
-		multi.set_instance_transform(i, Transform3D(Basis.IDENTITY, _dot_position(spot)))
-		multi.set_instance_color(i, DOT_COLOURS.get(spot.type, Color.WHITE))
+	if not is_same(_dots_shown, _spots):
+		_dots_shown = _spots
+		var multi := _dots.multimesh
+		multi.instance_count = _spots.size()
+		for i in _spots.size():
+			var spot: Dictionary = _spots[i]
+			multi.set_instance_transform(i, Transform3D(Basis.IDENTITY, _dot_position(spot)))
+			multi.set_instance_color(i, DOT_COLOURS.get(spot.type, Color.WHITE))
 	_dot_here.visible = not _spot.is_empty()
 	if _dot_here.visible:
 		_dot_here.position = _dot_position(_spot)

@@ -42,6 +42,7 @@ const NEAR := 0.5
 const LINE_STEP := 1.0
 
 static var _cache := {}
+static var _bounds := {}
 
 
 ## The part's connectors, each { "type", "at", "axis", "length" }.
@@ -108,6 +109,37 @@ static func placed(id: String, place: Transform3D) -> Array:
 			var along := length * k / steps
 			out.append({ "type": c.type, "at": start + axis * along, "axis": axis, "index": i, "along": along, "step": k })
 	return out
+
+
+## The box around all of the part's connectors, lines and all, in its own
+## space. Two parts can only join where these come within NEAR of each other.
+static func bounds(id: String) -> AABB:
+	if _bounds.has(id):
+		return _bounds[id]
+	var box := AABB()
+	var first := true
+	for c in of(id):
+		for end in [c.at, c.at + c.axis.normalized() * c.get("length", 0.0)]:
+			if first:
+				box = AABB(end, Vector3.ZERO)
+				first = false
+			else:
+				box = box.expand(end)
+	_bounds[id] = box
+	return box
+
+
+## How far the part's connectors reach where it's been put. Another part
+## can only join it if its connectors' box goes into this.
+static func reach(id: String, place: Transform3D) -> AABB:
+	# A little more than NEAR, for the rounding in turning the box.
+	return (place * bounds(id)).grow(NEAR + 0.01)
+
+
+## Whether two parts where they've been put have connectors close enough
+## that they might join. When it's false they certainly don't.
+static func near(id_a: String, place_a: Transform3D, id_b: String, place_b: Transform3D) -> bool:
+	return reach(id_a, place_a).intersects(place_b * bounds(id_b))
 
 
 ## Whether these two placed connectors join.

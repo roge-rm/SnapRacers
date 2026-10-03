@@ -6,6 +6,13 @@ extends RefCounted
 ## the floor, and where a new part goes for that spot. Everything here is in
 ## grid units (studs across, plates up, studs along).
 
+## How far nearest_cell looks for somewhere better, in studs either way and
+## plates up.
+const SLIDE_STEPS := 2
+const STACK_STEPS := 12
+
+static var _offsets: Array[Vector3i] = []
+
 
 class Hit:
 	var t := INF
@@ -104,19 +111,49 @@ static func nearest_spot(design: KartDesign, id: String, at: Vector3i, rot: int)
 	return nearest_cell(design, id, at, Grid.yaw(rot))
 
 
-## The same for a part turned by `basis`, any way up.
-static func nearest_cell(design: KartDesign, id: String, at: Vector3i, basis: Basis) -> Vector3i:
-	var best := at
-	var best_cost := INF
-	for dy in range(0, 13):
-		for dx in range(-2, 3):
-			for dz in range(-2, 3):
-				var cost := dy * 1.5 + absi(dx) + absi(dz)
-				if cost >= best_cost:
-					continue
-				var spot := at + Vector3i(dx, dy, dz)
-				var place := KartDesign.box_place(id, basis, spot)
-				if design.fits_place(id, place) and design.attaches_place(id, place):
-					best = spot
-					best_cost = cost
-	return best
+## The same for a part turned by `basis`, any way up. `known` remembers
+## which cells work, so a finger dragging it along only has to try the new
+## ones. Pass the same one only while the kart, the part and how it's turned
+## stay the same.
+static func nearest_cell(design: KartDesign, id: String, at: Vector3i, basis: Basis, known := {}) -> Vector3i:
+	var near: KartDesign = null
+	for offset in _nearest_first():
+		var spot := at + offset
+		if not known.has(spot):
+			if near == null:
+				# Only the parts somewhere near can be in the way or hold it on.
+				var first := KartDesign.box_place(id, basis, at)
+				var area := _spread(KartDesign.fine_box(id, first)).merge(_spread(first * Connectors.bounds(id)).grow(Connectors.NEAR + 0.01))
+				near = design.only_near(area.grow(0.1))
+				# With nothing near, nothing holds it on anywhere here.
+				if near.parts.is_empty() and not design.parts.is_empty():
+					return at
+			var place := KartDesign.box_place(id, basis, spot)
+			known[spot] = near.fits_place(id, place) and near.attaches_place(id, place)
+		if known[spot]:
+			return spot
+	return at
+
+
+## A box grown to cover everywhere nearest_cell might move it to.
+static func _spread(box: AABB) -> AABB:
+	var low := Vector3(-SLIDE_STEPS, 0, -SLIDE_STEPS) * Grid.UNIT_FINE
+	var high := Vector3(SLIDE_STEPS, STACK_STEPS, SLIDE_STEPS) * Grid.UNIT_FINE
+	return AABB(box.position + low, box.size + high - low)
+
+
+## The steps nearest_cell tries, cheapest first: sliding costs one a stud
+## and stacking one and a half a plate. Ties go lowest first, then by x and
+## then by z.
+static func _nearest_first() -> Array[Vector3i]:
+	if not _offsets.is_empty():
+		return _offsets
+	var costed := []
+	for dy in range(0, STACK_STEPS + 1):
+		for dx in range(-SLIDE_STEPS, SLIDE_STEPS + 1):
+			for dz in range(-SLIDE_STEPS, SLIDE_STEPS + 1):
+				costed.append([dy * 1.5 + absi(dx) + absi(dz), costed.size(), Vector3i(dx, dy, dz)])
+	costed.sort_custom(func(a: Array, b: Array) -> bool: return a[0] < b[0] or (a[0] == b[0] and a[1] < b[1]))
+	for c in costed:
+		_offsets.append(c[2])
+	return _offsets
