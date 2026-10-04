@@ -53,6 +53,8 @@ var came_from_editor := false
 ## Whether a race against the AI is just you (a single race), rather than
 ## the two of you from the Multiplayer menu.
 var racing_alone := false
+## Whether the perflog switch has started its race (see show_menu()).
+var _perf_started := false
 ## Racing with people on other devices (see NetSession).
 var net: NetSession
 ## Which controller is whose (see Controllers).
@@ -148,6 +150,20 @@ func trophy_pictures() -> TrophyThumbnails:
 
 
 func show_menu() -> void:
+	# A debug switch for timing races on a device. If there's a file called
+	# perflog in the app's data folder, the game goes straight into a race on
+	# the course and in the weather and time it names, like
+	# "peach_pit rain night", the AI drives, and the race logs its frame rate
+	# (see Race).
+	if OS.is_debug_build() and FileAccess.file_exists("user://perflog") and not _perf_started:
+		_perf_started = true
+		var words := FileAccess.get_file_as_string("user://perflog").strip_edges().split(" ")
+		settings.set_value("race", "split", SOLO)
+		settings.set_value("race", "weather", words[1] if words.size() > 1 else Conditions.RANDOM)
+		settings.set_value("race", "time", words[2] if words.size() > 2 else Conditions.RANDOM)
+		racing_alone = true
+		start_race(TRACKS + "/" + (words[0] if words.size() > 0 and words[0] != "" else "peach_pit") + ".json")
+		return
 	_swap(MainMenu.new())
 
 

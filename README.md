@@ -173,6 +173,18 @@ There's a crowd. Little brick figures fill the grandstands and stand along the f
 - **A menu in races,** from the button in the corner or Start on a controller. In a race on your own it pauses everything, and in split screen each player has their own while the race carries on.
 - **Four AI levels,** picked before a race or a cup. Easy drivers take it gently, slip up now and then and wait for you. Expert drivers are right on the limit. Trophies are kept for each level.
 
+### Weather and time of day
+
+Each race has its weather and time of day, picked beside the AI's level or left to chance to suit the course. A course can have its own in the track editor.
+
+- **Time of day:** morning, day, evening, dusk or night. The sun moves and colours everything, and at night a dimmer moon casts fainter shadows.
+- **Rain:** grey skies, falling rain and a dark, shiny road that grips less, with puddles that grip less again and drag.
+- **Snow:** snow covers the ground and everything on it. The road's been cleared but it's wet and slippery.
+- **Fog** hides the distance, a **thunderstorm** brings heavy rain with lightning and thunder, and on sandy courses a **dust storm** turns everything tan.
+- **Lights:** lamp posts line every outdoor course and come on by themselves when it's dark, and so do the lights on a kart. Headlights light the road ahead and tail lights shine when you brake.
+- Left to chance, it suits the course: snowy courses mostly snow, deserts get dust storms and never rain, and beaches are mostly sunny. Halls are always the same. A time trial left to chance is a clear day, so records stay fair.
+- The AI drives to suit, and online everyone races in the same weather with the same puddles.
+
 ### Controllers and keys
 
 Everything works with a controller or the keys as well as touch: the menus, races, the garage, the driver screen and the track editor. In Settings each player picks their own controller, and sets their own keys and buttons by tapping one and pressing the new one. To type a name with a controller, press A on the box for a keyboard on the screen. X deletes, Y is a space and Start is done.

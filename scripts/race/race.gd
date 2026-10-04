@@ -74,7 +74,8 @@ var mode := Game.MODE_RACE
 var laps := 3
 ## How good the AI drivers are (see Difficulty).
 var difficulty := Difficulty.DEFAULT
-## The weather and time of day, the same all race (see Conditions).
+## The weather and time of day, the same all race (see Conditions). Set it
+## before the race starts to choose them, like the splash does.
 var conditions: Conditions
 ## The course as built, with its sky and sun.
 var builder: TrackBuilder
@@ -123,7 +124,8 @@ func _ready() -> void:
 	track_id = Tracks.id_of(Game.track_path)
 	laps = 1000000 if mode == Game.MODE_PRACTICE else track.laps
 	difficulty = Game.grand_prix.difficulty if mode == Game.MODE_GRAND_PRIX and Game.grand_prix != null else Game.difficulty()
-	conditions = _conditions()
+	if conditions == null:
+		conditions = _conditions()
 	builder = TrackBuilder.new(track, conditions)
 	add_child(builder)
 
@@ -227,7 +229,7 @@ func _finish_setting_up(people: int) -> void:
 	camera = player.camera
 	# A debug switch for testing on a device. If there's a file called
 	# autopilot in the app's data folder, the AI drives your kart.
-	if OS.is_debug_build() and FileAccess.file_exists("user://autopilot"):
+	if OS.is_debug_build() and (FileAccess.file_exists("user://autopilot") or FileAccess.file_exists("user://perflog")):
 		var driver := AIDriver.new()
 		driver.kart = player.kart
 		driver.track = track
@@ -463,6 +465,9 @@ func _add_racer(racer_name: String, design: KartDesign, slot: int, who: Characte
 
 func _process(_delta: float) -> void:
 	_frames_drawn += 1
+	# The perflog switch (see Game.show_menu()) logs how it's running.
+	if OS.is_debug_build() and started and Engine.get_process_frames() % 300 == 0 and FileAccess.file_exists("user://perflog"):
+		print("PERF %s, %s: %.0f fps, %.1f ms process, %.1f ms physics" % [track.name, conditions.describe(), Engine.get_frames_per_second(), Performance.get_monitor(Performance.TIME_PROCESS) * 1000.0, Performance.get_monitor(Performance.TIME_PHYSICS_PROCESS) * 1000.0])
 	if _frames_drawn == FRAMES_BEFORE_COUNTDOWN:
 		Game.show_loading(false)
 

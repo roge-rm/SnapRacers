@@ -4,7 +4,7 @@ extends Node
 ## struggle with. It races eight AI karts on a course for a while (or one on
 ## its own with "alone") and prints the game's time a frame and each physics
 ## step, and the real time a frame took.
-##   tools/godot/Godot_v4.7.2-stable_linux.x86_64 --headless --fixed-fps 60 --path . res://tools/perf/race_perf.tscn -- peach_pit [alone]
+##   tools/godot/Godot_v4.7.2-stable_linux.x86_64 --headless --fixed-fps 60 --path . res://tools/perf/race_perf.tscn -- peach_pit [alone] [weather=rain] [time=night]
 
 const WARM_UP := 300
 const MEASURE := 600
@@ -22,6 +22,11 @@ func _ready() -> void:
 	Game.racing_alone = true
 	if args.size() > 1 and args[1] == "alone":
 		Game.mode = Game.MODE_TIME_TRIAL
+	# weather= and time= race in those (see Conditions).
+	for arg in args:
+		if arg.begins_with("weather=") or arg.begins_with("time="):
+			var parts: PackedStringArray = arg.split("=")
+			Game.settings.set_value("race", parts[0], parts[1])
 	Game.show_race(Game.TRACKS + "/" + course + ".json")
 	var race: Race = null
 	while race == null:

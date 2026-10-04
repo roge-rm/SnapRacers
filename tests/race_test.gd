@@ -174,7 +174,10 @@ func _physics_process(delta: float) -> void:
 			if racer.progress.finished:
 				fastest = minf(fastest, racer.progress.finish_time)
 		var average := race.track.length * race.laps / fastest
-		check(average > 13.5, "the winner goes around at a good clip (%.1f s, %.1f m/s)" % [fastest, average])
+		# Corners go with the square root of the grip, so it's slower in rain
+		# and snow.
+		var good := 13.5 * sqrt(race.conditions.grip())
+		check(average > good, "the winner goes around at a good clip (%.1f s, %.1f m/s, at least %.1f in %s)" % [fastest, average, good, race.conditions.describe().to_lower()])
 		print("All race checks passed." if failures == 0 else "%d race checks failed." % failures)
 		if built_path != "":
 			DirAccess.remove_absolute(built_path)

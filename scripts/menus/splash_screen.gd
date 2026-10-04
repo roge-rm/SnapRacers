@@ -9,8 +9,9 @@ extends Control
 ## the garage, then the driver builder, and lets each one draw for a few
 ## frames. That covers the road, grass, walls, pillars, karts with drivers, a
 ## part knocked loose and the garage's see-through and picked out parts, all
-## with the sun and shadows. Godot keeps what it compiled, so after the first
-## launch this is quick.
+## with the sun and shadows. The race is a storm at night and then snow by
+## day, so fog, rain, snow, puddles, lamps and kart lights are all drawn too.
+## Godot keeps what it compiled, so after the first launch this is quick.
 ##
 ## It has to draw on the real screen, which uses different versions of the same
 ## shaders than views off the screen do.
@@ -73,7 +74,7 @@ func _ready() -> void:
 	_status.add_theme_font_size_override("font_size", 18)
 	column.add_child(_status)
 
-	_stages = [_warm_race, _warm_garage, _warm_driver]
+	_stages = [_warm_race.bind("storm", "night"), _warm_race.bind("snow", "day"), _warm_garage, _warm_driver]
 	for cup in GrandPrix.cups():
 		for id in cup.tracks:
 			_outlines.append(Tracks.path_of(id))
@@ -91,13 +92,24 @@ func _ready() -> void:
 	_next_stage()
 
 
-func _warm_race() -> Node:
+func _warm_race(weather: String, time: String) -> Node:
 	# Split screen draws with the same shaders, so one player will do.
 	var race := Race.new(Game.SOLO)
+	race.conditions = Conditions.resolve("orchard", weather, time, 1)
 	add_child(race)
 	# Knock a part off so a loose piece gets drawn too.
-	var last: Array[int] = [race.player.kart.design.parts.size() - 1]
-	race.player.kart.lose_parts(last)
+	var kart := race.player.kart
+	var last: Array[int] = [kart.design.parts.size() - 1]
+	kart.lose_parts(last)
+	# Not every kart has lights, so a lamp and the light it throws go on this
+	# one, where the camera sees them.
+	var lens := MeshInstance3D.new()
+	lens.mesh = BoxMesh.new()
+	lens.mesh.size = Vector3.ONE * 0.2
+	lens.material_override = KartMesh.material("lamp")
+	lens.position = Vector3(0.0, 1.2, 1.0)
+	kart.add_child(lens)
+	kart.add_child(HeadlightPool.new(0.0, 0.0))
 	return race
 
 
