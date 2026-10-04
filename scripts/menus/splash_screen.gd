@@ -27,6 +27,7 @@ const WARM_FRAMES := 6
 const AT_LEAST := 0.8
 
 var _stages: Array[Callable] = []
+var _stage_count := 1
 var _scene: Node
 var _frames := 0
 var _shown := 0.0
@@ -75,19 +76,23 @@ func _ready() -> void:
 	column.add_child(_status)
 
 	_stages = [_warm_race.bind("storm", "night"), _warm_race.bind("snow", "day"), _warm_garage, _warm_driver]
+	_stage_count = _stages.size()
 	for cup in GrandPrix.cups():
 		for id in cup.tracks:
 			_outlines.append(Tracks.path_of(id))
 		Game.trophy_pictures().take(cup.get("trophy", {}), Color(cup.get("colour", "#a3a2a4")), TrophyModel.finish_for(CupGrid.best_place(cup.id)))
 	_began = Time.get_ticks_msec()
 	# The race and the rest are only here to get things ready, so nobody should
-	# hear them. The sounds get loaded meanwhile.
+	# hear them.
 	Sounds.hushed = true
-	Sounds.load_all()
 	# Let the splash itself get on screen first, so there's something to look
-	# at while the first warm up frames stall.
+	# at while the sounds load and the first warm up frames stall. On the web
+	# the page's own loading screen stays up until then.
 	await get_tree().process_frame
 	await get_tree().process_frame
+	if OS.has_feature("web"):
+		JavaScriptBridge.eval("window.snapracersShown && window.snapracersShown()")
+	Sounds.load_all()
 	_started = true
 	_next_stage()
 
@@ -154,7 +159,7 @@ func _process(delta: float) -> void:
 		return
 	_frames += 1
 	_outline_some()
-	var stages_total := 3.0
+	var stages_total := float(_stage_count)
 	var finished := stages_total - _stages.size() - (1 if _scene != null else 0)
 	_bar.value = clampf((finished + float(_frames) / WARM_FRAMES) / stages_total, 0.0, 1.0) * 100.0
 	if _scene != null and _frames >= WARM_FRAMES:
