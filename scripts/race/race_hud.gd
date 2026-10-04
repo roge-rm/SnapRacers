@@ -53,12 +53,19 @@ var _laps_seen := 0
 ## Something that's going on, like the slowdown after a reset, in a pill at
 ## the bottom in the middle, with a bar for how long it has left.
 var _status: Label
+## How many parts it says are lost, and for how long it's said so.
+var _lost_shown := 0
+var _lost_for := 0.0
 var _status_bar: ProgressBar
 ## Under the clock, a smaller line: your best lap, or the record.
 var _clock_more: Label
 ## Where the clock goes: "top" under the menu button, "right" beside the
 ## camera button, or "corner" with your place and lap.
 static var clock_at := "right"
+## How long the parts lost line stays bright, in seconds, and how faint it
+## fades to after that.
+const LOST_SHOWN_FOR := 15.0
+const LOST_FADED := 0.2
 ## The pills' colours.
 const PILL := Color(0.04, 0.04, 0.1, 0.55)
 const BEST := Color("#7dff8a")
@@ -405,16 +412,24 @@ func _process(delta: float) -> void:
 	# What's going on, at the bottom.
 	var status := ""
 	var left := -1.0
+	var faint := 1.0
+	var lost := me.kart.lost.size()
+	if lost != _lost_shown:
+		_lost_shown = lost
+		_lost_for = 0.0
+	_lost_for += delta
 	if me.kart.slowdown_left > 0.0:
 		status = "Reset slowdown"
 		left = me.kart.slowdown_left / Kart.RESET_SLOWDOWN_TIME
-	elif not me.kart.lost.is_empty():
-		var n := me.kart.lost.size()
-		status = "%d part%s lost, reset to fix" % [n, "" if n == 1 else "s"]
+	elif lost > 0:
+		status = "%d part%s lost, reset to fix" % [lost, "" if lost == 1 else "s"]
+		# Once you've seen it a while it fades back, until more come off.
+		faint = lerpf(1.0, LOST_FADED, clampf(_lost_for - LOST_SHOWN_FOR, 0.0, 1.0))
 	if _results.visible:
 		status = ""
 	_status.text = status
 	_status.get_parent().get_parent().visible = status != ""
+	_status.get_parent().get_parent().modulate.a = faint
 	_status_bar.visible = left >= 0.0
 	_status_bar.value = left * 100.0
 
