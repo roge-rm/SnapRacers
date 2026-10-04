@@ -116,6 +116,13 @@ var _wheel_gone := 0.0
 ## Where each brick wall is along the track, worked out once since a wall
 ## doesn't move.
 var _wall_offsets := {}
+## How far ahead the next loop climbs (INF for none within LOOP_RUN_IN), and
+## the physics step that was looked for (see _loop_within()).
+var _loop_at := INF
+var _loop_looked := -1
+## The brick walls in the race, fetched once a step for every driver.
+static var _walls: Array = []
+static var _walls_frame := -1
 
 const THINK_EVERY := 0.3 # seconds between looking at its gadgets
 ## After holding a power-up this long it uses it at the next moment that
@@ -305,14 +312,20 @@ func _looping() -> bool:
 
 
 ## Whether a loop or a corkscrew climbs up within this far ahead, or it's
-## already on one.
+## already on one. It looks ahead once a step, as far as it ever needs to.
 func _loop_within(distance: float) -> bool:
-	var ahead := 0.0
-	while ahead <= distance:
-		if TrackPiece.turns_over(track.piece_type_at(offset + ahead)) and track.up_at(offset + ahead).y < 0.9:
-			return true
-		ahead += 4.0
-	return false
+	var frame := Engine.get_physics_frames()
+	if frame != _loop_looked:
+		_loop_looked = frame
+		_loop_at = INF
+		if track.has_turns_over():
+			var ahead := 0.0
+			while ahead <= LOOP_RUN_IN:
+				if TrackPiece.turns_over(track.piece_type_at(offset + ahead)) and track.up_at(offset + ahead).y < 0.9:
+					_loop_at = ahead
+					break
+				ahead += 4.0
+	return _loop_at <= distance
 
 
 ## As each bend comes up, it might get it wrong (see `mistakes`). Going in
@@ -361,7 +374,13 @@ func _dodge() -> float:
 ## when there's none in the way. It goes round whichever end has more road
 ## beyond it.
 func _dodge_wall(facing: Vector3) -> float:
-	for wall in kart.get_tree().get_nodes_in_group("brick_walls"):
+	var frame := Engine.get_physics_frames()
+	if frame != _walls_frame:
+		_walls_frame = frame
+		_walls = kart.get_tree().get_nodes_in_group("brick_walls")
+	for wall in _walls:
+		if not is_instance_valid(wall):
+			continue
 		var ahead: float = (wall.global_position - kart.global_position).dot(facing)
 		# It keeps going round until its back end is past it.
 		if ahead < -2.0 or ahead > SEE_WALL or not wall.standing():

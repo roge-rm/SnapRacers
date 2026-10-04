@@ -73,6 +73,8 @@ var _bends := PackedFloat32Array()
 var solids: Array[bool] = []
 var stickies: Array[bool] = []
 var piece_of := PackedInt32Array()
+## Whether it has a loop or a corkscrew: -1 until has_turns_over() looks.
+var _turns_over := -1
 ## How high the hills are under each sample (see ground_height()).
 var grounds := PackedFloat32Array()
 var length := 0.0
@@ -277,6 +279,16 @@ func _blend(offset: float) -> Array:
 	var span := (distances[j] if j != 0 else length) - distances[i]
 	var f := clampf((fposmod(offset, length) - distances[i]) / maxf(span, 0.0001), 0.0, 1.0)
 	return [i, j, f]
+
+
+## Whether it has a loop or a corkscrew anywhere, worked out once.
+func has_turns_over() -> bool:
+	if _turns_over < 0:
+		_turns_over = 0
+		for piece in pieces:
+			if TrackPiece.turns_over(piece.type):
+				_turns_over = 1
+	return _turns_over == 1
 
 
 ## What kind of piece of track is at this distance around it, like

@@ -272,6 +272,8 @@ class Wheel:
 	## How far it's rolled along curbs, for counting the ridges.
 	var kerb_travel := 0.0
 	var visual: Node3D
+	## Its ray down to the road, kept and reused each step.
+	var ray: PhysicsRayQueryParameters3D
 
 
 var design: KartDesign
@@ -333,6 +335,12 @@ var _looks: Node3D
 ## Parts that turn with a steered wheel, like a bike's front fork, as
 ## [node, its basis going straight].
 var _turning := []
+## Each part's box with its index, for part_at(), and the stats they came
+## from, so they're made again when the parts change.
+var _part_boxes := []
+var _part_boxes_for: KartStats
+static var _karts: Array = []
+static var _karts_frame := -1
 ## How far a motorbike's bars look turned (see BARS_SHOWN).
 var _bars := 0.0
 var _ground_y := 0.0
@@ -752,6 +760,15 @@ func rear_bumper_point() -> Vector3:
 	return Vector3(0.0, 0.3, back + 0.05)
 
 
+## Every kart in the race, fetched once a physics step for all of them.
+func _all_karts() -> Array:
+	var frame := Engine.get_physics_frames()
+	if frame != _karts_frame:
+		_karts_frame = frame
+		_karts = get_tree().get_nodes_in_group("karts")
+	return _karts
+
+
 ## Pushes the kart sideways away from any other kart whose wheels are about
 ## to meet its own while they're only partly side by side, which is how
 ## wheels hook together. The push grows the further they overlap, so the
@@ -765,7 +782,7 @@ func _keep_wheels_apart(state: PhysicsDirectBodyState3D) -> Vector3:
 	var right := me.basis.x.normalized()
 	var forward := -me.basis.z.normalized()
 	var push := 0.0
-	for other in get_tree().get_nodes_in_group("karts"):
+	for other in _all_karts():
 		if other == self or not is_instance_valid(other) or other.ghost_left > 0.0 or other.wheels.is_empty():
 			continue
 		var apart: Vector3 = other.global_position - me.origin
@@ -992,8 +1009,11 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 		var reach := SUSPENSION_TRAVEL * 2.0 + w.radius
 		# Wheels only look for the track, never other karts, or a kart in
 		# traffic would climb up onto the one beside it.
-		var query := PhysicsRayQueryParameters3D.create(anchor, anchor - up * reach, LAYER_WORLD, [get_rid()])
-		var hit := space.intersect_ray(query)
+		if w.ray == null:
+			w.ray = PhysicsRayQueryParameters3D.create(anchor, anchor - up * reach, LAYER_WORLD, [get_rid()])
+		w.ray.from = anchor
+		w.ray.to = anchor - up * reach
+		var hit := space.intersect_ray(w.ray)
 		if hit.is_empty():
 			w.grounded = false
 			w.load = 0.0
@@ -1744,15 +1764,20 @@ func _show_bubble() -> void:
 ## Which part is at this point on the kart, in kart space. It's the part
 ## whose box is nearest, so a hit on the edge of a brick counts for that brick.
 func part_at(point: Vector3) -> int:
+	if _part_boxes_for != stats:
+		_part_boxes_for = stats
+		_part_boxes.clear()
+		for info in stats.parts:
+			_part_boxes.append([AABB(info.centre - info.extent * 0.5, info.extent), info.index])
 	var best := -1
 	var best_distance := INF
-	for info in stats.parts:
-		var box := AABB(info.centre - info.extent * 0.5, info.extent)
+	for entry in _part_boxes:
+		var box: AABB = entry[0]
 		var nearest := point.clamp(box.position, box.end)
 		var d := nearest.distance_squared_to(point)
 		if d < best_distance:
 			best_distance = d
-			best = info.index
+			best = entry[1]
 	return best
 
 
