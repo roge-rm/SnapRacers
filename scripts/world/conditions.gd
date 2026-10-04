@@ -97,6 +97,18 @@ static func picked(player_pick: String, course_pick: String) -> String:
 	return RANDOM
 
 
+## The pick after this one, going round from RANDOM through all of `all`,
+## for a button that goes through them.
+static func next_pick(now: String, all: Array) -> String:
+	var choices := [RANDOM] + all
+	return choices[(choices.find(now) + 1) % choices.size()]
+
+
+## How a pair of picks reads, like "Rain, dusk".
+static func pick_name(weather: String, time: String) -> String:
+	return "%s, %s" % [WEATHER_NAMES.get(weather, "Random"), TIME_NAMES.get(time, "Random").to_lower()]
+
+
 static func from_dict(data: Dictionary) -> Conditions:
 	var c := Conditions.new()
 	c.weather = str(data.get("weather", "clear"))

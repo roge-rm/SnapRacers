@@ -159,6 +159,18 @@ func _show_settings(host: bool) -> void:
 		toggle.button_pressed = s.ai
 		toggle.toggled.connect(func(on: bool) -> void: Game.net.set_settings({"ai": on}))
 		ai_row.add_child(toggle)
+		# The weather and time of day, each a button that goes through them.
+		var conditions := HBoxContainer.new()
+		conditions.add_theme_constant_override("separation", 10)
+		_settings.add_child(conditions)
+		var weather: String = s.get("weather", Conditions.RANDOM)
+		var time: String = s.get("time", Conditions.RANDOM)
+		var weather_button := MenuStyle.button("Weather: %s" % Conditions.WEATHER_NAMES.get(weather, "Random"), func() -> void: Game.net.set_settings({"weather": Conditions.next_pick(weather, Conditions.WEATHERS)}))
+		weather_button.size_flags_horizontal = SIZE_EXPAND_FILL
+		conditions.add_child(weather_button)
+		var time_button := MenuStyle.button("Time: %s" % Conditions.TIME_NAMES.get(time, "Random"), func() -> void: Game.net.set_settings({"time": Conditions.next_pick(time, Conditions.TIMES)}))
+		time_button.size_flags_horizontal = SIZE_EXPAND_FILL
+		conditions.add_child(time_button)
 		if s.ai:
 			var levels := HBoxContainer.new()
 			levels.add_theme_constant_override("separation", 8)
@@ -170,7 +182,7 @@ func _show_settings(host: bool) -> void:
 				levels.add_child(button)
 	else:
 		var label := Label.new()
-		label.text = "%s\n%s" % [what, ("AI drivers in the empty places, %s" % Difficulty.name_of(s.difficulty).to_lower()) if s.ai else "No AI drivers"]
+		label.text = "%s\n%s\n%s" % [what, ("AI drivers in the empty places, %s" % Difficulty.name_of(s.difficulty).to_lower()) if s.ai else "No AI drivers", Conditions.pick_name(s.get("weather", Conditions.RANDOM), s.get("time", Conditions.RANDOM))]
 		label.add_theme_font_size_override("font_size", 22)
 		_settings.add_child(label)
 		_offer_to_keep(s, cup)

@@ -95,7 +95,8 @@ func _load_config() -> void:
 		"name": "SnapRacers server", "port": NetSession.PORT, "ws_port": WS_PORT,
 		"tls_cert": "", "tls_key": "",
 		"mode": NetSession.SINGLE, "course": "peach_pit", "cup": "baseplate", "laps": 3,
-		"ai": true, "difficulty": Difficulty.DEFAULT, "start_after": 10, "standings_for": 15,
+		"ai": true, "difficulty": Difficulty.DEFAULT, "weather": Conditions.RANDOM, "time": Conditions.RANDOM,
+		"start_after": 10, "standings_for": 15,
 	}
 	var data = JSON.parse_string(FileAccess.get_file_as_string(config_path)) if FileAccess.file_exists(config_path) else null
 	if data is Dictionary:
@@ -153,6 +154,8 @@ func _settings_from_config() -> Dictionary:
 		"laps": int(config.laps),
 		"ai": bool(config.ai),
 		"difficulty": config.difficulty,
+		"weather": config.weather,
+		"time": config.time,
 	}
 
 
@@ -264,6 +267,12 @@ func _check_setting(key: String, value: Variant) -> String:
 		"difficulty":
 			if not str(value) in Difficulty.LEVELS:
 				return "The difficulty is one of %s" % ", ".join(Difficulty.LEVELS)
+		"weather":
+			if not str(value) in [Conditions.RANDOM] + Conditions.WEATHERS:
+				return "The weather is one of random, %s" % ", ".join(Conditions.WEATHERS)
+		"time":
+			if not str(value) in [Conditions.RANDOM] + Conditions.TIMES:
+				return "The time of day is one of random, %s" % ", ".join(Conditions.TIMES)
 		"ai":
 			if typeof(value) != TYPE_BOOL:
 				return "AI drivers are true or false"

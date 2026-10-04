@@ -68,8 +68,9 @@ func _ready() -> void:
 	if how == "enet":
 		var status := await control(["status"])
 		check(status.get("ok", false) and status.get("state") == "lobby", "the server answers its control channel, in the lobby (%s)" % status.get("state"))
-		for setting in [["mode", "race"], ["course", "peach_pit"], ["laps", "1"], ["start_after", "3"], ["standings_for", "2"]]:
+		for setting in [["mode", "race"], ["course", "peach_pit"], ["laps", "1"], ["start_after", "3"], ["standings_for", "2"], ["weather", "snow"]]:
 			check((await control(["set", setting[0], setting[1]])).get("ok", false), "and takes a setting (%s)" % setting[0])
+		check(not (await control(["set", "weather", "hail"])).get("ok", false), "but not a weather it doesn't have")
 		var courses := await control(["courses"])
 		check(courses.get("courses", []).size() >= 16, "and lists the courses it can put on (%d)" % courses.get("courses", []).size())
 		net.join(Connections.join_enet("127.0.0.1", NetSession.PORT))
@@ -88,6 +89,7 @@ func _ready() -> void:
 	check(await until(func(): return screen() is Race, 30.0), "once everyone's ready, the server starts the race")
 	var race: Race = screen()
 	check(race.racers.size() == 8, "the server fills the grid with its AI (%d karts)" % race.racers.size())
+	check(race.conditions.weather == "snow", "in the snow the admin set (%s)" % race.conditions.describe())
 	var driver := AIDriver.new()
 	driver.kart = race.player.kart
 	driver.track = race.track

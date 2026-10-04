@@ -60,7 +60,7 @@ func _ready() -> void:
 		check(peer != null, "a game can be hosted")
 		net.host(peer)
 		var course = JSON.parse_string(FileAccess.get_file_as_string(Tracks.path_of("peach_pit")))
-		net.set_settings({"course": course, "laps": 1, "ai": true, "difficulty": "expert"})
+		net.set_settings({"course": course, "laps": 1, "ai": true, "difficulty": "expert", "weather": "rain", "time": "dusk"})
 		Game.show_lobby()
 		check(await until(func(): return net.members.size() == 2, 30.0), "the other player joins")
 		check(await until(func(): return net.can_start(), 30.0), "and says they're ready")
@@ -75,6 +75,10 @@ func _ready() -> void:
 	check(await until(func(): return screen() is Race, 30.0), "the race starts")
 	var race: Race = screen()
 	check(race.racers.size() == 8, "with both of us and six AI karts (%d)" % race.racers.size())
+	# Whoever's hosting picks the weather, and everyone races in it with the
+	# same puddles.
+	var puddles := race.builder.puddles
+	check(race.conditions.weather == "rain" and race.conditions.time == "dusk" and puddles != null, "in the host's rain at dusk, puddles and all (seed %d, %d puddles, the first at %s)" % [race.conditions.seed, puddles.spots.size() if puddles != null else 0, puddles.spots[0][0].snapped(Vector3.ONE * 0.1) if puddles != null and not puddles.spots.is_empty() else "none"])
 	var remote := race.racers.filter(func(r): return r.kart.remote)
 	check(remote.size() == (1 if role == "host" else 7), "and the karts driven elsewhere are remote here (%d)" % remote.size())
 	# The AI drives our kart for us.

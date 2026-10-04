@@ -161,12 +161,12 @@ func _conditions_row() -> HBoxContainer:
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 10)
 	_weather = MenuStyle.button("", func() -> void:
-		Game.set_weather(_next(Game.weather(), Conditions.WEATHERS))
+		Game.set_weather(Conditions.next_pick(Game.weather(), Conditions.WEATHERS))
 		_show_conditions())
 	_weather.custom_minimum_size = Vector2(300, 48)
 	row.add_child(_weather)
 	_time = MenuStyle.button("", func() -> void:
-		Game.set_time_of_day(_next(Game.time_of_day(), Conditions.TIMES))
+		Game.set_time_of_day(Conditions.next_pick(Game.time_of_day(), Conditions.TIMES))
 		_show_conditions())
 	_time.custom_minimum_size = Vector2(260, 48)
 	row.add_child(_time)
@@ -177,12 +177,6 @@ func _conditions_row() -> HBoxContainer:
 	_conditions_about.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	row.add_child(_conditions_about)
 	return row
-
-
-## The one after this, going round from random through all of them.
-static func _next(now: String, all: Array) -> String:
-	var choices := [Conditions.RANDOM] + all
-	return choices[(choices.find(now) + 1) % choices.size()]
 
 
 func _show_conditions() -> void:

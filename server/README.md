@@ -101,5 +101,6 @@ The settings are:
 - `course`, `cup` and `laps`
 - `ai`, true or false
 - `difficulty`, which is easy, normal, hard or expert
+- `weather`, which is random, clear, rain, snow, fog, storm or dust, and `time`, which is random, morning, day, evening, dusk or night
 - `start_after` and `standings_for`, in seconds
 - `port`, `ws_port`, `tls_cert` and `tls_key`, which only take hold on a restart

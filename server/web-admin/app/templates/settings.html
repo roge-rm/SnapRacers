@@ -56,6 +56,22 @@
           {% endfor %}
         </select>
       </div>
+      <div class="option">
+        <label for="weather">Weather</label>
+        <select id="weather" name="weather">
+          {% for value, label in weathers %}
+          <option value="{{ value }}" {% if value == config.weather %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="option">
+        <label for="time">Time of day</label>
+        <select id="time" name="time">
+          {% for value, label in times %}
+          <option value="{{ value }}" {% if value == config.time %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
     </div>
   </section>
 

@@ -28,6 +28,8 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 control = Control()
 
 DIFFICULTIES = [("easy", "Easy"), ("normal", "Normal"), ("hard", "Hard"), ("expert", "Expert")]
+WEATHERS = [("random", "Random, to suit the course"), ("clear", "Clear"), ("rain", "Rain"), ("snow", "Snow"), ("fog", "Fog"), ("storm", "Storm"), ("dust", "Dust storm")]
+TIMES = [("random", "Random"), ("morning", "Morning"), ("day", "Day"), ("evening", "Evening"), ("dusk", "Dusk"), ("night", "Night")]
 # The settings that only take hold when the server starts again.
 NEEDS_RESTART = ["port", "ws_port", "tls_cert", "tls_key"]
 STATES = {"lobby": "In the lobby", "racing": "Racing", "standings": "Showing the cup standings"}
@@ -255,6 +257,8 @@ def settings(request: Request):
         courses=courses,
         cups=cups,
         difficulties=DIFFICULTIES,
+        weathers=WEATHERS,
+        times=TIMES,
     )
 
 
@@ -270,7 +274,7 @@ async def save_settings(request: Request):
         return back("/settings", error=str(error))
 
     wanted = {}
-    for name in ("name", "mode", "course", "cup", "laps", "difficulty", "start_after", "standings_for",
+    for name in ("name", "mode", "course", "cup", "laps", "difficulty", "weather", "time", "start_after", "standings_for",
                  "port", "ws_port", "tls_cert", "tls_key"):
         if name in form:
             wanted[name] = str(form.get(name)).strip()
