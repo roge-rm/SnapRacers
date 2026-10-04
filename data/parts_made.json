@@ -18809,12 +18809,17 @@
 				"color": "#1b2a34",
 				"finish": "plastic"
 			},
+			"lamp": {
+				"mesh": "res://parts/meshes/b_moto_fork_lamp.obj",
+				"color": "#e8f4f8"
+			},
 			"about": "A front fork with the bars on top, for a motorbike frame. The bars and the front wheel turn together.",
 			"style": "bikebars",
 			"control": 1.15,
 			"grip_reach": 0.3,
 			"mass": 2.5,
-			"strength": 900.0
+			"strength": 900.0,
+			"light": "head"
 		},
 		"b_moto_fork_dirt": {
 			"name": "Dirt bike fork",
@@ -18906,12 +18911,17 @@
 				"color": "#1b2a34",
 				"finish": "plastic"
 			},
+			"lamp": {
+				"mesh": "res://parts/meshes/b_moto_fork_dirt_lamp.obj",
+				"color": "#e8f4f8"
+			},
 			"about": "A dirt bike's fork with high bars and a mudguard up high over the wheel.",
 			"style": "bikebars",
 			"control": 1.15,
 			"grip_reach": 0.3,
 			"mass": 2.5,
-			"strength": 900.0
+			"strength": 900.0,
+			"light": "head"
 		},
 		"b_moto_fork_scooter": {
 			"name": "Scooter fork",
@@ -19003,12 +19013,17 @@
 				"color": "#1b2a34",
 				"finish": "plastic"
 			},
+			"lamp": {
+				"mesh": "res://parts/meshes/b_moto_fork_scooter_lamp.obj",
+				"color": "#e8f4f8"
+			},
 			"about": "A short fork with bars and a lamp, for the scooter frame and small wheels.",
 			"style": "bikebars",
 			"control": 1.15,
 			"grip_reach": 0.3,
 			"mass": 2.5,
-			"strength": 900.0
+			"strength": 900.0,
+			"light": "head"
 		},
 		"b_moto_fairing": {
 			"name": "Sports fairing",
@@ -19069,11 +19084,16 @@
 				"color": "#e8f4f8",
 				"finish": "glass"
 			},
+			"lamp": {
+				"mesh": "res://parts/meshes/b_moto_fairing_lamp.obj",
+				"color": "#e8f4f8"
+			},
 			"aero": {
 				"front": 0.3,
 				"back": 1.0,
 				"side": 0.8
 			},
+			"light": "head",
 			"mass": 1.5,
 			"strength": 650.0
 		},
@@ -20615,6 +20635,316 @@
 			"light": "head",
 			"mass": 1.5,
 			"strength": 650.0
+		},
+		"p_nose_4x6_lights": {
+			"name": "Racing nose 4\u00d76 with lights",
+			"kind": "body",
+			"group": "curves",
+			"size": [
+				4,
+				3,
+				6
+			],
+			"fine_size": [
+				80.0,
+				24.0,
+				120.0
+			],
+			"color": "#c4281c",
+			"mesh": "res://parts/meshes/p_nose_4x6_lights.obj",
+			"connectors": [
+				{
+					"type": "socket",
+					"at": [
+						30.0,
+						0.0,
+						10.0
+					],
+					"axis": [
+						0,
+						-1,
+						0
+					]
+				},
+				{
+					"type": "socket",
+					"at": [
+						50.0,
+						0.0,
+						10.0
+					],
+					"axis": [
+						0,
+						-1,
+						0
+					]
+				},
+				{
+					"type": "socket",
+					"at": [
+						30.0,
+						0.0,
+						30.0
+					],
+					"axis": [
+						0,
+						-1,
+						0
+					]
+				},
+				{
+					"type": "socket",
+					"at": [
+						50.0,
+						0.0,
+						30.0
+					],
+					"axis": [
+						0,
+						-1,
+						0
+					]
+				},
+				{
+					"type": "socket",
+					"at": [
+						10.0,
+						0.0,
+						70.0
+					],
+					"axis": [
+						0,
+						-1,
+						0
+					]
+				},
+				{
+					"type": "socket",
+					"at": [
+						10.0,
+						0.0,
+						90.0
+					],
+					"axis": [
+						0,
+						-1,
+						0
+					]
+				},
+				{
+					"type": "socket",
+					"at": [
+						10.0,
+						0.0,
+						110.0
+					],
+					"axis": [
+						0,
+						-1,
+						0
+					]
+				},
+				{
+					"type": "socket",
+					"at": [
+						30.0,
+						0.0,
+						70.0
+					],
+					"axis": [
+						0,
+						-1,
+						0
+					]
+				},
+				{
+					"type": "socket",
+					"at": [
+						30.0,
+						0.0,
+						90.0
+					],
+					"axis": [
+						0,
+						-1,
+						0
+					]
+				},
+				{
+					"type": "socket",
+					"at": [
+						30.0,
+						0.0,
+						110.0
+					],
+					"axis": [
+						0,
+						-1,
+						0
+					]
+				},
+				{
+					"type": "socket",
+					"at": [
+						50.0,
+						0.0,
+						70.0
+					],
+					"axis": [
+						0,
+						-1,
+						0
+					]
+				},
+				{
+					"type": "socket",
+					"at": [
+						50.0,
+						0.0,
+						90.0
+					],
+					"axis": [
+						0,
+						-1,
+						0
+					]
+				},
+				{
+					"type": "socket",
+					"at": [
+						50.0,
+						0.0,
+						110.0
+					],
+					"axis": [
+						0,
+						-1,
+						0
+					]
+				},
+				{
+					"type": "socket",
+					"at": [
+						70.0,
+						0.0,
+						70.0
+					],
+					"axis": [
+						0,
+						-1,
+						0
+					]
+				},
+				{
+					"type": "socket",
+					"at": [
+						70.0,
+						0.0,
+						90.0
+					],
+					"axis": [
+						0,
+						-1,
+						0
+					]
+				},
+				{
+					"type": "socket",
+					"at": [
+						70.0,
+						0.0,
+						110.0
+					],
+					"axis": [
+						0,
+						-1,
+						0
+					]
+				},
+				{
+					"type": "socket",
+					"at": [
+						10.0,
+						0.0,
+						50.0
+					],
+					"axis": [
+						0,
+						-1,
+						0
+					]
+				},
+				{
+					"type": "socket",
+					"at": [
+						30.0,
+						0.0,
+						50.0
+					],
+					"axis": [
+						0,
+						-1,
+						0
+					]
+				},
+				{
+					"type": "socket",
+					"at": [
+						50.0,
+						0.0,
+						50.0
+					],
+					"axis": [
+						0,
+						-1,
+						0
+					]
+				},
+				{
+					"type": "socket",
+					"at": [
+						70.0,
+						0.0,
+						50.0
+					],
+					"axis": [
+						0,
+						-1,
+						0
+					]
+				}
+			],
+			"solids": [
+				[
+					20.0,
+					0.0,
+					0.0,
+					60.0,
+					24.0,
+					40.0
+				],
+				[
+					0.0,
+					0.0,
+					40.0,
+					80.0,
+					24.0,
+					120.0
+				]
+			],
+			"trim": {
+				"mesh": "res://parts/meshes/p_nose_4x6_lights_trim.obj",
+				"color": "#e8f4f8",
+				"finish": "glass"
+			},
+			"aero": {
+				"front": 0.25,
+				"back": 1.0,
+				"side": 0.7
+			},
+			"light": "head",
+			"mass": 5.4,
+			"strength": 1300.0
 		}
 	}
 }

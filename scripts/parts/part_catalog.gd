@@ -72,6 +72,8 @@ static func _read(id: String, part: Dictionary) -> Dictionary:
 		part["seat_box"] = AABB(_vector(b.slice(0, 3)), _vector(b.slice(3, 6)) - _vector(b.slice(0, 3)))
 	if part.has("trim"):
 		part.trim["color"] = Color(part.trim.color)
+	if part.has("lamp"):
+		part.lamp["color"] = Color(part.lamp.color)
 	return part
 
 

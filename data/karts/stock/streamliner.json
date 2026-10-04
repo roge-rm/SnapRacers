@@ -9,7 +9,7 @@
 		{"id": "w_kart_wide", "pos": [104.0, 0, 316.0], "turn": 0},
 		{"id": "w_kart_wide", "pos": [296.0, 0, 364.0], "turn": 2},
 		{"id": "p_plate_6x12", "pos": [140, 28.0, 120], "turn": 0, "color": "#a3a2a4"},
-		{"id": "p_nose_4x6", "pos": [160, 36.0, 60], "turn": 0, "color": "#f2f3f2"},
+		{"id": "p_nose_4x6_lights", "pos": [160, 36.0, 60], "turn": 0, "color": "#f2f3f2"},
 		{"id": "p_brick_1x1", "pos": [160, 36.0, 180], "turn": 0, "color": "#f2f3f2"},
 		{"id": "p_brick_1x1", "pos": [220, 36.0, 180], "turn": 0, "color": "#f2f3f2"},
 		{"id": "p_brick_1x1", "pos": [160, 36.0, 280], "turn": 0, "color": "#f2f3f2"},

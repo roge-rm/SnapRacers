@@ -9,7 +9,7 @@
 		{"id": "wheel_big", "pos": [120, 0, 280.0], "turn": 0},
 		{"id": "wheel_big", "pos": [260, 0, 280.0], "turn": 0},
 		{"id": "p_plate_6x12", "pos": [140, 36.0, 100], "turn": 0, "color": "#d7c599"},
-		{"id": "p_nose_4x6", "pos": [160, 44.0, 40], "turn": 0, "color": "#c4281c"},
+		{"id": "p_nose_4x6_lights", "pos": [160, 44.0, 40], "turn": 0, "color": "#c4281c"},
 		{"id": "d_screen_2", "pos": [180, 44.0, 160], "turn": 0},
 		{"id": "p_curve_1x4", "pos": [140, 44.0, 160], "turn": 0, "color": "#c4281c"},
 		{"id": "p_curve_1x4", "pos": [240.0, 44.0, 160], "turn": 0, "color": "#c4281c"},

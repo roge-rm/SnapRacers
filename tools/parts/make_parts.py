@@ -70,6 +70,8 @@ def entry_for(p):
         out["solids"] = [fine(s[:3]) + fine(s[3:]) for s in solids]
     if p.trim is not None:
         out["trim"] = {"mesh": "res://%s/%s_trim.obj" % (MESHES, p.id), "color": p.trim[1], "finish": p.trim[2]}
+    if p.lamp is not None:
+        out["lamp"] = {"mesh": "res://%s/%s_lamp.obj" % (MESHES, p.id), "color": p.lamp[1]}
     for k, v in p.stats.items():
         out[k] = v
     twin_of = out.pop("twin", None)
@@ -113,6 +115,8 @@ def main():
         triangles += save_obj(p.solid, p.size, os.path.join(GAME, MESHES, p.id + ".obj"))
         if p.trim is not None:
             triangles += save_obj(p.trim[0], p.size, os.path.join(GAME, MESHES, p.id + "_trim.obj"))
+        if p.lamp is not None:
+            triangles += save_obj(p.lamp[0], p.size, os.path.join(GAME, MESHES, p.id + "_lamp.obj"))
         made[p.id] = entry_for(p)
         print("made", p.id)
     data = {

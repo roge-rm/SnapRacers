@@ -12,7 +12,7 @@
 		{"id": "w_kart_wide", "pos": [104.0, 0, 276.0], "turn": 0},
 		{"id": "w_kart_wide", "pos": [296.0, 0, 324.0], "turn": 2},
 		{"id": "p_plate_6x12", "pos": [140, 28.0, 80], "turn": 0, "color": "#1b2a34"},
-		{"id": "p_nose_4x6", "pos": [160, 36.0, 20], "turn": 0, "color": "#237841"},
+		{"id": "p_nose_4x6_lights", "pos": [160, 36.0, 20], "turn": 0, "color": "#237841"},
 		{"id": "p_curve_1x3", "pos": [140, 36.0, 80], "turn": 0, "color": "#237841"},
 		{"id": "p_curve_1x3", "pos": [240.0, 36.0, 80], "turn": 0, "color": "#237841"},
 		{"id": "p_curve_2x6", "pos": [140, 36.0, 140], "turn": 0, "color": "#237841"},

@@ -7,6 +7,8 @@
 		{"id": "wheel_small_wide", "pos": [180, 0, 80], "turn": 0},
 		{"id": "p_tile_2x2", "pos": [140, 32, 80], "turn": 0, "color": "#36aebf"},
 		{"id": "p_tile_2x2", "pos": [220.0, 32, 80], "turn": 0, "color": "#36aebf"},
+		{"id": "d_light_1x1", "pos": [140, 32, 120], "turn": 0},
+		{"id": "d_light_1x1", "pos": [240.0, 32, 120], "turn": 0},
 		{"id": "p_kart_axle_plate", "pos": [120, 24, 300], "turn": 0, "color": "#1b1b1b"},
 		{"id": "w_racing", "pos": [112, 0, 292], "turn": 0},
 		{"id": "w_racing", "pos": [288.0, 0, 348.0], "turn": 2},

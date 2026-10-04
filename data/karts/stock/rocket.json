@@ -10,7 +10,7 @@
 		{"id": "wheel_slick", "pos": [260, 0, 290.0], "turn": 0},
 		{"id": "p_plate_6x10", "pos": [140, 28.0, 140], "turn": 0, "color": "#f2f3f2"},
 		{"id": "front_wing_6x2", "pos": [140, 36.0, 140], "turn": 0, "color": "#c4281c"},
-		{"id": "p_nose_4x6", "pos": [160, 44.0, 80], "turn": 0, "color": "#c4281c"},
+		{"id": "p_nose_4x6_lights", "pos": [160, 44.0, 80], "turn": 0, "color": "#c4281c"},
 		{"id": "p_curve_2x4", "pos": [140, 36.0, 200], "turn": 0, "color": "#f2f3f2"},
 		{"id": "p_curve_2x4", "pos": [220.0, 36.0, 200], "turn": 0, "color": "#f2f3f2"},
 		{"id": "steering_wheel", "pos": [180, 36.0, 200], "turn": 0},

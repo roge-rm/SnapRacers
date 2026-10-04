@@ -48,6 +48,9 @@ class Part:
         # A second piece in its own colour that isn't painted, like a tire or
         # a lens: (solid, colour, finish).
         self.trim = stats.pop("trim", None)
+        # Clear lenses that shine when the lights are on, for a part whose
+        # trim is something else: (solid, colour).
+        self.lamp = stats.pop("lamp", None)
         self.finish = stats.pop("finish", "plastic")
         volume = size[0] * size[1] * size[2]
         self.stats.setdefault("mass", round(max(volume * DENSITY, 0.05), 2))
@@ -623,6 +626,16 @@ def nose_4x6():
 
 
 @part
+def nose_4x6_lights():
+    """The racing nose with a pair of round headlights set into its front,
+    either side of the tip."""
+    base = nose_4x6()
+    lenses = union([cylinder(0.045, 0.22, "-z", (x, 0.11, 0.4), 18) for x in (0.24, 0.76)])
+    return Part("p_nose_4x6_lights", "Racing nose 4×6 with lights", "body", "curves", base.size, base.solid, base.connectors, RED,
+                aero={"front": 0.25, "back": 1.0, "side": 0.7}, solids=base.stats["solids"], trim=(lenses, TRANS_CLEAR, "glass"), light="head")
+
+
+@part
 def cowl_2x6():
     """An engine cowl, rounded over the top and sloping down at the back."""
     w = 2 * STUD
@@ -802,9 +815,11 @@ def _moto_fork(id, name, style, about):
                     cylinder((R + 2) * FINE, 30 * FINE, "x", (0, 0, 0), 24).translate(_f(25, R, 10)),
                     box(*_f(20, -10, -60, 60, R + 8, 80), edge=0))
         parts.append(guard)
-    if style == "scooter":
-        # A little headlamp on the bars.
-        grips.append(cylinder(0.05, 0.04, "-z", tuple(_f(40, bar - 6, 8)), 14))
+    # A round headlamp in a black shell, out in front of the frame's head.
+    lamp_y = bar - 6 if style == "scooter" else crown[1] + 12
+    lamp_r = 0.05 if style == "scooter" else 0.065
+    grips.append(cylinder(lamp_r + 0.01, 0.06, "-z", tuple(_f(40, lamp_y, 1)), 16))
+    lamp = cylinder(lamp_r, 0.012, "-z", tuple(_f(40, lamp_y, 1 - 0.06 / FINE)), 16)
     low = R - 3.6
     hi = bar + 4
     shift = [0, -low * FINE, 0]
@@ -814,7 +829,8 @@ def _moto_fork(id, name, style, about):
     solids = [[20, crown[0], 0, 60, crown[1], 20], [22.4, R - 3.6, 5, 28.8, crown[0], 15], [51.2, R - 3.6, 5, 57.6, crown[0], 15]]
     solids = [[a * FINE, (b - low) * FINE, cc * FINE, d * FINE, (e - low) * FINE, g * FINE] for a, b, cc, d, e, g in solids]
     return Part(id, name, "steering", "bike", (80 * FINE, (hi - low) * FINE, (reach + 4) * FINE), union(parts).translate(shift), con, METAL, finish="metal",
-                about=about, style="bikebars", control=1.15, grip_reach=0.3, mass=2.5, strength=900.0, trim=(union(grips).translate(shift), BLACK, "plastic"), solids=solids)
+                about=about, style="bikebars", control=1.15, grip_reach=0.3, mass=2.5, strength=900.0, trim=(union(grips).translate(shift), BLACK, "plastic"), solids=solids,
+                lamp=(lamp.translate(shift), TRANS_CLEAR), light="head")
 
 
 part(lambda: _moto_fork("b_moto_fork", "Motorbike fork", "road",
@@ -836,11 +852,11 @@ def moto_fairing():
     tip = 12.0
     pts = [(l, 0.0), (l, h)] + [(l * (1 - t), tip + (h - tip) * math.cos(t * math.pi * 0.5)) for t in [k / 12.0 for k in range(1, 13)]] + [(6.0, 0.0)]
     shell = profile_x([(z * FINE, y * FINE) for z, y in pts], 2 * FINE, 38 * FINE)
-    lamp = cylinder(0.06, 0.03, "-z", tuple(_f(20, 18, 7)), 16)
+    lamp = cylinder(0.06, 0.06, "-z", tuple(_f(20, 18, 7)), 16)
     screen = profile_x([(z * FINE, y * FINE) for z, y in [(14, h1 - h0 - 2), (l, h1 - h0 + 12), (l + 2, h1 - h0 + 12), (18, h1 - h0 - 2)]], 6 * FINE, 34 * FINE)
     con = [c("clip", _f(x, 18, l), (0, 0, 1)) for x in (10, 30)]
-    return Part("b_moto_fairing", "Sports fairing", "body", "bike", (40 * FINE, (h1 - h0 + 12) * FINE, (l + 2) * FINE), union([shell, lamp]), con, WHITE,
-                aero={"front": 0.3, "back": 1.0, "side": 0.8}, trim=(union([screen, lamp]), TRANS_CLEAR, "glass"), solids=[[2 * FINE, 0, 0, 38 * FINE, (h1 - h0) * FINE, l * FINE]])
+    return Part("b_moto_fairing", "Sports fairing", "body", "bike", (40 * FINE, (h1 - h0 + 12) * FINE, (l + 2) * FINE), shell, con, WHITE,
+                aero={"front": 0.3, "back": 1.0, "side": 0.8}, trim=(screen, TRANS_CLEAR, "glass"), lamp=(lamp, TRANS_CLEAR), light="head", solids=[[2 * FINE, 0, 0, 38 * FINE, (h1 - h0) * FINE, l * FINE]])
 
 
 # Kart chassis and seats.

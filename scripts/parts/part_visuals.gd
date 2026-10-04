@@ -105,6 +105,14 @@ static func _modelled(def: Dictionary) -> Node3D:
 		trim.mesh = load(def.trim.mesh)
 		trim.material_override = finished(def.trim.color, def.trim.get("finish", "plastic"))
 		root.add_child(trim)
+	# Lenses that shine, on a part whose trim is something else. They're
+	# marked so a kart can light them (see KartMesh and Kart).
+	if def.has("lamp"):
+		var lamp := MeshInstance3D.new()
+		lamp.mesh = load(def.lamp.mesh)
+		lamp.material_override = glass(def.lamp.color)
+		lamp.set_meta("light", def.get("light", "head"))
+		root.add_child(lamp)
 	return root
 
 

@@ -663,7 +663,13 @@ func _assemble() -> void:
 			if baked.mesh.surface_get_material(i) == KartMesh.material("lamp"):
 				_lamps = KartMesh.material("lamp").duplicate()
 				baked.set_surface_override_material(i, _lamps)
-		_show_lights()
+	# Lamps on the parts that turn, like a bike's fork, which aren't baked in.
+	for lamp in _looks.find_children("*", "MeshInstance3D", true, false):
+		if lamp.has_meta("light"):
+			if _lamps == null:
+				_lamps = KartMesh.material("lamp").duplicate()
+			lamp.material_override = _lamps
+	_show_lights()
 
 	if stats.has_seat:
 		_rig = CharacterRig.new(driver if driver != null else default_driver(), true)
