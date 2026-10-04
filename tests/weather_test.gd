@@ -78,6 +78,7 @@ class Runner:
 	var karts := {}
 	var start := {}
 	var tick := 0
+	var broken: Kart
 
 	func _init(for_test: SceneTree) -> void:
 		test = for_test
@@ -117,6 +118,7 @@ class Runner:
 		var lose: Array[int] = [plain]
 		lit.lose_parts(lose)
 		test.check(lit._lamps.get_shader_parameter("on") == 1.0 and lit._pool.visible, "and still on after it loses a part")
+		broken = lit
 
 	func _physics_process(_delta: float) -> void:
 		tick += 1
@@ -126,11 +128,14 @@ class Runner:
 				kart.controls.throttle = 0.4
 				kart.controls.steer = 1.0
 				start[kart] = kart.global_rotation.y
+			# A shove worked out as nonsense, which should never happen.
+			broken._shove = Vector3(NAN, 0.0, 0.0)
 		if tick == 100:
 			var turned := {}
 			for which in karts:
 				var velocity: Vector3 = karts[which].linear_velocity
 				turned[which] = rad_to_deg(absf(Vector3.FORWARD.signed_angle_to(Vector3(velocity.x, 0.0, velocity.z), Vector3.UP)))
+			test.check(broken.global_transform.is_finite() and broken.linear_velocity.is_finite() and broken.global_position.distance_to(Vector3(100.0, 0.0, -100.0)) < 2.0, "a force that comes out as nonsense is left out, and the kart stays put (%s)" % broken.global_position)
 			test.check(turned.rain < turned.dry and turned.snow < turned.rain and turned.puddle < turned.rain, "the slippier it is, the less a kart gets round a hard turn (dry %.0f, rain %.0f, snow %.0f, through a puddle %.0f degrees)" % [turned.dry, turned.rain, turned.snow, turned.puddle])
 			print("All weather checks passed." if test.failures == 0 else "%d weather checks failed." % test.failures)
 			test.quit(1 if test.failures > 0 else 0)

@@ -421,6 +421,8 @@ var rough := 0.0
 var alongside: Kart
 var _rammed_wait := 0.0
 var slowdown_left := 0.0
+## Whether it's said a force or speed came out as nonsense (see _ok()).
+var _said_bad := false
 ## The render layer the driver's head is drawn on (see RaceCamera), or 0.
 var head_layer := 0:
 	set(value):
@@ -813,7 +815,7 @@ func _keep_wheels_apart(state: PhysicsDirectBodyState3D) -> Vector3:
 	# Firmer the further in, and steadied by how fast they're closing.
 	var closing := state.linear_velocity.dot(right) * signf(push)
 	var force := right * (push * WHEEL_PUSH - minf(closing, 0.0) * WHEEL_PUSH_DAMP * signf(push)) * mass
-	state.apply_central_force(force)
+	state.apply_central_force(_ok(force))
 	return force
 
 
@@ -933,11 +935,11 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 	slowdown_left = maxf(slowdown_left - dt, 0.0)
 	_spike_wait = maxf(_spike_wait - dt, 0.0)
 	if _shove != Vector3.ZERO:
-		state.linear_velocity += _shove
+		state.linear_velocity += _ok(_shove)
 		_shove = Vector3.ZERO
 	if tow != null and is_instance_valid(tow):
 		var pull := tow.pull_on(self)
-		state.apply_central_force(pull)
+		state.apply_central_force(_ok(pull))
 		applied += pull
 
 	var basis := state.transform.basis
@@ -1081,19 +1083,22 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 		if grip_here < 1.0:
 			on_rough += 1
 		# The weather makes any ground slippier, and a puddle more so. A trap
-		# is the same whatever the weather.
+		# is the same whatever the weather. It never takes a tire below
+		# LEAST_GRIP, unless it was already below that in the dry, like
+		# slicks on ice.
+		var dry_grip := ground_grip(grip_here, w.offroad)
 		if ground == null or not ground.has_meta("trap"):
 			var puddle := puddles.factor_at(contact) if puddles != null else 0.0
 			grip_here = maxf(grip_here * weather_grip * lerpf(1.0, PUDDLE_GRIP, puddle), LEAST_GRIP)
 			drag_here *= weather_drag * lerpf(1.0, PUDDLE_DRAG, puddle)
-		grip_here = ground_grip(grip_here, w.offroad)
+		grip_here = maxf(ground_grip(grip_here, w.offroad), minf(dry_grip, LEAST_GRIP))
 		drag_here = ground_drag(drag_here, w.offroad)
 		if ground != null and ground.get_meta("kerb", false):
 			var ridge := floori(w.kerb_travel / KERB_RIDGE)
 			w.kerb_travel += absf(v_long) * dt
 			if floori(w.kerb_travel / KERB_RIDGE) != ridge:
 				var kick := KERB_KICK * absf(v_long) * KERB_WHEEL / maxf(w.radius, 0.1)
-				state.apply_impulse(normal * share * kick, contact - origin)
+				state.apply_impulse(_ok(normal * share * kick), _ok(contact - origin))
 		var resist := w.rolling * load * drag_here
 		if braking:
 			resist += BRAKE_FORCE * (1.0 if locked else controls.brake) / wheels.size()
@@ -1122,15 +1127,15 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 		# can't tip it over. Balanced on two wheels it would fall over like
 		# a pencil on its point, all the faster in the pull of a loop.
 		var push := up if upright >= 1.0 else normal
-		state.apply_force(push * load, contact - origin)
+		state.apply_force(_ok(push * load), _ok(contact - origin))
 		# Cornering forces act a little below the centre of mass, so it leans
 		# but doesn't flip. Driving and braking act right at its height, so it
 		# doesn't squat onto its tail pulling away or dive when it brakes.
 		var height := (com - contact).dot(up)
 		# A bike's are right at its height, since it doesn't lean on its
 		# tires and is held upright instead, and a trike's nearly.
-		state.apply_force(side * tire.y, contact + up * height * lerpf(ROLL_HELP, 1.0, upright) - origin)
-		state.apply_force(heading * tire.x, contact + up * height - origin)
+		state.apply_force(_ok(side * tire.y), _ok(contact + up * height * lerpf(ROLL_HELP, 1.0, upright) - origin))
+		state.apply_force(_ok(heading * tire.x), _ok(contact + up * height - origin))
 		applied += push * load + side * tire.y + heading * tire.x
 
 	rough = float(on_rough) / on_any if on_any > 0 else 0.0
@@ -1149,7 +1154,7 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 	if sticking:
 		var g := KartStats.gravity()
 		var pull := mass * g * (Vector3.UP - stick_up * (1.0 + STICK_PULL))
-		state.apply_central_force(pull)
+		state.apply_central_force(_ok(pull))
 		applied += pull
 		# Turn the kart to lie flat on the road, damping its roll firmly and
 		# its pitch lightly, since on a loop it has to keep pitching over. On a
@@ -1164,7 +1169,7 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 		var roll := forward * spin.dot(forward)
 		var pitch := basis.x * spin.dot(basis.x)
 		var want := tilt * STICK_ALIGN - roll * STICK_ALIGN_DAMP - pitch * STICK_PITCH_DAMP
-		state.apply_torque(state.inverse_inertia_tensor.inverse() * want)
+		state.apply_torque(_ok(state.inverse_inertia_tensor.inverse() * want))
 		if not rail.is_empty():
 			_ride_rail(state, rail)
 		else:
@@ -1187,8 +1192,8 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 	var air := 0.5 * KartStats.AIR_DENSITY
 	var drag := -state.linear_velocity * speed * air * drag_area
 	var downforce := -up * air * lift_area * forward_speed * forward_speed
-	state.apply_central_force(drag)
-	state.apply_central_force(downforce)
+	state.apply_central_force(_ok(drag))
+	state.apply_central_force(_ok(downforce))
 	applied += drag + downforce
 
 	# The turbo pushes straight through the middle of the kart like a rocket,
@@ -1197,12 +1202,12 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 	# A jet pushes the same way, whatever the tires are on.
 	if thrust > 0.0 and controls.throttle > 0.0 and not locked and on_ground:
 		var jet := -basis.z * thrust * controls.throttle * push * (RESET_SLOWDOWN if slowdown_left > 0.0 else 1.0)
-		state.apply_central_force(jet)
+		state.apply_central_force(_ok(jet))
 		applied += jet
 	# It cuts out while you brake, so it can't carry you off at a corner.
 	if boost_left > 0.0 and slowdown_left <= 0.0 and on_ground and controls.brake <= 0.0 and forward_speed < stats.top_speed() * TURBO_TOP_SPEED:
 		var push := -basis.z * TURBO_FORCE
-		state.apply_central_force(push)
+		state.apply_central_force(_ok(push))
 		applied += push
 
 	if sliding and not slide_kick:
@@ -1273,11 +1278,11 @@ func _hold_slide(state: PhysicsDirectBodyState3D, up: Vector3) -> void:
 	# It keeps its speed, losing only the scrub, whatever the tires did.
 	_slide_speed = minf(_slide_speed - slide_scrub * dt, speed + SLIDE_CARRY * dt)
 	var keep := maxf(speed, _slide_speed)
-	state.linear_velocity = (flat / speed).rotated(up, fix) * keep + vertical
+	state.linear_velocity = _ok((flat / speed).rotated(up, fix) * keep + vertical, state.linear_velocity)
 	# The nose turns with it, and a bit more or less to hold the angle.
 	var spin := turning + (off - slide_way * want) * SLIDE_HOLD
 	var now := state.angular_velocity.dot(up)
-	state.angular_velocity += up * (spin - now) * minf(1.0, 12.0 * dt)
+	state.angular_velocity += _ok(up * (spin - now) * minf(1.0, 12.0 * dt))
 
 
 ## Keeps a bike or trike from falling over, by turning it back upright about
@@ -1302,7 +1307,7 @@ func _hold_upright(state: PhysicsDirectBodyState3D, ground_up: Vector3) -> void:
 		var side := basis.x
 		var pitch := basis.y.cross(toward).dot(side)
 		want += side * (pitch * HOLD_ALIGN - state.angular_velocity.dot(side) * HOLD_DAMP) * AIR_PITCH * upright
-	state.apply_torque(state.inverse_inertia_tensor.inverse() * want)
+	state.apply_torque(_ok(state.inverse_inertia_tensor.inverse() * want))
 
 
 ## The parts that turn with the steering, like a bike's fork. Tests use it.
@@ -1353,16 +1358,19 @@ func _ride_rail(state: PhysicsDirectBodyState3D, rail: Array) -> void:
 		# Off the end, carrying on the way the road goes.
 		_rail_done = line[0]
 		_rail_height = INF
-		state.linear_velocity = -_rail_frame(rail, line.size() - 2, 0.0).z * along
+		state.linear_velocity = _ok(-_rail_frame(rail, line.size() - 2, 0.0).z * along, state.linear_velocity)
 		return
 	k = int(_rail_at)
 	var f := _rail_at - k
 	var road := _rail_frame(rail, k, f)
 	var spot := line[k].lerp(line[k + 1], f) + road.x * _rail_across + road.y * _rail_height
+	if not Transform3D(road, spot).is_finite():
+		_ok(Vector3(NAN, NAN, NAN))
+		return
 	state.transform = Transform3D(road, spot)
-	state.linear_velocity = -road.z * along
+	state.linear_velocity = _ok(-road.z * along, state.linear_velocity)
 	var turning := Quaternion(_rail_frame(rail, k + 1, 0.0) * _rail_frame(rail, k, 0.0).inverse())
-	state.angular_velocity = turning.get_axis() * turning.get_angle() / step_length * along if turning.get_angle() > 0.0001 else Vector3.ZERO
+	state.angular_velocity = _ok(turning.get_axis() * turning.get_angle() / step_length * along) if turning.get_angle() > 0.0001 else Vector3.ZERO
 
 
 ## Which way the road faces `f` of the way from point k to the next on a
@@ -1399,7 +1407,7 @@ func _steady(state: PhysicsDirectBodyState3D, up: Vector3) -> void:
 		return
 	extra -= signf(extra) * leeway
 	var inertia := (state.inverse_inertia_tensor.inverse() * up).dot(up)
-	state.apply_torque(-up * extra * inertia * STEADY_RATE)
+	state.apply_torque(_ok(-up * extra * inertia * STEADY_RATE))
 
 
 ## How much a tire grips on this ground, as a multiple of its grip on the
@@ -1446,7 +1454,7 @@ func _break_scenery(state: PhysicsDirectBodyState3D) -> void:
 		damage.break_at.call_deferred(group, at, _last_velocity)
 		broke_scenery.emit.call_deferred(group, at, _last_velocity)
 		if damage.is_small(group):
-			state.linear_velocity = _last_velocity * PLOUGH
+			state.linear_velocity = _ok(_last_velocity * PLOUGH, state.linear_velocity)
 		return
 
 
@@ -1790,6 +1798,19 @@ func part_at(point: Vector3) -> int:
 ## Puts the kart back on its wheels facing the way it was going, with its lost
 ## parts back on, then holds it back for a moment so a reset is never a
 ## shortcut.
+## A force, place or speed going into the physics, or `instead` if it's come
+## out as nonsense (infinite or not a number). One bad number would spread
+## through the whole physics world and take every kart with it. It says so
+## once, with where it came from.
+func _ok(value: Vector3, instead := Vector3.ZERO) -> Vector3:
+	if value.is_finite():
+		return value
+	if not _said_bad:
+		_said_bad = true
+		push_warning("%s worked out %s for the physics, and it's left out" % [design.name, value])
+	return instead
+
+
 func _reset(state: PhysicsDirectBodyState3D) -> void:
 	var facing := -state.transform.basis.z
 	facing.y = 0.0

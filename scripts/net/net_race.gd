@@ -119,6 +119,12 @@ func _physics_process(delta: float) -> void:
 func got_state(sender: int, slot: int, state: PackedFloat32Array) -> void:
 	if owners.get(slot, -1) != sender or not _updates.has(slot) or state.size() < 12:
 		return
+	# A broken update would put the kart nowhere, so it's left out.
+	for value in state:
+		if not is_finite(value):
+			return
+	if Vector4(state[3], state[4], state[5], state[6]).length_squared() < 0.5:
+		return
 	var list: Array = _updates[slot]
 	list.append([_clock, state])
 	while list.size() > 8:
