@@ -165,7 +165,10 @@ func _move(delta: float, instantly := false) -> void:
 	var blend := 1.0 if instantly else 1.0 - exp(-FOLLOW * delta)
 	match view:
 		"driver", "bumper":
-			var at := target.eye_point() if view == "driver" else target.to_global(target.bumper_point())
+			var at := target.eye_point()
+			if view == "bumper":
+				# Looking back, it's the back bumper's view instead.
+				at = target.to_global(target.rear_bumper_point() if _looking_back else target.bumper_point())
 			var turn := target.global_basis.orthonormalized()
 			if _looking_back:
 				turn = turn.rotated(turn.y, PI)

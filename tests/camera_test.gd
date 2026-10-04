@@ -115,6 +115,10 @@ func _ready() -> void:
 	camera._looking_back = true
 	camera.snap()
 	check(looking.call().dot(ahead.call()) < -0.95, "and first person turns around")
+	camera.set_view("bumper")
+	camera._looking_back = true
+	camera.snap()
+	check(gap.call().dot(ahead.call()) < -0.8 and looking.call().dot(ahead.call()) < -0.95, "and bumper moves to the back bumper, looking back (%.1f m behind)" % -gap.call().dot(ahead.call()))
 	camera._looking_back = false
 	camera.input = race.player.input
 

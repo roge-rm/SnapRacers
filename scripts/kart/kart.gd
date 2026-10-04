@@ -743,6 +743,15 @@ func bumper_point() -> Vector3:
 	return Vector3(0.0, 0.3, front - 0.05)
 
 
+## The same just behind its tail, for the bumper camera looking back.
+func rear_bumper_point() -> Vector3:
+	var back := 0.0
+	if stats != null:
+		for info in stats.parts:
+			back = maxf(back, info.centre.z + info.extent.z * 0.5)
+	return Vector3(0.0, 0.3, back + 0.05)
+
+
 ## Pushes the kart sideways away from any other kart whose wheels are about
 ## to meet its own while they're only partly side by side, which is how
 ## wheels hook together. The push grows the further they overlap, so the
