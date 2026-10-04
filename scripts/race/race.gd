@@ -229,7 +229,7 @@ func _finish_setting_up(people: int) -> void:
 	camera = player.camera
 	# A debug switch for testing on a device. If there's a file called
 	# autopilot in the app's data folder, the AI drives your kart.
-	if OS.is_debug_build() and (FileAccess.file_exists("user://autopilot") or FileAccess.file_exists("user://perflog")):
+	if (OS.is_debug_build() and FileAccess.file_exists("user://autopilot")) or FileAccess.file_exists("user://perflog"):
 		var driver := AIDriver.new()
 		driver.kart = player.kart
 		driver.track = track
@@ -467,8 +467,8 @@ func _add_racer(racer_name: String, design: KartDesign, slot: int, who: Characte
 func _process(_delta: float) -> void:
 	_frames_drawn += 1
 	# The perflog switch (see Game.show_menu()) logs how it's running.
-	if OS.is_debug_build() and started and Engine.get_process_frames() % 300 == 0 and FileAccess.file_exists("user://perflog"):
-		print("PERF %s, %s: %.0f fps, %.1f ms process, %.1f ms physics" % [track.name, conditions.describe(), Engine.get_frames_per_second(), Performance.get_monitor(Performance.TIME_PROCESS) * 1000.0, Performance.get_monitor(Performance.TIME_PHYSICS_PROCESS) * 1000.0])
+	if started and Engine.get_process_frames() % 300 == 0 and FileAccess.file_exists("user://perflog"):
+		print("PERF %s, %s, %s graphics: %.0f fps, %.1f ms process, %.1f ms physics" % [track.name, conditions.describe(), Graphics.level, Engine.get_frames_per_second(), Performance.get_monitor(Performance.TIME_PROCESS) * 1000.0, Performance.get_monitor(Performance.TIME_PHYSICS_PROCESS) * 1000.0])
 	if _frames_drawn == FRAMES_BEFORE_COUNTDOWN:
 		Game.show_loading(false)
 

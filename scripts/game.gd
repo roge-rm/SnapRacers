@@ -152,17 +152,19 @@ func trophy_pictures() -> TrophyThumbnails:
 
 
 func show_menu() -> void:
-	# A debug switch for timing races on a device. If there's a file called
-	# perflog in the app's data folder, the game goes straight into a race on
-	# the course and in the weather and time it names, like
-	# "peach_pit rain night", the AI drives, and the race logs its frame rate
-	# (see Race).
-	if OS.is_debug_build() and FileAccess.file_exists("user://perflog") and not _perf_started:
+	# A switch for timing races on a device. If there's a file called perflog
+	# in the app's data folder, the game goes straight into a race on the
+	# course, in the weather and time and at the graphics level it names, like
+	# "peach_pit rain night low", the AI drives, and the race logs its frame
+	# rate (see Race). Only a debuggable build lets anyone put a file there.
+	if FileAccess.file_exists("user://perflog") and not _perf_started:
 		_perf_started = true
 		var words := FileAccess.get_file_as_string("user://perflog").strip_edges().split(" ")
 		settings.set_value("race", "split", SOLO)
 		settings.set_value("race", "weather", words[1] if words.size() > 1 else Conditions.RANDOM)
 		settings.set_value("race", "time", words[2] if words.size() > 2 else Conditions.RANDOM)
+		if words.size() > 3 and Graphics.LEVELS.has(words[3]):
+			set_graphics(words[3])
 		racing_alone = true
 		start_race(TRACKS + "/" + (words[0] if words.size() > 0 and words[0] != "" else "peach_pit") + ".json")
 		return
