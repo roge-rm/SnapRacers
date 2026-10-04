@@ -19,6 +19,7 @@ class Runner:
 	var start_yaw := 0.0
 	var most_roll := 0.0
 	var most_lean := 0.0
+	var gentle_lean := 0.0
 	var lean_right := false
 	var on_trike := false
 
@@ -93,14 +94,21 @@ class Runner:
 				check(kart.forward_speed > 12.0, "gets up to speed (%.1f m/s)" % kart.forward_speed)
 				check(absf(kart.global_position.x - 50.0) < 1.5, "rides straight (drifted %.2f m)" % (kart.global_position.x - 50.0))
 				most_roll = 0.0
-			331, 391, 451, 511:
-				c.steer = 1.0 if (tick - 331) % 120 == 0 else -1.0
-			571:
+				# A small correction, not a turn.
+				c.steer = 0.12
+			331, 340, 350, 360, 370, 380, 389:
+				gentle_lean = maxf(gentle_lean, absf(rad_to_deg(kart.lean)))
+			390:
+				check(gentle_lean < 3.0, "a small correction hardly leans it (%.1f degrees)" % gentle_lean)
+				most_roll = 0.0
+			391, 451, 511, 571:
+				c.steer = 1.0 if (tick - 391) % 120 == 0 else -1.0
+			631:
 				check(most_roll < 8.0, "stays upright through a slalom (rolled %.1f degrees at most)" % most_roll)
 				start_yaw = kart.global_rotation.y
 				c.steer = 1.0
 				most_roll = 0.0
-			631:
+			691:
 				lean_right = kart.lean > 0.0 and kart.looks().basis.y.x > 0.0
 				most_lean = rad_to_deg(kart.lean)
 				# The fork comes with the bars, and turns with them.
@@ -109,21 +117,21 @@ class Runner:
 				var wheel_turn := front.visual.basis.x.signed_angle_to(Vector3.RIGHT, Vector3.UP)
 				check(absf(fork_turn) > 0.01 and is_equal_approx(snappedf(fork_turn, 0.001), snappedf(wheel_turn, 0.001)), "the fork and bars turn with the front wheel (%.1f and %.1f degrees)" % [rad_to_deg(fork_turn), rad_to_deg(wheel_turn)])
 				check(absf(rad_to_deg(wheel_turn)) > 15.0, "and at speed it still visibly turns (%.0f degrees at %.0f m/s)" % [rad_to_deg(wheel_turn), kart.forward_speed])
-			691:
+			751:
 				var turned := rad_to_deg(angle_difference(start_yaw, kart.global_rotation.y))
 				check(turned < -40.0, "turns right when steering right (%.0f degrees)" % turned)
 				check(most_roll < 8.0, "and stays upright in a hard turn (rolled %.1f degrees at most)" % most_roll)
 				check(lean_right and most_lean > 10.0, "while it leans into the bend (%.0f degrees)" % most_lean)
 				c.steer = -1.0
-			751:
+			811:
 				check(kart.lean < 0.0, "and the other way going left (%.0f degrees)" % rad_to_deg(kart.lean))
 				c.steer = 0.0
 				c.throttle = 0.0
 				c.brake = 1.0
-			931:
+			991:
 				check(absf(kart.forward_speed) < 1.0 or kart.forward_speed < 0.0, "stops")
 				c.brake = 0.0
-			1051:
+			1111:
 				check(roll() < 3.0, "and stands upright again stopped (%.1f degrees)" % roll())
 				check(absf(kart.lean) < deg_to_rad(2.0), "with no lean (%.1f degrees)" % rad_to_deg(kart.lean))
 				on_trike = true

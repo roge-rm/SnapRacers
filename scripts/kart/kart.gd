@@ -217,9 +217,15 @@ const HOLD_IN_AIR := 1.0
 const AIR_PITCH := 0.5
 ## Rolled over further than this, a bike has crashed, and isn't held up.
 const HOLD_LETS_GO := deg_to_rad(65.0)
-## How far a bike leans into a bend, at most, and how quickly.
+## How far a bike leans into a bend, at most, and how quickly. It only leans
+## for a real turn: below LEAN_FROM of sideways pull (in g) it stays up, and
+## it eases over to MOST_LEAN by LEAN_FULL. The pull is smoothed over about a
+## third of a second first, so quick little corrections don't tip it.
 const MOST_LEAN := deg_to_rad(42.0)
-const LEAN_RATE := 2.5
+const LEAN_RATE := 1.4
+const LEAN_FROM := 0.3
+const LEAN_FULL := 1.1
+const LEAN_SMOOTH := 3.0
 const KERB_RIDGE := 0.6
 const KERB_KICK := 0.024
 const KERB_WHEEL := 0.3
@@ -293,6 +299,8 @@ var upright := 0.0
 ## body itself stays upright, so this is only in how it looks, and it's
 ## worked out from the steering and speed, so remote bikes lean the same.
 var lean := 0.0
+## The sideways pull it's leaning for, smoothed (see LEAN_FROM).
+var _lean_pull := 0.0
 var _looks: Node3D
 ## Parts that turn with a steered wheel, like a bike's front fork, as
 ## [node, its basis going straight].
@@ -1778,7 +1786,12 @@ func _lean_looks(delta: float) -> void:
 	var want := 0.0
 	if upright >= 1.0:
 		var bend := tan(steer_angle) / maxf(wheelbase, 0.5)
-		want = clampf(atan(forward_speed * absf(forward_speed) * bend / KartStats.gravity()), -MOST_LEAN, MOST_LEAN)
+		var pull := forward_speed * absf(forward_speed) * bend / KartStats.gravity()
+		_lean_pull = lerpf(_lean_pull, pull, 1.0 - exp(-LEAN_SMOOTH * delta))
+		var t := clampf((absf(_lean_pull) - LEAN_FROM) / (LEAN_FULL - LEAN_FROM), 0.0, 1.0)
+		want = signf(_lean_pull) * MOST_LEAN * t * t * (3.0 - 2.0 * t)
+	else:
+		_lean_pull = 0.0
 	lean = move_toward(lean, want, LEAN_RATE * delta)
 	var pivot := Vector3(0.0, _ground_y, 0.0)
 	var tip := Basis(Vector3.FORWARD, lean)
