@@ -98,7 +98,10 @@ func _course_card(path: String, colour: Color) -> MenuCard:
 	# A race from the Multiplayer menu is for two on this phone, and each
 	# picks a kart.
 	var two := mode == Game.MODE_RACE and not alone
-	card.tapped.connect(Game.show_kart_picker.bind(_starter(mode, path, alone), Game.show_course_grid.bind(mode, alone, cup), mode == Game.MODE_RACE, two))
+	# The picker shows what random weather means for this mode.
+	card.tapped.connect(func() -> void:
+		Game.mode = mode
+		Game.show_kart_picker(_starter(mode, path, alone), Game.show_course_grid.bind(mode, alone, cup), mode == Game.MODE_RACE, two))
 	return card
 
 

@@ -275,6 +275,7 @@ They check things like:
 - every power-up does what it says, the boxes hand them out and the karts at the back get the strong ones more often (`gadget_test`)
 - a faster kart gets past one it's racing wheel to wheel, instead of their wheels hooking together (`wheels_test`)
 - the AI steers round a brick wall across its line, and resets when it loses a wheel (`ai_wall_test`)
+- left to chance, the weather and time of day suit the course and come out the same for the same seed, and a picked one sticks (`weather_test`)
 - gas and brake together slide the kart around a bend tighter than steering alone, a slide held on the gas keeps going with the tail out steadily without spinning, and it grips again once you straighten up with a little turbo for holding it (`drift_test`)
 - drivers hold the steering wheel, and every hat, hairdo, beard and back piece is joined on without poking through anything (`character_test`)
 - the garage, the menus and every mode, including a whole Grand Prix and two players on one phone (`garage_test`, `menu_test`, `modes_test`, `split_test`)

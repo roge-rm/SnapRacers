@@ -66,6 +66,10 @@ var track: TrackPath
 var scenery := "all"
 ## Whether it brings its own sky and sun. The track editor has its own.
 var sky := true
+## The weather and time of day it's built for.
+var conditions: Conditions
+## Its sky and sun, once it's built, so they can change for a moment.
+var lights: SkyAndSun.Lights
 var _material: ShaderMaterial
 ## The rolling ground, on a course with hills.
 var terrain: Terrain
@@ -86,8 +90,9 @@ static func shader_for(code: String) -> Shader:
 	return shader
 
 
-func _init(path: TrackPath) -> void:
+func _init(path: TrackPath, race_conditions: Conditions = null) -> void:
 	track = path
+	conditions = race_conditions if race_conditions != null else Conditions.clear_day()
 
 
 func _prepare() -> void:
@@ -128,7 +133,7 @@ func _ready() -> void:
 	if sky:
 		# Indoors you see the dark of the hall behind everything, not the sky.
 		var indoor: bool = _theme.get("indoor", false)
-		SkyAndSun.add_to(self, 80.0, Color(_theme.get("backdrop", "#00000000")), _theme.get("sky", []), Color(_theme.lights) if indoor else Color.TRANSPARENT)
+		lights = SkyAndSun.add_to(self, 80.0, Color(_theme.get("backdrop", "#00000000")), _theme.get("sky", []), Color(_theme.lights) if indoor else Color.TRANSPARENT, conditions)
 	_add_grass()
 	for i in track.pieces.size():
 		_add_piece(i)

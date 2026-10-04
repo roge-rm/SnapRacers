@@ -47,6 +47,10 @@ var width := WIDTH
 ## metres. The road follows it, over gentle hills, and the pieces' own climbs
 ## (ramps, bridges, crests) go on top. 0 is flat.
 var hills := 0.0
+## The weather and time of day it's raced in, unless the player picks (see
+## Conditions). RANDOM leaves them to chance.
+var weather := Conditions.RANDOM
+var time := Conditions.RANDOM
 ## Landmarks put down by hand in the track editor, as
 ## { "prop": ..., "at": [x, z], "facing": 0 to 3 }. With none, the theme
 ## picks its own.
@@ -91,6 +95,8 @@ static func from_dict(data: Dictionary) -> TrackPath:
 	track.laps = int(data.get("laps", 3))
 	track.width = float(data.get("width", WIDTH))
 	track.hills = float(data.get("hills", 0.0))
+	track.weather = str(data.get("weather", Conditions.RANDOM))
+	track.time = str(data.get("time", Conditions.RANDOM))
 	track.landmarks = data.get("landmarks", []).duplicate(true)
 	track.start = start_from(data.get("start", []))
 	# A course made before the tiles were kart sized has the same pieces twice
@@ -121,6 +127,10 @@ func to_dict() -> Dictionary:
 	var out := { "name": name, "theme": theme, "about": about, "laps": laps, "width": width, "grid": TrackPiece.TILE, "pieces": specs }
 	if hills > 0.0:
 		out.hills = hills
+	if weather != Conditions.RANDOM:
+		out.weather = weather
+	if time != Conditions.RANDOM:
+		out.time = time
 	return out
 
 

@@ -108,6 +108,7 @@ static func best_place(id: String) -> int:
 
 func _pick(id: String) -> void:
 	if mode == Game.MODE_GRAND_PRIX:
+		Game.mode = Game.MODE_GRAND_PRIX
 		Game.show_kart_picker(Game.start_grand_prix.bind(id), Game.show_cups, true)
 	else:
 		Game.show_course_grid(mode, alone, id)
@@ -158,6 +159,7 @@ func _your_cup(mine: CupDesign, path: String) -> void:
 	var paths := mine.races.map(func(r): return str(r.from))
 	var card := _cup_card(id, mine.name, TrophyModel.spec_for(mine.name), TrophyModel.colour_for(mine.name), paths)
 	card.tapped.connect(func() -> void:
+		Game.mode = Game.MODE_GRAND_PRIX
 		Game.show_kart_picker(_starter(mine, id), Game.show_your_cups, true))
 	var links := HBoxContainer.new()
 	links.alignment = BoxContainer.ALIGNMENT_CENTER

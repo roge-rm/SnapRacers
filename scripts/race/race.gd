@@ -74,6 +74,10 @@ var mode := Game.MODE_RACE
 var laps := 3
 ## How good the AI drivers are (see Difficulty).
 var difficulty := Difficulty.DEFAULT
+## The weather and time of day, the same all race (see Conditions).
+var conditions: Conditions
+## The course as built, with its sky and sun.
+var builder: TrackBuilder
 ## The course's id, for records.
 var track_id := ""
 ## After a time trial, whether you set a new best time and a new best lap.
@@ -119,7 +123,9 @@ func _ready() -> void:
 	track_id = Tracks.id_of(Game.track_path)
 	laps = 1000000 if mode == Game.MODE_PRACTICE else track.laps
 	difficulty = Game.grand_prix.difficulty if mode == Game.MODE_GRAND_PRIX and Game.grand_prix != null else Game.difficulty()
-	add_child(TrackBuilder.new(track))
+	conditions = _conditions()
+	builder = TrackBuilder.new(track, conditions)
+	add_child(builder)
 
 	if Game.net.is_online() and not Game.net.setup.is_empty():
 		_ready_online()
@@ -235,6 +241,21 @@ func _finish_setting_up(people: int) -> void:
 ## (see NetSession). Everyone's karts are made the same way on every device.
 ## Ours are driven here, the host drives the AI, and the rest are remote
 ## karts that follow their updates (see NetRace).
+## The weather and time of day for this race. Online they come from the host.
+## Otherwise it's the player's pick, then the course's, then chance. A time
+## trial left to chance is a clear day, so records stay fair.
+func _conditions() -> Conditions:
+	if Game.net.is_online() and Game.net.setup.has("conditions"):
+		return Conditions.from_dict(Game.net.setup.conditions)
+	var gp := mode == Game.MODE_GRAND_PRIX and Game.grand_prix != null
+	var weather := Conditions.picked(Game.grand_prix.weather if gp else Game.weather(), track.weather)
+	var time := Conditions.picked(Game.grand_prix.time if gp else Game.time_of_day(), track.time)
+	if mode == Game.MODE_TIME_TRIAL:
+		weather = "clear" if weather == Conditions.RANDOM else weather
+		time = "day" if time == Conditions.RANDOM else time
+	return Conditions.resolve(track.theme, weather, time, randi())
+
+
 func _ready_online() -> void:
 	var setup: Dictionary = Game.net.setup
 	laps = int(setup.laps)

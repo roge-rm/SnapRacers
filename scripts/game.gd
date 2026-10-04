@@ -242,6 +242,8 @@ func start_grand_prix(which: Variant) -> void:
 	grand_prix.ranks = draw_ranks(ai_driver_keys())
 	grand_prix.player_kart = kart_choice()
 	grand_prix.difficulty = difficulty()
+	grand_prix.weather = weather()
+	grand_prix.time = time_of_day()
 	show_race(grand_prix.track_path())
 
 
@@ -476,6 +478,26 @@ func difficulty() -> String:
 
 func set_difficulty(level: String) -> void:
 	set_setting("race", "difficulty", level)
+
+
+## The weather and time of day picked for races, or Conditions.RANDOM to
+## leave them to chance (see Conditions).
+func weather() -> String:
+	var pick: String = settings.get_value("race", "weather", Conditions.RANDOM)
+	return pick if Conditions.WEATHERS.has(pick) else Conditions.RANDOM
+
+
+func set_weather(pick: String) -> void:
+	set_setting("race", "weather", pick)
+
+
+func time_of_day() -> String:
+	var pick: String = settings.get_value("race", "time", Conditions.RANDOM)
+	return pick if Conditions.TIMES.has(pick) else Conditions.RANDOM
+
+
+func set_time_of_day(pick: String) -> void:
+	set_setting("race", "time", pick)
 
 
 ## How each person steers on a touch screen, "stick" or "buttons" (see

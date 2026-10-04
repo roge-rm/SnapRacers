@@ -10,7 +10,9 @@ extends Node
 ## -- windmill_ridge at 1083, it only takes two pictures of that spot, one
 ## along the road and one from beside it. With "fps" after the course it
 ## races for ten seconds as fast as it can and says how many frames a second
-## it drew.
+## it drew. With weather= and time= after the course, like -- peach_pit
+## weather=rain time=dusk, it races in those (see Conditions) and only takes
+## the picture of the start, named after them.
 
 const OUT := "res://build/shots"
 
@@ -26,6 +28,15 @@ func _ready() -> void:
 	var args := OS.get_cmdline_user_args()
 	if not args.is_empty():
 		which = args[0]
+	var looks := ""
+	Game.settings.set_value("race", "weather", Conditions.RANDOM)
+	Game.settings.set_value("race", "time", Conditions.RANDOM)
+	for arg in args.duplicate():
+		if arg.begins_with("weather=") or arg.begins_with("time="):
+			var parts: PackedStringArray = arg.split("=")
+			Game.settings.set_value("race", parts[0], parts[1])
+			looks += "_" + parts[1]
+			args.erase(arg)
 	# After the course, "side" or "face" races two on one phone instead, and
 	# only takes the picture of the start.
 	var split := args[1] if args.size() > 1 and args[1] != "at" else ""
@@ -61,6 +72,10 @@ func _ready() -> void:
 		return
 	if split != "":
 		await shot(split)
+		get_tree().quit()
+		return
+	if looks != "":
+		await shot("pack" + looks)
 		get_tree().quit()
 		return
 	await shot("pack")

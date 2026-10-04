@@ -24,6 +24,10 @@ var laps := 3
 var width := TrackPath.WIDTH
 ## How much the ground rises and falls around it (see TrackPath.hills).
 var hills := 0.0
+## The weather and time of day it's raced in, unless the player picks (see
+## Conditions).
+var weather := Conditions.RANDOM
+var time := Conditions.RANDOM
 ## Who made it, from Settings.
 var made_by := ""
 ## The pieces in order, as their specs (see TrackPiece.from_spec()).
@@ -42,6 +46,8 @@ static func from_dict(data: Dictionary) -> CourseDesign:
 	c.laps = clampi(int(data.get("laps", 3)), 1, 9)
 	c.width = float(data.get("width", TrackPath.WIDTH))
 	c.hills = float(data.get("hills", 0.0))
+	c.weather = str(data.get("weather", Conditions.RANDOM))
+	c.time = str(data.get("time", Conditions.RANDOM))
 	c.made_by = str(data.get("made_by", ""))
 	for spec in data.get("pieces", []):
 		if spec is Dictionary:
@@ -62,11 +68,16 @@ static func from_dict(data: Dictionary) -> CourseDesign:
 
 func to_dict() -> Dictionary:
 	var turns := roundi(start.basis.get_euler().y / (PI * 0.5))
-	return {
+	var out := {
 		"name": name, "made_by": made_by, "theme": theme, "laps": laps, "width": width, "grid": TrackPiece.TILE,
 		"start": [snappedf(start.origin.x, 0.01), snappedf(start.origin.y, 0.01), snappedf(start.origin.z, 0.01), posmod(turns, 4)],
 		"pieces": pieces.duplicate(true), "landmarks": landmarks.duplicate(true), "hills": hills,
 	}
+	if weather != Conditions.RANDOM:
+		out.weather = weather
+	if time != Conditions.RANDOM:
+		out.time = time
+	return out
 
 
 func duplicate_design() -> CourseDesign:

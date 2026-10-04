@@ -28,6 +28,8 @@ signal name_changed(text: String)
 signal laps_changed(laps: int)
 signal theme_chosen(theme: String)
 signal hills_chosen(hills: float)
+signal weather_chosen(weather: String)
+signal time_chosen(time: String)
 signal close_up_pressed
 signal delete_pressed
 signal add_after_pressed
@@ -126,6 +128,8 @@ var _about_label: Label
 var _problems_label: Label
 var _laps_label: Label
 var _hills: Dictionary = {}
+var _weathers: Dictionary = {}
+var _times: Dictionary = {}
 var _close_up: Button
 var _themes: Dictionary = {}
 
@@ -198,6 +202,10 @@ func show_course(course: CourseDesign, length: float, problems: Array[String], c
 		BuilderStyle.show_swatch(_themes[id], Color(Scenery.theme_named(id).ground).darkened(0.35), id == course.theme)
 	for id in _hills:
 		MenuStyle.mark(_hills[id], is_equal_approx(float(id), course.hills))
+	for id in _weathers:
+		MenuStyle.mark(_weathers[id], id == course.weather)
+	for id in _times:
+		MenuStyle.mark(_times[id], id == course.time)
 	_problems_label.text = "\n".join(problems.map(func(p): return "• " + p))
 	_problems_label.visible = not problems.is_empty()
 	_close_up.visible = can_close
@@ -498,6 +506,19 @@ func _build_card() -> void:
 	box.add_child(hills_heading)
 	box.add_child(_choices(HILLS, _hills, func(id: String) -> void: hills_chosen.emit(float(id))))
 
+	# The weather and time it's raced in, unless whoever races it picks.
+	for which in [["Weather", Conditions.WEATHERS, Conditions.WEATHER_NAMES, _weathers, weather_chosen], ["Time of day", Conditions.TIMES, Conditions.TIME_NAMES, _times, time_chosen]]:
+		var heading := Label.new()
+		heading.text = which[0]
+		heading.add_theme_font_size_override("font_size", 16)
+		heading.add_theme_color_override("font_color", Color(1, 1, 1, 0.7))
+		box.add_child(heading)
+		var items := [[which[2][Conditions.RANDOM], Conditions.RANDOM]]
+		for id in which[1]:
+			items.append([which[2][id].split(" ")[0], id])
+		var picked: Signal = which[4]
+		box.add_child(_choices(items, which[3], func(id: String) -> void: picked.emit(id), 4))
+
 	_problems_label = Label.new()
 	_problems_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_problems_label.custom_minimum_size = Vector2(310, 0)
@@ -565,8 +586,13 @@ func _build_actions() -> void:
 
 
 ## A row of small pills to pick one of, like the surfaces.
-func _choices(items: Array, keep: Dictionary, picked: Callable) -> HBoxContainer:
-	var row := HBoxContainer.new()
+func _choices(items: Array, keep: Dictionary, picked: Callable, columns := 0) -> Container:
+	var row: Container = HBoxContainer.new()
+	if columns > 0:
+		row = GridContainer.new()
+		row.columns = columns
+		row.add_theme_constant_override("h_separation", 4)
+		row.add_theme_constant_override("v_separation", 4)
 	row.add_theme_constant_override("separation", 4)
 	for item in items:
 		var id: String = item[1]

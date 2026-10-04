@@ -158,6 +158,14 @@ func _ready() -> void:
 		_remember()
 		course.hills = hills
 		_refresh())
+	ui.weather_chosen.connect(func(weather: String) -> void:
+		_remember()
+		course.weather = weather
+		_refresh())
+	ui.time_chosen.connect(func(time: String) -> void:
+		_remember()
+		course.time = time
+		_refresh())
 	ui.close_up_pressed.connect(close_up)
 	ui.delete_pressed.connect(delete_selected)
 	ui.add_after_pressed.connect(func() -> void:
@@ -381,6 +389,7 @@ func race() -> void:
 		return
 	var saved := save()
 	if saved != "":
+		Game.mode = Game.MODE_RACE
 		Game.show_kart_picker(Game.start_course.bind(Game.MODE_RACE, saved, true), Game.show_track_editor, true)
 
 

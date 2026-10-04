@@ -29,6 +29,9 @@ var _pictures: KartThumbnails
 var _ai := false
 var _levels := {}
 var _level_about: Label
+var _weather: Button
+var _time: Button
+var _conditions_about: Label
 ## Which of two players on this phone is picking, 1 or 2, or 0 when it's one.
 var player := 0
 var _name: LineEdit
@@ -76,10 +79,16 @@ func _ready() -> void:
 	_race.custom_minimum_size.x = 220.0
 	MenuStyle.mark(_race, true)
 	top.add_child(_race)
+	var at := 2
 	if _ai and player != 2:
 		outer.add_child(_difficulty_row())
-		outer.move_child(outer.get_child(outer.get_child_count() - 1), 2)
+		outer.move_child(outer.get_child(outer.get_child_count() - 1), at)
+		at += 1
 		_show_level(Game.difficulty())
+	if player != 2:
+		outer.add_child(_conditions_row())
+		outer.move_child(outer.get_child(outer.get_child_count() - 1), at)
+		_show_conditions()
 
 	var grid := GridContainer.new()
 	grid.columns = COLUMNS
@@ -145,6 +154,47 @@ func _difficulty_row() -> HBoxContainer:
 	_level_about.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	row.add_child(_level_about)
 	return row
+
+
+## The weather and time of day, each a button that goes through the choices.
+func _conditions_row() -> HBoxContainer:
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 10)
+	_weather = MenuStyle.button("", func() -> void:
+		Game.set_weather(_next(Game.weather(), Conditions.WEATHERS))
+		_show_conditions())
+	_weather.custom_minimum_size = Vector2(300, 48)
+	row.add_child(_weather)
+	_time = MenuStyle.button("", func() -> void:
+		Game.set_time_of_day(_next(Game.time_of_day(), Conditions.TIMES))
+		_show_conditions())
+	_time.custom_minimum_size = Vector2(260, 48)
+	row.add_child(_time)
+	_conditions_about = Label.new()
+	_conditions_about.add_theme_font_size_override("font_size", 17)
+	_conditions_about.add_theme_color_override("font_color", Color(1, 1, 1, 0.65))
+	_conditions_about.size_flags_horizontal = SIZE_EXPAND_FILL
+	_conditions_about.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	row.add_child(_conditions_about)
+	return row
+
+
+## The one after this, going round from random through all of them.
+static func _next(now: String, all: Array) -> String:
+	var choices := [Conditions.RANDOM] + all
+	return choices[(choices.find(now) + 1) % choices.size()]
+
+
+func _show_conditions() -> void:
+	_weather.text = "Weather: %s" % Conditions.WEATHER_NAMES[Game.weather()]
+	_time.text = "Time: %s" % Conditions.TIME_NAMES[Game.time_of_day()]
+	var random := Game.weather() == Conditions.RANDOM or Game.time_of_day() == Conditions.RANDOM
+	if not random:
+		_conditions_about.text = ""
+	elif Game.mode == Game.MODE_TIME_TRIAL:
+		_conditions_about.text = "Random is a clear day in a time trial."
+	else:
+		_conditions_about.text = "Random suits the course."
 
 
 func _show_level(level: String) -> void:

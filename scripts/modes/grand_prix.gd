@@ -28,6 +28,10 @@ var player_kart := ""
 var ranks := {}
 ## How good the AI drivers are, for the whole cup (see Difficulty).
 var difficulty := Difficulty.DEFAULT
+## The weather and time of day picked for the cup. Left to chance, each race
+## gets its own (see Conditions).
+var weather := Conditions.RANDOM
+var time := Conditions.RANDOM
 
 static var _cups: Array = []
 
