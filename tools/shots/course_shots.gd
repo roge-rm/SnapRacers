@@ -32,14 +32,14 @@ func _ready() -> void:
 	Game.settings.set_value("race", "weather", Conditions.RANDOM)
 	Game.settings.set_value("race", "time", Conditions.RANDOM)
 	for arg in args.duplicate():
-		if arg.begins_with("weather=") or arg.begins_with("time="):
+		if arg.begins_with("weather=") or arg.begins_with("time=") or arg.begins_with("kart="):
 			var parts: PackedStringArray = arg.split("=")
 			Game.settings.set_value("race", parts[0], parts[1])
 			looks += "_" + parts[1]
 			args.erase(arg)
 	# After the course, "side" or "face" races two on one phone instead, and
 	# only takes the picture of the start.
-	var split := args[1] if args.size() > 1 and args[1] != "at" else ""
+	var split := args[1] if args.size() > 1 and args[1] in ["side", "face"] else ""
 	var spot := float(args[2]) if args.size() > 2 and args[1] == "at" else -1.0
 	if split != "":
 		Game.settings.set_value("race", "split", Game.SIDE_BY_SIDE if split == "side" else Game.FACE_TO_FACE)
@@ -76,6 +76,12 @@ func _ready() -> void:
 		return
 	if looks != "":
 		await shot("pack" + looks)
+		# With "front", one more from in front of your kart looking back at
+		# it, to see its headlights.
+		if args.has("front"):
+			var kart := race.player.kart
+			var eye := kart.global_transform * Vector3(1.5, 1.4, -7.0)
+			await with_camera(Transform3D(Basis.IDENTITY, eye).looking_at(kart.global_transform * Vector3(0.0, 0.3, -1.5), Vector3.UP), "front" + looks)
 		get_tree().quit()
 		return
 	await shot("pack")

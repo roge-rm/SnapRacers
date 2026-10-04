@@ -1,0 +1,25 @@
+[remap]
+
+importer="wavefront_obj"
+importer_version=1
+type="Mesh"
+uid="uid://cbehhic21ujo4"
+path="res://.godot/imported/d_spotlights.obj-9cdb4126f9f91aa6404f838b0b0bfb3f.mesh"
+
+[deps]
+
+files=["res://.godot/imported/d_spotlights.obj-9cdb4126f9f91aa6404f838b0b0bfb3f.mesh"]
+
+source_file="res://parts/meshes/d_spotlights.obj"
+dest_files=["res://.godot/imported/d_spotlights.obj-9cdb4126f9f91aa6404f838b0b0bfb3f.mesh", "res://.godot/imported/d_spotlights.obj-9cdb4126f9f91aa6404f838b0b0bfb3f.mesh"]
+
+[params]
+
+generate_tangents=true
+generate_lods=true
+generate_shadow_mesh=true
+generate_lightmap_uv2=false
+generate_lightmap_uv2_texel_size=0.2
+scale_mesh=Vector3(1, 1, 1)
+offset_mesh=Vector3(0, 0, 0)
+force_disable_mesh_compression=false

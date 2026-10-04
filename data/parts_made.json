@@ -17374,6 +17374,7 @@
 				"back": 1.0,
 				"side": 0.8
 			},
+			"light": "head",
 			"mass": 1.35,
 			"strength": 625.0
 		},
@@ -19839,6 +19840,7 @@
 				}
 			],
 			"finish": "glass",
+			"light": "head",
 			"mass": 0.08,
 			"strength": 412.0
 		},
@@ -19887,6 +19889,7 @@
 				}
 			],
 			"finish": "glass",
+			"light": "tail",
 			"mass": 0.15,
 			"strength": 425.0
 		},
@@ -20312,6 +20315,306 @@
 			},
 			"mass": 9.9,
 			"strength": 2050.0
+		},
+		"d_amber_1x1": {
+			"name": "Amber light 1\u00d71",
+			"kind": "plate",
+			"group": "details",
+			"size": [
+				1,
+				1,
+				1
+			],
+			"fine_size": [
+				20.0,
+				8.0,
+				20.0
+			],
+			"color": "#f5a623",
+			"mesh": "res://parts/meshes/d_amber_1x1.obj",
+			"connectors": [
+				{
+					"type": "socket",
+					"at": [
+						10.0,
+						0.0,
+						10.0
+					],
+					"axis": [
+						0,
+						-1,
+						0
+					]
+				}
+			],
+			"finish": "glass",
+			"light": "amber",
+			"mass": 0.08,
+			"strength": 412.0
+		},
+		"d_light_bar": {
+			"name": "Light bar",
+			"kind": "brick",
+			"group": "details",
+			"size": [
+				4,
+				3,
+				1
+			],
+			"fine_size": [
+				80.0,
+				24.0,
+				20.0
+			],
+			"color": "#1b2a34",
+			"mesh": "res://parts/meshes/d_light_bar.obj",
+			"connectors": [
+				{
+					"type": "socket",
+					"at": [
+						10.0,
+						0.0,
+						10.0
+					],
+					"axis": [
+						0,
+						-1,
+						0
+					]
+				},
+				{
+					"type": "socket",
+					"at": [
+						30.0,
+						0.0,
+						10.0
+					],
+					"axis": [
+						0,
+						-1,
+						0
+					]
+				},
+				{
+					"type": "socket",
+					"at": [
+						50.0,
+						0.0,
+						10.0
+					],
+					"axis": [
+						0,
+						-1,
+						0
+					]
+				},
+				{
+					"type": "socket",
+					"at": [
+						70.0,
+						0.0,
+						10.0
+					],
+					"axis": [
+						0,
+						-1,
+						0
+					]
+				},
+				{
+					"type": "stud",
+					"at": [
+						10.0,
+						24.0,
+						10.0
+					],
+					"axis": [
+						0,
+						1,
+						0
+					]
+				},
+				{
+					"type": "stud",
+					"at": [
+						30.0,
+						24.0,
+						10.0
+					],
+					"axis": [
+						0,
+						1,
+						0
+					]
+				},
+				{
+					"type": "stud",
+					"at": [
+						50.0,
+						24.0,
+						10.0
+					],
+					"axis": [
+						0,
+						1,
+						0
+					]
+				},
+				{
+					"type": "stud",
+					"at": [
+						70.0,
+						24.0,
+						10.0
+					],
+					"axis": [
+						0,
+						1,
+						0
+					]
+				}
+			],
+			"trim": {
+				"mesh": "res://parts/meshes/d_light_bar_trim.obj",
+				"color": "#e8f4f8",
+				"finish": "glass"
+			},
+			"light": "head",
+			"mass": 0.9,
+			"strength": 550.0
+		},
+		"d_spotlights": {
+			"name": "Spotlights",
+			"kind": "brick",
+			"group": "details",
+			"size": [
+				2,
+				3,
+				1
+			],
+			"fine_size": [
+				40.0,
+				24.0,
+				20.0
+			],
+			"color": "#635f61",
+			"mesh": "res://parts/meshes/d_spotlights.obj",
+			"connectors": [
+				{
+					"type": "socket",
+					"at": [
+						10.0,
+						0.0,
+						10.0
+					],
+					"axis": [
+						0,
+						-1,
+						0
+					]
+				},
+				{
+					"type": "socket",
+					"at": [
+						30.0,
+						0.0,
+						10.0
+					],
+					"axis": [
+						0,
+						-1,
+						0
+					]
+				}
+			],
+			"trim": {
+				"mesh": "res://parts/meshes/d_spotlights_trim.obj",
+				"color": "#e8f4f8",
+				"finish": "glass"
+			},
+			"light": "head",
+			"mass": 0.45,
+			"strength": 475.0
+		},
+		"d_round_lamp_2x2": {
+			"name": "Round lamp 2\u00d72",
+			"kind": "plate",
+			"group": "details",
+			"size": [
+				2,
+				5,
+				2
+			],
+			"fine_size": [
+				40.0,
+				40.0,
+				40.0
+			],
+			"color": "#9aa0a6",
+			"mesh": "res://parts/meshes/d_round_lamp_2x2.obj",
+			"connectors": [
+				{
+					"type": "socket",
+					"at": [
+						10.0,
+						0.0,
+						10.0
+					],
+					"axis": [
+						0,
+						-1,
+						0
+					]
+				},
+				{
+					"type": "socket",
+					"at": [
+						10.0,
+						0.0,
+						30.0
+					],
+					"axis": [
+						0,
+						-1,
+						0
+					]
+				},
+				{
+					"type": "socket",
+					"at": [
+						30.0,
+						0.0,
+						10.0
+					],
+					"axis": [
+						0,
+						-1,
+						0
+					]
+				},
+				{
+					"type": "socket",
+					"at": [
+						30.0,
+						0.0,
+						30.0
+					],
+					"axis": [
+						0,
+						-1,
+						0
+					]
+				}
+			],
+			"finish": "metal",
+			"trim": {
+				"mesh": "res://parts/meshes/d_round_lamp_2x2_trim.obj",
+				"color": "#e8f4f8",
+				"finish": "glass"
+			},
+			"light": "head",
+			"mass": 1.5,
+			"strength": 650.0
 		}
 	}
 }

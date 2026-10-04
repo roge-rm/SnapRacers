@@ -27,6 +27,7 @@ METAL = "#9aa0a6"
 GLASS = "#8fd3f4"
 TRANS_RED = "#c4281c"
 TRANS_CLEAR = "#e8f4f8"
+TRANS_AMBER = "#f5a623"
 
 # Mass for each cubic metre of a part's box, the same as the first parts.
 DENSITY = 12.0
@@ -595,7 +596,7 @@ def nose_fairing():
     shell = profile_x(pts, 0.03, 2 * STUD - 0.03)
     lamp = cylinder(0.08, 0.04, "-z", (STUD, 0.22, 0.17), 16)
     return Part("b_nose", "Front fairing", "body", "bike", (2 * STUD, h, l), shell, sockets([(0, 1), (1, 1)]), WHITE, aero={"front": 0.35, "back": 1.0, "side": 0.8},
-                trim=(lamp, TRANS_CLEAR, "glass"))
+                trim=(lamp, TRANS_CLEAR, "glass"), light="head")
 
 
 def _capsule(a, b, r):
@@ -883,13 +884,47 @@ part(lambda: _seat("s_lay_down_seat", "lay_down_seat", 2, 1, 4, 62, 0.3, BLACK))
 @part
 def headlight_1x1():
     lens = cylinder(STUD * 0.5 - 0.02, PLATE - 0.002, "y", (STUD * 0.5, 0.001, STUD * 0.5), 18)
-    return Part("d_light_1x1", "Round light 1×1", "plate", "details", (STUD, PLATE, STUD), lens, sockets([(0, 0)]), TRANS_CLEAR, finish="glass")
+    return Part("d_light_1x1", "Round light 1×1", "plate", "details", (STUD, PLATE, STUD), lens, sockets([(0, 0)]), TRANS_CLEAR, finish="glass", light="head")
 
 
 @part
 def taillight_1x2():
     lens = box(0, 0, 0, STUD, PLATE, 2 * STUD, edge=0.015)
-    return Part("d_taillight_1x2", "Tail light 1×2", "plate", "details", (STUD, PLATE, 2 * STUD), lens, sockets(grid_cells(1, 2)), TRANS_RED, finish="glass")
+    return Part("d_taillight_1x2", "Tail light 1×2", "plate", "details", (STUD, PLATE, 2 * STUD), lens, sockets(grid_cells(1, 2)), TRANS_RED, finish="glass", light="tail")
+
+
+@part
+def amber_1x1():
+    """A round amber light, like a beacon or an indicator."""
+    lens = cylinder(STUD * 0.5 - 0.02, PLATE - 0.002, "y", (STUD * 0.5, 0.001, STUD * 0.5), 18)
+    return Part("d_amber_1x1", "Amber light 1×1", "plate", "details", (STUD, PLATE, STUD), lens, sockets([(0, 0)]), TRANS_AMBER, finish="glass", light="amber")
+
+
+@part
+def light_bar():
+    """A bar of four round lamps along its front, for a roll cage or a bumper."""
+    bar = union([box(0, 0, 0.02, 4 * STUD, BRICK, STUD, edge=0.02)])
+    lenses = union([cylinder(0.09, 0.04, "-z", ((i + 0.5) * STUD, BRICK * 0.5, 0.025), 16) for i in range(4)])
+    return Part("d_light_bar", "Light bar", "brick", "details", (4 * STUD, BRICK, STUD), bar, sockets(grid_cells(4, 1)) + top_studs(grid_cells(4, 1), BRICK), BLACK,
+                light="head", trim=(lenses, TRANS_CLEAR, "glass"))
+
+
+@part
+def spotlights():
+    """Two big round spotlights on a brick, facing forward."""
+    body = union([box(0, 0, 0.04, 2 * STUD, BRICK, STUD, edge=0.02)] + [cylinder(0.11, 0.06, "-z", ((i + 0.5) * STUD, BRICK * 0.5, 0.05), 18) for i in range(2)])
+    lenses = union([cylinder(0.1, 0.03, "-z", ((i + 0.5) * STUD, BRICK * 0.5, 0.0), 18) for i in range(2)])
+    return Part("d_spotlights", "Spotlights", "brick", "details", (2 * STUD, BRICK, STUD), body, sockets(grid_cells(2, 1)), DARK_GREY,
+                light="head", trim=(lenses, TRANS_CLEAR, "glass"))
+
+
+@part
+def round_lamp_2x2():
+    """A big round headlamp in its own housing, facing forward."""
+    housing = union([box(0, 0, 0.1, 2 * STUD, 0.08, 2 * STUD, edge=0.01), cylinder(0.22, 0.2, "-z", (STUD, 0.27, 0.32), 24)])
+    lens = cylinder(0.2, 0.03, "-z", (STUD, 0.27, 0.12), 24)
+    return Part("d_round_lamp_2x2", "Round lamp 2×2", "plate", "details", (2 * STUD, 0.5, 2 * STUD), housing, sockets(grid_cells(2, 2)), METAL,
+                finish="metal", light="head", trim=(lens, TRANS_CLEAR, "glass"))
 
 
 @part

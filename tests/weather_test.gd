@@ -100,6 +100,23 @@ class Runner:
 			add_child(kart)
 			karts[which] = kart
 			x += 30.0
+		# A kart with headlights: they're off by day, on in the dark, and stay
+		# that way after it loses a part.
+		var lit := Kart.new()
+		lit.build(KartDesign.load_file("res://data/karts/stock/bruiser.json"))
+		lit.transform = Transform3D(Basis.IDENTITY, Vector3(100.0, 0.05, -100.0))
+		add_child(lit)
+		test.check(lit._lamps != null and lit._pool != null and lit._lamps.get_shader_parameter("on") == 0.0 and not lit._pool.visible, "a kart's headlights are off by day")
+		lit.lights_on = true
+		test.check(lit._lamps.get_shader_parameter("on") == 1.0 and lit._pool.visible, "and on in the dark, lighting the road ahead")
+		var plain := -1
+		for i in lit.design.parts.size():
+			if not PartCatalog.get_part(lit.design.parts[i].id).has("light") and PartCatalog.get_part(lit.design.parts[i].id).kind in ["brick", "body"]:
+				plain = i
+				break
+		var lose: Array[int] = [plain]
+		lit.lose_parts(lose)
+		test.check(lit._lamps.get_shader_parameter("on") == 1.0 and lit._pool.visible, "and still on after it loses a part")
 
 	func _physics_process(_delta: float) -> void:
 		tick += 1

@@ -36,6 +36,9 @@ static func make_turned(def: Dictionary, extent: Vector3, basis: Basis) -> Node3
 		var turned := _modelled(def)
 		turned.basis = basis
 		made.add_child(turned)
+		# A light's lens can shine (see KartMesh).
+		if def.has("light"):
+			made.set_meta("light", def.light)
 		return made
 	var root := Node3D.new()
 	# Shaped parts are made facing forward and then turned, so they need

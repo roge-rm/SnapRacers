@@ -5,12 +5,30 @@ extends RefCounted
 ## however many parts it has. Phones are slow at drawing lots of little
 ## things, and a kart can have a hundred parts. Each part keeps its colour in
 ## the mesh's vertex colours, and there's one surface each for plastic, glass
-## and metal.
+## and metal, and one for the lenses of lights, which can shine (see LAMP).
 ##
 ## The parts that move by themselves, the wheels and the steering, stay as
 ## they are.
 
 static var _materials := {}
+static var _lamp_shader: Shader
+
+## The lenses of a kart's lights. `on` makes them shine, white or amber ones
+## brightly and red tail lights more softly, and `brake` makes the red ones
+## shine brightly, day or night.
+const LAMP := """
+shader_type spatial;
+render_mode cull_disabled;
+uniform float on = 0.0;
+uniform float brake = 0.0;
+void fragment() {
+	vec3 col = pow(COLOR.rgb, vec3(2.2));
+	float red = step(0.5, COLOR.r) * (1.0 - step(0.35, COLOR.g));
+	ALBEDO = col * 0.7;
+	ROUGHNESS = 0.2;
+	EMISSION = col * (on * mix(3.0, 1.2, red) + brake * red * 4.0);
+}
+"""
 
 
 ## One mesh of all these part looks, which have to be in the same space (the
@@ -21,7 +39,7 @@ static func bake(looks: Array[Node3D]) -> MeshInstance3D:
 	for look in looks:
 		_gather(look, look.transform, surfaces)
 	var mesh := ArrayMesh.new()
-	for kind in ["plastic", "glass", "metal"]:
+	for kind in ["plastic", "glass", "metal", "lamp"]:
 		if not surfaces.has(kind):
 			continue
 		var s: Array = surfaces[kind]
@@ -38,10 +56,19 @@ static func bake(looks: Array[Node3D]) -> MeshInstance3D:
 	return out
 
 
-## The material for one kind of surface, coloured by the mesh.
-static func material(kind: String) -> StandardMaterial3D:
+## The material for one kind of surface, coloured by the mesh. Each kart
+## makes its own copy of the lamp one, so its lights go on by themselves.
+static func material(kind: String) -> Material:
 	if _materials.has(kind):
 		return _materials[kind]
+	if kind == "lamp":
+		if _lamp_shader == null:
+			_lamp_shader = Shader.new()
+			_lamp_shader.code = LAMP
+		var lamp := ShaderMaterial.new()
+		lamp.shader = _lamp_shader
+		_materials[kind] = lamp
+		return lamp
 	var m := StandardMaterial3D.new()
 	m.vertex_color_use_as_albedo = true
 	# The colours are the parts' own, which are sRGB like any colour picked.
@@ -59,28 +86,31 @@ static func material(kind: String) -> StandardMaterial3D:
 	return m
 
 
-static func _gather(node: Node, where: Transform3D, surfaces: Dictionary) -> void:
+## A light part's look says so (see PartVisuals.make_turned()), and its
+## glass goes in with the lamps.
+static func _gather(node: Node, where: Transform3D, surfaces: Dictionary, light := false) -> void:
+	light = light or node.has_meta("light")
 	if node is MeshInstance3D and node.mesh != null:
 		for i in node.mesh.get_surface_count():
 			var mat: Material = node.material_override if node.material_override != null else node.mesh.surface_get_material(i)
-			_add(node.mesh.surface_get_arrays(i), where, mat, surfaces)
+			_add(node.mesh.surface_get_arrays(i), where, mat, surfaces, light)
 	elif node is MultiMeshInstance3D and node.multimesh != null and node.multimesh.mesh != null:
 		var multi: MultiMesh = node.multimesh
 		for k in multi.instance_count:
 			for i in multi.mesh.get_surface_count():
-				_add(multi.mesh.surface_get_arrays(i), where * multi.get_instance_transform(k), node.material_override, surfaces)
+				_add(multi.mesh.surface_get_arrays(i), where * multi.get_instance_transform(k), node.material_override, surfaces, light)
 	for child in node.get_children():
 		if child is Node3D:
-			_gather(child, where * child.transform, surfaces)
+			_gather(child, where * child.transform, surfaces, light)
 
 
-static func _add(arrays: Array, where: Transform3D, mat: Material, surfaces: Dictionary) -> void:
+static func _add(arrays: Array, where: Transform3D, mat: Material, surfaces: Dictionary, light := false) -> void:
 	var colour := Color.WHITE
 	var kind := "plastic"
 	if mat is StandardMaterial3D:
 		colour = mat.albedo_color
 		if mat.transparency != BaseMaterial3D.TRANSPARENCY_DISABLED:
-			kind = "glass"
+			kind = "lamp" if light else "glass"
 		elif mat.metallic > 0.3:
 			kind = "metal"
 	if not surfaces.has(kind):

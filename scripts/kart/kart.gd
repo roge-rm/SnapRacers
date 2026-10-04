@@ -310,6 +310,17 @@ var lean := 0.0
 var weather_grip := 1.0
 var weather_drag := 1.0
 var puddles: Puddles
+## Whether its lights are on. The race turns them on when it's dark (see
+## Conditions.dark()).
+var lights_on := false:
+	set(value):
+		lights_on = value
+		_show_lights()
+## Its lamp lenses' material, if it has any lights, and whether they're
+## showing the brake.
+var _lamps: ShaderMaterial
+var _pool: HeadlightPool
+var _braking_shown := false
 ## The sideways pull it's leaning for, smoothed (see LEAN_FROM).
 var _lean_pull := 0.0
 var _looks: Node3D
@@ -625,10 +636,18 @@ func _assemble() -> void:
 				_steering = look
 		else:
 			looks.append(look)
+	_lamps = null
 	if not looks.is_empty():
-		_looks.add_child(KartMesh.bake(looks))
+		var baked := KartMesh.bake(looks)
+		_looks.add_child(baked)
 		for look in looks:
 			look.free()
+		# Its own lamp lenses, so its lights go on and off by themselves.
+		for i in baked.mesh.get_surface_count():
+			if baked.mesh.surface_get_material(i) == KartMesh.material("lamp"):
+				_lamps = KartMesh.material("lamp").duplicate()
+				baked.set_surface_override_material(i, _lamps)
+		_show_lights()
 
 	if stats.has_seat:
 		_rig = CharacterRig.new(driver if driver != null else default_driver(), true)
@@ -649,6 +668,12 @@ func _assemble() -> void:
 	_ground_y = 0.0
 	for w in wheels:
 		_ground_y = minf(_ground_y, w.rest.y - w.radius)
+	# Headlights throw light on the road ahead.
+	_pool = null
+	if stats.parts.any(func(info: KartStats.PartInfo) -> bool: return info.def.get("light", "") == "head"):
+		_pool = HeadlightPool.new(bumper_point().z, _ground_y)
+		_looks.add_child(_pool)
+		_show_lights()
 	sound.refit(stats)
 	mass = maxf(stats.mass, 1.0)
 	center_of_mass = stats.center_of_mass
@@ -1741,6 +1766,16 @@ func _reset(state: PhysicsDirectBodyState3D) -> void:
 	was_reset.emit.call_deferred()
 
 
+## Shows its lights on or off, and its brake lights.
+func _show_lights() -> void:
+	if _pool != null:
+		_pool.visible = lights_on
+	if _lamps == null:
+		return
+	_lamps.set_shader_parameter("on", 1.0 if lights_on else 0.0)
+	_lamps.set_shader_parameter("brake", 1.0 if _braking_shown else 0.0)
+
+
 ## Puts every lost part back on.
 func repair_now() -> void:
 	var had_lost := not lost.is_empty()
@@ -1778,6 +1813,11 @@ func _process(delta: float) -> void:
 			w.spin += forward_speed / w.radius * delta
 	_pose_driver()
 	_lean_looks(delta)
+	# The brake lights, only changed when they change.
+	var braking := controls.brake > 0.1 and forward_speed > 0.5
+	if braking != _braking_shown:
+		_braking_shown = braking
+		_show_lights()
 	if remote:
 		full_lock = steer_limit(remote_velocity.length())
 	var steered := Basis(Vector3.UP, -shown_steer())
