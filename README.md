@@ -222,7 +222,7 @@ Music and effects each have their own volume in Settings.
 
 The easiest way to install SnapRacers and keep it up to date is through my F-Droid repo:
 
-[https://roge-rm.gitlab.io/repo](https://roge-rm.gitlab.io/repo?fingerprint=80438B253C257BCCE05CDCB9E3AC9B6174C2250659962B14FCBE7F32FD42D53E)
+[https://hunke.ws/fdroid/repo](https://hunke.ws/fdroid/repo?fingerprint=80438B253C257BCCE05CDCB9E3AC9B6174C2250659962B14FCBE7F32FD42D53E)
 
 Then search for SnapRacers in F-Droid. When a new version comes out, F-Droid will offer it as an update.
 
@@ -230,7 +230,7 @@ You can also download the APK from the [Releases](https://github.com/roge-rm/Sna
 
 ## Playing in a browser
 
-You can play it in a browser at [roge-rm.gitlab.io/play/snapracers](https://roge-rm.gitlab.io/play/snapracers/). It's the same game, and your karts, drivers, courses and records are kept in the browser. Two players can share a keyboard or plug in controllers. It needs a browser with WebGL 2, which any recent Chrome, Edge, Firefox or Safari has.
+You can play it in a browser at [hunke.ws/fdroid/play/snapracers](https://hunke.ws/fdroid/play/snapracers/). It's the same game, and your karts, drivers, courses and records are kept in the browser. Two players can share a keyboard or plug in controllers. It needs a browser with WebGL 2, which any recent Chrome, Edge, Firefox or Safari has.
 
 ## Building
 
