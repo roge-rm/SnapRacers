@@ -61,6 +61,7 @@ func _ready() -> void:
 		# Player 1's name is the one in Settings, and player 2 has their own.
 		var key := "name" if player == 1 else "name_two"
 		_name = LineEdit.new()
+		PadKeyboard.attach(_name)
 		_name.placeholder_text = "Player %d's name" % player
 		_name.max_length = 16
 		_name.text = Game.player_one_name() if player == 1 else Game.player_two_name()

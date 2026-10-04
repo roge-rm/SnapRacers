@@ -66,6 +66,7 @@ func _player_page() -> Control:
 	page.add_theme_constant_override("separation", 10)
 	page.add_child(MenuStyle.heading("Name", "Shown in the results and to other players online"))
 	var name_edit := LineEdit.new()
+	PadKeyboard.attach(name_edit)
 	name_edit.placeholder_text = "You"
 	name_edit.max_length = 20
 	name_edit.text = Game.settings.get_value("player", "name", "")

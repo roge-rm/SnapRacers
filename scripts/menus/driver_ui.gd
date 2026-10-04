@@ -248,6 +248,7 @@ func _build_card() -> void:
 		_chip.visible = true)
 	top.add_child(close)
 	_name_edit = LineEdit.new()
+	PadKeyboard.attach(_name_edit)
 	_name_edit.max_length = 20
 	_name_edit.text_changed.connect(func(text: String) -> void: name_changed.emit(text))
 	box.add_child(_name_edit)

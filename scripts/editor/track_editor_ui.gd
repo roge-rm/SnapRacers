@@ -638,6 +638,7 @@ func _build_dialogs() -> void:
 	_name_dialog.title = "Name your course"
 	_name_dialog.ok_button_text = "Rename"
 	_name_edit = LineEdit.new()
+	PadKeyboard.attach(_name_edit)
 	_name_edit.max_length = 32
 	_name_edit.custom_minimum_size = Vector2(360, 0)
 	_name_dialog.add_child(_name_edit)

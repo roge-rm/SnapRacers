@@ -41,6 +41,7 @@ func _ready() -> void:
 	row.add_theme_constant_override("separation", 10)
 	column.add_child(row)
 	_code = LineEdit.new()
+	PadKeyboard.attach(_code)
 	_code.placeholder_text = "Paste a code"
 	_code.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_code.custom_minimum_size.y = MenuStyle.BUTTON_HEIGHT

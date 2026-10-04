@@ -175,7 +175,7 @@ There's a crowd. Little brick figures fill the grandstands and stand along the f
 
 ### Controllers and keys
 
-Everything works with a controller or the keys as well as touch: the menus, races, the garage, the driver screen and the track editor. In Settings each player picks their own controller, and sets their own keys and buttons by tapping one and pressing the new one.
+Everything works with a controller or the keys as well as touch: the menus, races, the garage, the driver screen and the track editor. In Settings each player picks their own controller, and sets their own keys and buttons by tapping one and pressing the new one. To type a name with a controller, press A on the box for a keyboard on the screen. X deletes, Y is a space and Start is done.
 
 ### Online
 
@@ -280,7 +280,7 @@ They check things like:
 - the garage, the menus and every mode, including a whole Grand Prix and two players on one phone (`garage_test`, `menu_test`, `modes_test`, `split_test`)
 - the track editor used the way a player would, and what stops a course being raced (`editor_test`, `course_test`)
 - a course or cup goes to a share code and back the same, even split over lines in a message, a tampered one is turned away, and adding one never makes a second copy (`sharing_test`)
-- each player's keys and controller buttons, the menus with a controller, and the menu in a race (`bindings_test`, `focus_test`, `pause_test`)
+- each player's keys and controller buttons, the menus with a controller, typing with one, and the menu in a race (`bindings_test`, `focus_test`, `pause_test`)
 - every camera view looks where it should (`camera_test`), every sound is there (`sound_test`), and the cups' trophies hold together (`trophy_test`)
 - every stock kart gets around a lap with the AI driving (`stock_test`)
 - each AI level laps about as far behind Expert as it should (`difficulty_test`)

@@ -44,6 +44,60 @@ func pad(button: JoyButton) -> void:
 		await frames(2)
 
 
+func keyboard() -> PadKeyboard:
+	var found := get_tree().root.find_children("*", "PadKeyboard", true, false).filter(func(k): return not k.is_queued_for_deletion())
+	return found[0] if not found.is_empty() else null
+
+
+## Typing with only a controller: A on a typing box brings up a keyboard on
+## the screen, A types the key picked out, X deletes, Y is a space, and Start
+## or B is done.
+func _typing() -> void:
+	var was: String = Game.settings.get_value("player", "name", "")
+	Game.show_settings()
+	await frames(3)
+	var box: LineEdit = screen().find_children("*", "LineEdit", true, false)[0]
+	box.text = ""
+	box.grab_focus()
+	await pad(JOY_BUTTON_A)
+	check(keyboard() != null and keyboard().visible, "A on a typing box brings up a keyboard")
+	await frames(2)
+	var key := keyboard().gui_get_focus_owner() if keyboard() != null else null
+	check(key is Button and keyboard()._letters.has(key), "with a letter picked out (%s)" % (key.text if key != null else "nothing"))
+	await pad(JOY_BUTTON_A)
+	await pad(JOY_BUTTON_DPAD_RIGHT)
+	await pad(JOY_BUTTON_A)
+	check(box.text == "Qw", "A types the key picked out, a capital to start (%s)" % box.text)
+	await pad(JOY_BUTTON_Y)
+	await pad(JOY_BUTTON_A)
+	check(box.text == "Qw W", "Y is a space, and the next word starts with a capital (%s)" % box.text)
+	await pad(JOY_BUTTON_X)
+	await pad(JOY_BUTTON_X)
+	check(box.text == "Qw", "X deletes (%s)" % box.text)
+	check(Game.settings.get_value("player", "name", "") == "Qw", "and the name's saved as it's typed")
+	await pad(JOY_BUTTON_B)
+	check(keyboard() == null and screen() is SettingsScreen, "B is done, without leaving the screen")
+	check(focused() == box, "and the box is picked out again")
+	Game.set_setting("player", "name", was)
+
+	# In a dialog, like naming a kart in the garage, done is the same as
+	# pressing Rename.
+	Game.show_garage()
+	await frames(3)
+	var garage: Garage = screen()
+	garage.ui._open_rename()
+	await frames(2)
+	await pad(JOY_BUTTON_A)
+	check(keyboard() != null, "naming a kart in the garage brings it up too")
+	for i in 40:
+		await pad(JOY_BUTTON_X)
+	await frames(2)
+	await pad(JOY_BUTTON_A)
+	await pad(JOY_BUTTON_START)
+	await frames(3)
+	check(keyboard() == null and not garage.ui._name_dialog.visible and garage.design.name == "Q", "and Start is done, which renames it (%s)" % garage.design.name)
+
+
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	host = Node.new()
@@ -102,6 +156,7 @@ func _ready() -> void:
 	check(builder.ui.slot != slot, "RB goes to the driver builder's next tab (%s to %s)" % [slot, builder.ui.slot])
 	await pad(JOY_BUTTON_LEFT_SHOULDER)
 	check(builder.ui.slot == slot, "and LB back")
+	await _typing()
 	Game.show_menu()
 	await frames(3)
 

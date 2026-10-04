@@ -78,6 +78,7 @@ func _ready() -> void:
 	row.add_theme_constant_override("separation", 10)
 	column.add_child(row)
 	_address = LineEdit.new()
+	PadKeyboard.attach(_address)
 	_address.placeholder_text = "Or type an address"
 	_address.text = Game.settings.get_value("online", "address", "")
 	_address.size_flags_horizontal = SIZE_EXPAND_FILL

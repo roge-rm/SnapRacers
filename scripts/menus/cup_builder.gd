@@ -27,6 +27,7 @@ func _ready() -> void:
 
 	column.add_child(MenuStyle.heading("Name"))
 	_name = LineEdit.new()
+	PadKeyboard.attach(_name)
 	_name.max_length = 32
 	_name.text = cup.name
 	_name.text_changed.connect(func(text: String) -> void:
