@@ -15,7 +15,7 @@
 # Use --release for a build going out to people, for the smallest engine.
 #
 #   tools/build-engine.sh             arm64 for phones and x86_64 for the emulator
-#   tools/build-engine.sh arm64       just one
+#   tools/build-engine.sh arm64       just one (arm32 is for older 32 bit phones and tablets)
 #   tools/build-engine.sh web         the engine for the web page (tools/build-web.sh)
 #   tools/build-engine.sh --release   fully optimised, for a release
 set -euo pipefail
@@ -84,6 +84,7 @@ for arch in "${ARCHES[@]}"; do
 	# game's debug switches (like the autopilot) work there.
 	case "$arch" in
 		arm64) abi=arm64-v8a; kind=release ;;
+		arm32) abi=armeabi-v7a; kind=release ;;
 		x86_64) abi=x86_64; kind=debug ;;
 		*) echo "I don't know the architecture $arch" >&2; exit 1 ;;
 	esac

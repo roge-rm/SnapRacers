@@ -9,6 +9,7 @@
 #
 #   tools/build-android.sh            the phone build (arm64), copied to the drop folder
 #   tools/build-android.sh --install  the emulator build (x86_64), installed on SnapRacers_Pixel_5
+#   tools/build-android.sh --arm32    the build for older 32 bit phones and tablets, for releases
 set -euo pipefail
 
 cd "$(dirname "$0")/.."
@@ -21,6 +22,9 @@ APK="$BUILD/snapracers-debug.apk"
 if [ "${1:-}" = "--install" ]; then
 	PRESET="Android emulator"
 	APK="$BUILD/snapracers-emulator-debug.apk"
+elif [ "${1:-}" = "--arm32" ]; then
+	PRESET="Android 32-bit"
+	APK="$BUILD/snapracers-arm32.apk"
 fi
 DROP=/srv/downloads/temp/debug/snapracers-debug.apk
 ADB="${ANDROID_HOME:-$HOME/Android/Sdk}/platform-tools/adb"
@@ -71,10 +75,15 @@ KIND=release
 if [ "$PRESET" = "Android emulator" ]; then
 	ABI=x86_64
 	KIND=debug
+elif [ "$PRESET" = "Android 32-bit" ]; then
+	ABI=armeabi-v7a
 fi
 CUSTOM="tools/godot/custom/$ABI/libgodot_android.so"
 EXPORT=--export-debug
 if [ -f "$CUSTOM" ]; then
+	# The swap keeps only this build's architecture, so start each time from
+	# Godot's own engine, which has them all.
+	unzip -o -q "$TEMPLATES/android_source.zip" "libs/$KIND/godot-lib.template_$KIND.aar" -d "$BUILD/android/build"
 	python3 tools/engine/swap_engine.py "$BUILD/android/build/libs/$KIND/godot-lib.template_$KIND.aar" "$ABI" "$CUSTOM"
 	if [ "$KIND" = release ]; then
 		EXPORT=--export-release

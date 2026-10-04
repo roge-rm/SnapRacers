@@ -22,16 +22,16 @@ Dan
 
 <table>
   <tr>
-    <td align="center"><img src="screenshots/race.png" width="400" alt="A race at Peach Pit"><br>Past the crowd at the start of a race at Peach Pit</td>
-    <td align="center"><img src="screenshots/garage.png" width="400" alt="The garage"><br>The garage, with the Classic loaded</td>
+    <td align="center"><img src="screenshots/race.png" width="400" alt="A race at Peach Pit"></td>
+    <td align="center"><img src="screenshots/garage.png" width="400" alt="The garage"></td>
   </tr>
   <tr>
-    <td align="center"><img src="screenshots/cups.png" width="400" alt="The Grand Prix cups"><br>Every cup with its trophy and courses</td>
-    <td align="center"><img src="screenshots/karts.png" width="400" alt="The kart picker"><br>Picking a kart, bike or trike before a race</td>
+    <td align="center"><img src="screenshots/cups.png" width="400" alt="The Grand Prix cups"></td>
+    <td align="center"><img src="screenshots/karts.png" width="400" alt="The kart picker"></td>
   </tr>
   <tr>
-    <td align="center"><img src="screenshots/driver.png" width="400" alt="The driver screen"><br>Building a driver</td>
-    <td align="center"><img src="screenshots/editor.png" width="400" alt="The track editor"><br>Pithead Park in the track editor</td>
+    <td align="center"><img src="screenshots/driver.png" width="400" alt="The driver screen"></td>
+    <td align="center"><img src="screenshots/editor.png" width="400" alt="The track editor"></td>
   </tr>
 </table>
 
@@ -41,7 +41,7 @@ Dan
 
 ### The garage
 
-The garage works like the builder in Apogee, my physics sim. The kart fills the screen and everything else floats over it.
+The kart fills the screen and everything else floats over it.
 
 - Drag a part from the drawer onto the kart and it snaps on wherever its studs, clips, pins or axles fit. Dots show where it can go, and tapping one puts it there.
 - Tap a part on the kart to move, turn, flip, slide, copy or delete it, or to change which way on it goes.
@@ -226,7 +226,7 @@ The easiest way to install SnapRacers and keep it up to date is through my F-Dro
 
 Then search for SnapRacers in F-Droid. When a new version comes out, F-Droid will offer it as an update.
 
-You can also download the APK from the [Releases](https://github.com/roge-rm/SnapRacers/releases) page and sideload it. It needs Android 8.1 or newer.
+You can also download the APK from the [Releases](https://github.com/roge-rm/SnapRacers/releases) page and sideload it. It needs Android 8.1 or newer. There's a 32-bit build too, for older phones and tablets that can't run the usual one; F-Droid picks the right one by itself.
 
 ## Playing in a browser
 
