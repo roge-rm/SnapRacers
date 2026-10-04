@@ -54,6 +54,8 @@ const TIME_ODDS := [20, 35, 20, 13, 12]
 
 ## How much the road grips and drags in each weather, times what it would
 ## dry.
+## How strong the lamps are when they're on by day (see lamp_strength()).
+const DAY_LAMPS := 0.35
 const GRIP := {"rain": 0.78, "storm": 0.72, "snow": 0.62, "dust": 0.9}
 const DRAG := {"snow": 1.25, "dust": 1.1}
 
@@ -125,6 +127,14 @@ func to_dict() -> Dictionary:
 ## Whether it's dark enough that lamps and kart lights come on.
 func dark() -> bool:
 	return not indoor and (time in ["dusk", "night"] or weather in ["storm", "fog", "dust"])
+
+
+## How strong the course's lamps shine: fully at dusk and at night, and
+## only a little in a storm, fog or dust by day, when there's daylight too.
+func lamp_strength() -> float:
+	if not dark():
+		return 0.0
+	return 1.0 if time in ["dusk", "night"] else DAY_LAMPS
 
 
 ## How much the road grips, and drags, times what it would in the dry.

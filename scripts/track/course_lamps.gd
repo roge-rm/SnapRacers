@@ -9,12 +9,15 @@ extends RefCounted
 ## above a lamp stays dark.
 
 ## How far a lamp's light reaches, in metres, and how bright it is.
-const REACH := 26.0
+const REACH := 34.0
 const BRIGHTNESS := 1.0
+## The map holds light up to this bright, where pools overlap. The shaders
+## scale it back up (see BrickShaders).
+const MOST := 2.0
 ## The warm white of the lamps.
 const COLOUR := Color("#ffe6c0")
 ## The map's size in pixels, and how far past the outermost lamps it reaches.
-const SIZE := 512
+const SIZE := 256
 const MARGIN := 30.0
 ## The lamps' height is kept in the map as a fraction of this.
 const HIGHEST := 64.0
@@ -48,15 +51,17 @@ static func light_map(lamps: Array[Vector3]) -> Array:
 				if d >= REACH:
 					continue
 				var i := y * SIZE + x
-				var fall := 1.0 - d / REACH
-				light[i] = minf(light[i] + fall * fall * BRIGHTNESS, 1.0)
+				# Bright under the lamp and right across the road, fading
+				# out towards the edge of the pool.
+				var fall := 1.0 - (d / REACH) * (d / REACH)
+				light[i] = minf(light[i] + fall * fall * BRIGHTNESS, MOST)
 				tops[i] = maxf(tops[i], lamp.y)
 	var bytes := PackedByteArray()
 	bytes.resize(SIZE * SIZE * 4)
 	for i in SIZE * SIZE:
-		bytes[i * 4] = int(COLOUR.r * light[i] * 255.0)
-		bytes[i * 4 + 1] = int(COLOUR.g * light[i] * 255.0)
-		bytes[i * 4 + 2] = int(COLOUR.b * light[i] * 255.0)
+		bytes[i * 4] = int(COLOUR.r * light[i] / MOST * 255.0)
+		bytes[i * 4 + 1] = int(COLOUR.g * light[i] / MOST * 255.0)
+		bytes[i * 4 + 2] = int(COLOUR.b * light[i] / MOST * 255.0)
 		bytes[i * 4 + 3] = int(clampf(tops[i] / HIGHEST, 0.0, 1.0) * 255.0)
 	var image := Image.create_from_data(SIZE, SIZE, false, Image.FORMAT_RGBA8, bytes)
 	var size := Vector2(per_pixel * SIZE, per_pixel * SIZE)

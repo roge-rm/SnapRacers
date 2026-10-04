@@ -20,7 +20,7 @@ const BRICK_LENGTH := 1.0 # a 1x4 brick
 ## studs.
 const COMMON := """
 // From the race's weather (see SkyAndSun): how wet the road is and how much
-// snow lies about, from 0 to 1, and whether the lamps are on.
+// snow lies about, from 0 to 1, and how strongly the lamps are shining.
 global uniform float wet;
 global uniform float snow;
 global uniform float lamps_on;
@@ -34,7 +34,7 @@ const vec3 SNOW = vec3(0.82, 0.85, 0.9);
 
 // How much lamp light falls here, at night, below the lamp it comes from.
 vec3 lamp_light(vec3 at) {
-	if (lamps_on < 0.5 || lamp_area.z <= 0.0) {
+	if (lamps_on <= 0.0 || lamp_area.z <= 0.0) {
 		return vec3(0.0);
 	}
 	vec2 uv = (at.xz - lamp_area.xy) * lamp_area.zw;
@@ -43,7 +43,8 @@ vec3 lamp_light(vec3 at) {
 	}
 	vec4 l = texture(lamp_map, uv);
 	float top = l.a * 64.0;
-	return l.rgb * (1.0 - smoothstep(top - 1.0, top + 0.5, at.y));
+	// The map holds it halved (see CourseLamps.MOST).
+	return l.rgb * 2.0 * lamps_on * (1.0 - smoothstep(top - 1.0, top + 0.5, at.y));
 }
 
 float seam(float coord, float period, float width) {
@@ -151,7 +152,7 @@ void fragment() {
 	// Under a lamp the dark road needs a little more than its own colour
 	// lit, or it hardly shows.
 	vec3 lamp = lamp_light(world);
-	EMISSION = col * lamp + lamp * 0.2;
+	EMISSION = col * lamp + lamp * 0.3;
 	ROUGHNESS = rough;
 	SPECULAR = mix(0.25, 0.5, wet);
 }

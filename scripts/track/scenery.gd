@@ -54,7 +54,7 @@ const BEAM_EVERY := 16.0
 const LIGHT_EVERY := 12.0
 ## Outdoors, how far apart the lamp posts along the road are. They take turns
 ## on each side.
-const LAMP_EVERY := 28.0
+const LAMP_EVERY := 20.0
 
 ## Each theme: ground colour, curb and wall colours, the sky, its landmarks
 ## (placed first, biggest first) and its fillers with how often each turns

@@ -119,7 +119,7 @@ static func add_to(parent: Node, shadow_distance := 60.0, backdrop := Color.TRAN
 	var lit := conditions if conditions != null and lights.a <= 0.0 else Conditions.clear_day()
 	RenderingServer.global_shader_parameter_set("wet", lit.wet())
 	RenderingServer.global_shader_parameter_set("snow", lit.snow())
-	RenderingServer.global_shader_parameter_set("lamps_on", 1.0 if lit.dark() else 0.0)
+	RenderingServer.global_shader_parameter_set("lamps_on", lit.lamp_strength())
 
 	var made := Lights.new()
 	made.environment = env
