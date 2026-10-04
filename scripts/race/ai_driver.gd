@@ -210,7 +210,7 @@ func _physics_process(delta: float) -> void:
 		controls.throttle = 1.0
 		controls.brake = 1.0
 		controls.steer = _slide_way
-	elif kart.sliding and _slide_way != 0.0 and here > slide_bend * 0.4 and _slide_on_line():
+	elif kart.sliding and _slide_way != 0.0 and here > slide_bend * 0.4 and _turn_way(offset + maxf(speed * 0.4, 4.0)) == _slide_way and _slide_on_line():
 		# Holding the slide on the gas, steering harder the tighter the bend
 		# and if it's running wide.
 		controls.throttle = 1.0
@@ -220,12 +220,18 @@ func _physics_process(delta: float) -> void:
 		var wide := -(kart.global_position - track.point_at(offset)).dot(track.right_at(offset)) * _slide_way
 		var slide_grip := kart.stats.cornering() * KartStats.gravity() * Kart.slide_corner
 		controls.steer = _slide_way * clampf(speed * speed * maxf(here, track.bend_at(offset + 6.0)) / slide_grip + maxf(wide - 1.5, 0.0) * 0.15 + minf(wide + 1.5, 0.0) * 0.15, 0.25, 1.0)
-	elif kart.sliding and _slide_way != 0.0:
-		# Out of the hairpin it straightens up, which ends the slide, and
-		# drives on.
+	elif kart.sliding and _slide_way != 0.0 and (here <= slide_bend * 0.4 or _turn_way(offset + maxf(speed * 0.4, 4.0)) != _slide_way):
+		# Out of the hairpin, or where the road's about to bend back the
+		# other way, it straightens up, which ends the slide with a little
+		# turbo, and drives on.
 		controls.throttle = 1.0
 		controls.brake = 0.0
 		controls.steer = 0.0
+	elif kart.sliding and _slide_way != 0.0:
+		# Running wide with the bend still going, it lifts off, which ends
+		# the slide, and steers round the rest of it on its tires.
+		controls.throttle = 0.0
+		controls.brake = 0.0
 	elif _backing > 0.0:
 		# Backing off whatever it ran into, steering the other way.
 		_backing -= delta
@@ -261,6 +267,12 @@ func _physics_process(delta: float) -> void:
 	# A loop needs everything the kart's got, whatever the level.
 	if _on_loop and not _lost_nerve:
 		kart.push = maxf(kart.push, 1.0)
+
+
+## Which way the road's turning here: 1 to the right, -1 to the left.
+func _turn_way(at: float) -> float:
+	var turn := track.forward_at(at + 3.0) - track.forward_at(at - 3.0)
+	return 1.0 if turn.dot(track.right_at(at)) > 0.0 else -1.0
 
 
 ## Whether a slide's still following the road: not turned in past it, or

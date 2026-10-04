@@ -29,7 +29,7 @@ const SETTINGS := {
 		"name": "Easy",
 		"about": "Relaxed drivers who make mistakes and wait for you.",
 		"skill": [0.44, 0.54],
-		"pace": 0.62,
+		"pace": 0.65,
 		"mistakes": 0.25,
 		"loop_nerves": 0.15,
 		"gadgets": 0.3,
