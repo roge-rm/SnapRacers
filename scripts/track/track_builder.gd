@@ -136,6 +136,7 @@ func _ready() -> void:
 		# Indoors you see the dark of the hall behind everything, not the sky.
 		var indoor: bool = _theme.get("indoor", false)
 		lights = SkyAndSun.add_to(self, 80.0, Color(_theme.get("backdrop", "#00000000")), _theme.get("sky", []), Color(_theme.lights) if indoor else Color.TRANSPARENT, conditions)
+		add_child(WeatherEffects.new(conditions, lights))
 	_add_grass()
 	if conditions.weather in ["rain", "storm"] and not conditions.indoor:
 		puddles = Puddles.new(track, conditions.seed, conditions.wet())

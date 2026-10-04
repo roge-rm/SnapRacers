@@ -35,11 +35,11 @@ static func audible() -> bool:
 const ALL := [
 	"fx/bump", "fx/crash", "fx/bricks", "fx/powerup", "fx/beep", "fx/go", "fx/lap", "fx/final_lap",
 	"fx/finish", "fx/win", "fx/reset", "fx/turbo", "fx/rope", "fx/wall", "fx/shockwave", "fx/marbles", "fx/spikes", "fx/drop", "fx/cannon", "fx/hit",
-	"fx/repair", "fx/shield", "fx/ghost", "fx/lightning", "fx/ram", "fx/click", "fx/back", "fx/snap", "fx/unsnap",
+	"fx/repair", "fx/shield", "fx/ghost", "fx/lightning", "fx/thunder", "fx/ram", "fx/click", "fx/back", "fx/snap", "fx/unsnap",
 	"fx/pick", "fx/nope",
 	"engine/engine_small", "engine/engine_micro", "engine/engine_big", "engine/engine_twin",
 	"engine/engine_diesel", "engine/engine_v8", "engine/electric_motor", "engine/jet",
-	"loop/skid", "loop/rumble", "loop/wind",
+	"loop/skid", "loop/rumble", "loop/wind", "loop/rain", "loop/storm", "loop/gale",
 ]
 const TUNES := ["menu", "race_one", "race_two", "race_three", "race_four", "race_indoor", "race_rally", "race_coaster", "race_legends"]
 

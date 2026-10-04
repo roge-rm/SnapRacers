@@ -172,7 +172,38 @@ def wind():
     return normalise(air * swell, 0.6)
 
 
-LOOPS = {"skid": skid, "rumble": rumble, "wind": wind}
+def rain(heavy=1.0, seed=51):
+    """Rain falling all around: a soft hiss with drops pattering through it."""
+    total = RATE * 4
+    hiss = circular_filter(noise(total, seed), low=900.0, high=7000.0) * 0.5
+    drops = np.zeros(total)
+    r = rng(seed + 1)
+    n = seconds(0.03)
+    for _ in range(int(900 * heavy)):
+        at = r.integers(0, total - n)
+        drops[at:at + n] += resonator(r.uniform(2500, 6500), r.uniform(0.004, 0.01), n) * r.uniform(0.1, 0.5)
+    return normalise(hiss + drops, 0.55)
+
+
+def storm():
+    """Heavy rain with the low roll of the wind under it."""
+    total = RATE * 4
+    t = times(total)
+    roll = circular_filter(noise(total, 61), low=40.0, high=220.0) * (1.0 + 0.4 * np.sin(2 * np.pi * 0.25 * t))
+    return normalise(rain(1.8, 62) + roll * 0.8, 0.65)
+
+
+def gale():
+    """A cold wind gusting slowly, for snow and dust storms."""
+    total = RATE * 4
+    t = times(total)
+    air = circular_filter(noise(total, 71), low=120.0, high=900.0)
+    whistle = circular_filter(noise(total, 72), low=700.0, high=1100.0) * 0.4
+    gusts = 1.0 + 0.5 * np.sin(2 * np.pi * 0.25 * t) + 0.25 * np.sin(2 * np.pi * 0.75 * t + 1.0)
+    return normalise((air + whistle) * gusts, 0.55)
+
+
+LOOPS = {"skid": skid, "rumble": rumble, "wind": wind, "rain": rain, "storm": storm, "gale": gale}
 
 
 # One shots.
@@ -379,6 +410,15 @@ def lightning():
     return normalise(drive(crackle + rumble, 1.5), 0.85)
 
 
+def thunder():
+    """Thunder: a crack overhead, then a long low roll that dies away."""
+    n = seconds(3.5)
+    crack = highpass(noise(n, 91), 800) * decay(n, 0.15) * 0.8
+    roll = lowpass(noise(n, 92), 140) * ramp(n, [(0.0, 0.0), (0.06, 1.0), (0.4, 0.8), (1.0, 0.0)]) * 3.0
+    rumble = lowpass(noise(n, 93), 60) * ramp(n, [(0.0, 0.0), (0.2, 1.0), (1.0, 0.0)]) * 3.0
+    return normalise(drive(crack + roll + rumble, 1.3), 0.9)
+
+
 def ram():
     n = seconds(0.6)
     clang = sum(resonator(f, d, n) * a for f, d, a in [(520, 0.5, 1.0), (1370, 0.35, 0.6), (2210, 0.25, 0.4), (3100, 0.15, 0.3)])
@@ -425,7 +465,7 @@ ONE_SHOTS = {
     "beep": lambda: beep("A5", 0.16), "go": lambda: beep("A6", 0.5),
     "lap": lap, "final_lap": final_lap, "finish": finish, "win": win,
     "reset": reset, "turbo": turbo, "rope": rope, "wall": wall, "shockwave": shockwave, "marbles": marbles, "spikes": spikes, "drop": drop, "cannon": cannon,
-    "hit": hit, "repair": repair, "shield": shield, "ghost": ghost, "lightning": lightning, "ram": ram,
+    "hit": hit, "repair": repair, "shield": shield, "ghost": ghost, "lightning": lightning, "thunder": thunder, "ram": ram,
     "click": click, "back": back, "snap": snap, "unsnap": unsnap, "pick": pick, "nope": nope,
 }
 
