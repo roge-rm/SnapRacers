@@ -503,7 +503,10 @@ func _stuck_check(delta: float, speed: float, up: Vector3) -> void:
 	# when it isn't meant to be, so not at the top of a loop. It's free again
 	# once it's a little further around the track.
 	var upside_down := up.y < 0.3 and not kart.sticking
-	if not kart.locked and (speed < 1.5 or upside_down):
+	# Just after a reset it's pulling away from a standstill at half power,
+	# which on ice takes a while, so that isn't being stuck.
+	var pulling_away := kart.slowdown_left > 0.0 and not upside_down
+	if not kart.locked and not pulling_away and (speed < 1.5 or upside_down):
 		if _stuck == 0.0:
 			_stuck_at = offset
 		_stuck += delta
