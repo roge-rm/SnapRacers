@@ -394,6 +394,7 @@ func _add_split_views() -> void:
 			holder.rotation = PI
 			holder.resized.connect(func() -> void: holder.pivot_offset = holder.size * 0.5)
 		var viewport := SubViewport.new()
+		Graphics.apply_to(viewport)
 		holder.add_child(viewport)
 		holder.resized.connect(_fit_hud.bind(viewport, humans[i]), CONNECT_DEFERRED)
 		var hud_layer := CanvasLayer.new()

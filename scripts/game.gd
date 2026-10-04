@@ -127,6 +127,8 @@ func start(host: Node, splash := true) -> void:
 	if not splash:
 		settings.set_value("race", "weather", "clear")
 		settings.set_value("race", "time", "day")
+		settings.set_value("display", "graphics", Graphics.DEFAULT)
+	set_graphics(graphics())
 	if splash:
 		_swap(SplashScreen.new())
 	else:
@@ -518,6 +520,19 @@ func time_of_day() -> String:
 
 func set_time_of_day(pick: String) -> void:
 	set_setting("race", "time", pick)
+
+
+## How much the game draws, "low", "medium" or "high" (see Graphics).
+func graphics() -> String:
+	var level: String = settings.get_value("display", "graphics", Graphics.DEFAULT)
+	return level if Graphics.LEVELS.has(level) else Graphics.DEFAULT
+
+
+func set_graphics(level: String) -> void:
+	set_setting("display", "graphics", level)
+	Graphics.level = level
+	if is_inside_tree():
+		Graphics.apply_to(get_tree().root)
 
 
 ## How each person steers on a touch screen, "stick" or "buttons" (see

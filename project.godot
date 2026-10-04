@@ -65,6 +65,10 @@ lamps_on={
 "type": "float",
 "value": 0.0
 }
+studs_on={
+"type": "float",
+"value": 1.0
+}
 lamp_map={
 "type": "sampler2D",
 "value": ""

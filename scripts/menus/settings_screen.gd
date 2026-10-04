@@ -125,6 +125,20 @@ func _sound_page() -> Control:
 func _display_page() -> Control:
 	var page := VBoxContainer.new()
 	page.add_theme_constant_override("separation", 10)
+	page.add_child(MenuStyle.heading("Graphics", "Lower draws less, for slower phones"))
+	var levels := HBoxContainer.new()
+	levels.add_theme_constant_override("separation", 10)
+	page.add_child(levels)
+	var buttons := {}
+	for level in Graphics.LEVELS:
+		var button := MenuStyle.button(Graphics.NAMES[level], func() -> void:
+			Game.set_graphics(level)
+			for other in buttons:
+				MenuStyle.mark(buttons[other], other == level))
+		button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		MenuStyle.mark(button, level == Game.graphics())
+		buttons[level] = button
+		levels.add_child(button)
 	var row := HBoxContainer.new()
 	page.add_child(row)
 	var heading := MenuStyle.heading("Show frame rate")

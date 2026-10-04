@@ -125,7 +125,7 @@ func _init(kit: SceneryKit) -> void:
 		for i in pieces.size():
 			_place(draw.multimesh, i, kit.movers[pieces[i][0]].pivot * pieces[i][1], pieces[i][2], pieces[i][3])
 		_mover_draws[kind] = draw
-	if not kit.fans.is_empty():
+	if not kit.fans.is_empty() and Graphics.value("crowd"):
 		add_child(Crowd.new(kit.fans))
 	if not kit.solids.is_empty():
 		_body = StaticBody3D.new()

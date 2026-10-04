@@ -24,6 +24,8 @@ const COMMON := """
 global uniform float wet;
 global uniform float snow;
 global uniform float lamps_on;
+// Whether to draw the studs, which lower graphics settings leave out.
+global uniform float studs_on;
 // The lamps' light seen from above (see CourseLamps), and where that map is:
 // its corner's x and z, then one over its width and depth.
 global uniform sampler2D lamp_map;
@@ -66,6 +68,9 @@ float blotches(vec2 p) {
 // Studs on a flat surface. Each has a lighter round top, a darker ring around
 // its edge, and a small shadow on the side away from the sun. p is in metres.
 vec3 studs(vec2 p, vec3 col) {
+	if (studs_on < 0.5) {
+		return col;
+	}
 	vec2 uv = p / 0.25;
 	vec2 fw = fwidth(uv);
 	float blur = max(fw.x, fw.y);

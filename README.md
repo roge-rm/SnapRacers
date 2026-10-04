@@ -185,6 +185,10 @@ Each race has its weather and time of day, picked beside the AI's level or left 
 - Left to chance, it suits the course: snowy courses mostly snow, deserts get dust storms and never rain, and beaches are mostly sunny. Halls are always the same. A time trial left to chance is a clear day, so records stay fair.
 - The AI drives to suit, and online everyone races in the same weather with the same puddles.
 
+### Graphics
+
+Slower phones can turn the graphics down in Settings, under Display. Medium and Low draw the race at a lower resolution, with the menus and the race's words still sharp, and cut the shadows short or leave them out, along with some far off scenery, the crowd and the studs, and less rain and snow. Nothing you could drive into is ever left out, so a race is the same whatever anyone picks.
+
 ### Controllers and keys
 
 Everything works with a controller or the keys as well as touch: the menus, races, the garage, the driver screen and the track editor. In Settings each player picks their own controller, and sets their own keys and buttons by tapping one and pressing the new one. To type a name with a controller, press A on the box for a keyboard on the screen. X deletes, Y is a space and Start is done.
@@ -287,6 +291,7 @@ They check things like:
 - every power-up does what it says, the boxes hand them out and the karts at the back get the strong ones more often (`gadget_test`)
 - a faster kart gets past one it's racing wheel to wheel, instead of their wheels hooking together (`wheels_test`)
 - the AI steers round a brick wall across its line, and resets when it loses a wheel (`ai_wall_test`)
+- the graphics setting draws less on lower levels, but everything a kart could hit is just where it is (`graphics_test`)
 - left to chance, the weather and time of day suit the course and come out the same for the same seed, a picked one sticks, puddles are the same for the same seed, and karts grip less in the rain, less again in snow and least through a puddle (`weather_test`), and the AI gets round a snowy course (`race_test`)
 - gas and brake together slide the kart around a bend tighter than steering alone, a slide held on the gas keeps going with the tail out steadily without spinning, and it grips again once you straighten up with a little turbo for holding it (`drift_test`)
 - drivers hold the steering wheel, and every hat, hairdo, beard and back piece is joined on without poking through anything (`character_test`)

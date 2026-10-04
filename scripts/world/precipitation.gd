@@ -78,10 +78,11 @@ func _make(kind: Dictionary) -> void:
 	multi.transform_format = MultiMesh.TRANSFORM_3D
 	multi.use_custom_data = true
 	multi.mesh = quad
-	multi.instance_count = kind.count
+	var count := roundi(kind.count * Graphics.value("falling"))
+	multi.instance_count = count
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 7
-	for i in kind.count:
+	for i in count:
 		multi.set_instance_transform(i, Transform3D.IDENTITY)
 		multi.set_instance_custom_data(i, Color(rng.randf(), rng.randf(), rng.randf(), 0.0))
 	multimesh = multi

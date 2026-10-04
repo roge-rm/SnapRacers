@@ -20,6 +20,9 @@ extends Node3D
 const CELL := 4.0 # metres, for the map of how far the ground is from the road
 const REACH := 80.0 # how far out from the road scenery goes
 const MAX_FILLERS := 280
+## Only scenery closer to the road than this is solid. Nothing further out
+## can be hit, so lower graphics settings can leave some out.
+const SOLID_REACH := 60.0
 ## Grass between the edge of the road and anything you could hit.
 const RUNOFF := 10.0
 ## Props this small (by Props.ROOM) come down whole when hit. Bigger ones only
@@ -333,7 +336,7 @@ func _ready() -> void:
 	# the road itself may be, or karts would pile into it (the walls keep
 	# them off everything else).
 	var road_edge := track.width * 0.5 + TrackPath.KERB
-	_kit.solids = _kit.solids.filter(func(s): return _distance_at(s[0].origin) < 60.0 and not _near_other_road(s[0].origin, road_edge, 0, 0.0))
+	_kit.solids = _kit.solids.filter(func(s): return _distance_at(s[0].origin) < SOLID_REACH and not _near_other_road(s[0].origin, road_edge, 0, 0.0))
 	_kit.build(self)
 
 
@@ -949,5 +952,14 @@ func _fill() -> void:
 		var c := _centre(i % _cols, i / _cols)
 		var at := Vector3(c.x + _rng.randf_range(-1.0, 1.0), 0.0, c.y + _rng.randf_range(-1.0, 1.0))
 		if _free(at, Props.ROOM.get(prop, 3.0)) and _inside_hall(at, Props.ROOM.get(prop, 3.0)):
-			_add(prop, at)
+			# Far off, where nothing can hit it, a lower graphics setting
+			# leaves some out (see Graphics). It's still made, into a kit
+			# that's thrown away, so everything after it comes out the same.
+			if _dist[i] > SOLID_REACH + Props.ROOM.get(prop, 3.0) and not Graphics.draws_far(at):
+				var kept := _kit
+				_kit = SceneryKit.new()
+				_add(prop, at)
+				_kit = kept
+			else:
+				_add(prop, at)
 			count += 1
