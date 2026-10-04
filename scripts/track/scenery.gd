@@ -26,6 +26,8 @@ const RUNOFF := 10.0
 ## break where they're hit.
 const SMALL := 3.2
 ## Props too big to break, like hills and lakes.
+## Where each lamp along the road is (see _lamp_posts()).
+var lamps: Array[Vector3] = []
 const UNBREAKABLE := ["mountain", "volcano", "slag_heap", "dune", "lake", "pond", "lava_pool", "old_banking", "red_roof", "bridge"]
 ## Two stretches of road closer than this (middle to middle) get a line of
 ## tire stacks between them.
@@ -47,6 +49,9 @@ const SEA_OUT := 900.0
 ## How far apart the hall's roof beams and the lights along them are.
 const BEAM_EVERY := 16.0
 const LIGHT_EVERY := 12.0
+## Outdoors, how far apart the lamp posts along the road are. They take turns
+## on each side.
+const LAMP_EVERY := 28.0
 
 ## Each theme: ground colour, curb and wall colours, the sky, its landmarks
 ## (placed first, biggest first) and its fillers with how often each turns
@@ -472,6 +477,8 @@ func _trackside() -> void:
 	_tire_lines()
 	if theme.get("indoor", false):
 		_barrier_lines()
+	else:
+		_lamp_posts()
 	var edge := track.width * 0.5 + TrackPath.KERB + RUNOFF
 	_start_area(edge)
 	var straight_run := 0.0
@@ -517,6 +524,33 @@ func _trackside() -> void:
 					_kit.done()
 					_placed.append([spot, 3.2])
 				board_side = -board_side
+
+
+## Lamp posts along the road, just past the runoff, taking turns on each side,
+## on the flat away from other road (so never under a bridge). Where each
+## lamp is goes in `lamps`, so the road can be lit around it at night (see
+## CourseLamps).
+func _lamp_posts() -> void:
+	var edge := track.width * 0.5 + TrackPath.KERB + RUNOFF + 1.5
+	var side := 1.0
+	var next := 0.0
+	for k in track.points.size():
+		var d := track.distances[k]
+		if d < next:
+			continue
+		var p := track.points[k]
+		# On the ground (hills and all), not up on a bridge or a jump.
+		var on_ground: bool = p.y - ground.call(p.x, p.z) < 0.6 and track.ups[k].y > 0.95 and track.solids[k] and not track.stickies[k]
+		if not on_ground:
+			continue
+		var post := _grounded(p + track.rights[k] * side * edge)
+		if _free(post, 1.0) and not _near_other_road(post, edge - 1.0, k, 30.0):
+			_kit.begin("lamp_post", true)
+			lamps.append(Props.lamp_post(_kit, post, _facing_for(p - post)))
+			_kit.done()
+			_placed.append([post, 1.0])
+			next = d + LAMP_EVERY
+			side = -side
 
 
 ## Lines of soft tire stacks halfway across the grass wherever two stretches of

@@ -24,7 +24,25 @@ const COMMON := """
 global uniform float wet;
 global uniform float snow;
 global uniform float lamps_on;
+// The lamps' light seen from above (see CourseLamps), and where that map is:
+// its corner's x and z, then one over its width and depth.
+global uniform sampler2D lamp_map;
+global uniform vec4 lamp_area;
 const vec3 SNOW = vec3(0.82, 0.85, 0.9);
+
+// How much lamp light falls here, at night, below the lamp it comes from.
+vec3 lamp_light(vec3 at) {
+	if (lamps_on < 0.5 || lamp_area.z <= 0.0) {
+		return vec3(0.0);
+	}
+	vec2 uv = (at.xz - lamp_area.xy) * lamp_area.zw;
+	if (uv.x < 0.0 || uv.y < 0.0 || uv.x > 1.0 || uv.y > 1.0) {
+		return vec3(0.0);
+	}
+	vec4 l = texture(lamp_map, uv);
+	float top = l.a * 64.0;
+	return l.rgb * (1.0 - smoothstep(top - 1.0, top + 0.5, at.y));
+}
 
 float seam(float coord, float period, float width) {
 	float f = fract(coord / period) * period;
@@ -75,7 +93,12 @@ vec3 studs(vec2 p, vec3 col) {
 ## surface) in metres, UV2.x says which surface this is, and COLOR its colour.
 const TRACK := """
 shader_type spatial;
+varying vec3 world;
 """ + COMMON + """
+void vertex() {
+	world = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
+}
+
 void fragment() {
 	vec3 col = pow(COLOR.rgb, vec3(2.2));
 	float kind = UV2.x;
@@ -120,6 +143,10 @@ void fragment() {
 		col = mix(studs(p, col), SNOW, snow * 0.95);
 	}
 	ALBEDO = col;
+	// Under a lamp the dark road needs a little more than its own colour
+	// lit, or it hardly shows.
+	vec3 lamp = lamp_light(world);
+	EMISSION = col * lamp + lamp * 0.2;
 	ROUGHNESS = rough;
 	SPECULAR = mix(0.25, 0.5, wet);
 }
@@ -146,6 +173,7 @@ void fragment() {
 	col *= mix(1.0, 0.85, wet);
 	col = mix(col, SNOW, snow * (0.9 + 0.08 * blotches(world.xz * 0.2)));
 	ALBEDO = col;
+	EMISSION = col * lamp_light(world) * 0.9;
 	ROUGHNESS = 0.9;
 	SPECULAR = 0.2;
 }
@@ -160,6 +188,8 @@ void fragment() {
 ##   2 smooth tiles with no studs, for roofs, signs and the like
 ##   3 glowing, for lava and lights
 ##   4 water, smooth and shiny with slow ripples
+##   5 plain plastic, for parts that move
+##   6 a lamp, which shines when it's dark
 const BLOCK := """
 shader_type spatial;
 varying vec3 world;
@@ -199,6 +229,9 @@ void fragment() {
 			col = mix(col, pane, glass);
 			rough = mix(rough, 0.2, glass);
 			spec = mix(spec, 0.6, glass);
+			// At night some of them have the lights on inside.
+			float home = step(0.55, hash(floor(vec2(across, world.y / 1.5)) + 3.7));
+			EMISSION += vec3(1.0, 0.72, 0.4) * 0.8 * glass * home * lamps_on;
 		}
 	} else if (pattern < 2.5) {
 		col *= 1.0 - 0.3 * max(seam(across, 1.0, 0.012), seam(world.y, 1.0, 0.012));
@@ -207,6 +240,11 @@ void fragment() {
 		float flicker = 0.8 + 0.2 * sin(TIME * 2.0 + world.x * 0.4 + world.z * 0.3);
 		EMISSION = col * 1.6 * flicker;
 		rough = 0.9;
+	} else if (pattern > 5.5) {
+		// A lamp, which shines when it's dark.
+		EMISSION = col * 2.5 * lamps_on;
+		col *= mix(1.0, 0.6, lamps_on);
+		rough = 0.4;
 	} else if (pattern > 4.5) {
 		// Plain plastic, for parts that move.
 		rough = 0.5;
@@ -218,9 +256,10 @@ void fragment() {
 	}
 	// Snow covers anything flat that isn't glowing or water, and dusts the
 	// sides.
-	if (pattern < 2.5 || pattern > 4.5) {
+	if (pattern < 2.5 || (pattern > 4.5 && pattern < 5.5)) {
 		col = mix(col, SNOW, snow * (top ? 0.95 : (side ? 0.2 : 0.0)));
 	}
+	EMISSION += col * lamp_light(world) * 0.9;
 	ALBEDO = col;
 	ROUGHNESS = rough;
 	SPECULAR = spec;

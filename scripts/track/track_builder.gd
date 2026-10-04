@@ -161,6 +161,9 @@ func _ready() -> void:
 		if piece.cut:
 			dressing.keep_clear.append([track.piece_starts[i] * Vector3(piece.turn * piece.radius, 0.0, 0.0), piece.radius])
 	add_child(dressing)
+	# At night the lamps light the course around them.
+	if conditions.dark():
+		CourseLamps.light(dressing.lamps)
 
 
 ## How high the ground is here: the hills on a hilly course, and 0 on a flat

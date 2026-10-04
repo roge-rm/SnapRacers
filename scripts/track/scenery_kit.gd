@@ -17,7 +17,7 @@ extends RefCounted
 ## sails or a ferris wheel, and are drawn on their own (see WorldDamage). And
 ## fan() adds a brick figure to watch the race (see Crowd).
 
-enum { BRICK, WINDOWS, SMOOTH, GLOW, WATER, PLAIN }
+enum { BRICK, WINDOWS, SMOOTH, GLOW, WATER, PLAIN, LAMP }
 
 static var _shader: Shader
 static var _material: ShaderMaterial

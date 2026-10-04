@@ -65,6 +65,14 @@ lamps_on={
 "type": "float",
 "value": 0.0
 }
+lamp_map={
+"type": "sampler2D",
+"value": ""
+}
+lamp_area={
+"type": "vec4",
+"value": Vector4(0, 0, 0, 0)
+}
 
 [editor_plugins]
 

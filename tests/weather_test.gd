@@ -56,6 +56,15 @@ func _initialize() -> void:
 	check(first.factor_at(spot[0]) > 0.99 and first.factor_at(spot[0] + Vector3(spot[1] + 1.0, 0.0, 0.0)) == 0.0, "a point in the middle of one is in it, and one past its edge isn't")
 	first.free()
 	second.free()
+
+	# At night the lamps light the ground around them and nothing far away.
+	var lamps: Array[Vector3] = [Vector3(0, 10, 0), Vector3(200, 10, 0)]
+	var made := CourseLamps.light_map(lamps)
+	var image: Image = made[0].get_image()
+	var area: Vector4 = made[1]
+	var at := func(x: float, z: float) -> Color: return image.get_pixel(int((x - area.x) * area.z * image.get_width()), int((z - area.y) * area.w * image.get_height()))
+	check(at.call(0.0, 0.0).r > 0.5 and at.call(100.0, 0.0).r == 0.0 and at.call(0.0, 0.0).a > 0.1, "a lamp lights the ground under it, not far away, and knows how high it is")
+	check(Conditions.resolve("orchard", "clear", "dusk", 1).dark() and not Conditions.resolve("orchard", "clear", "morning", 1).dark() and not Conditions.resolve("hall_red", "clear", "night", 1).dark(), "the lamps come on at dusk, not in the morning, and never in a hall")
 	root.add_child(Runner.new(self))
 
 

@@ -24,6 +24,9 @@ const LIME := Color("#a4bd46")
 const OLIVE := Color("#9b9a5a")
 const SAND_GREEN := Color("#789082")
 const WHITE := Color("#f2f3f2")
+## How tall a lamp post is, and how far its arm reaches.
+const LAMP_HEIGHT := 10.0
+const LAMP_REACH := 3.0
 const LIGHT_GREY := Color("#a3a2a4")
 const DARK_GREY := Color("#635f61")
 const BLACK := Color("#1b2a34")
@@ -54,7 +57,7 @@ const ROOM := {
 	"carousel": 7.0, "drop_tower": 5.0, "red_roof": 40.0,
 	"parasols": 2.8, "beach_hut": 2.2, "lifeguard_tower": 2.4, "windsurf": 1.6, "beach_hotel": 10.0,
 	"sandcastle": 7.0, "harbour_fort": 12.0, "penguins": 1.6, "stone_pine": 3.0, "gum_tree": 2.6,
-	"watchtower": 3.0,
+	"watchtower": 3.0, "lamp_post": 1.0,
 }
 
 
@@ -684,6 +687,17 @@ static func lighthouse(kit: SceneryKit, at: Vector3) -> void:
 		kit.cylinder(at + Vector3.UP * k * 2.4, 2.0 - k * 0.12, 2.4, RED if k % 2 == 0 else WHITE, SceneryKit.BRICK, k == 0)
 	kit.cylinder(at + Vector3.UP * 14.4, 1.2, 1.6, YELLOW, SceneryKit.GLOW)
 	kit.cone(at + Vector3.UP * 16.0, 1.5, 1.8, DARK_GREY)
+
+
+## A lamp post beside the road: a tall grey pole with an arm reaching out
+## over the runoff toward the road and a lamp on the end, which lights up when
+## it's dark. Returns where the lamp is.
+static func lamp_post(kit: SceneryKit, at: Vector3, facing: int) -> Vector3:
+	kit.cylinder(at, 0.16, LAMP_HEIGHT, LIGHT_GREY, SceneryKit.SMOOTH, true)
+	_box(kit, at, Vector3(0.0, LAMP_HEIGHT - 0.2, LAMP_REACH * 0.5), Vector3(0.18, 0.18, LAMP_REACH), facing, LIGHT_GREY, SceneryKit.SMOOTH, false)
+	var head := at + _turn(Vector3(0.0, LAMP_HEIGHT - 0.45, LAMP_REACH), facing)
+	_box(kit, head - Vector3(0.0, 0.0, 0.0), Vector3.ZERO, Vector3(0.8, 0.25, 1.3), facing, Color("#fff1d6"), SceneryKit.LAMP, false)
+	return head
 
 
 ## A pagoda, red with wide dark roofs, a little smaller at each storey.
