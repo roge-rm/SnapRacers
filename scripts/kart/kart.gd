@@ -36,6 +36,12 @@ const MAX_STEER := deg_to_rad(30.0)
 ## turn only a degree or two, which nobody could see, so they show how much of
 ## the steering there is instead, the way the steering wheel does.
 const SHOWN_LOCK := deg_to_rad(25.0)
+## A motorbike's fork is right in front of you, so its bars turn with the
+## front wheel instead, just more so, since at speed it turns only a few
+## degrees: this many times as far, eased over at BARS_RATE (radians a
+## second) so a key doesn't snap them round.
+const BARS_SHOWN := 3.0
+const BARS_RATE := 1.5
 const HIGH_SPEED_STEER := 0.35 # how much of the steering is left at full speed
 ## Full lock turns the front wheels this much past where the tires run out of
 ## grip, so the whole stick does something.
@@ -327,6 +333,8 @@ var _looks: Node3D
 ## Parts that turn with a steered wheel, like a bike's front fork, as
 ## [node, its basis going straight].
 var _turning := []
+## How far a motorbike's bars look turned (see BARS_SHOWN).
+var _bars := 0.0
 var _ground_y := 0.0
 ## How far the front wheels turn at full lock right now (see steer_limit()).
 var full_lock := MAX_STEER
@@ -1820,6 +1828,8 @@ func _process(delta: float) -> void:
 		_show_lights()
 	if remote:
 		full_lock = steer_limit(remote_velocity.length())
+	if _steering != null and _steering.style == "bikebars":
+		_bars = move_toward(_bars, clampf(steer_angle * BARS_SHOWN, -SHOWN_LOCK, SHOWN_LOCK), BARS_RATE * delta)
 	var steered := Basis(Vector3.UP, -shown_steer())
 	for turning in _turning:
 		turning[0].basis = steered * turning[1]
@@ -1830,8 +1840,10 @@ func _process(delta: float) -> void:
 
 
 ## How far the front wheels look turned (see SHOWN_LOCK), right negative like
-## steer_angle.
+## steer_angle. A motorbike's follow its front wheel (see BARS_SHOWN).
 func shown_steer() -> float:
+	if _steering != null and _steering.style == "bikebars":
+		return _bars
 	return clampf(steer_angle / maxf(full_lock, 0.001), -1.0, 1.0) * SHOWN_LOCK
 
 

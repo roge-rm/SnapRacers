@@ -20,6 +20,7 @@ class Runner:
 	var most_roll := 0.0
 	var most_lean := 0.0
 	var gentle_lean := 0.0
+	var gentle_bars := 0.0
 	var lean_right := false
 	var on_trike := false
 
@@ -98,8 +99,10 @@ class Runner:
 				c.steer = 0.12
 			331, 340, 350, 360, 370, 380, 389:
 				gentle_lean = maxf(gentle_lean, absf(rad_to_deg(kart.lean)))
+				gentle_bars = maxf(gentle_bars, absf(rad_to_deg(kart.shown_steer())))
 			390:
 				check(gentle_lean < 3.0, "a small correction hardly leans it (%.1f degrees)" % gentle_lean)
+				check(gentle_bars < 4.0, "or turns the bars (%.1f degrees)" % gentle_bars)
 				most_roll = 0.0
 			391, 451, 511, 571:
 				c.steer = 1.0 if (tick - 391) % 120 == 0 else -1.0
@@ -116,7 +119,7 @@ class Runner:
 				var fork_turn: float = kart._steering._wheel.basis.z.signed_angle_to(Vector3.BACK, Vector3.UP) if kart._steering != null else 0.0
 				var wheel_turn := front.visual.basis.x.signed_angle_to(Vector3.RIGHT, Vector3.UP)
 				check(absf(fork_turn) > 0.01 and is_equal_approx(snappedf(fork_turn, 0.001), snappedf(wheel_turn, 0.001)), "the fork and bars turn with the front wheel (%.1f and %.1f degrees)" % [rad_to_deg(fork_turn), rad_to_deg(wheel_turn)])
-				check(absf(rad_to_deg(wheel_turn)) > 15.0, "and at speed it still visibly turns (%.0f degrees at %.0f m/s)" % [rad_to_deg(wheel_turn), kart.forward_speed])
+				check(absf(rad_to_deg(wheel_turn)) > 6.0 and absf(rad_to_deg(wheel_turn)) < 20.0, "and at speed a hard turn shows, but not full lock (%.0f degrees at %.0f m/s)" % [rad_to_deg(wheel_turn), kart.forward_speed])
 			751:
 				var turned := rad_to_deg(angle_difference(start_yaw, kart.global_rotation.y))
 				check(turned < -40.0, "turns right when steering right (%.0f degrees)" % turned)
