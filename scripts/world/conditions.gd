@@ -128,7 +128,8 @@ func drag() -> float:
 func wet() -> float:
 	if indoor:
 		return 0.0
-	return {"rain": 0.8, "storm": 1.0}.get(weather, 0.0)
+	# A snowy road's been cleared, so it's wet too.
+	return {"rain": 0.8, "storm": 1.0, "snow": 0.55}.get(weather, 0.0)
 
 
 ## How much snow lies about, from 0 to 1.

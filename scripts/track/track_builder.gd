@@ -70,6 +70,8 @@ var sky := true
 var conditions: Conditions
 ## Its sky and sun, once it's built, so they can change for a moment.
 var lights: SkyAndSun.Lights
+## The puddles on the road in the rain, or null when it's dry.
+var puddles: Puddles
 var _material: ShaderMaterial
 ## The rolling ground, on a course with hills.
 var terrain: Terrain
@@ -135,6 +137,9 @@ func _ready() -> void:
 		var indoor: bool = _theme.get("indoor", false)
 		lights = SkyAndSun.add_to(self, 80.0, Color(_theme.get("backdrop", "#00000000")), _theme.get("sky", []), Color(_theme.lights) if indoor else Color.TRANSPARENT, conditions)
 	_add_grass()
+	if conditions.weather in ["rain", "storm"] and not conditions.indoor:
+		puddles = Puddles.new(track, conditions.seed, conditions.wet())
+		add_child(puddles)
 	for i in track.pieces.size():
 		_add_piece(i)
 	_add_kerbs()

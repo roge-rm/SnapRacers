@@ -49,6 +49,8 @@ var ease_off := 0.0
 var behind := 0.0
 
 const BRAKING := 8.0 # m/s² it counts on when planning to slow down
+## How much more careful it is in the wet, taken further the slippier it is.
+const WET_CARE := 0.8
 const LOOK_NEAR := 7.0
 const LOOK_FAR := 26.0
 const STUCK_AFTER := 2.5
@@ -165,19 +167,23 @@ func _physics_process(delta: float) -> void:
 	# With a loop coming up it takes the bends before it as well as it can, so
 	# it gets there with all the speed it needs, whatever its level.
 	var daring := maxf(skill, LOOP_SKILL) if _loop_within(LOOP_RUN_IN) else skill
-	var grip := kart.stats.cornering() * KartStats.gravity() * daring * minf(1.0, 0.6 + 0.4 * kart.stats.control) * _misjudge
+	# On a wet or snowy road it takes everything a little slower, and gives
+	# itself a touch more margin besides.
+	var weather := kart.weather_grip * lerpf(1.0, WET_CARE, 1.0 - kart.weather_grip)
+	var grip := kart.stats.cornering() * KartStats.gravity() * daring * minf(1.0, 0.6 + 0.4 * kart.stats.control) * _misjudge * weather
+	var braking := BRAKING * weather
 	var allowed := INF
 	# Far enough ahead to stop for any bend from the speed it's doing, and a
 	# little more.
 	var ahead := 4.0
-	var reach := maxf(64.0, speed * speed / (2.0 * BRAKING) + 24.0)
+	var reach := maxf(64.0, speed * speed / (2.0 * braking) + 24.0)
 	while ahead <= reach:
 		# A corkscrew swings to the side as it rolls, but it's no bend to
 		# slow down for, any more than a loop is.
 		var bend := 0.0 if TrackPiece.turns_over(track.piece_type_at(offset + ahead)) else track.bend_at(offset + ahead)
 		if bend > 0.002:
 			var corner := sqrt(grip * (slide_plan if slides and bend > slide_bend else 1.0) / bend)
-			allowed = minf(allowed, sqrt(corner * corner + 2.0 * BRAKING * ahead))
+			allowed = minf(allowed, sqrt(corner * corner + 2.0 * braking * ahead))
 		ahead += 4.0
 	# The bend it's in counts too, or it floors it on the way out of a hairpin
 	# while it's still turning and runs wide.

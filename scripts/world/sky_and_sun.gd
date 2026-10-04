@@ -113,6 +113,14 @@ static func add_to(parent: Node, shadow_distance := 60.0, backdrop := Color.TRAN
 	sun.directional_shadow_max_distance = minf(shadow_distance, look.get("shadow_reach", shadow_distance))
 	parent.add_child(sun)
 
+	# What the world's shaders need to know: how wet the road is, how much
+	# snow lies about and whether the lamps are on (see BrickShaders). Every
+	# scene sets them, so the garage after a rainy race is dry again.
+	var lit := conditions if conditions != null and lights.a <= 0.0 else Conditions.clear_day()
+	RenderingServer.global_shader_parameter_set("wet", lit.wet())
+	RenderingServer.global_shader_parameter_set("snow", lit.snow())
+	RenderingServer.global_shader_parameter_set("lamps_on", 1.0 if lit.dark() else 0.0)
+
 	var made := Lights.new()
 	made.environment = env
 	made.sun = sun

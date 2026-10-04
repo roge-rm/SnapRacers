@@ -51,6 +51,21 @@ textures/vram_compression/import_s3tc_bptc=true
 textures/vram_compression/import_etc2_astc=true
 anti_aliasing/quality/msaa_3d=1
 
+[shader_globals]
+
+wet={
+"type": "float",
+"value": 0.0
+}
+snow={
+"type": "float",
+"value": 0.0
+}
+lamps_on={
+"type": "float",
+"value": 0.0
+}
+
 [editor_plugins]
 
 enabled=PackedStringArray("res://addons/snapracers_net/plugin.cfg")

@@ -161,6 +161,12 @@ const SOFT_KNOCK := 0.35
 ## touches the ground when the suspension is squashed hard, like a bump stop,
 ## but it still catches walls from the side.
 const WHEEL_BODY := 0.55
+## Driving through a puddle, the grip is this much of the wet road's, and the
+## water drags this much more. Nothing, however slippery, grips less than
+## LEAST_GRIP.
+const PUDDLE_GRIP := 0.65
+const PUDDLE_DRAG := 1.8
+const LEAST_GRIP := 0.25
 ## How likely a power-up hit is to take a wheel or the steering, instead of
 ## only bodywork (see knock_off_a_part()). Tests set it.
 static var wheel_knock_chance := 0.2
@@ -299,6 +305,11 @@ var upright := 0.0
 ## body itself stays upright, so this is only in how it looks, and it's
 ## worked out from the steering and speed, so remote bikes lean the same.
 var lean := 0.0
+## How the weather changes the grip and drag of the ground, and the puddles
+## on the road, if any. The race sets them (see Conditions).
+var weather_grip := 1.0
+var weather_drag := 1.0
+var puddles: Puddles
 ## The sideways pull it's leaning for, smoothed (see LEAN_FROM).
 var _lean_pull := 0.0
 var _looks: Node3D
@@ -1001,6 +1012,12 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 		on_any += 1
 		if grip_here < 1.0:
 			on_rough += 1
+		# The weather makes any ground slippier, and a puddle more so. A trap
+		# is the same whatever the weather.
+		if ground == null or not ground.has_meta("trap"):
+			var puddle := puddles.factor_at(contact) if puddles != null else 0.0
+			grip_here = maxf(grip_here * weather_grip * lerpf(1.0, PUDDLE_GRIP, puddle), LEAST_GRIP)
+			drag_here *= weather_drag * lerpf(1.0, PUDDLE_DRAG, puddle)
 		grip_here = ground_grip(grip_here, w.offroad)
 		drag_here = ground_drag(drag_here, w.offroad)
 		if ground != null and ground.get_meta("kerb", false):

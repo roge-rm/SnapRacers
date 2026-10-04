@@ -47,5 +47,64 @@ func _initialize() -> void:
 	var track := TrackPath.from_dict(course.to_dict())
 	check(again.weather == "storm" and again.time == "dusk" and track.weather == "storm" and track.time == "dusk", "a course keeps its own weather and time")
 
-	print("All weather checks passed." if failures == 0 else "%d weather checks failed." % failures)
-	quit(1 if failures > 0 else 0)
+	# Puddles come out the same for the same seed, and only in the rain.
+	var peach := TrackPath.load_file("res://data/tracks/peach_pit.json")
+	var first := Puddles.new(peach, 5, 1.0)
+	var second := Puddles.new(peach, 5, 1.0)
+	check(first.spots.size() >= 10 and str(first.spots) == str(second.spots), "puddles come out the same for the same seed (%d of them)" % first.spots.size())
+	var spot: Array = first.spots[0]
+	check(first.factor_at(spot[0]) > 0.99 and first.factor_at(spot[0] + Vector3(spot[1] + 1.0, 0.0, 0.0)) == 0.0, "a point in the middle of one is in it, and one past its edge isn't")
+	first.free()
+	second.free()
+	root.add_child(Runner.new(self))
+
+
+## Karts going into the same hard turn at the same speed, on a dry road, in
+## rain and in snow, and through a puddle. The slippier it is, the less they
+## get round.
+class Runner:
+	extends Node
+
+	var test: SceneTree
+	var karts := {}
+	var start := {}
+	var tick := 0
+
+	func _init(for_test: SceneTree) -> void:
+		test = for_test
+
+	func _ready() -> void:
+		add_child(TestTrack.new())
+		var x := -120.0
+		for which in ["dry", "rain", "snow", "puddle"]:
+			var kart := Kart.new()
+			kart.build(KartDesign.load_file("res://data/karts/stock/starter.json"))
+			kart.transform = Transform3D(Basis.IDENTITY, Vector3(x, 0.05, 110.0))
+			kart.weather_grip = Conditions.GRIP.get(which, 1.0)
+			kart.weather_drag = Conditions.DRAG.get(which, 1.0)
+			if which == "puddle":
+				# Rain, and a puddle big enough to turn in.
+				kart.weather_grip = Conditions.GRIP.rain
+				kart.puddles = Puddles.new()
+				kart.puddles.add(Vector3(x, 0.0, 90.0), 30.0)
+				add_child(kart.puddles)
+			add_child(kart)
+			karts[which] = kart
+			x += 30.0
+
+	func _physics_process(_delta: float) -> void:
+		tick += 1
+		if tick == 40:
+			for kart in karts.values():
+				kart.linear_velocity = Vector3(0, 0, -15.0)
+				kart.controls.throttle = 0.4
+				kart.controls.steer = 1.0
+				start[kart] = kart.global_rotation.y
+		if tick == 100:
+			var turned := {}
+			for which in karts:
+				var velocity: Vector3 = karts[which].linear_velocity
+				turned[which] = rad_to_deg(absf(Vector3.FORWARD.signed_angle_to(Vector3(velocity.x, 0.0, velocity.z), Vector3.UP)))
+			test.check(turned.rain < turned.dry and turned.snow < turned.rain and turned.puddle < turned.rain, "the slippier it is, the less a kart gets round a hard turn (dry %.0f, rain %.0f, snow %.0f, through a puddle %.0f degrees)" % [turned.dry, turned.rain, turned.snow, turned.puddle])
+			print("All weather checks passed." if test.failures == 0 else "%d weather checks failed." % test.failures)
+			test.quit(1 if test.failures > 0 else 0)

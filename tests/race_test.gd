@@ -35,6 +35,9 @@ func _ready() -> void:
 	var which := "peach_pit"
 	if not OS.get_cmdline_user_args().is_empty():
 		which = OS.get_cmdline_user_args()[0]
+	# A weather after the course races in it, like -- peach_pit rain.
+	if OS.get_cmdline_user_args().size() > 1:
+		Game.settings.set_value("race", "weather", OS.get_cmdline_user_args()[1])
 	# One player, whatever was last picked, without saving over it.
 	Game.settings.set_value("race", "split", Game.SOLO)
 	var path := Game.TRACKS + "/" + which + ".json"

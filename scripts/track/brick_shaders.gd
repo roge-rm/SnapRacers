@@ -19,6 +19,13 @@ const BRICK_LENGTH := 1.0 # a 1x4 brick
 ## Shared bits for seams, a hash so each tile is a little different, and
 ## studs.
 const COMMON := """
+// From the race's weather (see SkyAndSun): how wet the road is and how much
+// snow lies about, from 0 to 1, and whether the lamps are on.
+global uniform float wet;
+global uniform float snow;
+global uniform float lamps_on;
+const vec3 SNOW = vec3(0.82, 0.85, 0.9);
+
 float seam(float coord, float period, float width) {
 	float f = fract(coord / period) * period;
 	float d = min(f, period - f);
@@ -28,6 +35,14 @@ float seam(float coord, float period, float width) {
 
 float hash(vec2 p) {
 	return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453);
+}
+
+// Smooth blotches from 0 to 1, for where snow has settled.
+float blotches(vec2 p) {
+	vec2 i = floor(p);
+	vec2 f = fract(p);
+	f = f * f * (3.0 - 2.0 * f);
+	return mix(mix(hash(i), hash(i + vec2(1.0, 0.0)), f.x), mix(hash(i + vec2(0.0, 1.0)), hash(i + vec2(1.0, 1.0)), f.x), f.y);
 }
 
 // Studs on a flat surface. Each has a lighter round top, a darker ring around
@@ -76,12 +91,18 @@ void fragment() {
 		float s = max(seam(p.y, 0.5, 0.014), seam(along, 1.0, 0.014));
 		col *= 1.0 - 0.5 * s;
 		rough = 0.85;
+		// Wet, it's darker and shines. In snow it's been cleared, so it's wet
+		// with only a few flecks of snow left.
+		col *= mix(1.0, 0.62, wet);
+		rough = mix(rough, 0.25, wet);
+		col = mix(col, SNOW, snow * 0.7 * smoothstep(0.78, 0.95, blotches(p * 0.6)));
 	} else if (kind < 1.5) {
 		// The curbs are smooth blocks with ridges across them, which catch the
 		// light, and a seam where one block meets the next.
 		float ridge = fract(p.x / 0.6);
 		col *= 0.82 + 0.28 * smoothstep(0.0, 0.5, ridge) * (1.0 - smoothstep(0.5, 1.0, ridge));
 		col *= 1.0 - 0.45 * seam(p.x, 1.2, 0.02);
+		col = mix(col, SNOW, snow * 0.45);
 	} else if (kind < 3.5) {
 		// The walls and the road's edges are staggered courses of 1x4 bricks.
 		// Wall bricks alternate red and white.
@@ -95,12 +116,12 @@ void fragment() {
 		float s = max(seam(p.y, 0.3, 0.012), seam(along, 1.0, 0.012));
 		col *= 1.0 - 0.45 * s;
 	} else {
-		// The top of a wall has studs.
-		col = studs(p, col);
+		// The top of a wall has studs, under any snow.
+		col = mix(studs(p, col), SNOW, snow * 0.95);
 	}
 	ALBEDO = col;
 	ROUGHNESS = rough;
-	SPECULAR = 0.25;
+	SPECULAR = mix(0.25, 0.5, wet);
 }
 """
 
@@ -122,6 +143,8 @@ void fragment() {
 	col = studs(world.xz, col);
 	float s = max(seam(world.x, 8.0, 0.025), seam(world.z, 8.0, 0.025));
 	col *= 1.0 - 0.3 * s;
+	col *= mix(1.0, 0.85, wet);
+	col = mix(col, SNOW, snow * (0.9 + 0.08 * blotches(world.xz * 0.2)));
 	ALBEDO = col;
 	ROUGHNESS = 0.9;
 	SPECULAR = 0.2;
@@ -192,6 +215,11 @@ void fragment() {
 		col *= 0.85 + 0.15 * wave;
 		rough = 0.12;
 		spec = 0.6;
+	}
+	// Snow covers anything flat that isn't glowing or water, and dusts the
+	// sides.
+	if (pattern < 2.5 || pattern > 4.5) {
+		col = mix(col, SNOW, snow * (top ? 0.95 : (side ? 0.2 : 0.0)));
 	}
 	ALBEDO = col;
 	ROUGHNESS = rough;

@@ -445,6 +445,9 @@ func _add_racer(racer_name: String, design: KartDesign, slot: int, who: Characte
 	racer.name = racer_name
 	racer.kart = Kart.new()
 	racer.kart.build(design, who)
+	racer.kart.weather_grip = conditions.grip()
+	racer.kart.weather_drag = conditions.drag()
+	racer.kart.puddles = builder.puddles
 	var place := track.grid_slot(slot)
 	racer.kart.transform = place
 	racer.kart.locked = true

@@ -117,10 +117,14 @@ func start_server(host: Node) -> void:
 	host.add_child(DedicatedServer.new())
 
 
-## Starts the game in `host`. Tests skip the splash.
+## Starts the game in `host`. Tests skip the splash, and race on a clear day
+## unless they pick otherwise, so they come out the same every time.
 func start(host: Node, splash := true) -> void:
 	_host = host
 	part_pictures()
+	if not splash:
+		settings.set_value("race", "weather", "clear")
+		settings.set_value("race", "time", "day")
 	if splash:
 		_swap(SplashScreen.new())
 	else:
