@@ -11,8 +11,6 @@ multiplayer. Race on the built in tracks or use the track editor to build your o
 
 The game is in a playable state now but there will be plenty of rough edges until they are tested out.
 
-Disclaimer: I am not a great programmer and this was made using Claude Opus 5.5
-
 Cheers,<br>
 Dan
 
@@ -323,3 +321,5 @@ Copyright © 2026 Dan Hunke.
 It's made with the [Godot Engine](https://godotengine.org), which is free and open source under the MIT licence.
 
 The courses are traced from OpenStreetMap map data, which is © OpenStreetMap contributors and available under the Open Database Licence.
+
+Disclaimer: I am not a great programmer and this was made using Claude Opus 5.5
