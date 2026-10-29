@@ -237,6 +237,15 @@ var _scan_from := 0.0
 ## After holding a power-up this long it uses it at the next moment that
 ## isn't a bad one, so it has room for the next box.
 const HOLD_AT_MOST := 12.0
+## How often it looks at the bends down the road for braking, in metres, and
+## what it saw, kept from step to step.
+const BEND_EVERY := 4.0
+var _bends := PackedFloat64Array()
+## It drives every this many physics steps (see _physics_process()).
+const DRIVE_EVERY := 2
+var _index := -1
+var _steps := 0
+var _since_drive := 0.0
 
 
 func _ready() -> void:
@@ -250,12 +259,40 @@ func _physics_process(delta: float) -> void:
 	controls.gadget = [false, false]
 	var speed := kart.linear_velocity.length()
 	_use_gadgets(delta, speed)
+	# It steers and works out its speed every other step, holding the
+	# controls between, with half the karts on one step and half on the
+	# next. With a wheel off the ground, like over a jump and landing, and
+	# for getting stuck and resetting, it watches every step.
+	if _index < 0 and not others.is_empty():
+		_index = maxi(others.find(kart), 0)
+	_since_drive += delta
+	_steps += 1
+	if (_steps + maxi(_index, 0)) % DRIVE_EVERY == 0 or not _all_grounded():
+		_drive(_since_drive, speed)
+		_since_drive = 0.0
+	_stuck_check(delta, speed, kart.global_basis.y)
+	kart.push = pace * Difficulty.push_for(behind, catch_up, ease_off, track.length)
+	# A loop needs everything the kart's got, whatever the level.
+	if _on_loop and not _lost_nerve:
+		kart.push = maxf(kart.push, 1.0)
 
+
+## Whether every wheel is on the ground.
+func _all_grounded() -> bool:
+	for wheel in kart.wheels:
+		if not wheel.grounded:
+			return false
+	return true
+
+
+## Steers and works out how fast to go. `delta` is the time since it last did.
+func _drive(delta: float, speed: float) -> void:
 	# Steering.
 	var look := clampf(5.0 + speed * 0.55, LOOK_NEAR, LOOK_FAR)
 	# It doesn't aim past where a corkscrew starts to roll, or it aims up
 	# and off to the side of the road it's on and runs into the wall.
-	if track.piece_type_at(offset) != "corkscrew":
+	var piece := track.piece_type_at(offset)
+	if track.has_corkscrew() and piece != "corkscrew":
 		var to_roll := 4.0
 		while to_roll < look:
 			if track.piece_type_at(offset + to_roll) == "corkscrew" and track.up_at(offset + to_roll).y < 0.97:
@@ -272,10 +309,10 @@ func _physics_process(delta: float) -> void:
 	# On a corkscrew the point ahead is round the roll from here, and the
 	# road takes you round it without steering, so it only edges back toward
 	# its line.
-	if track.piece_type_at(offset) == "corkscrew":
+	if piece == "corkscrew":
 		var off_line := (kart.global_position - track.point_at(offset)).dot(track.right_at(offset)) - line
 		angle = atan(off_line / 20.0)
-	var straight := track.piece_type_at(offset) != "corkscrew" and not TrackPiece.turns_over(track.piece_type_at(offset)) and track.bend_at(offset) < STRAIGHT_BEND and track.bend_at(offset + look * 0.4) < STRAIGHT_BEND
+	var straight := piece != "corkscrew" and not TrackPiece.turns_over(piece) and track.bend_at(offset) < STRAIGHT_BEND and track.bend_at(offset + look * 0.4) < STRAIGHT_BEND
 	# On a straight the kart's lock shrinks with speed, so aiming with that
 	# lock slams the stick for a tiny heading error and the wheels wiggle.
 	if straight:
@@ -300,20 +337,19 @@ func _physics_process(delta: float) -> void:
 	var braking := BRAKING * weather
 	var allowed := INF
 	# Far enough ahead to stop for any bend from the speed it's doing, and a
-	# little more.
-	var ahead := 4.0
+	# little more. A corkscrew swings to the side as it rolls, but it's no
+	# bend to slow down for, any more than a loop is (see
+	# TrackPath.corner_bends()).
 	var reach := maxf(64.0, speed * speed / (2.0 * braking) + 24.0)
-	while ahead <= reach:
-		# A corkscrew swings to the side as it rolls, but it's no bend to
-		# slow down for, any more than a loop is.
-		var bend := 0.0 if TrackPiece.turns_over(track.piece_type_at(offset + ahead)) else track.bend_at(offset + ahead)
+	var count := track.corner_bends(offset, BEND_EVERY, reach, _bends)
+	for k in count:
+		var bend := _bends[k]
 		if bend > 0.002:
 			var corner := sqrt(grip * (slide_plan if slides and bend > slide_bend else 1.0) / bend)
-			allowed = minf(allowed, sqrt(corner * corner + 2.0 * braking * ahead))
-		ahead += 4.0
+			allowed = minf(allowed, sqrt(corner * corner + 2.0 * braking * BEND_EVERY * (k + 1)))
 	# The bend it's in counts too, or it floors it on the way out of a hairpin
 	# while it's still turning and runs wide.
-	var here := 0.0 if TrackPiece.turns_over(track.piece_type_at(offset)) else maxf(track.bend_at(offset), track.bend_at(offset + 2.0))
+	var here := 0.0 if TrackPiece.turns_over(piece) else maxf(track.bend_at(offset), track.bend_at(offset + 2.0))
 	if here > 0.002 and not kart.sliding:
 		allowed = minf(allowed, sqrt(grip / here))
 	# Pointing well away from where it's going, like after a spin or out on
@@ -413,12 +449,7 @@ func _physics_process(delta: float) -> void:
 		controls.throttle = 1.0
 		controls.brake = 0.0
 
-	_stuck_check(delta, speed, up)
 	_steer = controls.steer
-	kart.push = pace * Difficulty.push_for(behind, catch_up, ease_off, track.length)
-	# A loop needs everything the kart's got, whatever the level.
-	if _on_loop and not _lost_nerve:
-		kart.push = maxf(kart.push, 1.0)
 
 
 ## How fast it can go and still stop before a crossing with a train due,
@@ -600,7 +631,8 @@ func _dodge() -> float:
 func _dodge_patches() -> float:
 	if kart.puddles == null and kart.drifts == null:
 		return 0.0
-	var dt := get_physics_process_delta_time()
+	# Time since it last drove (see _physics_process()).
+	var dt := _since_drive
 	if not _patch_staggered:
 		# Each kart looks on a different step from the others.
 		_patch_staggered = true

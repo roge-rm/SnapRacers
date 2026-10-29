@@ -89,11 +89,14 @@ var distances := PackedFloat32Array()
 ## See _make_lookups().
 var _metre_index := PackedInt32Array()
 var _bends := PackedFloat32Array()
+## Whether each sample is on a loop or a corkscrew.
+var _over := PackedByteArray()
 var solids: Array[bool] = []
 var stickies: Array[bool] = []
 var piece_of := PackedInt32Array()
 ## Whether it has a loop or a corkscrew: -1 until has_turns_over() looks.
 var _turns_over := -1
+var _corkscrew := -1
 ## How high the hills are under each sample (see ground_height()).
 var grounds := PackedFloat32Array()
 var length := 0.0
@@ -263,8 +266,10 @@ func _make_lookups() -> void:
 			i += 1
 		_metre_index[m] = i
 	_bends.resize(points.size())
+	_over.resize(points.size())
 	for k in points.size():
 		_bends[k] = _bend_between(distances[k])
+		_over[k] = 1 if TrackPiece.turns_over(pieces[piece_of[k]].type) else 0
 
 
 ## How far banked road leaning this much lifts its middle, since it leans up
@@ -295,12 +300,10 @@ func _index_before(offset: float) -> int:
 	return i
 
 
-func _blend(offset: float) -> Array:
-	var i := _index_before(offset)
-	var j := (i + 1) % points.size()
+## How far `offset` is from sample i to sample j, from 0 to 1.
+func _blend(offset: float, i: int, j: int) -> float:
 	var span := (distances[j] if j != 0 else length) - distances[i]
-	var f := clampf((fposmod(offset, length) - distances[i]) / maxf(span, 0.0001), 0.0, 1.0)
-	return [i, j, f]
+	return clampf((fposmod(offset, length) - distances[i]) / maxf(span, 0.0001), 0.0, 1.0)
 
 
 ## Whether it has a loop or a corkscrew anywhere, worked out once.
@@ -313,6 +316,16 @@ func has_turns_over() -> bool:
 	return _turns_over == 1
 
 
+## Whether it has a corkscrew anywhere, worked out once.
+func has_corkscrew() -> bool:
+	if _corkscrew < 0:
+		_corkscrew = 0
+		for piece in pieces:
+			if piece.type == "corkscrew":
+				_corkscrew = 1
+	return _corkscrew == 1
+
+
 ## What kind of piece of track is at this distance around it, like
 ## "straight" or "jump".
 func piece_type_at(offset: float) -> String:
@@ -322,23 +335,27 @@ func piece_type_at(offset: float) -> String:
 
 
 func point_at(offset: float) -> Vector3:
-	var b := _blend(offset)
-	return points[b[0]].lerp(points[b[1]], b[2])
+	var i := _index_before(offset)
+	var j := (i + 1) % points.size()
+	return points[i].lerp(points[j], _blend(offset, i, j))
 
 
 func forward_at(offset: float) -> Vector3:
-	var b := _blend(offset)
-	return forwards[b[0]].lerp(forwards[b[1]], b[2]).normalized()
+	var i := _index_before(offset)
+	var j := (i + 1) % points.size()
+	return forwards[i].lerp(forwards[j], _blend(offset, i, j)).normalized()
 
 
 func up_at(offset: float) -> Vector3:
-	var b := _blend(offset)
-	return ups[b[0]].lerp(ups[b[1]], b[2]).normalized()
+	var i := _index_before(offset)
+	var j := (i + 1) % points.size()
+	return ups[i].lerp(ups[j], _blend(offset, i, j)).normalized()
 
 
 func right_at(offset: float) -> Vector3:
-	var b := _blend(offset)
-	return rights[b[0]].lerp(rights[b[1]], b[2]).normalized()
+	var i := _index_before(offset)
+	var j := (i + 1) % points.size()
+	return rights[i].lerp(rights[j], _blend(offset, i, j)).normalized()
 
 
 func solid_at(offset: float) -> bool:
@@ -372,10 +389,41 @@ func offset_of(position: Vector3, hint := -1.0, window := 60.0) -> float:
 		if d < best_distance:
 			best_distance = d
 			best = k
-	# Slide along the segment on either side of the nearest sample.
+	return _slide_along(position, best)
+
+
+## offset_of() with a hint, for something that moves under a metre a step,
+## like a kart. It looks `near` either side of the hint, and only if the
+## nearest sample there is at either end, or further off the middle of the
+## road than its edge, does it look `far` either side instead. So it finds
+## the same as offset_of(position, hint, far) on the road and costs much less.
+func offset_near(position: Vector3, hint: float, near: float, far: float) -> float:
+	if hint < 0.0:
+		return offset_of(position)
+	var count := points.size()
+	var first := _index_before(hint - near)
+	var steps := mini(count, ceili(near * 2.0 / SAMPLE) + 2)
+	var best := 0
+	var best_distance := INF
+	for n in steps:
+		var d := points[(first + n) % count].distance_squared_to(position)
+		if d < best_distance:
+			best_distance = d
+			best = n
+	var edge := width * 0.5 + KERB
+	if best == 0 or best == steps - 1 or best_distance > edge * edge:
+		return offset_of(position, hint, far)
+	return _slide_along(position, (first + best) % count)
+
+
+## How far along the track a position is, from the sample nearest to it, by
+## sliding along the segment on either side of that sample.
+func _slide_along(position: Vector3, best: int) -> float:
+	var count := points.size()
 	var result := distances[best]
 	var best_along := INF
-	for side in [-1, 1]:
+	# The segment before it first, then the one after.
+	for side in 2:
 		var a := best if side == 1 else (best - 1 + count) % count
 		var b := (a + 1) % count
 		var seg := points[b] - points[a]
@@ -403,9 +451,35 @@ func bend_at(offset: float, span := BEND_SPAN) -> float:
 	if span == BEND_SPAN and not _bends.is_empty():
 		var i := _index_before(offset)
 		var j := (i + 1) % points.size()
-		var gap := (distances[j] if j != 0 else length) - distances[i]
-		return lerpf(_bends[i], _bends[j], clampf((fposmod(offset, length) - distances[i]) / maxf(gap, 0.0001), 0.0, 1.0))
+		return lerpf(_bends[i], _bends[j], _blend(offset, i, j))
 	return _bend_between(offset, span)
+
+
+## bend_at() every `step` metres from `offset + step` out to `offset + reach`,
+## into the start of `out`, with 0 on loops and corkscrews, since those are no
+## bend to slow down for. It returns how many it put in. The AI's braking
+## looks down the road with it every step, so it keeps `out` from one step
+## to the next instead of making a new one.
+func corner_bends(offset: float, step: float, reach: float, out: PackedFloat64Array) -> int:
+	var count := points.size()
+	var n := 0
+	var ahead := step
+	while ahead <= reach:
+		if n >= out.size():
+			out.resize(n + 8)
+		var d := fposmod(offset + ahead, length)
+		var i := _metre_index[int(d)] if int(d) < _metre_index.size() else 0
+		while i + 1 < count and distances[i + 1] <= d:
+			i += 1
+		if _over[i] == 1:
+			out[n] = 0.0
+		else:
+			var j := (i + 1) % count
+			var gap := (distances[j] if j != 0 else length) - distances[i]
+			out[n] = lerpf(_bends[i], _bends[j], clampf((d - distances[i]) / maxf(gap, 0.0001), 0.0, 1.0))
+		n += 1
+		ahead += step
+	return n
 
 
 func _bend_between(offset: float, span := BEND_SPAN) -> float:

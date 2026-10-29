@@ -574,7 +574,7 @@ func _physics_process(delta: float) -> void:
 
 	for racer in racers:
 		var kart := racer.kart
-		racer.offset = track.offset_of(kart.global_position, racer.offset, 40.0)
+		racer.offset = track.offset_near(kart.global_position, racer.offset, 5.0, 40.0)
 		if racer.ai != null:
 			racer.ai.offset = racer.offset
 		if started:
