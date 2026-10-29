@@ -197,12 +197,26 @@ const SOFT_KNOCK := 0.35
 ## touches the ground when the suspension is squashed hard, like a bump stop,
 ## but it still catches walls from the side.
 const WHEEL_BODY := 0.55
-## Driving through a puddle, the grip is this much of the wet road's, and the
-## water drags this much more. Nothing, however slippery, grips less than
-## LEAST_GRIP.
-const PUDDLE_GRIP := 0.65
-const PUDDLE_DRAG := 1.8
+## In a puddle as deep as it gets, a tire grips this much of the wet road's,
+## and the water holds a wheel back by this much of its load, plus this
+## much more for every m/s it's going, less in shallower water. Nothing,
+## however slippery, grips less than LEAST_GRIP, except a tire that's
+## hydroplaning.
+const WATER_GRIP := 0.8
+const WATER_PUSH := 0.033
+const WATER_DRAG := 0.033
 const LEAST_GRIP := 0.25
+## Hydroplaning: a tire in water rides up on it above HYDRO_DEEP m/s in the
+## deepest water, rising to HYDRO_SHALLOW in a film, and its grip falls away
+## over the next HYDRO_SPAN m/s to HYDRO_GRIP of what it had. It takes
+## HYDRO_RISE seconds to ride all the way up, so a short splash barely
+## does it, and HYDRO_FALL to come back down.
+const HYDRO_DEEP := 16.0
+const HYDRO_SHALLOW := 34.0
+const HYDRO_SPAN := 4.0
+const HYDRO_GRIP := 0.15
+const HYDRO_RISE := 0.5
+const HYDRO_FALL := 0.15
 ## In a snow drift as deep as it gets, the grip is this much of the snowy
 ## road's, and the snow holds a wheel back by this much of its load, plus
 ## this much more for every m/s it's going. That goes with the square of the
@@ -330,6 +344,10 @@ class Wheel:
 	var contact := Vector3.ZERO
 	var surface := "asphalt"
 	var snow := 0.0
+	## How deep the water was there, for the spray, and how far it's ridden
+	## up on it, 0 to 1 (see HYDRO_RISE).
+	var water := 0.0
+	var planing := 0.0
 	## Whether it was on ground tagged off the road last step.
 	var off := false
 	var visual: Node3D
@@ -1183,6 +1201,8 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 			w.grounded = false
 			w.load = 0.0
 			w.off = false
+			w.water = 0.0
+			w.planing = 0.0
 			# A driven wheel in the air counts as off the road for the slide.
 			if w.driven:
 				drive_off += 1
@@ -1261,14 +1281,19 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 		var dry_grip := ground_grip(grip_here, w.offroad)
 		var drift := 0.0
 		var snow := Vector4.ZERO
+		var water := 0.0
 		if ground == null or not ground.has_meta("trap"):
-			var puddle := puddles.factor_at(contact) if puddles != null else 0.0
+			water = puddles.factor_at(contact) if puddles != null else 0.0
 			snow = drifts.snow_at(contact) if drifts != null else Vector4.ZERO
 			drift = snow.w
-			grip_here = maxf(grip_here * weather_grip * lerpf(1.0, PUDDLE_GRIP, puddle) * lerpf(1.0, DRIFT_GRIP, drift), LEAST_GRIP)
-			drag_here *= weather_drag * lerpf(1.0, PUDDLE_DRAG, puddle)
+			grip_here = maxf(grip_here * weather_grip * lerpf(1.0, WATER_GRIP, water) * lerpf(1.0, DRIFT_GRIP, drift), LEAST_GRIP)
+			drag_here *= weather_drag
 		w.snow = drift
+		w.water = water
 		grip_here = maxf(ground_grip(grip_here, w.offroad), minf(dry_grip, LEAST_GRIP))
+		var riding := clampf((absf(v_long) - lerpf(HYDRO_SHALLOW, HYDRO_DEEP, water)) / HYDRO_SPAN, 0.0, 1.0) if water > 0.0 else 0.0
+		w.planing = move_toward(w.planing, riding, dt / (HYDRO_RISE if riding > w.planing else HYDRO_FALL))
+		grip_here *= lerpf(1.0, HYDRO_GRIP, w.planing)
 		drag_here = ground_drag(drag_here, w.offroad)
 		if ground != null and ground.get_meta("kerb", false):
 			var ridge := floori(w.kerb_travel / KERB_RIDGE)
@@ -1331,6 +1356,15 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 			snow_force += side * side.dot(Vector3(snow.x, snow.y, snow.z)) * load * DRIFT_PULL * drift * minf(absf(v_long) / DRIFT_PULL_SPEED, 1.0)
 			state.apply_force(_ok(snow_force), _ok(contact + up * height - origin))
 			applied += snow_force
+		# The water holds the wheel back the same way, so a kart with one side
+		# in is pulled round toward it.
+		if water > 0.0:
+			var through := v - normal * v.dot(normal)
+			var going := through.length()
+			if going > 0.01:
+				var water_force := -through / going * minf(load * water * (WATER_PUSH + WATER_DRAG * going), going * stop_force)
+				state.apply_force(_ok(water_force), _ok(contact + up * height - origin))
+				applied += water_force
 
 	if not popped.is_empty():
 		Sounds.play_at("fx/hit", sound)
@@ -2270,6 +2304,9 @@ func _reset(state: PhysicsDirectBodyState3D) -> void:
 	state.linear_velocity = Vector3.ZERO
 	state.angular_velocity = Vector3.ZERO
 	steer_angle = 0.0
+	for w: Wheel in wheels:
+		w.water = 0.0
+		w.planing = 0.0
 	# A kart put back before a loop has already lost time by starting further
 	# back, so it gets no slowdown.
 	slowdown_left = 0.0 if run_up_reset else RESET_SLOWDOWN_TIME

@@ -3,10 +3,12 @@ extends Node3D
 
 ## A kart's tire smoke, drift sparks and boost flames. Smoke comes off the
 ## driven wheels while it slides, tinted by what they're on: grey on tarmac,
-## brown on dirt and mud, white spray on snow. Once a slide's charged a boost,
-## sparks fly off the back wheels in the level's colour (blue, orange,
-## purple), and a boost blows short flames out of the back in the same
-## colour, bigger for a longer boost, with a burst as it starts.
+## brown on dirt and mud, white spray on snow. Once a slide's charged a
+## boost, sparks fly off the back wheels in the level's colour (blue,
+## orange, purple), and a boost blows short flames out of the back in the
+## same colour, bigger for a longer boost, with a burst as it starts.
+## Wheels going through a puddle throw up spray, in the same batch as the
+## smoke, so Low graphics leaves it out too.
 ##
 ## It's only looks, worked out here from the kart's state each frame, and it
 ## never touches the physics. The smoke and the glowing bits are each one
@@ -15,18 +17,27 @@ extends Node3D
 ## A remote kart's slides and boosts aren't sent, so it only smokes when
 ## its updates show it going sideways.
 
-## The most dots of each at High.
-const SMOKE_MOST := 24
+## The most dots of each at High. A remote kart throws up no spray, so it
+## has fewer smoke dots.
+const SMOKE_MOST := 40
+const SMOKE_REMOTE := 24
 const GLOW_MOST := 32
 ## Dots a second: smoke from each driven wheel, sparks, and flames. Smoke
 ## from all the driven wheels together stays under SMOKE_ALL, so with puffs
-## living up to 0.8 s there are never more than SMOKE_MOST and it comes
+## living up to 0.8 s there are never more than SMOKE_REMOTE and it comes
 ## steady on four driven wheels too.
 const SMOKE_RATE := 14.0
 const SMOKE_ALL := 26.0
 const SPARK_RATE := 22.0
 const FLAME_RATE := 30.0
 const BURST := 8
+## Spray drops a second from each wheel in water at least half as deep as
+## it gets, going SPRAY_SPEED m/s or more, fewer in shallower water and
+## slower, and none under SPRAY_LEAST m/s.
+const SPRAY_RATE := 26.0
+const SPRAY_SPEED := 20.0
+const SPRAY_LEAST := 4.0
+const SPRAY := Color(0.93, 0.96, 1.0, 0.8)
 
 const LEVEL_COLOURS := [Color(0.35, 0.65, 1.0), Color(1.0, 0.55, 0.12), Color(0.78, 0.32, 1.0)]
 
@@ -77,6 +88,7 @@ var _glow: Dots
 var _smoke_due := 0.0
 var _spark_due := 0.0
 var _flame_due := 0.0
+var _spray_due := 0.0
 var _boosts_seen := 0
 var _exhaust := Vector3.ZERO
 var _exhaust_for: KartStats
@@ -104,24 +116,31 @@ class Dots:
 	var shown := -1
 
 	func _init(most_: int, shader: Shader, edge: float, hot: float) -> void:
-		most = most_
 		top_level = true
 		cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		var multi := MultiMesh.new()
 		multi.transform_format = MultiMesh.TRANSFORM_3D
 		multi.use_colors = true
 		multi.mesh = QuadMesh.new()
-		multi.instance_count = most
-		multi.visible_instance_count = 0
-		buffer.resize(most * 16)
-		buffer.fill(0.0)
-		multi.buffer = buffer
 		multimesh = multi
 		var material := ShaderMaterial.new()
 		material.shader = shader
 		material.set_shader_parameter("edge", edge)
 		material.set_shader_parameter("hot", hot)
 		material_override = material
+		make_room(most_)
+
+	## Makes room for this many dots, keeping the ones there are.
+	func make_room(most_: int) -> void:
+		most = most_
+		multimesh.instance_count = most
+		multimesh.visible_instance_count = 0
+		shown = -1
+		var had := buffer.size()
+		buffer.resize(most * 16)
+		for n in range(had, buffer.size()):
+			buffer[n] = 0.0
+		multimesh.buffer = buffer
 		for array in [pos, vel]:
 			array.resize(most)
 		for array in [age, life, size_from, size_to, fall]:
@@ -206,7 +225,7 @@ func _init(kart: Kart) -> void:
 	if _shader == null:
 		_shader = Shader.new()
 		_shader.code = SHADER
-	_smoke = Dots.new(SMOKE_MOST, _shader, 0.15, 0.0)
+	_smoke = Dots.new(SMOKE_REMOTE, _shader, 0.15, 0.0)
 	_glow = Dots.new(GLOW_MOST, _shader, 0.45, 1.0)
 	add_child(_smoke)
 	add_child(_glow)
@@ -231,9 +250,13 @@ func _process(delta: float) -> void:
 	var smoke_on: bool = Graphics.value("drift_smoke")
 	var going := _kart.remote_velocity if _kart.remote else _kart.linear_velocity
 	var speed := going.length()
+	if not _kart.remote and _smoke.most < SMOKE_MOST:
+		_smoke.make_room(SMOKE_MOST)
 	if smoke_on and speed > 4.0:
 		_tire_smoke(delta, going, share)
 	if not _kart.remote:
+		if smoke_on and speed > SPRAY_LEAST:
+			_spray(delta, going, speed, share)
 		if _kart.sliding and _kart.slide_level > 0:
 			_sparks(delta, going, share)
 		else:
@@ -287,6 +310,41 @@ func _smoke_for(w: Kart.Wheel) -> Color:
 	if w.snow > 0.05 or (snow_lies and not SURFACE_SMOKE.has(w.surface)):
 		return SMOKE.white
 	return SMOKE[SURFACE_SMOKE.get(w.surface, "grey")]
+
+
+## Spray thrown up and out from the wheels in water, more the deeper it is
+## and the faster the kart's going.
+func _spray(delta: float, going: Vector3, speed: float, share: float) -> void:
+	var wet := 0.0
+	for w: Kart.Wheel in _kart.wheels:
+		if w.grounded:
+			wet += minf(w.water * 2.0, 1.0)
+	if wet <= 0.0:
+		_spray_due = 0.0
+		return
+	var fast := minf(speed / SPRAY_SPEED, 1.0)
+	_spray_due += SPRAY_RATE * share * fast * wet * delta
+	var middle := _kart.global_position
+	var up := _kart.global_basis.y
+	while _spray_due >= 1.0:
+		_spray_due -= 1.0
+		# A wheel in water, picked by how deep it is.
+		var pick := _rng.randf() * wet
+		for w: Kart.Wheel in _kart.wheels:
+			if not w.grounded or w.water <= 0.0:
+				continue
+			pick -= minf(w.water * 2.0, 1.0)
+			if pick > 0.0:
+				continue
+			var out := w.contact - middle
+			out -= up * out.dot(up)
+			out = out.normalized() if out.length() > 0.01 else _kart.global_basis.x
+			var deep := minf(w.water * 2.0, 1.0)
+			# Mostly along with the kart, fanned out sideways and up.
+			var fling := going * _rng.randf_range(0.7, 0.9) + out * _rng.randf_range(2.0, 4.5) * fast + up * _rng.randf_range(3.0, 6.0) * (0.5 + 0.5 * deep) * fast
+			var size := w.radius * _rng.randf_range(0.9, 1.3) * (0.6 + 0.4 * deep)
+			_smoke.add(w.contact + up * w.radius * 0.8 + out * w.radius * 0.6, fling, _rng.randf_range(0.3, 0.45), size, size * 1.7, SPRAY, Color(SPRAY, 0.0), 9.0)
+			break
 
 
 ## Sparks off the back wheels in the colour of the level charged.

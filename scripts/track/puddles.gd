@@ -59,8 +59,6 @@ const GROW := 0.35
 const SMALLEST := 0.3
 ## The build-up goes in steps this big, so every device steps together.
 const STEP := 0.01
-## For the AI: one this big across or more is worth going round.
-const AVOID_SIZE := 4.0
 ## How close, as a share of their reaches added up, two can be placed.
 ## Under 1 they run into each other.
 const SPACING := 0.7
@@ -764,36 +762,6 @@ static func _weights(point: Vector3, a: Vector3, b: Vector3, c: Vector3) -> Vect
 	var wb := (px * cz - pz * cx) / area
 	var wc := (bx * pz - bz * px) / area
 	return Vector3(1.0 - wb - wc, wb, wc)
-
-
-## Whether one big enough to go round is within `margin` of this point.
-func in_the_way(point: Vector3, margin: float) -> bool:
-	var low := _cell(point - Vector3.ONE * margin)
-	var high := _cell(point + Vector3.ONE * margin)
-	for x in range(low.x, high.x + 1):
-		for z in range(low.y, high.y + 1):
-			for i in _cells.get(Vector2i(x, z), []):
-				if not _worth_avoiding(i):
-					continue
-				var middle: Vector3 = spots[i][0]
-				if absf(point.y - middle.y) >= 2.0:
-					continue
-				# Out to the water's edge now, pushed out by `margin`.
-				var share := radius_now[i] / float(spots[i][1])
-				var dx := point.x - middle.x
-				var dz := point.z - middle.z
-				var way := _way[i]
-				var u := absf(dx * way.x + dz * way.z)
-				var v := absf(dz * way.x - dx * way.z)
-				var a := _half_long[i] * share + margin
-				var b := _half_wide[i] * share + margin
-				if (u * u) / (a * a) + (v * v) / (b * b) < 1.0:
-					return true
-	return false
-
-
-func _worth_avoiding(i: int) -> bool:
-	return radius_now[i] * 2.0 >= AVOID_SIZE
 
 
 func _seed_key(chance_seed: int, track: TrackPath) -> Array:

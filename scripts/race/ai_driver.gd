@@ -192,12 +192,27 @@ const ARM_CLEAR := 2.5
 const ARM_BEFORE := 0.3
 
 const THINK_EVERY := 0.3 # seconds between looking at its gadgets
-## How far ahead it looks for big puddles and deep snow drifts to go round,
+## How far ahead it looks for puddles and deep snow drifts to go round, or
+## SEE_PATCH_TIME seconds ahead at the speed it's going if that's further,
 ## how often it looks, and the lines across the road it tries, in metres
-## from its own, besides hugging either edge.
+## from its own, besides hugging either edge. Along each line it looks at
+## the water every PATCH_STEP metres.
 const SEE_PATCH := 30.0
+const SEE_PATCH_TIME := 2.5
 const PATCH_EVERY := 0.2
 const PATCH_LINES := [0.0, -1.5, 1.5, -3.0, 3.0, -4.5, 4.5, -6.0, 6.0]
+const PATCH_STEP := 3.0
+## It moves out to a new line at once, but back toward its own line at
+## this many metres a second, so it doesn't swerve back.
+const PATCH_BACK := 3.0
+## What it reckons driving through water costs, in seconds for every metre
+## of a wheel's way through water, by depth (1 at the deepest), and what
+## moving over to another line and back costs, plus a little for each
+## metre over. Already on its way round, the move counts this share.
+const WATER_COST := 0.05
+const SWERVE_COST := 0.02
+const SWERVE_PER_M := 0.075
+const SWERVE_HELD := 0.3
 ## A kart this far either side of it along the road counts as alongside, and
 ## three times this ahead as just ahead, in metres.
 const PATCH_BESIDE := 4.0
@@ -206,6 +221,12 @@ const PATCH_BESIDE := 4.0
 const PATCH_EDGE := 1.0
 var _patch_dodge := 0.0
 var _patch_wait := 0.0
+var _patch_eased := 0.0
+var _patch_staggered := false
+var _scan_point := PackedVector3Array()
+var _scan_right := PackedVector3Array()
+var _scan_frame := -1
+var _scan_offset := NAN
 ## After holding a power-up this long it uses it at the next moment that
 ## isn't a bad one, so it has room for the next box.
 const HOLD_AT_MOST := 12.0
@@ -510,9 +531,11 @@ func _dodge() -> float:
 	var wall := _dodge_wall(facing)
 	if not is_nan(wall):
 		_patch_dodge = 0.0
+		_patch_eased = 0.0
 		return wall
 	if kart.ghost_left > 0.0 or TrackPiece.turns_over(track.piece_type_at(offset)):
 		_patch_dodge = 0.0
+		_patch_eased = 0.0
 		return 0.0
 	var along := track.forward_at(offset)
 	var best_ahead := SEE_AHEAD + 1.0
@@ -541,6 +564,7 @@ func _dodge() -> float:
 		return _dodge_patches()
 	# Going round a kart comes first.
 	_patch_dodge = 0.0
+	_patch_eased = 0.0
 	# Still overlapping where it is now, and close: sit behind until the
 	# pass has moved it clear.
 	if best_ahead > 0.0 and absf(best_across - here) < best_need * 0.85:
@@ -560,31 +584,62 @@ func _dodge() -> float:
 	return clampf(cleared, -half_road, half_road) - line
 
 
-## How far to move over to keep out of big puddles and deep drifts ahead.
-## It goes back to its own line once that's clear from where it is, keeps
-## the way it's going round one while that's still clear, and otherwise
-## takes the nearest clear line to its own. It never moves onto a line with
-## a kart alongside or just ahead, and holds where it's going if every line
-## is blocked.
+## How far to move over to keep out of puddles and deep drifts ahead. It
+## weighs driving through the water on each line it could take against
+## moving over, so it goes straight through a small or shallow puddle and
+## round a big deep one. It goes back to its own line once that's
+## quickest, and never moves onto a line with a kart alongside or just
+## ahead. If every line is blocked it holds where it's going.
 func _dodge_patches() -> float:
 	if kart.puddles == null and kart.drifts == null:
 		return 0.0
-	_patch_wait -= get_physics_process_delta_time()
-	if _patch_wait > 0.0:
-		return _patch_dodge
-	_patch_wait = PATCH_EVERY
+	var dt := get_physics_process_delta_time()
+	if not _patch_staggered:
+		# Each kart looks on a different step from the others.
+		_patch_staggered = true
+		_patch_wait = (maxi(others.find(kart), 0) + 0.5) * dt
+	_patch_wait -= dt
+	if _patch_wait <= 0.0:
+		_patch_wait = PATCH_EVERY
+		_patch_dodge = _patch_line()
+	if absf(_patch_dodge) < absf(_patch_eased) and _patch_dodge * _patch_eased >= 0.0:
+		_patch_eased = move_toward(_patch_eased, _patch_dodge, PATCH_BACK * dt)
+	else:
+		_patch_eased = _patch_dodge
+	return _patch_eased
+
+
+## The line to move over to for _dodge_patches(), from its own. Lines are
+## tried cheapest move first, and a line stops being looked along once it
+## can't beat the best so far.
+func _patch_line() -> float:
+	var own := _line_cost(line)
+	if own == 0.0 and _patch_dodge == 0.0:
+		return 0.0
 	var edge := track.width * 0.5 - kart.width() * 0.5 - PATCH_EDGE
-	var tries := [0.0, _patch_dodge]
-	tries.append_array(PATCH_LINES)
+	var tries: Array[float] = [0.0, _patch_dodge]
+	for shift: float in PATCH_LINES:
+		if shift != 0.0 and shift != _patch_dodge:
+			tries.append(shift)
 	# And as far over as it can go either way.
 	tries.append_array([-edge - line, edge - line])
-	for shift in tries:
-		if absf(line + shift) > edge + 0.01:
+	var best := INF
+	var best_shift := _patch_dodge
+	for i in tries.size():
+		var shift := tries[i]
+		if absf(line + shift) > edge + 0.01 or (i > 0 and shift == 0.0):
 			continue
-		if _patch_clear(line + shift) and _karts_clear(line + shift):
-			_patch_dodge = shift
-			return shift
-	return _patch_dodge
+		var swerve := 0.0
+		if shift != 0.0:
+			swerve = (SWERVE_COST + absf(shift) * SWERVE_PER_M) * (SWERVE_HELD if shift == _patch_dodge else 1.0)
+		if swerve >= best:
+			continue
+		var cost := own if shift == 0.0 else _line_cost(line + shift, best - swerve)
+		cost += swerve
+		if cost < best and _karts_clear(line + shift):
+			best = cost
+			best_shift = shift
+	return best_shift
 
 
 ## Whether there's no kart alongside or just ahead on this line across the
@@ -604,16 +659,46 @@ func _karts_clear(across: float) -> bool:
 	return true
 
 
-func _patch_clear(across: float) -> bool:
+## What driving on this line across the road for the stretch ahead would
+## cost in water, in seconds, going by the depth under each side's wheels.
+## INF where a deep drift's in the way, or once the cost reaches `most`,
+## where it stops looking.
+func _line_cost(across: float, most := INF) -> float:
+	_scan_ahead()
 	var margin := kart.width() * 0.5 + 0.3
-	var ahead := 0.0
-	while ahead <= SEE_PATCH:
+	var wheels := maxf(kart.width() * 0.5 - 0.3, 0.0)
+	var wet := 0.0
+	var enough := most / (0.5 * PATCH_STEP * WATER_COST)
+	for i in _scan_point.size():
+		var right := _scan_right[i]
+		var point := _scan_point[i] + right * across
+		if kart.drifts != null and kart.drifts.in_the_way(point, margin):
+			return INF
+		if kart.puddles != null:
+			wet += kart.puddles.factor_at(point - right * wheels) + kart.puddles.factor_at(point + right * wheels)
+			if wet >= enough:
+				return INF
+	return wet * 0.5 * PATCH_STEP * WATER_COST
+
+
+## The middle of the road and its right for _line_cost() to look along,
+## once a step. From just behind, so it keeps its back wheels clear too,
+## every PATCH_STEP m.
+func _scan_ahead() -> void:
+	var frame := Engine.get_physics_frames()
+	if frame == _scan_frame and offset == _scan_offset:
+		return
+	_scan_frame = frame
+	_scan_offset = offset
+	_scan_point.clear()
+	_scan_right.clear()
+	var see := maxf(SEE_PATCH, kart.linear_velocity.length() * SEE_PATCH_TIME)
+	var ahead := -PATCH_STEP
+	while ahead <= see:
 		var at := offset + ahead
-		var point := track.point_at(at) + track.right_at(at) * across
-		if (kart.puddles != null and kart.puddles.in_the_way(point, margin)) or (kart.drifts != null and kart.drifts.in_the_way(point, margin)):
-			return false
-		ahead += 3.0
-	return true
+		_scan_point.append(track.point_at(at))
+		_scan_right.append(track.right_at(at))
+		ahead += PATCH_STEP
 
 
 ## Whether this line across the road is empty of other karts, besides the
