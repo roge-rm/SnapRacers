@@ -91,6 +91,9 @@ const POWDER := Color("#dfe7f0")
 const ON_ICE := Color("#ddd8cf")
 ## For the AI: one at least this deep is worth going round.
 const AVOID_DEPTH := 0.45
+## A lump's drawn again once its reach is this far off what's drawn, in
+## metres.
+const REDRAW := 0.1
 
 ## Powder thrown up: at most this many puffs at once, only for karts this
 ## close to a race camera (metres), and only above this speed in m/s.
@@ -190,6 +193,12 @@ var _laid: PackedFloat32Array = []
 ## Whether it's only to look at, like a wisp.
 var _only_looks: Array[bool] = []
 var _powder: MultiMesh
+## The lumps, drawn all at once, and how far each one reached when it was
+## last drawn.
+var _multi: MultiMesh
+var _drawn: PackedFloat32Array = []
+## Which way is up at each one, worked out once.
+var _ups: Array[Vector3] = []
 ## Each puff as [middle, velocity, age].
 var _puffs: Array = []
 var _owed := {}
@@ -431,10 +440,6 @@ static func _grounded(track: TrackPath, offset: float) -> bool:
 	return track.solids[k] and track.points[k].y - track.grounds[k] < TrackBuilder.RAISED
 
 
-static func _flat(v: Vector3) -> Vector3:
-	return Vector3(v.x, 0.0, v.z).normalized()
-
-
 ## Puts a lump here, its root at `root`, running along `dir`, `wide` at the
 ## root and `long` when full, `high` of DEEP at most, starting to grow at
 ## `start`, laid from `laid` along the road (below 0 if it wasn't). One
@@ -448,7 +453,9 @@ func add_tongue_at(root: Vector3, dir: Vector3, wide: float, long: float, high: 
 	_high.append(high)
 	_laid.append(laid)
 	_only_looks.append(only_looks)
-	super.add(root + flat * long * 0.5, Vector2(long * 0.5, wide * 0.5).length(), start, not only_looks)
+	var reach := Vector2(long * 0.5, wide * 0.5).length()
+	_register(root + flat * long * 0.5, reach, start, reach if not only_looks else -1.0)
+	_drawn.append(0.0)
 
 
 ## A drift this big, for tests: full depth at `middle` with the crest
@@ -616,8 +623,9 @@ static func sample(size: Vector3) -> MultiMeshInstance3D:
 	return draw
 
 
+## Which way is up at this one.
 func _up_of(i: int) -> Vector3:
-	return _track.up_at(_laid[i]) if _laid[i] >= 0.0 else super._up_of(i)
+	return _track.up_at(_laid[i] if _laid[i] >= 0.0 else _track.offset_of(spots[i][0]))
 
 
 func _colour() -> Color:
@@ -665,6 +673,54 @@ func _place(i: int) -> void:
 	var shape := Basis(across * _wide[i] * grown, up * maxf(DEEP * growth(i) * _high[i], 0.01), dir * _long[i] * grown)
 	_multi.set_instance_transform(i, Transform3D(shape, _root[i] + up * 0.02))
 	_drawn[i] = radius_now[i]
+
+
+## Lumps lying on the road, drawn all at once.
+func _draw() -> void:
+	if spots.is_empty():
+		return
+	_multi = MultiMesh.new()
+	_multi.transform_format = MultiMesh.TRANSFORM_3D
+	_multi.use_colors = true
+	_multi.use_custom_data = true
+	_multi.mesh = _mesh()
+	_multi.instance_count = spots.size()
+	var shown := 0
+	for i in spots.size():
+		_ups.append(_up_of(i))
+		_multi.set_instance_color(i, _colour_of(i))
+		_multi.set_instance_custom_data(i, Color(float(_surface()), 0.0, 0.0, 0.0))
+		_place(i)
+		if radius_now[i] > 0.0:
+			shown = i + 1
+	_multi.visible_instance_count = shown
+	# Sized to the whole lot full grown, since they grow while it's drawn.
+	var box := AABB(spots[0][0], Vector3.ZERO)
+	for s in spots:
+		box = box.expand(s[0] + Vector3(s[1], 2.0, s[1])).expand(s[0] - Vector3(s[1], 0.5, s[1]))
+	_multi.custom_aabb = box
+	var draw := MultiMeshInstance3D.new()
+	draw.multimesh = _multi
+	draw.material_override = _material()
+	draw.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	add_child(draw)
+
+
+## Draws again the ones that have grown since they were last drawn.
+func _show() -> void:
+	if _multi == null:
+		return
+	var shown := 0
+	var redraw := false
+	for i in spots.size():
+		if radius_now[i] > 0.0:
+			shown = i + 1
+		if absf(radius_now[i] - _drawn[i]) > REDRAW or (_drawn[i] == 0.0) != (radius_now[i] == 0.0):
+			redraw = true
+	if redraw:
+		for i in shown:
+			_place(i)
+		_multi.visible_instance_count = shown
 
 
 func _make_powder() -> void:

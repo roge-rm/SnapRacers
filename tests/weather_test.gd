@@ -62,6 +62,83 @@ func _check_build_up(peach: TrackPath, kind: GDScript, what: String, done: Strin
 	c.free()
 
 
+## The water's drawn as deep as a kart finds it: at the corners, the
+## middles of the sides and the middle of each triangle of the water's
+## mesh, the depth worked out from the vertices the way its shader does
+## matches factor_at(), at a few points in the build-up.
+func _check_drawn_depth(peach: TrackPath) -> void:
+	for level in [0.2, 0.5, 1.0]:
+		var puddles := Puddles.new(peach, 5, 1.0)
+		puddles.grow(level)
+		var draw := puddles.get_child(0) as MeshInstance3D
+		var arrays: Array = draw.mesh.surface_get_arrays(0)
+		var shapes: Image = (draw.material_override as ShaderMaterial).get_shader_parameter("shapes").get_image()
+		var indices: PackedInt32Array = arrays[Mesh.ARRAY_INDEX]
+		var worst := 0.0
+		var wet := 0
+		var mixed := 0
+		for t in range(0, indices.size(), 3):
+			var corners: Array = [indices[t], indices[t + 1], indices[t + 2]]
+			for k in Puddles.SLOTS:
+				var id: float = arrays[Mesh.ARRAY_CUSTOM2][corners[0] * 4 + k]
+				if arrays[Mesh.ARRAY_CUSTOM2][corners[1] * 4 + k] != id or arrays[Mesh.ARRAY_CUSTOM2][corners[2] * 4 + k] != id:
+					mixed += 1
+			for weights in [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0], [0.5, 0.5, 0.0], [0.0, 0.5, 0.5], [0.5, 0.0, 0.5], [1.0 / 3.0, 1.0 / 3.0, 1.0 / 3.0]]:
+				var drawn: Array = _drawn(puddles, shapes, arrays, corners, weights)
+				var found := puddles.factor_at(drawn[1])
+				worst = maxf(worst, absf(drawn[0] - found))
+				wet += 1 if drawn[0] > 0.0 or found > 0.0 else 0
+		check(wet > 1000 and mixed == 0 and worst < 0.005, "the water's drawn as deep as a kart finds it, at %.0f%% (%d wet points, off by %.4f at most, %d triangles with two puddles in one slot)" % [level * 100.0, wet, worst, mixed])
+		puddles.free()
+
+
+## The water drawn at this point in a triangle of the puddles' mesh, as the
+## shader works it out, and the point on the road under it.
+func _drawn(puddles: Puddles, shapes: Image, arrays: Array, corners: Array, weights: Array) -> Array:
+	var world := Vector3.ZERO
+	var up := Vector3.ZERO
+	var road_in := 0.0
+	var along := [0.0, 0.0, 0.0, 0.0]
+	var across := [0.0, 0.0, 0.0, 0.0]
+	for j in 3:
+		var v: int = corners[j]
+		world += arrays[Mesh.ARRAY_VERTEX][v] * weights[j]
+		up += arrays[Mesh.ARRAY_NORMAL][v] * weights[j]
+		road_in += arrays[Mesh.ARRAY_TEX_UV][v].x * weights[j]
+		for k in Puddles.SLOTS:
+			along[k] += arrays[Mesh.ARRAY_CUSTOM0][v * 4 + k] * weights[j]
+			across[k] += arrays[Mesh.ARRAY_CUSTOM1][v * 4 + k] * weights[j]
+	var w := []
+	for k in Puddles.SLOTS:
+		var id: int = roundi(arrays[Mesh.ARRAY_CUSTOM2][corners[0] * 4 + k])
+		if id < 0:
+			w.append(Puddles.LOWEST)
+			continue
+		var size := shapes.get_pixel(3, id)
+		var u: float = along[k]
+		var x := u * size.r
+		var y: float = (across[k] - size.b * u * u) * size.g
+		var r2 := x * x + y * y
+		var r := sqrt(maxf(r2, 1e-12))
+		var c := x / r
+		var s := y / r
+		var ck := c
+		var sk := s
+		var far := 1.0
+		for n in 6:
+			if n > 0:
+				var next := ck * c - sk * s
+				sk = sk * c + ck * s
+				ck = next
+			var bump := shapes.get_pixel(n / 2, id)
+			far += (bump.r * ck + bump.g * sk) if n % 2 == 0 else (bump.b * ck + bump.a * sk)
+		var g := clampf((puddles.level - size.a) / Puddles.GROW, 0.0, 1.0)
+		var grown := lerpf(Puddles.SMALLEST, 1.0, g)
+		w.append(maxf((grown * grown if g > 0.0 else -100.0) - r2 / (far * far), Puddles.LOWEST))
+	var depth := minf(Puddles._join(Puddles._join(Puddles._join(w[0], w[1]), w[2]), w[3]) + Puddles._shore(world), road_in * Puddles.EDGE_STEEP)
+	return [clampf(depth, 0.0, 1.0), world - up.normalized() * Puddles.LIFT]
+
+
 ## Lightning only runs in a storm outdoors, checked once both are in the tree.
 func _check_lightning(hall: WeatherEffects, clear: WeatherEffects) -> void:
 	check(not hall.is_processing(), "no lightning indoors")
@@ -141,6 +218,7 @@ func _initialize() -> void:
 	var spot: Array = first.spots[0]
 	check(first.factor_at(spot[0]) > 0.99 and first.factor_at(spot[0] + Vector3(spot[1] + 1.0, 0.0, 0.0)) == 0.0, "a point in the middle of one is in it, and one past its edge isn't")
 	first.free()
+	_check_drawn_depth(peach)
 	second.free()
 	_check_build_up(peach, Puddles, "puddles", "wet")
 	_check_build_up(peach, Drifts, "drifts", "snowed in")

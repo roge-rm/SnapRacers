@@ -132,6 +132,11 @@ func _warm_race(weather: String, time: String) -> Node:
 		drift.rotation.y = PI
 		kart.add_child(drift)
 		_clear_later = race
+	# A puddle, with its own shaders, just ahead and off to the side, in
+	# both races so it's warmed with fog on and off.
+	var puddle := Puddles.water_sample(1.5)
+	puddle.position = Vector3(2.5, -0.3, -5.0)
+	kart.add_child(puddle)
 	return race
 
 
