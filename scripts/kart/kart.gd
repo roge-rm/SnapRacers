@@ -162,8 +162,9 @@ const TRAIN_WHEEL_CHANCE := 0.25
 const TRAIN_SHOVE := 14.0
 const TRAIN_ALONG := 8.0
 const TRAIN_HOP := 5.0
-## A wheel going over a spike trap faster than this pops, spike_pop_chance
-## of the time, and can't be tried again for SPIKE_EVERY seconds.
+## The first wheel onto a spike trap faster than this pops, spike_pop_chance
+## of the time, and no other wheel can pop for SPIKE_EVERY seconds, so a kart
+## loses one tire a trap at most.
 const SPIKE_SPEED := 10.0
 const SPIKE_EVERY := 1.0
 const SHIELD_TIME := 4.0
@@ -465,8 +466,7 @@ var tow: TowRope
 ## A shove from a shockwave, to be added to its speed next step, and a spin.
 var _shove := Vector3.ZERO
 var _spin := Vector3.ZERO
-## Seconds left before each wheel, by part index, can pop on spikes again.
-var _spike_wait := {}
+var _spike_wait := 0.0
 ## Whether it's sliding right now (see SLIDE_SPEED), whether that's still the
 ## kick, which way round (1 right, -1 left), and how far into the slide it
 ## still is, from 1 while sliding down to 0 once it's gripping again.
@@ -1083,10 +1083,7 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 		_reset(state)
 	_reset_held = controls.reset
 	slowdown_left = maxf(slowdown_left - dt, 0.0)
-	for i in _spike_wait.keys():
-		_spike_wait[i] -= dt
-		if _spike_wait[i] <= 0.0:
-			_spike_wait.erase(i)
+	_spike_wait = maxf(_spike_wait - dt, 0.0)
 	if _shove != Vector3.ZERO:
 		state.linear_velocity += _ok(_shove)
 		_shove = Vector3.ZERO
@@ -1238,9 +1235,9 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 		var drag_here: float = ground.get_meta("drag", 1.0) if ground != null else 1.0
 		var off: bool = ground != null and bool(ground.get_meta("offroad", false))
 		# A ghost drives over a trap as if it isn't there, and spikes hit fast
-		# mostly pop the wheel that ran over them.
-		if ground != null and ground.get_meta("trap", "") == "spikes" and speed > SPIKE_SPEED and not _spike_wait.has(w.index) and ghost_left <= 0.0 and shield_left <= 0.0 and not remote:
-			_spike_wait[w.index] = SPIKE_EVERY
+		# mostly pop the first wheel that runs over them.
+		if ground != null and ground.get_meta("trap", "") == "spikes" and speed > SPIKE_SPEED and _spike_wait <= 0.0 and ghost_left <= 0.0 and shield_left <= 0.0 and not remote:
+			_spike_wait = SPIKE_EVERY
 			if randf() < spike_pop_chance:
 				popped.append(w.index)
 		if ghost_left > 0.0 and ground != null and ground.has_meta("trap"):

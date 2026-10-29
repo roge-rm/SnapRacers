@@ -89,7 +89,7 @@ Drive through a gold stud to get a power-up. You can hold two at once, one on ea
 |---|---|
 | Turbos | A short boost, a longer boost or three boosts to use separately. |
 | Tow rope | Pulls you behind the kart ahead for three seconds, then lets go with a burst. |
-| Bricks and traps | Drop bricks, a wall, marbles or spikes behind you. Spikes slow karts and pop their tires. |
+| Bricks and traps | Drop bricks, a wall, marbles or spikes behind you. Spikes slow karts and pop a tire. |
 | Shockwave | Shoves nearby karts away and knocks parts off the closest ones. |
 | Cannonball | Fires ahead, knocks three parts off the kart it hits and shoves it. A shield keeps the parts on but still lets it be shoved. |
 | Homing brick | Follows the road to the kart ahead and knocks one part off. |

@@ -331,7 +331,7 @@ class Runner:
 		check(turned < 10.0, "without being spun round (%.0f degrees)" % turned)
 		return 0
 
-	## Spikes hit fast pop the tires that run over them and nothing else.
+	## Spikes hit fast pop the first tire that runs over them and nothing else.
 	func _spike_pops() -> int:
 		var patch := BrickTrap.new("spikes")
 		add_child(patch)
@@ -349,7 +349,7 @@ class Runner:
 				wheels += 1
 			else:
 				others += 1
-		check(wheels >= 1 and karts.unspiked.lost.is_empty(), "spikes pop the tires of a kart that hits them fast (%d popped)" % wheels)
+		check(wheels == 1 and karts.unspiked.lost.is_empty(), "spikes pop one tire of a kart that hits them fast (%d popped)" % wheels)
 		check(others == 0, "and take nothing else (%d other parts)" % others)
 		return 0
 

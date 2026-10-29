@@ -7,7 +7,7 @@ extends StaticBody3D
 ##   wheels, so whoever drives across them loses nearly all their grip and
 ##   slides;
 ## - "spikes": a cluster of little grey cones, which hold karts back hard
-##   without making them slide, and pop the tires of one that hits them fast
+##   without making them slide, and pop a tire of one that hits them fast
 ##   (see Kart).
 ##
 ## Wheels feel it through the ground's "grip" and "drag", and a ghost drives

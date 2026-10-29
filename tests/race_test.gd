@@ -15,6 +15,9 @@ const SLOWEST := 7.0
 var race: Race
 var failures := 0
 var resets := {}
+## Resets to put a lost wheel back, and who's lost one since their last reset.
+var wheel_resets := 0
+var _wheel_down := {}
 var stopped := {}
 var first_lap := {}
 var used := {}
@@ -97,12 +100,21 @@ func _ready() -> void:
 	race.player.kart.controls = driver.controls
 	for racer in race.racers:
 		resets[racer.name] = 0
+		# A kart that's lost a wheel resets on purpose, to get it back on, so
+		# those are counted apart from getting stuck.
+		racer.kart.parts_lost.connect(func(indices: Array[int]) -> void:
+			if indices.any(func(i): return KartDesign.is_wheel(racer.kart.design.parts[i].id)):
+				_wheel_down[racer.name] = true)
 		if OS.has_environment("RACE_DEBUG"):
 			racer.kart.parts_lost.connect(func(indices: Array[int]) -> void:
 				print("LOST %s (%s) at %.1f s, %.0f m: %s, speed %.1f, nearest kart %.1f m" % [racer.name, racer.kart.design.name, race.time, racer.offset, indices.map(func(i): return racer.kart.design.parts[i].id), racer.kart.linear_velocity.length(), race.racers.filter(func(r): return r != racer).map(func(r): return r.kart.global_position.distance_to(racer.kart.global_position)).min()]))
 		racer.kart.gadget_used.connect(func(kind: String) -> void: used[kind] = used.get(kind, 0) + 1)
 		racer.kart.was_reset.connect(func() -> void:
-			resets[racer.name] += 1
+			if _wheel_down.get(racer.name, false):
+				_wheel_down[racer.name] = false
+				wheel_resets += 1
+			else:
+				resets[racer.name] += 1
 			if OS.has_environment("RACE_DEBUG"):
 				for line in _history.get(racer, []):
 					print("    " + line)
@@ -248,7 +260,7 @@ func _physics_process(delta: float) -> void:
 		var all_resets: int = resets.values().reduce(func(a, b): return a + b, 0)
 		# The courses are narrow kart tracks with tight hairpins, so eight karts
 		# bump into each other now and then, most of all on the first lap.
-		check(all_resets <= field_limit, "not many resets across the whole field (%d)" % all_resets)
+		check(all_resets <= field_limit, "not many resets across the whole field (%d, and %d to put a wheel back)" % [all_resets, wheel_resets])
 		print("  gadgets used: %s" % [used])
 		print("  power-ups picked up: %s" % [race.racers.map(func(r): return "%s %d" % [r.name, r.kart.pickups])])
 		if race.builder.puddles != null or race.builder.drifts != null:
