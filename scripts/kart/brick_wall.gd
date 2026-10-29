@@ -37,8 +37,8 @@ static func drop_behind(from: Kart) -> BrickWall:
 	wall.transform = Transform3D(Basis.looking_at(forward.normalized(), Vector3.UP), ground)
 	# From the kart's grid slot and how many walls it's dropped, which every
 	# machine counts the same since the drops arrive in order.
-	wall.colour_seed = hash([from.grid_slot, from.walls_dropped])
-	from.walls_dropped += 1
+	wall.colour_seed = hash([from.grid_slot, from.drops])
+	from.drops += 1
 	return wall
 
 
@@ -92,6 +92,11 @@ func _hit_by(body: Node3D) -> void:
 	for brick in _bricks:
 		if brick.freeze and brick.global_position.distance_to(body.global_position) < 2.5:
 			brick.set_deferred("freeze", false)
+
+
+## The bricks it's made of.
+func bricks() -> Array[RigidBody3D]:
+	return _bricks
 
 
 ## Whether any of it is still standing, not all knocked down.

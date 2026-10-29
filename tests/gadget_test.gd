@@ -87,7 +87,7 @@ class Runner:
 		karts.zap_blocked = kart_with(["shield"], Vector3(-90, 0.05, 115))
 		karts.popped = kart_with([], Vector3(107.5, 0.05, -10))
 
-		steps = [_start, _turbo, _turbo_check, _others, _tow_check, _others_check, _repair_check, _ram_check, _marbles, _marbles_check, _wall, _wall_check, _shockwave, _shockwave_check, _spikes, _spikes_check, _spike_pops, _spike_pops_check, _ghost, _ghost_check, _tow_targets, _boxes]
+		steps = [_start, _turbo, _turbo_check, _others, _tow_check, _others_check, _repair_check, _ram_check, _marbles, _marbles_check, _wall, _wall_check, _shockwave, _shockwave_check, _spikes, _spikes_check, _spike_pops, _spike_pops_check, _blasts, _blasts_check, _drop_looks, _ghost, _ghost_check, _tow_targets, _boxes]
 
 	func _start() -> int:
 		for kart in [karts.turbo, karts.plain, karts.rammer, karts.bumper, karts.zapped, karts.unzapped]:
@@ -241,7 +241,7 @@ class Runner:
 		add_child(other)
 		check(wall_colours(same) == colours, "a wall from the same drop has the same colours on every machine")
 		check(wall_colours(other) != colours, "and the next drop has different ones")
-		check(karts.waller.walls_dropped == 1, "the kart counts the walls it drops")
+		check(karts.waller.drops == 1, "the kart counts what it drops")
 		same.free()
 		other.free()
 		karts.wall_hitter.controls.throttle = 0.0
@@ -351,6 +351,63 @@ class Runner:
 				others += 1
 		check(wheels >= 1 and karts.unspiked.lost.is_empty(), "spikes pop the tires of a kart that hits them fast (%d popped)" % wheels)
 		check(others == 0, "and take nothing else (%d other parts)" % others)
+		return 0
+
+	## A shockwave and a cannonball throw dropped bricks about and knock walls
+	## down.
+	func _blasts() -> int:
+		var shocked := BrickWall.new()
+		add_child(shocked)
+		shocked.global_position = Vector3(-40, 0.0, -100)
+		var pile := BrickPile.new()
+		add_child(pile)
+		pile.global_position = Vector3(-37, 0.3, -100)
+		var shot_at := BrickWall.new()
+		add_child(shot_at)
+		shot_at.global_position = Vector3(0, 0.0, -100)
+		karts.blasts = [shocked, pile, shot_at]
+		BrickPile.blast(get_tree(), Vector3(-40, 0.0, -96), Kart.SHOCK_REACH, BrickPile.SHOCK_SPEED)
+		var ball := BrickShot.new()
+		ball._dress()
+		add_child(ball)
+		ball.global_position = Vector3(0, 0.6, -94)
+		ball.linear_velocity = Vector3(0, 0, -BrickShot.SPEED)
+		return 30
+
+	func _blasts_check() -> int:
+		var shocked: BrickWall = karts.blasts[0]
+		var pile: BrickPile = karts.blasts[1]
+		var shot_at: BrickWall = karts.blasts[2]
+		var loose: int = shocked.bricks().filter(func(b): return not b.freeze).size()
+		check(not shocked.standing(), "a shockwave knocks a whole wall down nearby (%d of %d loose)" % [loose, shocked.bricks().size()])
+		check(pile.global_position.distance_to(Vector3(-37, 0.3, -100)) > 1.0, "and throws dropped bricks about")
+		var hit: int = shot_at.bricks().filter(func(b): return not b.freeze).size()
+		check(hit >= 6, "a cannonball blasts a wall apart (%d of %d loose)" % [hit, shot_at.bricks().size()])
+		for node in karts.blasts:
+			node.queue_free()
+		return 1
+
+	## Each drop of bricks has its own sizes and colours, the same on every
+	## machine.
+	func _drop_looks() -> int:
+		var looks := func(pile: Array[BrickPile]) -> Array:
+			var out := []
+			for brick in pile:
+				out.append([(brick.get_child(0).shape as BoxShape3D).size, brick.get_child(1).material_override.albedo_color])
+				brick.free()
+			return out
+		var kart: Kart = karts.plain
+		kart.drops = 5
+		var first: Array = looks.call(BrickPile.drop_behind(kart))
+		var next: Array = looks.call(BrickPile.drop_behind(kart))
+		kart.drops = 5
+		var again: Array = looks.call(BrickPile.drop_behind(kart))
+		check(first != next, "each drop of bricks looks different")
+		check(first == again, "and the same drop looks the same on every machine")
+		var sizes := {}
+		for each in first + next:
+			sizes[each[0]] = true
+		check(sizes.size() >= 4, "with a mix of sizes (%d)" % sizes.size())
 		return 0
 
 	## A ghost drives straight through a kart parked in its way.

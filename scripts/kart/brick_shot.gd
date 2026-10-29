@@ -50,7 +50,7 @@ func _init() -> void:
 	mass = 2.0
 	gravity_scale = 0.25
 	collision_layer = Kart.LAYER_HAZARD
-	collision_mask = Kart.LAYER_WORLD | Kart.LAYER_KARTS
+	collision_mask = Kart.LAYER_WORLD | Kart.LAYER_KARTS | Kart.LAYER_HAZARD
 	contact_monitor = true
 	max_contacts_reported = 4
 	continuous_cd = true
@@ -146,6 +146,16 @@ func _on_hit(body: Node) -> void:
 			else:
 				body.struck_by_cannon.call_deferred(linear_velocity)
 		if not homing:
+			CannonFx.bang.call_deferred(get_parent(), global_position)
+		queue_free()
+	elif body is BrickPile or body.get_parent() is BrickWall:
+		# Dropped bricks and walls get blasted away, which uses the shot up.
+		_spent = true
+		if homing:
+			var push := linear_velocity.normalized() * BrickPile.HOMING_SPEED
+			BrickPile.throw.call_deferred(body, push)
+		else:
+			BrickPile.blast(get_tree(), global_position, BrickPile.CANNON_REACH, BrickPile.CANNON_SPEED)
 			CannonFx.bang.call_deferred(get_parent(), global_position)
 		queue_free()
 

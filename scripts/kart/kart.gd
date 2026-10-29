@@ -339,8 +339,8 @@ class Wheel:
 var design: KartDesign
 ## Its place on the starting grid, the same on every machine online.
 var grid_slot := 0
-## How many brick walls it's dropped, which seeds their colours.
-var walls_dropped := 0
+## How many walls, bricks and traps it's dropped, which seeds how they look.
+var drops := 0
 ## Who's driving. Their weight goes into the kart, and their model sits in
 ## the seat holding the steering wheel.
 var driver: CharacterDesign

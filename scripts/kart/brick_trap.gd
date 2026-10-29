@@ -22,7 +22,10 @@ const KINDS := {
 	"marbles": { "radius": 2.0, "grip": 0.12, "drag": 0.6, "pieces": 22 },
 	"spikes": { "radius": 2.3, "grip": 0.85, "drag": 35.0, "pieces": 14 },
 }
-const MARBLE_COLOURS := [Color("#c4281c"), Color("#0d69ab"), Color("#f2cd37"), Color("#4b974b"), Color("#f2f3f2"), Color("#da8540")]
+const MARBLE_COLOURS := BrickPile.COLOURS
+## The little pieces marbles are made of: round and square 1x1 bricks, round
+## plates, balls and 1x2 plates.
+const MARBLE_SHAPES := ["round", "square", "round_plate", "ball", "plate_1x2"]
 const SPIKE := Color("#635f61")
 
 var kind := "marbles"
@@ -31,7 +34,10 @@ var _age := 0.0
 
 ## A trap on the ground just behind this kart.
 static func drop_behind(from: Kart, what := "marbles") -> BrickTrap:
-	var trap := BrickTrap.new(what)
+	# From the kart's grid slot and how many things it's dropped, so every
+	# device scatters the same pieces.
+	var trap := BrickTrap.new(what, hash([from.grid_slot, from.drops]))
+	from.drops += 1
 	# The entire patch must clear the kart, including long builds and rear wheels.
 	var distance: float = from.rear_bumper_point().z + KINDS[trap.kind].radius + DROP_GAP
 	var behind := from.global_position + from.global_basis.z * distance
@@ -48,7 +54,7 @@ static func drop_behind(from: Kart, what := "marbles") -> BrickTrap:
 	return trap
 
 
-func _init(what := "marbles") -> void:
+func _init(what := "marbles", look_seed := 0) -> void:
 	kind = what if KINDS.has(what) else "marbles"
 	var of: Dictionary = KINDS[kind]
 	var radius: float = of.radius
@@ -63,13 +69,13 @@ func _init(what := "marbles") -> void:
 	disc.height = 0.04
 	shape.shape = disc
 	add_child(shape)
-	add_child(_pieces(of.pieces, radius))
+	add_child(_pieces(of.pieces, radius, look_seed))
 
 
 ## The bricks scattered over it, baked into one mesh.
-func _pieces(count: int, radius: float) -> MeshInstance3D:
+func _pieces(count: int, radius: float, look_seed: int) -> MeshInstance3D:
 	var rng := RandomNumberGenerator.new()
-	rng.seed = hash(kind) + get_instance_id()
+	rng.seed = hash([kind, look_seed])
 	var parts: Array[Node3D] = []
 	for i in count:
 		var a := rng.randf() * TAU
@@ -93,12 +99,34 @@ func _pieces(count: int, radius: float) -> MeshInstance3D:
 			plate.material_override = PartVisuals.material(SPIKE.darkened(0.2))
 			parts.append(plate)
 		else:
-			# A round 1x1 brick, some on their sides.
-			piece.mesh = MeshKit.rounded_cylinder(0.12, 0.2, 0.025, 14)
+			# A little piece of a random shape, some on their sides.
 			var tipped := rng.randf() < 0.5
-			piece.position = at + Vector3.UP * (0.12 if tipped else 0.1)
+			var high := 0.2
+			match MARBLE_SHAPES[rng.randi_range(0, MARBLE_SHAPES.size() - 1)]:
+				"round":
+					piece.mesh = MeshKit.rounded_cylinder(0.12, 0.2, 0.025, 14)
+				"square":
+					piece.mesh = MeshKit.rounded_box(Vector3(0.24, 0.2, 0.24), 0.025)
+				"round_plate":
+					piece.mesh = MeshKit.rounded_cylinder(0.12, 0.08, 0.02, 14)
+					high = 0.08
+					tipped = false
+				"ball":
+					var ball := SphereMesh.new()
+					ball.radius = 0.12
+					ball.height = 0.24
+					ball.radial_segments = 12
+					ball.rings = 6
+					piece.mesh = ball
+					high = 0.24
+					tipped = false
+				_:
+					piece.mesh = MeshKit.rounded_box(Vector3(0.24, 0.08, 0.48), 0.02)
+					high = 0.08
+					tipped = false
+			piece.position = at + Vector3.UP * (0.12 if tipped else high * 0.5)
 			piece.rotation = Vector3(PI * 0.5 if tipped else 0.0, rng.randf() * TAU, 0.0)
-			piece.material_override = PartVisuals.material(MARBLE_COLOURS[rng.randi() % MARBLE_COLOURS.size()])
+			piece.material_override = PartVisuals.material(MARBLE_COLOURS[rng.randi_range(0, MARBLE_COLOURS.size() - 1)])
 		parts.append(piece)
 	var baked := KartMesh.bake(parts)
 	for part in parts:

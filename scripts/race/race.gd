@@ -805,6 +805,7 @@ func shockwave_from(kart: Kart) -> void:
 	ring.reach = Kart.SHOCK_REACH
 	add_child(ring)
 	ring.global_position = kart.global_position + Vector3.UP * 0.3
+	BrickPile.blast(get_tree(), kart.global_position, Kart.SHOCK_REACH, BrickPile.SHOCK_SPEED)
 	for racer in racers:
 		if racer.kart != kart and is_instance_valid(racer.kart) and not racer.kart.remote:
 			racer.kart.shoved_from(kart.global_position)

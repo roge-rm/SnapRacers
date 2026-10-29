@@ -11,24 +11,28 @@ const SHRINK_TIME := 0.5
 ## Phones can't handle too many loose bodies, so past this many the oldest go
 ## first.
 const MOST_AT_ONCE := 48
-## Each brick in a drop: its size in studs across and along, whether it's a
-## plate, and where it comes out, as (right, up) in metres from behind the
-## middle of the kart. The same every time, so every device drops the same pile.
+## Where each brick in a drop comes out, as (right, up) in metres from behind
+## the middle of the kart.
 const DROP := [
-	[Vector2i(2, 4), false, Vector2(0.0, 0.5)],
-	[Vector2i(2, 2), false, Vector2(-0.7, 0.6)],
-	[Vector2i(1, 4), false, Vector2(0.75, 0.7)],
-	[Vector2i(2, 3), true, Vector2(-0.3, 1.0)],
-	[Vector2i(1, 2), false, Vector2(0.4, 1.1)],
-	[Vector2i(1, 1), false, Vector2(-0.9, 1.2)],
-	[Vector2i(1, 3), false, Vector2(0.95, 1.3)],
-	[Vector2i(2, 2), true, Vector2(0.1, 1.5)],
+	Vector2(0.0, 0.5), Vector2(-0.7, 0.6), Vector2(0.75, 0.7), Vector2(-0.3, 1.0),
+	Vector2(0.4, 1.1), Vector2(-0.9, 1.2), Vector2(0.95, 1.3), Vector2(0.1, 1.5),
 ]
+## The sizes a dropped brick can be, in studs across and along, and how often
+## one is a plate.
+const SIZES := [Vector2i(1, 1), Vector2i(1, 2), Vector2i(1, 3), Vector2i(1, 4), Vector2i(2, 2), Vector2i(2, 3), Vector2i(2, 4), Vector2i(1, 6), Vector2i(2, 6)]
+const PLATE_CHANCE := 0.25
+## How hard a shockwave throws bricks, in m/s at its middle, and how far
+## round a cannonball's hit it throws them and how hard. A homing brick throws
+## just the brick it hits.
+const SHOCK_SPEED := 12.0
+const CANNON_REACH := 3.0
+const CANNON_SPEED := 14.0
+const HOMING_SPEED := 8.0
 const BRICK_HIGH := 0.45
 const PLATE_HIGH := 0.18
 ## Kilograms a cubic metre, so a 2 by 4 brick is about 5 kg.
 const DENSITY := 22.0
-const COLOURS := [Color("#c4281c"), Color("#f2cd37"), Color("#0d69ab"), Color("#f2f3f2"), Color("#237841"), Color("#da8540")]
+const COLOURS := [Color("#c4281c"), Color("#f2cd37"), Color("#0d69ab"), Color("#f2f3f2"), Color("#237841"), Color("#da8540"), Color("#a5ca18"), Color("#e4adc8"), Color("#68c3e2"), Color("#81007b"), Color("#1b2a34")]
 
 static var _alive: Array[BrickPile] = []
 
@@ -40,12 +44,18 @@ static func drop_behind(from: Kart) -> Array[BrickPile]:
 	var back := from.global_basis.z
 	var right := from.global_basis.x
 	var up := from.global_basis.y
+	# Sizes and colours from the kart's grid slot and how many things it's
+	# dropped, which every machine counts the same since the drops arrive in
+	# order, so every device drops the same pile.
+	var rng := RandomNumberGenerator.new()
+	rng.seed = hash([from.grid_slot, from.drops])
+	from.drops += 1
 	for i in DROP.size():
-		var each: Array = DROP[i]
-		var studs: Vector2i = each[0]
-		var size := Vector3(studs.x * Grid.STUD, PLATE_HIGH if each[1] else BRICK_HIGH, studs.y * Grid.STUD)
-		var brick := BrickPile.new(size, COLOURS[i % COLOURS.size()])
-		var spot: Vector2 = each[2]
+		var studs: Vector2i = SIZES[rng.randi_range(0, SIZES.size() - 1)]
+		var plate := rng.randf() < PLATE_CHANCE
+		var size := Vector3(studs.x * Grid.STUD, PLATE_HIGH if plate else BRICK_HIGH, studs.y * Grid.STUD)
+		var brick := BrickPile.new(size, COLOURS[rng.randi_range(0, COLOURS.size() - 1)])
+		var spot: Vector2 = DROP[i]
 		var at := from.global_position + back * (2.3 + i * 0.12) + right * spot.x + up * spot.y
 		brick.transform = Transform3D(from.global_basis.rotated(up, i * 0.9), at)
 		# Thrown back and out a little, spinning, so they spread across the road.
@@ -71,7 +81,40 @@ func _init(size := Vector3(0.5, BRICK_HIGH, 1.0), colour := Color("#c4281c")) ->
 	add_child(PartVisuals.make_studs(size, colour))
 
 
+## Throws every loose brick and wall brick within `reach` of `at` away from it,
+## at up to `speed` m/s, faster the closer it is, and knocks wall bricks
+## free. Shockwaves and cannonballs use it. Every device has its own copy of
+## the bricks and gets the same blasts, so it's done on each one.
+static func blast(tree: SceneTree, at: Vector3, reach: float, speed: float) -> void:
+	var bricks: Array[RigidBody3D] = []
+	for pile in tree.get_nodes_in_group("brick_piles"):
+		bricks.append(pile)
+	for wall in tree.get_nodes_in_group("brick_walls"):
+		bricks.append_array(wall.bricks())
+	for brick in bricks:
+		var away := brick.global_position - at
+		var far := away.length()
+		if far > reach:
+			continue
+		away.y = 0.0
+		var out := away.normalized() if away.length() > 0.05 else Vector3.FORWARD
+		var push := (out + Vector3.UP * 0.6).normalized() * speed * (1.0 - far / reach * 0.6)
+		# A blast can come in the middle of a physics step, when a frozen
+		# brick can't be let go, so it's thrown just after.
+		throw.call_deferred(brick, push)
+
+
+## Lets a brick go, if it was standing in a wall, and throws it along `push`.
+static func throw(brick: Object, push: Vector3) -> void:
+	if not is_instance_valid(brick) or brick.collision_layer == 0:
+		return
+	brick.freeze = false
+	brick.linear_velocity += push
+	brick.angular_velocity += Vector3(push.z, push.length() * 0.3, -push.x) * 0.5
+
+
 func _ready() -> void:
+	add_to_group("brick_piles")
 	_alive.append(self)
 	while _alive.size() > MOST_AT_ONCE:
 		var oldest: BrickPile = _alive.pop_front()
