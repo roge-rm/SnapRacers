@@ -33,12 +33,29 @@ class Through:
 		return 0.0
 
 
-## Goes round any water in its line.
+## Goes round any water in its line. It weighs lines as the AI does but
+## makes the water cost a hundred times more, and as it could miss a small one
+## between its steps, it also looks far more finely and counts any water
+## found that way as costing more than moving over.
 class Round:
 	extends AIDriver
 
 	func _line_cost(across: float, most := INF) -> float:
-		return super(across, most / 100.0) * 100.0
+		var cost := super(across, most / 100.0) * 100.0
+		var see := maxf(SEE_PATCH, kart.linear_velocity.length() * SEE_PATCH_TIME)
+		var half := kart.width() * 0.5
+		var ahead := -PATCH_STEP
+		while ahead <= see:
+			var at := offset + ahead
+			var right := track.right_at(at)
+			var point := track.point_at(at) + right * across
+			var x := -half
+			while x <= half:
+				if kart.puddles.factor_at(point + right * x) > 0.02:
+					return cost + 1.0
+				x += 0.4
+			ahead += 0.4
+		return cost
 
 
 class Runner:

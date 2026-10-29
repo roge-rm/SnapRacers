@@ -89,8 +89,6 @@ const POWDER := Color("#dfe7f0")
 ## pale ice, and warm, which cancels the blue of RIM and the sky to plain
 ## grey. It's the instance colour, so the same shader draws both.
 const ON_ICE := Color("#ddd8cf")
-## For the AI: one at least this deep is worth going round.
-const AVOID_DEPTH := 0.45
 ## A lump's drawn again once its reach is this far off what's drawn, in
 ## metres.
 const REDRAW := 0.1
@@ -493,7 +491,10 @@ static func _taper(u: float) -> float:
 ## nothing over the last PULL_EASE metres to it.
 func snow_at(point: Vector3) -> Vector4:
 	var most := Vector4.ZERO
-	for i in _cells.get(_cell(point), []):
+	var here = _cells.get(_cell(point))
+	if here == null:
+		return most
+	for i: int in here:
 		var grown := radius_now[i] / float(spots[i][1])
 		if grown <= 0.0:
 			continue
@@ -521,35 +522,6 @@ func snow_at(point: Vector3) -> Vector4:
 
 func factor_at(point: Vector3) -> float:
 	return snow_at(point).w
-
-
-## Whether one deep enough to go round is within `margin` of this point.
-## Only the part that's at least a quarter as deep as its crest counts.
-func in_the_way(point: Vector3, margin: float) -> bool:
-	var low := _cell(point - Vector3.ONE * margin)
-	var high := _cell(point + Vector3.ONE * margin)
-	for x in range(low.x, high.x + 1):
-		for z in range(low.y, high.y + 1):
-			for i in _cells.get(Vector2i(x, z), []):
-				if not _worth_avoiding(i):
-					continue
-				var root := _root[i]
-				if absf(point.y - root.y) >= 2.0:
-					continue
-				var grown := radius_now[i] / float(spots[i][1])
-				var long := _long[i] * grown
-				var dir := _dir[i]
-				var dx := point.x - root.x
-				var dz := point.z - root.z
-				var along := dx * dir.x + dz * dir.z
-				var across := absf(dx * -dir.z + dz * dir.x)
-				if along > 0.08 * long - margin and along < 0.56 * long + margin and across < 0.42 * _wide[i] * grown * _taper(along / long) + margin:
-					return true
-	return false
-
-
-func _worth_avoiding(i: int) -> bool:
-	return not _only_looks[i] and growth(i) * _high[i] >= AVOID_DEPTH
 
 
 ## The lump's mesh height at x across (the root's width is 1) and u along.

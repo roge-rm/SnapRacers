@@ -192,11 +192,11 @@ const ARM_CLEAR := 2.5
 const ARM_BEFORE := 0.3
 
 const THINK_EVERY := 0.3 # seconds between looking at its gadgets
-## How far ahead it looks for puddles and deep snow drifts to go round, or
+## How far ahead it looks for puddles and snow drifts to go round, or
 ## SEE_PATCH_TIME seconds ahead at the speed it's going if that's further,
 ## how often it looks, and the lines across the road it tries, in metres
 ## from its own, besides hugging either edge. Along each line it looks at
-## the water every PATCH_STEP metres.
+## the water and snow every PATCH_STEP metres.
 const SEE_PATCH := 30.0
 const SEE_PATCH_TIME := 2.5
 const PATCH_EVERY := 0.2
@@ -213,6 +213,12 @@ const WATER_COST := 0.05
 const SWERVE_COST := 0.02
 const SWERVE_PER_M := 0.075
 const SWERVE_HELD := 0.3
+## What it reckons driving through snow costs, in seconds: for every metre
+## of its way by depth squared (1 at the deepest), and for every time depth
+## squared rises from 0 to 1, ploughing into it. Both go by the two sides'
+## wheels averaged.
+const SNOW_COST := 0.07
+const PLOUGH_COST := 1.1
 ## A kart this far either side of it along the road counts as alongside, and
 ## three times this ahead as just ahead, in metres.
 const PATCH_BESIDE := 4.0
@@ -227,6 +233,7 @@ var _scan_point := PackedVector3Array()
 var _scan_right := PackedVector3Array()
 var _scan_frame := -1
 var _scan_offset := NAN
+var _scan_from := 0.0
 ## After holding a power-up this long it uses it at the next moment that
 ## isn't a bad one, so it has room for the next box.
 const HOLD_AT_MOST := 12.0
@@ -584,10 +591,10 @@ func _dodge() -> float:
 	return clampf(cleared, -half_road, half_road) - line
 
 
-## How far to move over to keep out of puddles and deep drifts ahead. It
-## weighs driving through the water on each line it could take against
-## moving over, so it goes straight through a small or shallow puddle and
-## round a big deep one. It goes back to its own line once that's
+## How far to move over to keep out of puddles and drifts ahead. It
+## weighs driving through the water and snow on each line it could take
+## against moving over, so it goes straight through a small or shallow
+## puddle or drift and round a big deep one. It goes back to its own line once that's
 ## quickest, and never moves onto a line with a kart alongside or just
 ## ahead. If every line is blocked it holds where it's going.
 func _dodge_patches() -> float:
@@ -660,25 +667,41 @@ func _karts_clear(across: float) -> bool:
 
 
 ## What driving on this line across the road for the stretch ahead would
-## cost in water, in seconds, going by the depth under each side's wheels.
-## INF where a deep drift's in the way, or once the cost reaches `most`,
-## where it stops looking.
+## cost in water and snow, in seconds, going by the depth under each side's
+## wheels. INF once the cost reaches `most`, where it stops looking. Snow
+## is looked at every half step, as a short drift across the road could fit
+## between steps. Ploughing only counts ahead of the front wheels, since
+## they've already ploughed what's behind.
 func _line_cost(across: float, most := INF) -> float:
 	_scan_ahead()
-	var margin := kart.width() * 0.5 + 0.3
 	var wheels := maxf(kart.width() * 0.5 - 0.3, 0.0)
+	var front := kart.wheelbase * 0.5
 	var wet := 0.0
-	var enough := most / (0.5 * PATCH_STEP * WATER_COST)
+	var snow := 0.0
+	var was_left := 0.0
+	var was_right := 0.0
 	for i in _scan_point.size():
 		var right := _scan_right[i]
 		var point := _scan_point[i] + right * across
-		if kart.drifts != null and kart.drifts.in_the_way(point, margin):
-			return INF
 		if kart.puddles != null:
 			wet += kart.puddles.factor_at(point - right * wheels) + kart.puddles.factor_at(point + right * wheels)
-			if wet >= enough:
-				return INF
-	return wet * 0.5 * PATCH_STEP * WATER_COST
+		if kart.drifts != null:
+			var half := Vector3.UP.cross(right) * PATCH_STEP * 0.5
+			for k in 2:
+				var at := point + half * k
+				# Drag goes by depth squared and ploughing by how much that rises.
+				var left := kart.drifts.factor_at(at - right * wheels)
+				var right_side := kart.drifts.factor_at(at + right * wheels)
+				left *= left
+				right_side *= right_side
+				snow += (left + right_side) * PATCH_STEP * 0.5 * SNOW_COST
+				if _scan_from + (i + k * 0.5) * PATCH_STEP > front:
+					snow += (maxf(left - was_left, 0.0) + maxf(right_side - was_right, 0.0)) * PLOUGH_COST
+				was_left = left
+				was_right = right_side
+		if wet * 0.5 * PATCH_STEP * WATER_COST + snow * 0.5 >= most:
+			return INF
+	return wet * 0.5 * PATCH_STEP * WATER_COST + snow * 0.5
 
 
 ## The middle of the road and its right for _line_cost() to look along,
@@ -693,7 +716,10 @@ func _scan_ahead() -> void:
 	_scan_point.clear()
 	_scan_right.clear()
 	var see := maxf(SEE_PATCH, kart.linear_velocity.length() * SEE_PATCH_TIME)
-	var ahead := -PATCH_STEP
+	# On whole steps along the track, so the same spots are looked at as it
+	# moves and the cost doesn't flicker with where the steps fall.
+	var ahead := PATCH_STEP * ceilf(offset / PATCH_STEP) - offset - PATCH_STEP
+	_scan_from = ahead
 	while ahead <= see:
 		var at := offset + ahead
 		_scan_point.append(track.point_at(at))
