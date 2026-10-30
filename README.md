@@ -33,7 +33,7 @@ You can race the AI, play with a friend on a split screen or race online. There 
 
 Add [my F-Droid repo](https://hunke.ws/fdroid/repo?fingerprint=80438B253C257BCCE05CDCB9E3AC9B6174C2250659962B14FCBE7F32FD42D53E), then search for SnapRacers. F-Droid will offer new versions as updates and pick the right build for your phone.
 
-You can also get an APK from [Releases](https://github.com/roge-rm/SnapRacers/releases). Use the usual APK, or the one marked `32bit` for older phones and tablets. Both need Android 8.1 or newer.
+You can also get an APK from [Releases](https://github.com/roge-rm/SnapRacers/releases). Use the usual APK, or the one marked `32bit` for older phones and tablets. Both need Android 8.1 or newer. Very slow tablets like the Fire HD 8 run it at about 5 fps, which is too slow to race, so they aren't supported.
 
 ### On a computer
 
