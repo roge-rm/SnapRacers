@@ -20,6 +20,7 @@ enum { BRICK, WINDOWS, SMOOTH, GLOW, WATER, PLAIN, LAMP, PUDDLE, DRIFT }
 
 static var _shader: Shader
 static var _material: ShaderMaterial
+static var _far_material: ShaderMaterial
 static var _meshes := {}
 
 ## [transform, colour, surface, prop, far] for each shape, the prop being its
@@ -62,6 +63,16 @@ static func material() -> ShaderMaterial:
 		_material = ShaderMaterial.new()
 		_material.shader = _shader
 	return _material
+
+
+## The material for far-off fillers, which fade in as they come into range
+## (see BrickShaders.fading()), ending `far` metres off.
+static func far_material(far: float) -> ShaderMaterial:
+	if _far_material == null:
+		_far_material = ShaderMaterial.new()
+		_far_material.shader = TrackBuilder.shader_for(BrickShaders.fading(BrickShaders.BLOCK))
+	_far_material.set_shader_parameter("fade_range", Vector2(far - WorldDamage.FADE_BAND, far))
+	return _far_material
 
 
 ## Starts a prop that can break. Everything added until done() is part of it.

@@ -364,3 +364,26 @@ varying vec3 world;
 	pattern_position = (original * vec4(VERTEX, 1.0)).xyz;
 	pattern_normal = normalize((original * vec4(NORMAL, 0.0)).xyz);
 """)
+
+
+## Far-off scenery fades in with the distance from the camera instead of
+## popping in: each piece is dithered in between `fade_range` x and y metres.
+## Dithering keeps it opaque, so it still writes depth and needs no sorting.
+## A shadow's flat projection is left alone, so the shadow never fades.
+const FADE_VERTEX := """
+	vec3 piece_middle = (MODEL_MATRIX * vec4(0.0, 0.0, 0.0, 1.0)).xyz;
+	float seen_from = distance(piece_middle, CAMERA_POSITION_WORLD);
+	fade = PROJECTION_MATRIX[3][3] > 0.5 ? 1.0 : clamp((fade_range.y - seen_from) / (fade_range.y - fade_range.x), 0.0, 1.0);
+"""
+const FADE_FRAGMENT := """
+	if (fade < 1.0 && fract(52.9829189 * fract(dot(FRAGCOORD.xy, vec2(0.06711056, 0.00583715)))) >= fade) {
+		discard;
+	}
+"""
+
+
+## A shader's code with the distance fade added (see FADE_VERTEX). It needs
+## a void vertex() and a void fragment().
+static func fading(code: String) -> String:
+	code = code.replace("void vertex() {", "uniform vec2 fade_range = vec2(170.0, 200.0);\nvarying flat float fade;\n\nvoid vertex() {" + FADE_VERTEX)
+	return code.replace("void fragment() {", "void fragment() {" + FADE_FRAGMENT)

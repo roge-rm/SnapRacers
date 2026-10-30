@@ -1212,7 +1212,7 @@ func _far_peaks() -> void:
 		var at := Vector3(spot.x, level - 5.0, spot.y)
 		half_out = half_out.max((spot - middle).abs())
 		# A lower graphics setting leaves some out, like far fillers. Marking
-		# them far would hide them all, as they're always past FAR_RANGE.
+		# them far would hide them all, as they're always out of a far cell's range.
 		if Graphics.draws_far(at):
 			Props.snowy_peak(_kit, at, _rng, _rng.randf_range(1.6, 2.8), false)
 		else:

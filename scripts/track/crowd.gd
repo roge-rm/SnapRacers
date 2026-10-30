@@ -21,10 +21,11 @@ const COOL_DOWN := 0.6
 const LOOK_EVERY := 0.25
 ## A little of the excitement stays all race, so they never stand quite still.
 const AT_REST := 0.12
-## Fans in one cell are drawn together. Past RANGE metres from a cell's
-## middle, that cell is skipped.
+## Fans in one cell are drawn together. Each fan fades in like far-off
+## scenery (see Graphics.far()), and a cell is skipped once it's CELL_REACH
+## past that, from its middle, which is enough for a fan in its corner.
 const CELL := 32.0
-const RANGE := 90.0
+const CELL_REACH := 30.0
 
 const SHADER := """
 shader_type spatial;
@@ -86,7 +87,7 @@ var _karts: Array = []
 func _init(fans: Array) -> void:
 	name = "Crowd"
 	if _shader == null:
-		_shader = TrackBuilder.shader_for(SHADER)
+		_shader = TrackBuilder.shader_for(BrickShaders.fading(SHADER))
 	var rng := RandomNumberGenerator.new()
 	rng.seed = fans.size()
 	_phases.resize(fans.size())
@@ -129,11 +130,13 @@ func _add_cell(fans: Array, indices: Array, origin: Vector3) -> void:
 		var material := ShaderMaterial.new()
 		material.shader = _shader
 		material.set_shader_parameter("part", float(p))
+		material.set_shader_parameter("fade_range", Vector2(Graphics.far() - WorldDamage.FADE_BAND, Graphics.far()))
 		draw.material_override = material
 		draw.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		draw.gi_mode = GeometryInstance3D.GI_MODE_DISABLED
 		draw.position = origin
-		draw.visibility_range_end = RANGE
+		draw.visibility_range_end = Graphics.far() + CELL_REACH
+		draw.visibility_range_end_margin = 2.0
 		add_child(draw)
 		pack[piece] = multi
 		draws[piece] = draw

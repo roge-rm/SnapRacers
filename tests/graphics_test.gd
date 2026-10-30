@@ -43,12 +43,12 @@ func check_cells(dressing: Node, kit: SceneryKit) -> void:
 	var shadows_on := true
 	for draw in cells:
 		if draw.get_meta("far"):
-			far_end = far_end or is_equal_approx(draw.visibility_range_end, WorldDamage.FAR_RANGE)
+			far_end = far_end or (is_equal_approx(draw.visibility_range_end, WorldDamage.far_range()) and draw.material_override == SceneryKit.far_material(Graphics.far()))
 		else:
 			stay_end = stay_end or is_equal_approx(draw.visibility_range_end, 0.0)
 		if draw.cast_shadow == GeometryInstance3D.SHADOW_CASTING_SETTING_OFF:
 			shadows_on = false
-	check(far_end, "far-off fillers drop out past %.0f m" % WorldDamage.FAR_RANGE)
+	check(far_end, "far-off fillers fade out by %.0f m and drop out past %.0f m" % [Graphics.far(), WorldDamage.far_range()])
 	check(stay_end, "buildings and trackside stay drawn")
 	check(shadows_on, "and they still cast shadows")
 	var far_boxes := 0

@@ -137,6 +137,10 @@ func _warm_race(weather: String, time: String) -> Node:
 	var puddle := Puddles.water_sample(1.5)
 	puddle.position = Vector3(2.5, -0.3, -5.0)
 	kart.add_child(puddle)
+	# A far-off filler's fading brick, beside it.
+	var filler := WorldDamage.far_sample()
+	filler.position = Vector3(-2.5, 0.0, -5.0)
+	kart.add_child(filler)
 	return race
 
 

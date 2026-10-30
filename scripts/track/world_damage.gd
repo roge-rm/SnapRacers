@@ -37,10 +37,14 @@ const REACH_PER_SPEED := 0.03
 const MOST_MOVING := 120
 const ROOM_FOR_RUBBLE := 600
 const ROOM_FOR_CHUNKS := 800
-## Scenery cells, and how far off fillers drop out.
+## Scenery cells. Fillers fade in over FADE_BAND metres, ending at
+## Graphics.far(), and their cells are drawn CELL_REACH further than that,
+## since the cell's range is from its middle and a filler can be anywhere in
+## it, up to half a diagonal across and a little above or below.
 const CELL := 40.0
-const FAR_RANGE := 140.0
-const FAR_MARGIN := 20.0
+const FADE_BAND := 30.0
+const CELL_REACH := 40.0
+const FAR_MARGIN := 5.0
 ## How heavy rubble is for its size, in kilograms a cubic metre, and the
 ## lightest and heaviest a piece can be, so a kart pushes it about.
 const DENSITY := 40.0
@@ -220,7 +224,8 @@ func _cell_draw(kind: String, indices: Array, origin: Vector3, far: bool) -> Mul
 	draw.set_meta("scenery_cell", true)
 	draw.set_meta("far", far)
 	if far:
-		draw.visibility_range_end = FAR_RANGE
+		draw.material_override = SceneryKit.far_material(Graphics.far())
+		draw.visibility_range_end = far_range()
 		draw.visibility_range_end_margin = FAR_MARGIN
 	var multi: MultiMesh = draw.multimesh
 	var bounds := AABB(Vector3(-CELL * 0.5 - 8.0, -4.0, -CELL * 0.5 - 8.0), Vector3(CELL + 16.0, 40.0, CELL + 16.0))
@@ -240,6 +245,28 @@ func _cell_draw(kind: String, indices: Array, origin: Vector3, far: bool) -> Mul
 	draw.custom_aabb = bounds
 	multi.custom_aabb = bounds
 	return draw
+
+
+## One far filler brick with its fading material, for the splash to draw so
+## the shader's ready before a race.
+static func far_sample() -> MultiMeshInstance3D:
+	var multi := MultiMesh.new()
+	multi.transform_format = MultiMesh.TRANSFORM_3D
+	multi.use_colors = true
+	multi.use_custom_data = true
+	multi.mesh = SceneryKit.mesh_for("box")
+	multi.instance_count = 1
+	_place(multi, 0, Transform3D(Basis.from_scale(Vector3(0.6, 0.4, 0.6)), Vector3.ZERO), Color("#237841"), SceneryKit.BRICK)
+	var draw := MultiMeshInstance3D.new()
+	draw.multimesh = multi
+	draw.material_override = SceneryKit.far_material(Graphics.far())
+	return draw
+
+
+## How far from a far cell's middle it's still drawn. Past this its fillers
+## have all faded out.
+static func far_range() -> float:
+	return Graphics.far() + CELL_REACH + FAR_MARGIN
 
 
 func _shape_for(body: StaticBody3D, where: Transform3D, size: Vector3, group: int) -> CollisionShape3D:
