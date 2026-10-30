@@ -321,6 +321,9 @@ static func page(root: Control, heading_text: String, back: Callable, width := 7
 	outer.add_child(scroll)
 	var centre := CenterContainer.new()
 	centre.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	# Card pages sit in the middle of the room under the title; a tall one still scrolls.
+	if centred:
+		centre.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	scroll.add_child(centre)
 	var column := VBoxContainer.new()
 	column.custom_minimum_size = Vector2(width, 0.0)

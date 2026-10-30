@@ -51,6 +51,9 @@ func _ready() -> void:
 	Game.cup_shown = ""
 	var title := "Your cups" if yours else _title()
 	_column = MenuStyle.page(self, title, go_back, _width(), true)
+	# Your cups grows down from the top as cups are added.
+	if yours:
+		_column.get_parent().size_flags_vertical = Control.SIZE_FILL
 	var column := _column
 	_grid = GridContainer.new()
 	_grid.add_theme_constant_override("h_separation", GAP)
