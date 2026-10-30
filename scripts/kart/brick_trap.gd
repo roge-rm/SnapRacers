@@ -16,12 +16,15 @@ extends StaticBody3D
 const LIFETIME := 15.0
 ## Clear space between the kart's tail and the nearest edge of the patch.
 const DROP_GAP := 0.5
-## For each kind: how far across it reaches, the grip and drag on it, and how
-## many pieces are scattered over it.
+## For each kind: how far it reaches either side of its middle across the
+## road and along it, the grip and drag on it, and how many pieces are
+## scattered over it. Marbles are a wide oval across the road.
 const KINDS := {
-	"marbles": { "radius": 2.0, "grip": 0.12, "drag": 0.6, "pieces": 22 },
-	"spikes": { "radius": 2.3, "grip": 0.85, "drag": 35.0, "pieces": 14 },
+	"marbles": { "across": 3.4, "along": 2.6, "grip": 0.12, "drag": 0.6, "pieces": 48 },
+	"spikes": { "across": 2.3, "along": 2.3, "grip": 0.85, "drag": 35.0, "pieces": 14 },
 }
+## Sides of the oval the patch's shape is made of.
+const SIDES := 24
 const MARBLE_COLOURS := BrickPile.COLOURS
 ## The little pieces marbles are made of: round and square 1x1 bricks, round
 ## plates, balls and 1x2 plates.
@@ -39,7 +42,7 @@ static func drop_behind(from: Kart, what := "marbles") -> BrickTrap:
 	var trap := BrickTrap.new(what, hash([from.grid_slot, from.drops]))
 	from.drops += 1
 	# The entire patch must clear the kart, including long builds and rear wheels.
-	var distance: float = from.rear_bumper_point().z + KINDS[trap.kind].radius + DROP_GAP
+	var distance: float = from.rear_bumper_point().z + KINDS[trap.kind].along + DROP_GAP
 	var behind := from.global_position + from.global_basis.z * distance
 	# Down onto whatever's under that spot, lying flat on it.
 	var space := from.get_world_3d().direct_space_state
@@ -57,30 +60,35 @@ static func drop_behind(from: Kart, what := "marbles") -> BrickTrap:
 func _init(what := "marbles", look_seed := 0) -> void:
 	kind = what if KINDS.has(what) else "marbles"
 	var of: Dictionary = KINDS[kind]
-	var radius: float = of.radius
+	var across: float = of.across
+	var along: float = of.along
 	collision_layer = Kart.LAYER_WORLD
 	set_meta("grip", of.grip)
 	set_meta("drag", of.drag)
 	set_meta("trap", kind)
-	# Thin enough that nothing catches on its edge.
+	# A flat oval, thin enough that nothing catches on its edge.
 	var shape := CollisionShape3D.new()
-	var disc := CylinderShape3D.new()
-	disc.radius = radius
-	disc.height = 0.04
-	shape.shape = disc
+	var oval := ConvexPolygonShape3D.new()
+	var points := PackedVector3Array()
+	for i in SIDES:
+		var a := TAU * i / SIDES
+		for y in [-0.02, 0.02]:
+			points.append(Vector3(cos(a) * across, y, sin(a) * along))
+	oval.points = points
+	shape.shape = oval
 	add_child(shape)
-	add_child(_pieces(of.pieces, radius, look_seed))
+	add_child(_pieces(of.pieces, across, along, look_seed))
 
 
 ## The bricks scattered over it, baked into one mesh.
-func _pieces(count: int, radius: float, look_seed: int) -> MeshInstance3D:
+func _pieces(count: int, across: float, along: float, look_seed: int) -> MeshInstance3D:
 	var rng := RandomNumberGenerator.new()
 	rng.seed = hash([kind, look_seed])
 	var parts: Array[Node3D] = []
 	for i in count:
 		var a := rng.randf() * TAU
-		var r := sqrt(rng.randf()) * radius * 0.9
-		var at := Vector3(cos(a) * r, 0.0, sin(a) * r)
+		var r := sqrt(rng.randf()) * 0.9
+		var at := Vector3(cos(a) * r * across, 0.0, sin(a) * r * along)
 		var piece := MeshInstance3D.new()
 		if kind == "spikes":
 			# A little grey cone on a round plate.

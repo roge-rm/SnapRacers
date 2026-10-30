@@ -466,6 +466,14 @@ def hit():
     return normalise(mix((thud(160, 80, 0.15, 14), 0.0), (clack(15, 1.1) * 0.8, 0.0), (clack(16, 0.9) * 0.4, 0.03)), 0.85)
 
 
+def homing_warning():
+    """A homing brick coming for you: a soft round bip that slides up a little."""
+    n = seconds(0.14)
+    pitch = np.geomspace(1050, 1400, n)
+    tone = sine(pitch, n) + sine(pitch * 2, n) * 0.12
+    return normalise(reverb(tone * adsr(n, 0.012, 0.05, 0.6, 0.07), 0.15, 0.4), 0.5)
+
+
 def repair():
     clicks = [(clack(60 + i, 1.4, 0.01) * 0.5, i * 0.05) for i in range(6)]
     sparkle = chime(["C6", "G6", "C7"], 0.08, 0.35)
@@ -663,7 +671,7 @@ ONE_SHOTS = {
     "beep": lambda: beep("A5", 0.16), "go": lambda: beep("A6", 0.5),
     "lap": lap, "final_lap": final_lap, "finish": finish, "win": win,
     "reset": reset, "turbo": turbo, "rope": rope, "wall": wall, "shockwave": shockwave, "marbles": marbles, "spikes": spikes, "drop": drop, "cannon": cannon,
-    "hit": hit, "repair": repair, "shield": shield, "ghost": ghost, "lightning": lightning, "thunder": thunder, "ram": ram,
+    "hit": hit, "homing_warning": homing_warning, "repair": repair, "shield": shield, "ghost": ghost, "lightning": lightning, "thunder": thunder, "ram": ram,
     "crossing_bell": crossing_bell, "drift_whoosh_1": lambda: drift_whoosh(1), "drift_whoosh_2": lambda: drift_whoosh(2), "drift_whoosh_3": lambda: drift_whoosh(3), "train_horn": train_horn,
     "click": click, "back": back, "snap": snap, "unsnap": unsnap, "pick": pick, "nope": nope,
     "podium": podium, "cheer": cheer,

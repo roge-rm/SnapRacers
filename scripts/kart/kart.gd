@@ -155,6 +155,8 @@ const CANNON_PARTS := 3
 const CANNON_WHEEL_CHANCE := 0.5
 const CANNON_SHOVE := 14.0
 const CANNON_HOP := 4.0
+## A homing brick knocks one part off, this often a wheel.
+const HOMING_WHEEL_CHANCE := 0.75
 ## A train knocks this many parts off, sometimes a wheel or the steering, and
 ## shoves the kart this hard (m/s) off the rails, along with the train, and up.
 const TRAIN_PARTS := 2
@@ -360,6 +362,8 @@ var design: KartDesign
 var grid_slot := 0
 ## How many walls, bricks and traps it's dropped, which seeds how they look.
 var drops := 0
+## Driven by a person on this device, so a homing brick after it beeps.
+var hears_warnings := false
 ## Who's driving. Their weight goes into the kart, and their model sits in
 ## the seat holding the steering wheel.
 var driver: CharacterDesign
@@ -2170,6 +2174,40 @@ func knock_off_a_part(count := 1, chance := -1.0) -> void:
 			allow_drive = false
 	if not taken.is_empty():
 		lose_parts(taken)
+
+
+## A homing brick hit. `roll` (0 to 1) is the same on every machine, and
+## under HOMING_WHEEL_CHANCE takes the outermost wheel left, otherwise
+## bodywork. With no wheel left it's bodywork, and with no bodywork left, like
+## on a bike, a wheel. A shield holds everything on.
+func struck_by_homing(roll: float) -> void:
+	if shield_left > 0.0 or stats == null:
+		return
+	if roll < HOMING_WHEEL_CHANCE and _knock_off_a_wheel():
+		return
+	var before := lost.size()
+	knock_off_a_part(1, 0.0)
+	if lost.size() == before:
+		_knock_off_a_wheel()
+
+
+## Knocks off the outermost wheel left, if there is one.
+func _knock_off_a_wheel() -> bool:
+	var wheel := -1
+	var furthest := -1.0
+	for info in stats.parts:
+		if lost.has(info.index) or not KartDesign.is_wheel(design.parts[info.index].id):
+			continue
+		var reach := (info.centre - center_of_mass).length()
+		if reach > furthest:
+			furthest = reach
+			wheel = info.index
+	if wheel == -1:
+		return false
+	Sounds.play_at("fx/hit", sound)
+	var taken: Array[int] = [wheel]
+	lose_parts(taken)
+	return true
 
 
 ## A cannonball hit: shoved along the ball and several parts knocked off. A

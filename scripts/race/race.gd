@@ -198,6 +198,7 @@ func _ready() -> void:
 		var racer := _add_racer(entry.name, entry.design, slot, entry.who)
 		if entry.has("human"):
 			racer.player = true
+			racer.kart.hears_warnings = true
 			if entry.human == 0:
 				player = racer
 			continue
@@ -317,6 +318,7 @@ func _ready_online() -> void:
 		var owner := int(entry.owner)
 		if entry.get("human", false) and owner == me:
 			racer.player = true
+			racer.kart.hears_warnings = true
 			racer.set_meta("local", int(entry.local))
 			mine.append(racer)
 		elif entry.get("ai", false) and owner == me:
@@ -586,6 +588,8 @@ func _physics_process(delta: float) -> void:
 			if racer.player and not racer.progress.finished and racer.progress.current_lap() > was_lap:
 				Sounds.play("fx/final_lap" if racer.progress.current_lap() == laps else "fx/lap")
 			if racer.progress.finished and not was_done:
+				# Finished, the autopilot drives and homing bricks stop beeping.
+				kart.hears_warnings = false
 				if racer.player:
 					Sounds.play("fx/win" if place_of(racer) == 1 and mode != Game.MODE_TIME_TRIAL else "fx/finish")
 				# The winner cheers and everyone else is happy to be done.

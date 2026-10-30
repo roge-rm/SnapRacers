@@ -10,13 +10,14 @@ const LIFETIME := 15.0
 const SHRINK_TIME := 0.5
 ## Phones can't handle too many loose bodies, so past this many the oldest go
 ## first.
-const MOST_AT_ONCE := 48
-## Where each brick in a drop comes out, as (right, up) in metres from behind
-## the middle of the kart.
-const DROP := [
-	Vector2(0.0, 0.5), Vector2(-0.7, 0.6), Vector2(0.75, 0.7), Vector2(-0.3, 1.0),
-	Vector2(0.4, 1.1), Vector2(-0.9, 1.2), Vector2(0.95, 1.3), Vector2(0.1, 1.5),
-]
+const MOST_AT_ONCE := 80
+## How many bricks a drop leaves, five drops under MOST_AT_ONCE.
+## They come out spread over SPREAD metres across, and are thrown out
+## sideways at up to THROW times their distance from the middle, in m/s, so
+## they cover most of the road with gaps between.
+const COUNT := 16
+const SPREAD := 3.4
+const THROW := 3.0
 ## The sizes a dropped brick can be, in studs across and along, and how often
 ## one is a plate.
 const SIZES := [Vector2i(1, 1), Vector2i(1, 2), Vector2i(1, 3), Vector2i(1, 4), Vector2i(2, 2), Vector2i(2, 3), Vector2i(2, 4), Vector2i(1, 6), Vector2i(2, 6)]
@@ -50,19 +51,26 @@ static func drop_behind(from: Kart) -> Array[BrickPile]:
 	var rng := RandomNumberGenerator.new()
 	rng.seed = hash([from.grid_slot, from.drops])
 	from.drops += 1
-	for i in DROP.size():
+	for i in COUNT:
 		var studs: Vector2i = SIZES[rng.randi_range(0, SIZES.size() - 1)]
 		var plate := rng.randf() < PLATE_CHANCE
 		var size := Vector3(studs.x * Grid.STUD, PLATE_HIGH if plate else BRICK_HIGH, studs.y * Grid.STUD)
 		var brick := BrickPile.new(size, COLOURS[rng.randi_range(0, COLOURS.size() - 1)])
-		var spot: Vector2 = DROP[i]
-		var at := from.global_position + back * (2.3 + i * 0.12) + right * spot.x + up * spot.y
+		var spot := spot_of(i)
+		var at := from.global_position + back * (2.3 + i * 0.1) + right * spot.x + up * spot.y
 		brick.transform = Transform3D(from.global_basis.rotated(up, i * 0.9), at)
-		# Thrown back and out a little, spinning, so they spread across the road.
-		brick.linear_velocity = from.linear_velocity * 0.3 + right * spot.x * 2.5 + up * (1.0 + spot.y)
+		# Thrown back and out, spinning, so they spread across the road and a
+		# little along it.
+		brick.linear_velocity = from.linear_velocity * 0.3 + right * spot.x * THROW + back * (i % 3) + up * (1.0 + spot.y)
 		brick.angular_velocity = Vector3(sin(i * 2.1), cos(i * 1.7), sin(i * 3.3)) * 5.0
 		out.append(brick)
 	return out
+
+
+## Where brick `i` of a drop comes out, as (right, up) in metres from behind
+## the middle of the kart. Next ones go to different sides.
+static func spot_of(i: int) -> Vector2:
+	return Vector2(float((i * 7) % COUNT) / (COUNT - 1) * SPREAD - SPREAD * 0.5, 0.5 + (i % 4) * 0.25)
 
 
 func _init(size := Vector3(0.5, BRICK_HIGH, 1.0), colour := Color("#c4281c")) -> void:

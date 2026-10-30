@@ -4,7 +4,8 @@ extends RigidBody3D
 ## A cannonball, or a homing brick. A cannonball goes off with a flash and
 ## smoke, flies fast and nearly flat trailing fire, and the first kart it hits
 ## loses several parts and is shoved, with a bang. A homing brick knocks one
-## part off. It's gone after a couple of seconds either way.
+## part off, mostly a wheel, and beeps for the person it's after. It's gone
+## after a couple of seconds either way.
 
 const SPEED := 34.0
 const LIFETIME := 2.5
@@ -13,6 +14,12 @@ const LIFETIME := 2.5
 const HOMING_SPEED := 30.0
 const HOMING_LIFETIME := 6.0
 const TURN := 3.0
+## The warning beeps every BEEP_FAR seconds a long way off, down to BEEP_NEAR
+## close up, rising in pitch, closest at BEEP_CLOSE metres, at BEEP_LEVEL dB.
+const BEEP_FAR := 0.8
+const BEEP_NEAR := 0.2
+const BEEP_CLOSE := 60.0
+const BEEP_LEVEL := -8.0
 const BALL_RADIUS := 0.4
 ## Seconds between puffs of the trail behind a cannonball.
 const TRAIL_EVERY := 0.05
@@ -25,6 +32,11 @@ var shooter: Kart
 ## The kart a homing brick is after.
 var chasing: Kart
 var homing := false
+## Seeds which part a homing brick takes, the same on every machine.
+var roll_seed := 0
+## How many warning beeps it's played, for the tests.
+var beeps := 0
+var _beep_wait := 0.0
 var _age := 0.0
 var _spent := false
 var _trail_wait := 0.0
@@ -38,6 +50,8 @@ static func fire(from: Kart, homing_ := false) -> BrickShot:
 	if homing_:
 		shot.chasing = _kart_ahead(from)
 		shot.gravity_scale = 0.0
+		shot.roll_seed = hash([from.grid_slot, from.drops, "homing"])
+		from.drops += 1
 	shot._dress()
 	var forward := -from.global_basis.z
 	var up := from.global_basis.y
@@ -142,7 +156,7 @@ func _on_hit(body: Node) -> void:
 		# device loses it there instead, when its own copy of the brick hits.
 		if not body.remote:
 			if homing:
-				body.knock_off_a_part.call_deferred()
+				body.struck_by_homing.call_deferred(hit_roll(roll_seed, body.grid_slot))
 			else:
 				body.struck_by_cannon.call_deferred(linear_velocity)
 		if not homing:
@@ -176,6 +190,28 @@ func _physics_process(delta: float) -> void:
 		var wanted := to.normalized()
 		var turned := heading.slerp(wanted, minf(TURN * delta / maxf(heading.angle_to(wanted), 0.001), 1.0))
 		linear_velocity = turned * HOMING_SPEED
+		if chasing.hears_warnings and not chasing.remote:
+			_warn(delta, to.length())
+
+
+## A soft beep for the person this brick's after, quicker and higher the
+## closer it gets.
+func _warn(delta: float, far: float) -> void:
+	_beep_wait -= delta
+	if _beep_wait > 0.0:
+		return
+	var near := 1.0 - clampf(far / BEEP_CLOSE, 0.0, 1.0)
+	_beep_wait = lerpf(BEEP_FAR, BEEP_NEAR, near)
+	beeps += 1
+	Sounds.play("fx/homing_warning", BEEP_LEVEL, lerpf(1.0, 1.3, near))
+
+
+## The roll (0 to 1) for a homing brick seeded `roll_seed` hitting the kart in
+## grid slot `slot`.
+static func hit_roll(seed_: int, slot: int) -> float:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = hash([seed_, slot])
+	return rng.randf()
 
 
 ## Fire and smoke left behind a flying cannonball, hot near the ball and

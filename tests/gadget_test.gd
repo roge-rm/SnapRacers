@@ -87,7 +87,7 @@ class Runner:
 		karts.zap_blocked = kart_with(["shield"], Vector3(-90, 0.05, 115))
 		karts.popped = kart_with([], Vector3(107.5, 0.05, -10))
 
-		steps = [_start, _turbo, _turbo_check, _others, _tow_check, _others_check, _repair_check, _ram_check, _marbles, _marbles_check, _wall, _wall_check, _shockwave, _shockwave_check, _spikes, _spikes_check, _spike_pops, _spike_pops_check, _blasts, _blasts_check, _drop_looks, _ghost, _ghost_check, _tow_targets, _boxes]
+		steps = [_start, _turbo, _turbo_check, _others, _tow_check, _others_check, _repair_check, _ram_check, _marbles, _marbles_check, _wall, _wall_check, _shockwave, _shockwave_check, _spikes, _spikes_check, _spike_pops, _spike_pops_check, _blasts, _blasts_check, _drop_looks, _ghost, _ghost_check, _homing_wheels, _homing_warning, _homing_warning_check, _drop_spread, _drop_spread_check, _tow_targets, _boxes]
 
 	func _start() -> int:
 		for kart in [karts.turbo, karts.plain, karts.rammer, karts.bumper, karts.zapped, karts.unzapped]:
@@ -174,7 +174,7 @@ class Runner:
 		check(shielded_shove > 2.0, "though the shield still gets shoved (%.1f m)" % shielded_shove)
 		check(karts.hunted.lost.size() >= 1, "a homing brick turns and finds a kart off to one side (%d lost)" % karts.hunted.lost.size())
 		var piles := get_children().filter(func(n): return n is BrickPile).size()
-		check(piles == BrickPile.DROP.size(), "a brick dropper leaves a pile of bricks behind (%d)" % piles)
+		check(piles == BrickPile.COUNT, "a brick dropper leaves a pile of bricks behind (%d)" % piles)
 		var one: Array[int] = [5, 6]
 		karts.dropper.lose_parts(one)
 		check(karts.dropper.lost.size() >= 2, "the dropper loses a couple of parts")
@@ -421,6 +421,133 @@ class Runner:
 		check(karts.ghost.global_position.z < karts.in_the_way.global_position.z - 3.0, "and goes right through a kart in the way (%.1f m past it)" % (karts.in_the_way.global_position.z - karts.ghost.global_position.z))
 		check(karts.ghost.lost.is_empty() and karts.in_the_way.lost.is_empty(), "without knocking anything off either of them")
 		return 0
+
+	## Whether this kart has lost a wheel.
+	func lost_a_wheel(kart: Kart) -> bool:
+		for i in kart.lost:
+			if KartDesign.is_wheel(kart.design.parts[i].id):
+				return true
+		return false
+
+	## A homing brick mostly takes a wheel, rolled the same on every machine,
+	## and bodywork when there's no wheel left. A shield keeps everything on.
+	func _homing_wheels() -> int:
+		var kart := kart_with([], Vector3(20, 0.05, -60))
+		var wheeled := 0
+		var hits := 60
+		var missed := 0
+		for n in hits:
+			kart.struck_by_homing(BrickShot.hit_roll(hash([3, n, "homing"]), 5))
+			if kart.lost.is_empty():
+				missed += 1
+			if lost_a_wheel(kart):
+				wheeled += 1
+			kart.repair_now()
+		check(missed == 0, "every homing hit knocks something off (%d missed)" % missed)
+		var share := float(wheeled) / hits
+		check(share > 0.6 and share < 0.9, "a homing brick takes a wheel about three times in four (%d of %d)" % [wheeled, hits])
+		check(BrickShot.hit_roll(1234, 2) == BrickShot.hit_roll(1234, 2), "and the roll is the same every time for the same shot")
+		var wheels: Array[int] = []
+		for i in kart.design.parts.size():
+			if KartDesign.is_wheel(kart.design.parts[i].id):
+				wheels.append(i)
+		kart.lose_parts(wheels)
+		var before := kart.lost.size()
+		kart.struck_by_homing(0.0)
+		check(kart.lost.size() > before, "a kart with no wheels left still loses a part (%d to %d)" % [before, kart.lost.size()])
+		kart.repair_now()
+		var bike := Kart.new()
+		bike.build(KartDesign.load_file("res://tests/data/legacy/dirt_bike.json"))
+		bike.transform = Transform3D(Basis.IDENTITY, Vector3(30, 0.05, -60))
+		add_child(bike)
+		var bike_bare := 0
+		var bike_wheels := 0
+		for n in 20:
+			bike.struck_by_homing(0.99)
+			if bike.lost.is_empty():
+				bike_bare += 1
+			if lost_a_wheel(bike):
+				bike_wheels += 1
+			bike.repair_now()
+		check(bike_bare == 0, "a bike always loses something to a homing brick (%d missed, %d wheels)" % [bike_bare, bike_wheels])
+		bike.queue_free()
+		kart.shield_left = Kart.SHIELD_TIME
+		kart.struck_by_homing(0.0)
+		check(kart.lost.is_empty(), "a shield keeps a homing brick from knocking anything off")
+		kart.queue_free()
+		return 1
+
+	## The warning beeps for a person on this device, and not for anyone else.
+	func _homing_warning() -> int:
+		var person := kart_with([], Vector3(-70, 0.05, -20))
+		person.hears_warnings = true
+		var cpu := kart_with([], Vector3(-70, 0.05, -50))
+		var shots := []
+		for target in [person, cpu]:
+			var shot := BrickShot.fire(karts.plain, true)
+			shot.chasing = target
+			add_child(shot)
+			shot.global_position = target.global_position + Vector3(0, 100, 0)
+			shot.linear_velocity = Vector3(0, -BrickShot.HOMING_SPEED, 0)
+			shots.append(shot)
+		karts.warned = [person, cpu, shots]
+		return 150
+
+	func _homing_warning_check() -> int:
+		var shots: Array = karts.warned[2]
+		var beeps: Array = shots.map(func(s): return s.beeps if is_instance_valid(s) else -1)
+		check(beeps[0] >= 3, "a homing brick beeps for the person it's after (%d)" % beeps[0])
+		check(beeps[1] == 0, "and not for a kart nobody here is driving (%d)" % beeps[1])
+		for node in shots + karts.warned.slice(0, 2):
+			if is_instance_valid(node):
+				node.queue_free()
+		return 1
+
+	## A brick drop covers most of the road, and marbles spread wide across it.
+	func _drop_spread() -> int:
+		var kart := kart_with([], Vector3(70, 0.05, 30))
+		kart.linear_velocity = Vector3(0, 0, -20)
+		var bricks := BrickPile.drop_behind(kart)
+		check(bricks.size() == BrickPile.COUNT, "a brick drop leaves %d bricks" % bricks.size())
+		for brick in bricks:
+			add_child(brick)
+		kart.freeze = true
+		kart.global_position = Vector3(70, -20, 30)
+		karts.spread = bricks
+		var marbles := BrickTrap.new()
+		add_child(marbles)
+		marbles.global_position = Vector3(-60, 0.02, 80)
+		karts.marbles = marbles
+		karts.spread_kart = kart
+		return 120
+
+	func _drop_spread_check() -> int:
+		var xs: Array = karts.spread.filter(func(b): return is_instance_valid(b)).map(func(b): return b.global_position.x)
+		var zs: Array = karts.spread.filter(func(b): return is_instance_valid(b)).map(func(b): return b.global_position.z)
+		xs.sort()
+		zs.sort()
+		var across: float = xs[-1] - xs[0]
+		var along: float = zs[-1] - zs[0]
+		var gap := 0.0
+		for i in xs.size() - 1:
+			gap = maxf(gap, xs[i + 1] - xs[i])
+		print("        bricks across %.1f m, along %.1f m, widest gap across %.1f m" % [across, along, gap])
+		check(across > 9.0, "dropped bricks spread across the road (%.1f m)" % across)
+		var space := get_viewport().world_3d.direct_space_state
+		var on_marbles := func(at: Vector3) -> bool:
+			var query := PhysicsRayQueryParameters3D.create(at + Vector3.UP, at + Vector3.DOWN, Kart.LAYER_WORLD)
+			return space.intersect_ray(query).get("collider") == karts.marbles
+		var middle: Vector3 = karts.marbles.global_position
+		var right: Vector3 = karts.marbles.global_basis.x
+		var back: Vector3 = karts.marbles.global_basis.z
+		check(on_marbles.call(middle + right * 3.2) and on_marbles.call(middle - right * 3.2), "marbles reach over 3 m either side across the road")
+		check(on_marbles.call(middle + back * 2.4) and not on_marbles.call(middle + back * 3.0), "and a bit less along it")
+		for brick in karts.spread:
+			if is_instance_valid(brick):
+				brick.queue_free()
+		karts.marbles.queue_free()
+		karts.spread_kart.queue_free()
+		return 1
 
 	## The boxes, and what they hand out.
 	func _boxes() -> int:

@@ -89,10 +89,10 @@ Drive through a gold stud to get a power-up. You can hold two at once, one on ea
 |---|---|
 | Turbos | A short boost, a longer boost or three boosts to use separately. |
 | Tow rope | Pulls you behind the kart ahead for three seconds, then lets go with a burst. |
-| Bricks and traps | Drop bricks, a wall, marbles or spikes behind you. Spikes slow karts and pop a tire. |
+| Bricks and traps | Drop bricks, a wall, marbles or spikes behind you. Bricks and marbles spread across most of the road. Spikes slow karts and pop a tire. |
 | Shockwave | Shoves nearby karts away and knocks parts off the closest ones. |
 | Cannonball | Fires ahead, knocks three parts off the kart it hits and shoves it. A shield keeps the parts on but still lets it be shoved. |
-| Homing brick | Follows the road to the kart ahead and knocks one part off. |
+| Homing brick | Follows the road to the kart ahead and knocks one part off, most often a wheel. It beeps for the driver it's after. |
 | Shield | Protects your parts for four seconds. |
 | Repair kit | Puts back your lost parts without the reset slowdown. |
 | Ghost | Lets you pass through karts, bricks and traps for three seconds. |
@@ -233,7 +233,7 @@ Up to eight karts can race together, with AI in the empty places if the host wan
 - For Bluetooth, pair two or three phones, then host and join over Bluetooth.
 - A dedicated server runs races on your network or the internet, with an admin page. Phones and browsers can join it. See [server/README.md](server/README.md).
 
-Everyone has to be on the same version. Online play between 0.9.1 and older versions doesn't work.
+Everyone has to be on the same version of SnapRacers to play online.
 
 In a browser you can join a server but not host or find games. Web players need the server to have a certificate.
 
