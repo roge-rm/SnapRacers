@@ -434,6 +434,13 @@ func roster_driver(key: String) -> CharacterDesign:
 	return CharacterDesign.load_file(path) if FileAccess.file_exists(path) else Kart.default_driver()
 
 
+## Every stock driver's file name, the starting driver first.
+func stock_driver_keys() -> Array[String]:
+	var keys: Array[String] = ["racer"]
+	keys.append_array(ai_driver_keys())
+	return keys
+
+
 func player_name() -> String:
 	var name: String = settings.get_value("player", "name", "")
 	return name if name.strip_edges() != "" else "You"

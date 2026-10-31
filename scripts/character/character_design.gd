@@ -156,14 +156,35 @@ func weight_class() -> String:
 	return "Medium"
 
 
+## Saves into the player's own drivers folder, named after the driver. Returns
+## the path it was saved to, or an empty string if it couldn't be written.
 func save() -> String:
 	DirAccess.make_dir_recursive_absolute(SAVE_DIR)
-	var path := "%s/%s.json" % [SAVE_DIR, KartDesign.file_name_for(name)]
+	var path := "%s/%s.json" % [SAVE_DIR, file_name_for(name)]
 	var file := FileAccess.open(path, FileAccess.WRITE)
 	if file == null:
+		push_error("I couldn't save the driver to %s" % path)
 		return ""
 	file.store_string(JSON.stringify(to_dict(), "\t"))
 	return path
+
+
+static func file_name_for(driver_name: String) -> String:
+	var clean := KartDesign.file_name_for(driver_name)
+	return "driver" if clean == "kart" and driver_name.strip_edges().to_lower() != "kart" else clean
+
+
+## Every driver the player has saved, as paths.
+static func saved_paths() -> Array[String]:
+	var out: Array[String] = []
+	var dir := DirAccess.open(SAVE_DIR)
+	if dir == null:
+		return out
+	for file in dir.get_files():
+		if file.ends_with(".json"):
+			out.append("%s/%s" % [SAVE_DIR, file])
+	out.sort()
+	return out
 
 
 ## A new driver made of random pieces and colours.

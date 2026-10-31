@@ -5,11 +5,11 @@ extends Control
 ## the middle and every panel floats over the scene on its own dark,
 ## see-through backing.
 ##
-## Across the top are round tool buttons for leaving, undo, redo and a random
-## driver. Down the left is the drawer, with a rail of tabs for the nine pieces
+## Across the top are round tool buttons for leaving, undo, redo, a random
+## driver and a menu to save, load, rename or start again. Down the left is the drawer, with a rail of tabs for the nine pieces
 ## and a picture of your driver wearing each style. The colours are in the
 ## bottom right, their name and weight in the top right (which opens into a
-## card to rename them), and sitting them in a kart and Done are along the
+## card), and sitting them in a kart and Done are along the
 ## bottom.
 
 signal style_chosen(slot: String, style: String)
@@ -20,6 +20,9 @@ signal random_pressed
 signal pose_toggled(driving: bool)
 signal done_pressed
 signal name_changed(text: String)
+signal save_pressed
+signal new_pressed
+signal load_chosen(path: String)
 
 const SLOTS := [["head", "Face"], ["hair", "Hair"], ["facial_hair", "Facial hair"], ["headgear", "Headgear"], ["neck", "Neck"], ["torso", "Torso"], ["back", "Back"], ["arms", "Arms"], ["legs", "Legs"]]
 const SWATCH := 42.0
@@ -40,7 +43,15 @@ var _heading: Label
 var _tiles: GridContainer
 var _chip: Button
 var _card: PanelContainer
+var _file_menu: PopupMenu
+var _load_popup: PopupPanel
+var _load_list: VBoxContainer
+var _new_dialog: ConfirmationDialog
+var _name_dialog: ConfirmationDialog
 var _name_edit: LineEdit
+var _status: Label
+var _status_panel: PanelContainer
+var _toast_left := 0.0
 var _weight: Label
 var _colours: PanelContainer
 var _swatches: GridContainer
@@ -62,6 +73,7 @@ func _ready() -> void:
 	_build_card()
 	_build_colours()
 	_build_bottom()
+	_build_dialogs()
 	# Nothing hides under a camera hole.
 	var safe := SafeArea.new()
 	add_child(safe)
@@ -74,6 +86,8 @@ func _ready() -> void:
 
 ## Whether this screen position is on one of the panels instead of the scene.
 func is_over_ui(pos: Vector2) -> bool:
+	if _load_popup.visible or _new_dialog.visible or _name_dialog.visible or _file_menu.visible:
+		return true
 	for panel in [_toolbar, _drawer, _chip, _card, _colours, _bottom]:
 		if panel.is_visible_in_tree() and panel.get_global_rect().has_point(pos):
 			return true
@@ -83,11 +97,23 @@ func is_over_ui(pos: Vector2) -> bool:
 ## Shows this driver: their tiles, colours, name and weight.
 func show_design(who: CharacterDesign) -> void:
 	design = who
-	if _name_edit.text.strip_edges() != design.name:
-		_name_edit.text = design.name
 	_chip.text = "%s  ·  %s  ·  %.0f kg" % [design.name, design.weight_class(), design.mass()]
 	_weight.text = "%s, %.0f kg" % [design.weight_class(), design.mass()]
 	show_slot(slot)
+
+
+## A line of news over the Done button for a moment.
+func toast(text: String) -> void:
+	_status.text = text
+	_status_panel.visible = true
+	_toast_left = 2.0
+
+
+func _process(delta: float) -> void:
+	if _toast_left > 0.0:
+		_toast_left -= delta
+		if _toast_left <= 0.0:
+			_status_panel.visible = false
 
 
 func set_history(can_undo: bool, can_redo: bool) -> void:
@@ -148,11 +174,107 @@ func _build_toolbar() -> void:
 	_redo.pressed.connect(func() -> void: redo_pressed.emit())
 	var dice := IconButton.new("dice", "A random driver")
 	dice.pressed.connect(func() -> void: random_pressed.emit())
-	_toolbar = BuilderStyle.toolbar([[close], [_undo, _redo], [dice]])
+	var more := IconButton.new("more", "Save, load or start again")
+	_toolbar = BuilderStyle.toolbar([[close], [_undo, _redo], [dice], [more]])
 	add_child(_toolbar)
 	_toolbar.set_anchors_and_offsets_preset(PRESET_CENTER_TOP)
 	_toolbar.grow_horizontal = GROW_DIRECTION_BOTH
 	_toolbar.offset_top = 8.0
+
+	_file_menu = BuilderStyle.menu(["Save", "Load", "Rename", "New driver"])
+	add_child(_file_menu)
+	_file_menu.id_pressed.connect(_on_file_menu)
+	more.pressed.connect(func() -> void:
+		var rect := more.get_global_rect()
+		_file_menu.popup(Rect2i(Vector2i(rect.position + Vector2(0, rect.size.y + 6)), Vector2i(220, 0))))
+
+
+func _on_file_menu(id: int) -> void:
+	match id:
+		0:
+			save_pressed.emit()
+		1:
+			_open_load()
+		2:
+			_open_rename()
+		3:
+			_new_dialog.popup_centered()
+
+
+func _build_dialogs() -> void:
+	_load_popup = PopupPanel.new()
+	_load_popup.theme = MenuStyle.theme()
+	add_child(_load_popup)
+	var box := VBoxContainer.new()
+	_load_popup.add_child(box)
+	var title := Label.new()
+	title.text = "Load a driver"
+	title.theme_type_variation = "LeadLabel"
+	box.add_child(title)
+	var scroll := ScrollContainer.new()
+	scroll.follow_focus = true
+	scroll.custom_minimum_size = Vector2(460, 460)
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	box.add_child(scroll)
+	_load_list = VBoxContainer.new()
+	_load_list.size_flags_horizontal = SIZE_EXPAND_FILL
+	scroll.add_child(_load_list)
+
+	_new_dialog = ConfirmationDialog.new()
+	PadFocus.close_on_b(_new_dialog)
+	_new_dialog.theme = MenuStyle.theme()
+	_new_dialog.title = "Start a new driver?"
+	_new_dialog.dialog_text = "This goes back to the starting driver. Undo brings yours back."
+	_new_dialog.ok_button_text = "New"
+	_new_dialog.cancel_button_text = "Keep building"
+	_new_dialog.confirmed.connect(func() -> void: new_pressed.emit())
+	add_child(_new_dialog)
+
+	_name_dialog = ConfirmationDialog.new()
+	PadFocus.close_on_b(_name_dialog)
+	_name_dialog.theme = MenuStyle.theme()
+	_name_dialog.title = "Name your driver"
+	_name_dialog.ok_button_text = "Rename"
+	_name_edit = LineEdit.new()
+	PadKeyboard.attach(_name_edit)
+	_name_edit.max_length = 20
+	_name_edit.custom_minimum_size = Vector2(360, 0)
+	_name_dialog.add_child(_name_edit)
+	_name_dialog.register_text_enter(_name_edit)
+	_name_dialog.confirmed.connect(func() -> void:
+		var text := _name_edit.text.strip_edges()
+		if text != "":
+			name_changed.emit(text))
+	add_child(_name_dialog)
+
+
+func _open_rename() -> void:
+	_name_edit.text = design.name
+	_name_dialog.popup_centered()
+	_name_edit.grab_focus()
+
+
+## The drivers you've saved, then the stock drivers. Loading a stock driver
+## gives you a copy of them to change.
+func _open_load() -> void:
+	for child in _load_list.get_children():
+		child.queue_free()
+	var saved := CharacterDesign.saved_paths()
+	if not saved.is_empty():
+		_load_list.add_child(MenuStyle.heading("Your drivers"))
+		for path in saved:
+			_load_list.add_child(_load_button(CharacterDesign.load_file(path).name, path))
+	_load_list.add_child(MenuStyle.heading("Stock drivers"))
+	for key in Game.stock_driver_keys():
+		var path := "%s/%s.json" % [Game.ROSTER, key]
+		_load_list.add_child(_load_button(CharacterDesign.load_file(path).name, path))
+	_load_popup.popup_centered()
+
+
+func _load_button(text: String, path: String) -> Button:
+	return MenuStyle.button(text, func() -> void:
+		_load_popup.hide()
+		load_chosen.emit(path))
 
 
 func _build_drawer() -> void:
@@ -220,22 +342,16 @@ func _build_card() -> void:
 	var top := HBoxContainer.new()
 	box.add_child(top)
 	var title := Label.new()
-	title.text = "NAME"
+	title.text = "WEIGHT"
 	title.theme_type_variation = "ShelfLabel"
 	title.size_flags_horizontal = SIZE_EXPAND_FILL
 	top.add_child(title)
 	var close := IconButton.new("close", "Close")
 	close.custom_minimum_size = Vector2(40, 40)
 	close.pressed.connect(func() -> void:
-		_name_edit.release_focus()
 		_card.visible = false
 		_chip.visible = true)
 	top.add_child(close)
-	_name_edit = LineEdit.new()
-	PadKeyboard.attach(_name_edit)
-	_name_edit.max_length = 20
-	_name_edit.text_changed.connect(func(text: String) -> void: name_changed.emit(text))
-	box.add_child(_name_edit)
 	_weight = Label.new()
 	_weight.theme_type_variation = "DataLabel"
 	box.add_child(_weight)
@@ -272,6 +388,15 @@ func _build_bottom() -> void:
 	_bottom.grow_horizontal = GROW_DIRECTION_BOTH
 	_bottom.grow_vertical = GROW_DIRECTION_BEGIN
 	_bottom.offset_bottom = -14.0
+	_status_panel = PanelContainer.new()
+	_status_panel.add_theme_stylebox_override("panel", BuilderStyle.scrim(10, 4))
+	_status_panel.size_flags_horizontal = SIZE_SHRINK_CENTER
+	_status_panel.visible = false
+	_bottom.add_child(_status_panel)
+	_status = Label.new()
+	_status.theme_type_variation = "StatusLabel"
+	_status.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_status_panel.add_child(_status)
 	var row := HBoxContainer.new()
 	row.alignment = BoxContainer.ALIGNMENT_CENTER
 	row.add_theme_constant_override("separation", 10)

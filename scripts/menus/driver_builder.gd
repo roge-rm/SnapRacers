@@ -91,6 +91,9 @@ func _ready() -> void:
 		_driving = driving
 		_rebuild())
 	ui.done_pressed.connect(go_back)
+	ui.save_pressed.connect(_save)
+	ui.load_chosen.connect(_load)
+	ui.new_pressed.connect(_new_driver)
 	ui.name_changed.connect(func(text: String) -> void:
 		design.name = text.strip_edges() if text.strip_edges() != "" else "Driver"
 		_show())
@@ -110,21 +113,31 @@ func _change(slot: String, style := "", colour := Color(0, 0, 0, 0)) -> void:
 
 func undo() -> void:
 	if not _undo.is_empty():
-		_redo.append(design.to_dict())
-		_restore(_undo.pop_back())
+		var look: Dictionary = _undo.pop_back()
+		_redo.append(_marked(design.to_dict(), look))
+		_restore(look)
 
 
 func redo() -> void:
 	if not _redo.is_empty():
-		_undo.append(design.to_dict())
-		_restore(_redo.pop_back())
+		var look: Dictionary = _redo.pop_back()
+		_undo.append(_marked(design.to_dict(), look))
+		_restore(look)
 
 
-## Goes back to an earlier look, keeping the name they've got now.
+## Steps from loading another driver carry a mark, so undo and redo swap the
+## name too. Other steps keep the name they've got now.
+func _marked(step: Dictionary, like: Dictionary) -> Dictionary:
+	if like.has("with_name"):
+		step["with_name"] = true
+	return step
+
+
 func _restore(look: Dictionary) -> void:
 	var name := design.name
 	design = CharacterDesign.from_dict(look)
-	design.name = name
+	if not look.has("with_name"):
+		design.name = name
 	_rebuild()
 
 
@@ -137,6 +150,23 @@ func randomise() -> void:
 	design = CharacterDesign.random(rng)
 	design.name = name
 	_rebuild()
+
+
+func _save() -> void:
+	var path := design.save()
+	ui.toast("Saved %s" % design.name if path != "" else "I couldn't save it.")
+
+
+## Swaps in another driver, as one step to undo.
+func _load(path: String) -> void:
+	_undo.append(_marked(design.to_dict(), { "with_name": true }))
+	_redo.clear()
+	design = CharacterDesign.load_file(path)
+	_rebuild()
+
+
+func _new_driver() -> void:
+	_load("%s/racer.json" % Game.ROSTER)
 
 
 func _rebuild() -> void:

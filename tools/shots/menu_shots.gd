@@ -345,6 +345,18 @@ func _driver_shots() -> void:
 	await save("driver")
 	driver.ui._chip.pressed.emit()
 	await save("driver_card")
+	driver.ui._card.visible = false
+	driver.ui._chip.visible = true
+	# A name of its own, so nobody's saved driver is touched.
+	driver.design.name = "Shot driver"
+	var shot_path := driver.design.save()
+	driver.ui._file_menu.popup(Rect2i(Vector2i(640, 70), Vector2i(220, 0)))
+	await save("driver_menu")
+	driver.ui._file_menu.hide()
+	driver.ui._open_load()
+	await save("driver_load")
+	driver.ui._load_popup.hide()
+	DirAccess.remove_absolute(ProjectSettings.globalize_path(shot_path))
 
 
 ## The track editor, with its card open, a piece picked out (with and
