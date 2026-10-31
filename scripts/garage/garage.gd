@@ -60,6 +60,8 @@ var _distance := 7.5
 var _focus := Vector3.ZERO
 
 var _parts_root: Node3D
+## A faint outline of the build area, shown while the kart's empty.
+var _outline: MeshInstance3D
 var _part_nodes: Array[Node3D] = []
 var _selected := -1
 var _mode := GarageUI.Mode.IDLE
@@ -149,6 +151,7 @@ func _ready() -> void:
 			child.environment.ambient_light_energy = 0.45
 			child.environment.reflected_light_source = Environment.REFLECTION_SOURCE_DISABLED
 	_add_front_label()
+	_add_outline()
 	_parts_root = Node3D.new()
 	add_child(_parts_root)
 	_air = AirView.new()
@@ -705,6 +708,7 @@ func _rebuild() -> void:
 		PartVisuals.set_highlight(_part_nodes[_selected], true)
 	elif _mode == GarageUI.Mode.SELECTED:
 		_mode = GarageUI.Mode.IDLE
+	_outline.visible = design.parts.is_empty()
 	ui.set_kart_name(design.name)
 	# Checking for problems takes a while, so the card catches up on the
 	# next frame instead of holding this one up.
@@ -1023,6 +1027,26 @@ func _add_front_label() -> void:
 	add_child(front)
 
 
+func _add_outline() -> void:
+	var extent := Grid.to_metres(Vector3(KartDesign.BUILD_SIZE))
+	var lines := ImmediateMesh.new()
+	lines.surface_begin(Mesh.PRIMITIVE_LINES)
+	var corners := [Vector3.ZERO, Vector3(extent.x, 0.0, 0.0), Vector3(extent.x, 0.0, extent.z), Vector3(0.0, 0.0, extent.z)]
+	for i in corners.size():
+		lines.surface_add_vertex(corners[i])
+		lines.surface_add_vertex(corners[(i + 1) % corners.size()])
+	lines.surface_end()
+	var look := StandardMaterial3D.new()
+	look.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	look.albedo_color = Color(1.0, 1.0, 1.0, 0.25)
+	look.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	_outline = MeshInstance3D.new()
+	_outline.mesh = lines
+	_outline.material_override = look
+	_outline.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	add_child(_outline)
+
+
 # The camera.
 
 ## Jumps to one of the views (front, side, top or angle), or fits the kart in
@@ -1037,6 +1061,9 @@ func show_view(view: String) -> void:
 ## Aims at the middle of the kart and backs off until it all fits.
 func _frame_kart() -> void:
 	var box := AABB(Grid.to_metres(Vector3(KartDesign.BUILD_SIZE.x * 0.5 - 4.0, 0.0, KartDesign.BUILD_SIZE.z * 0.5 - 5.0)), Grid.to_metres(Vector3(8, 6, 10)))
+	# An empty kart shows the whole build area.
+	if design.parts.is_empty():
+		box = box.merge(AABB(Vector3.ZERO, Grid.to_metres(Vector3(KartDesign.BUILD_SIZE.x, 0.0, KartDesign.BUILD_SIZE.z))))
 	for i in design.parts.size():
 		var part_box := design.box_of(i)
 		box = box.merge(AABB(Grid.to_metres(part_box.position), Grid.to_metres(part_box.size)))
