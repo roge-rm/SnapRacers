@@ -443,18 +443,60 @@ func _show_category(index: int) -> void:
 	for child in _tiles.get_children():
 		child.queue_free()
 	shown.clear()
-	var ids := PartCatalog.in_garage()
-	ids.sort_custom(func(a, b): return PartCatalog.get_part(a).mass < PartCatalog.get_part(b).mass)
+	var ids := PartCatalog.in_garage().filter(func(id: String) -> bool: return category_of(PartCatalog.get_part(id)) == index)
+	ids.sort_custom(func(a: String, b: String) -> bool: return _comes_before(index, a, b))
 	for id in ids:
 		var part := PartCatalog.get_part(id)
-		if category_of(part) != index:
-			continue
 		var tile := PartTile.new(id, part.name)
 		tile.chosen.connect(func() -> void: part_chosen.emit(id))
 		tile.dragged.connect(func(finger: int) -> void: part_dragged.emit(id, finger))
 		_tiles.add_child(tile)
 		shown.append(id)
 	tab_shown.emit(shown)
+
+
+## The order parts go in a tab: by kind in the order the tab lists them, then
+## smallest first by footprint and height, then by name.
+static func _comes_before(index: int, a: String, b: String) -> bool:
+	var kind_a := _kind_rank(index, PartCatalog.get_part(a))
+	var kind_b := _kind_rank(index, PartCatalog.get_part(b))
+	if kind_a != kind_b:
+		return kind_a < kind_b
+	var size_a := PartCatalog.fine_size(a)
+	var size_b := PartCatalog.fine_size(b)
+	var area_a := size_a.x * size_a.z
+	var area_b := size_b.x * size_b.z
+	if not is_equal_approx(area_a, area_b):
+		return area_a < area_b
+	if not is_equal_approx(size_a.y, size_b.y):
+		return size_a.y < size_b.y
+	var name_a: String = PartCatalog.get_part(a).get("name", a)
+	var name_b: String = PartCatalog.get_part(b).get("name", b)
+	if name_a != name_b:
+		return name_a.naturalnocasecmp_to(name_b) < 0
+	return a < b
+
+
+## Where a part's kind comes in its tab: its group, or its kind after them.
+## The first parts have no group, so theirs comes from their kind.
+static func _kind_rank(index: int, def: Dictionary) -> int:
+	var groups: Array = CATEGORIES[index][2]
+	var kinds: Array = CATEGORIES[index][1]
+	var group: String = def.get("group", "")
+	if group == "":
+		match def.get("kind", ""):
+			"plate":
+				group = "tiles" if def.get("shape", "") == "tile" else "plates"
+			"brick":
+				group = "bricks"
+			"wheel":
+				group = "wheels"
+	if groups.has(group):
+		return groups.find(group)
+	var kind: String = def.get("kind", "")
+	if kinds.has(kind):
+		return groups.size() + kinds.find(kind)
+	return groups.size() + kinds.size()
 
 
 ## Which of the drawer's tabs a part goes in.
