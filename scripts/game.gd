@@ -221,7 +221,12 @@ func show_garage() -> void:
 	_swap(Garage.new())
 
 
+## The test drive. Its course takes a moment to build, so "Loading" goes up
+## first and the test drive takes it down once it's on screen.
 func show_drive() -> void:
+	show_loading(true)
+	await get_tree().process_frame
+	await get_tree().process_frame
 	_swap(TestDrive.new())
 
 

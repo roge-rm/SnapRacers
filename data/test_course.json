@@ -1,0 +1,29 @@
+{
+	"name": "Test Course",
+	"about": "Where the garage's test drive goes.",
+	"theme": "orchard",
+	"laps": 3,
+	"width": 13.0,
+	"grid": 32,
+	"weather": "clear",
+	"time": "day",
+	"pieces": [
+		{"type": "straight", "length": 1},
+		{"type": "crest", "length": 1, "height": 1.2},
+		{"type": "ramp", "length": 1, "rise": 2},
+		{"type": "curve", "turn": "right", "size": 2, "bank": 20},
+		{"type": "crest", "length": 1, "height": 1.5},
+		{"type": "ramp", "length": 1, "rise": -2},
+		{"type": "curve", "turn": "right", "size": 1},
+		{"type": "curve", "turn": "right", "size": 1},
+		{"type": "crest", "length": 2, "height": 4.5},
+		{"type": "slant", "turn": "right", "length": 2, "across": 1, "edges": "walls"},
+		{"type": "slant", "turn": "left", "length": 2, "across": 1, "edges": "walls"},
+		{"type": "curve", "turn": "left", "size": 1},
+		{"type": "loop", "side": "right"},
+		{"type": "crest", "length": 1, "height": 2.5},
+		{"type": "curve", "turn": "left", "size": 3},
+		{"type": "curve", "turn": "left", "size": 2},
+		{"type": "straight", "length": 2}
+	]
+}

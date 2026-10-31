@@ -56,7 +56,7 @@ func _ready() -> void:
 	_add_ground()
 	_add_walls()
 	_add_ramp(Vector3(-RADIUS, 0.0, 0.0), 0.0)
-	_add_brick_pile(Vector3(0.0, 0.0, 0.0))
+	add_brick_pile(self, Vector3(0.0, 0.0, 0.0))
 
 
 func _add_ground() -> void:
@@ -124,7 +124,9 @@ func _add_box(at: Vector3, size: Vector3, basis: Basis, color: Color) -> void:
 	add_child(body)
 
 
-func _add_brick_pile(at: Vector3) -> void:
+## A wall of loose bricks four high, standing on the ground at `at`, its row
+## turned `yaw` radians from running along X. The test drive has one too.
+static func add_brick_pile(parent: Node, at: Vector3, yaw := 0.0) -> void:
 	var colors := [Color("#c4281c"), Color("#0d69ab"), Color("#f2cd37"), Color("#ffffff"), Color("#237841")]
 	var size := Vector3(4.0, 3.0, 2.0) * Grid.UNIT * 2.0
 	for layer in 4:
@@ -148,5 +150,6 @@ func _add_brick_pile(at: Vector3) -> void:
 			mesh.material_override = material
 			body.add_child(mesh)
 			var shift := size.x * 0.5 if layer % 2 == 1 else 0.0
-			body.position = at + Vector3(i * size.x + shift - size.x * 3.0, size.y * (layer + 0.5), 0.0)
-			add_child(body)
+			body.rotation.y = yaw
+			body.position = at + Basis(Vector3.UP, yaw) * Vector3(i * size.x + shift - size.x * 3.0, size.y * (layer + 0.5), 0.0)
+			parent.add_child(body)
