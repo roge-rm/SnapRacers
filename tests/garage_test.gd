@@ -127,6 +127,7 @@ func _ready() -> void:
 	await _camera_hole()
 	await _loose_and_new(parts)
 	await _wheel_on_bike(parts)
+	_mirror_off_centre()
 	garage.ui.drive_pressed.emit()
 	await frames(6)
 	check(host.get_child(host.get_child_count() - 1) is TestDrive, "drive takes the kart out to the track")
@@ -322,6 +323,59 @@ func _mirror_and_paint(parts: int) -> void:
 	garage.ui.delete_pressed.emit()
 	check(count("brick_2x2", SPOT) == 0 and count("brick_2x2", TWIN) == 0 and garage.design.parts.size() == parts, "deleting one deletes its twin")
 	garage.ui.mirror_toggled.emit(false)
+
+
+## Mirror goes across the middle of the kart, wherever the kart sits in the
+## build area. The Redline with no front wheels or nose, a stud to the left.
+func _mirror_off_centre() -> void:
+	var before := garage.design
+	var kart := KartDesign.load_file("res://data/karts/stock/redline.json")
+	var kept: Array[Dictionary] = []
+	for p in kart.parts:
+		if p.id in ["w_kart_wide", "d_front_wing_8x2", "p_nose_cone_2x6"]:
+			continue
+		var place := KartDesign.place_of(p)
+		place.origin.x -= Grid.STUD_FINE
+		kept.append(KartDesign.placed_entry(p.id, place, p.get("color")))
+	kart.parts = kept
+	garage.design = kart
+	garage._rebuild()
+	var middle := kart.middle()
+	check(is_equal_approx(middle, 180.0), "the shifted kart's middle is a stud left of the build area's (%.1f)" % middle)
+	garage.ui.mirror_toggled.emit(true)
+	# The left end of the front axle, from Dan's picture.
+	var end := Vector3(120.0, 24.0, 80.0)
+	for id in ["w_monster", "w_kart_wide", "w_slick"]:
+		garage.start_placing(id)
+		var spots := garage._spots.filter(func(s): return s.type == "pin" and s.at.is_equal_approx(end))
+		var on := not spots.is_empty() and garage.snap_to(spots[0])
+		var box := KartDesign.fine_box(id, garage._ghost_place)
+		var twin := Garage.mirrored({ "id": id, "place": garage._ghost_place }, garage.design.middle())
+		var twin_box := KartDesign.fine_box(twin.id, KartDesign.place_of(twin))
+		var even := is_equal_approx(middle - box.end.x, twin_box.position.x - middle)
+		var twin_on := garage.design.attaches_place(twin.id, KartDesign.place_of(twin))
+		check(on and even and twin_on, "a %s on the left axle end has its twin on the right one (%.0f..%.0f and %.0f..%.0f)" % [id, box.position.x, box.end.x, twin_box.position.x, twin_box.end.x])
+		check(garage._twin_ghost.visible and garage._twin_ghost.position.is_equal_approx(garage._world_centre(twin.id, KartDesign.place_of(twin))), "with its ghost there too")
+		garage.cancel()
+	# A brick, put down, painted and deleted with its twin.
+	var parts := garage.design.parts.size()
+	var at := Vector3i(5, 4, 1)
+	garage.start_placing("brick_1x2", Basis.IDENTITY, null, at)
+	garage.place()
+	garage.cancel()
+	var twin_at := Vector3i(roundi(middle * 2.0 / Grid.STUD_FINE) - at.x - 1, at.y, at.z)
+	check(count("brick_1x2", at) == 1 and count("brick_1x2", twin_at) == 1, "a brick's twin goes the same way from the middle (%s and %s)" % [at, twin_at])
+	check(is_equal_approx(garage.design.middle(), middle), "and the middle stays put")
+	var blue := Color("#0d69ab")
+	garage.paint(garage.find_part(KartDesign.grid_entry("brick_1x2", at, 0)), blue)
+	var painted := garage.design.parts.filter(func(p): return p.id == "brick_1x2" and p.get("color", Color.BLACK).is_equal_approx(blue))
+	check(painted.size() == 2, "painting one paints its twin")
+	garage.select(garage.find_part(KartDesign.grid_entry("brick_1x2", twin_at, 0)))
+	garage.ui.delete_pressed.emit()
+	check(count("brick_1x2", at) == 0 and count("brick_1x2", twin_at) == 0 and garage.design.parts.size() == parts, "deleting one deletes its twin")
+	garage.ui.mirror_toggled.emit(false)
+	garage.design = before
+	garage._rebuild()
 
 
 func _air(parts: int) -> void:

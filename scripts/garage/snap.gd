@@ -208,12 +208,13 @@ static func exact(basis: Basis) -> Basis:
 	return best_turn
 
 
-## Where a part would go as the mirror image of one at `place`, across the
-## middle of the kart from side to side. Parts can't really be mirrored, so
-## its twin is turned to look like it: the same, end for end. A wheel's twin
-## is turned round, so its outside faces out on both sides.
-static func mirror_place(id: String, place: Transform3D) -> Transform3D:
-	var width := KartDesign.BUILD_SIZE.x * Grid.STUD_FINE
+## Where a part would go as the mirror image of one at `place`, across
+## `middle`, the middle of the kart from side to side in the fine unit (see
+## KartDesign.middle). Parts can't really be mirrored, so its twin is turned
+## to look like it: the same, end for end. A wheel's twin is turned round, so
+## its outside faces out on both sides.
+static func mirror_place(id: String, place: Transform3D, middle: float) -> Transform3D:
+	var width := middle * 2.0
 	var size := PartCatalog.fine_size(id)
 	var across := Transform3D(Basis.from_scale(Vector3(-1.0, 1.0, 1.0)), Vector3(width, 0.0, 0.0))
 	var own := Transform3D(Basis.from_scale(Vector3(-1.0, 1.0, 1.0)), Vector3(size.x, 0.0, 0.0))

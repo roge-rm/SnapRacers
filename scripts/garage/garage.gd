@@ -142,13 +142,13 @@ func _ready() -> void:
 		if child is DirectionalLight3D:
 			child.light_energy = 0.8
 		elif child is WorldEnvironment:
-			# Plain white fill light, since the blue sky's tints the baseplate
+			# Plain white fill light, since the blue sky tints the parts
 			# blue.
 			child.environment.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
 			child.environment.ambient_light_color = Color("#e8e8e8")
 			child.environment.ambient_light_energy = 0.45
 			child.environment.reflected_light_source = Environment.REFLECTION_SOURCE_DISABLED
-	_add_baseplate()
+	_add_front_label()
 	_parts_root = Node3D.new()
 	add_child(_parts_root)
 	_air = AirView.new()
@@ -413,10 +413,12 @@ func place() -> void:
 		_ghost_place.origin.y += _ghost_lift * Grid.PLATE_FINE
 		_ghost_lift = 0
 	var entry := KartDesign.placed_entry(_holding, _ghost_place, _holding_colour)
+	# Across the middle from before the part goes on, the same as its ghost.
+	var middle := design.middle()
 	design.parts.append(entry)
 	var placed := design.parts.size() - 1
 	if mirror and _moving.is_empty():
-		var twin := mirrored(entry)
+		var twin := mirrored(entry, middle)
 		var twin_place := KartDesign.place_of(twin)
 		if not twin_place.is_equal_approx(_ghost_place) and design.fits_place(twin.id, twin_place):
 			design.parts.append(twin)
@@ -487,12 +489,14 @@ func delete_selected() -> void:
 		return
 	_remember()
 	var gone: Dictionary = design.parts[_selected]
-	design.parts.remove_at(_selected)
+	# Find the twin before either goes, as the middle can move after.
+	var twin := find_part(mirrored(gone, design.middle())) if mirror else -1
+	if twin == _selected:
+		twin = -1
+	design.parts.remove_at(maxi(_selected, twin))
+	if twin != -1:
+		design.parts.remove_at(mini(_selected, twin))
 	Sounds.play("fx/unsnap")
-	if mirror:
-		var twin := find_part(mirrored(gone))
-		if twin != -1:
-			design.parts.remove_at(twin)
 	_selected = -1
 	_set_mode(GarageUI.Mode.IDLE)
 	_rebuild()
@@ -503,7 +507,7 @@ func paint(index: int, colour: Color) -> void:
 	if index < 0 or index >= design.parts.size():
 		return
 	_remember()
-	var twin := find_part(mirrored(design.parts[index])) if mirror else -1
+	var twin := find_part(mirrored(design.parts[index], design.middle())) if mirror else -1
 	design.parts[index]["color"] = colour
 	if twin != -1 and twin != index:
 		design.parts[twin]["color"] = colour
@@ -540,12 +544,12 @@ func set_painting(on: bool) -> void:
 	_set_mode(GarageUI.Mode.PAINTING if on else GarageUI.Mode.IDLE)
 
 
-## Where a part would be as the mirror image of this one, across the middle
-## of the kart from side to side.
-static func mirrored(entry: Dictionary) -> Dictionary:
+## Where a part would be as the mirror image of this one, across `middle`,
+## the middle of the kart from side to side (KartDesign.middle).
+static func mirrored(entry: Dictionary, middle: float) -> Dictionary:
 	# A left handed part's twin is the right handed one.
 	var id: String = PartCatalog.get_part(entry.id).get("mirror", entry.id)
-	return KartDesign.placed_entry(id, Snap.mirror_place(entry.id, KartDesign.place_of(entry)), entry.get("color"))
+	return KartDesign.placed_entry(id, Snap.mirror_place(entry.id, KartDesign.place_of(entry), middle), entry.get("color"))
 
 
 ## The index of the part that's exactly this one, or -1.
@@ -747,7 +751,7 @@ func _world_centre(id: String, place: Transform3D) -> Vector3:
 ## Remakes the part in hand and its twin when they've been turned.
 func _make_ghosts() -> void:
 	var twin_id: String = PartCatalog.get_part(_holding).get("mirror", _holding)
-	var twin_turn := Snap.mirror_place(_holding, _ghost_place).basis
+	var twin_turn := Snap.mirror_place(_holding, _ghost_place, design.middle()).basis
 	if _ghost == null or not _ghost_turn.is_equal_approx(_ghost_place.basis):
 		if _ghost != null:
 			_ghost.queue_free()
@@ -871,7 +875,7 @@ func _show_ghost() -> void:
 	_ghost.position = _world_centre(_holding, _ghost_place)
 	_ghost.visible = true
 	PartVisuals.set_ghost(_ghost, _ghost_ok)
-	var twin := mirrored({ "id": _holding, "place": _ghost_place })
+	var twin := mirrored({ "id": _holding, "place": _ghost_place }, design.middle())
 	var twin_place := KartDesign.place_of(twin)
 	_twin_ghost.visible = mirror and _moving.is_empty() and not twin_place.is_equal_approx(_ghost_place)
 	if _twin_ghost.visible:
@@ -1004,13 +1008,10 @@ func _screen_to_grid(direction: Vector2i) -> Vector3i:
 	return Vector3i(0, 0, signi(roundi(ground.z * 10.0)))
 
 
-func _add_baseplate() -> void:
-	var size := KartDesign.BUILD_SIZE
-	var extent := Grid.to_metres(Vector3(size.x, 1, size.z))
-	var def := { "kind": "plate", "color": Color("#5d6873"), "size": Vector3i(size.x, 1, size.z) }
-	var plate := PartVisuals.make(def, extent)
-	plate.position = Vector3(extent.x * 0.5, -extent.y * 0.5, extent.z * 0.5)
-	add_child(plate)
+## The kart floats with nothing under it, so a word level with its bottom in
+## front of the build area says which way it faces.
+func _add_front_label() -> void:
+	var extent := Grid.to_metres(Vector3(KartDesign.BUILD_SIZE))
 	var front := Label3D.new()
 	front.text = "FRONT"
 	front.font_size = 96

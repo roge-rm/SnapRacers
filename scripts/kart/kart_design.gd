@@ -157,6 +157,22 @@ static func fine_box(id: String, place: Transform3D) -> AABB:
 	return place * AABB(Vector3.ZERO, PartCatalog.fine_size(id))
 
 
+## The middle of the kart from side to side in the fine unit, which Mirror
+## mirrors across: the middle of the box round all its parts, or of the build
+## area when there aren't any. Putting down a part and its twin leaves it
+## where it was.
+func middle() -> float:
+	if parts.is_empty():
+		return BUILD_SIZE.x * Grid.STUD_FINE * 0.5
+	var least := INF
+	var most := -INF
+	for p in parts:
+		var box := fine_box(p.id, place_of(p))
+		least = minf(least, box.position.x)
+		most = maxf(most, box.end.x)
+	return (least + most) * 0.5
+
+
 static func load_file(path: String) -> KartDesign:
 	var data = JSON.parse_string(FileAccess.get_file_as_string(path))
 	if typeof(data) != TYPE_DICTIONARY:
