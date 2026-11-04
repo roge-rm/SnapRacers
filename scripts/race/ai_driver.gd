@@ -88,6 +88,8 @@ const LOOP_AHEAD := 40.0
 ## (LOOP_SKILL), so it doesn't come to the loop short of speed.
 const LOOP_RUN_IN := 90.0
 const LOOP_SKILL := 0.95
+## A jump needs enough speed out of the bend before its short kicker.
+const JUMP_RUN_IN := 40.0
 const SEE_AHEAD := 24.0 # how far ahead it watches for karts in its way
 ## How far to the side another kart has to be to be out of the way, past
 ## touching. Bikes are narrower, so they get by with less.
@@ -155,6 +157,8 @@ var _wall_offsets := {}
 ## the physics step that was looked for (see _loop_within()).
 var _loop_at := INF
 var _loop_looked := -1
+var _has_jump := -1
+var _jump_run_in := false
 ## The brick walls in the race, fetched once a step for every driver.
 static var _walls: Array = []
 static var _walls_frame := -1
@@ -272,8 +276,9 @@ func _physics_process(delta: float) -> void:
 		_since_drive = 0.0
 	_stuck_check(delta, speed, kart.global_basis.y)
 	kart.push = pace * Difficulty.push_for(behind, catch_up, ease_off, track.length)
-	# A loop needs everything the kart's got, whatever the level.
-	if _on_loop and not _lost_nerve:
+	# Loops and jumps need full engine power, whatever the level, so it
+	# reaches the top of a loop and clears a jump's landing ramp.
+	if (_on_loop and not _lost_nerve) or _jump_run_in:
 		kart.push = maxf(kart.push, 1.0)
 
 
@@ -327,9 +332,10 @@ func _drive(delta: float, speed: float) -> void:
 	# room to brake. A driver who can't steer quickly (see KartStats.control)
 	# takes every bend a little slower.
 	_judge_bends()
-	# With a loop coming up it takes the bends before it as well as it can, so
-	# it gets there with all the speed it needs, whatever its level.
-	var daring := maxf(skill, LOOP_SKILL) if _loop_within(LOOP_RUN_IN) else skill
+	# It takes the bends before a loop or jump as well as it can, so it
+	# gets there with enough speed, whatever its level.
+	_jump_run_in = _jump_within(JUMP_RUN_IN)
+	var daring := maxf(skill, LOOP_SKILL) if _loop_within(LOOP_RUN_IN) or _jump_run_in else skill
 	# On a wet or snowy road it takes everything a little slower, and gives
 	# itself a touch more margin besides.
 	var weather := kart.weather_grip * lerpf(1.0, WET_CARE, 1.0 - kart.weather_grip)
@@ -542,6 +548,24 @@ func _loop_within(distance: float) -> bool:
 					break
 				ahead += 4.0
 	return _loop_at <= distance
+
+
+## Whether it's on a jump or close enough to build up speed for one.
+func _jump_within(distance: float) -> bool:
+	if _has_jump < 0:
+		_has_jump = 0
+		for piece in track.pieces:
+			if piece.type == "jump":
+				_has_jump = 1
+				break
+	if _has_jump == 0:
+		return false
+	var ahead := 0.0
+	while ahead <= distance:
+		if track.piece_type_at(offset + ahead) == "jump":
+			return true
+		ahead += 4.0
+	return false
 
 
 ## As each bend comes up, it might get it wrong (see `mistakes`). Going in

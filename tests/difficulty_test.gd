@@ -28,6 +28,7 @@ func _ready() -> void:
 	host = Node.new()
 	add_child(host)
 	Game.start(host, false)
+	Game.character = Kart.default_driver()
 	Game.settings.set_value("race", "split", Game.SOLO)
 	Game.settings.set_value("race", "kart", Game.DEFAULT_STOCK)
 	Game.settings.set_value("race", "weather", "clear")
@@ -64,6 +65,8 @@ func _ready() -> void:
 			times[level] = race.player.progress.lap_times[0] if not race.player.progress.lap_times.is_empty() else INF
 			check(is_finite(times[level]), "%s, %s finishes a lap" % [course, Difficulty.name_of(level)])
 			print("  %s, %s: %.1f s, %d resets" % [course, Difficulty.name_of(level), times[level], resets[0]])
+			if course == "foundry_flats":
+				check(resets[0] == 0, "%s finishes Foundry Flats without resetting" % Difficulty.name_of(level))
 		check(times.easy > times.normal and times.normal > times.hard and times.hard > times.expert, "on %s each level laps quicker than the one before" % course)
 		for level in GAPS:
 			var gap: float = (times[level] / times.expert - 1.0) * 100.0
