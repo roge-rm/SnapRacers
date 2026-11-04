@@ -12,7 +12,7 @@ extends Node
 ##   a plate. B puts it back.
 ## - On the kart, the d-pad hops from part to part. A moves the one picked
 ##   out, X turns it, Y copies it and Back deletes it. B goes back to the
-##   drawer.
+##   drawer. LB and RB change a picked out wheel's suspension.
 ## - Painting, the d-pad hops from part to part, A paints it, and LB and RB
 ##   pick the colour. B stops.
 ##
@@ -117,6 +117,8 @@ func _button(button: JoyButton) -> bool:
 					garage.slide() if right else garage.way_on()
 				GarageUI.Mode.PAINTING:
 					garage.ui.next_colour(1 if right else -1)
+				GarageUI.Mode.SELECTED:
+					garage.next_suspension(1 if right else -1)
 				_:
 					next_tab(1 if right else -1)
 		JOY_BUTTON_BACK:

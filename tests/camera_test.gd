@@ -5,7 +5,7 @@ extends Node
 ## looking back has to turn it around, your own head has to be hidden only in
 ## first person, the kart stays solid, hood sits outside the windshield, the
 ## camera button has to go through the views (and be remembered), and
-## finishing has to circle the kart and then cut to the TV cameras.
+## finishing has to circle the kart and then follow behind it.
 ##   tools/godot/Godot_v4.7.2-stable_linux.x86_64 --headless --fixed-fps 60 --path . res://tests/camera_test.tscn
 
 var failures := 0
@@ -160,7 +160,7 @@ func _ready() -> void:
 	await physics_frames(30)
 	check(gap.call().length() > 4.0 and camera.get_cull_mask_value(camera.head_layer), "crossing the line, the camera circles the kart")
 	await physics_frames(int(RaceCamera.ORBIT_TIME * 60.0))
-	check(camera.view == "tv", "and then goes to the TV cameras")
+	check(camera.view == "far", "and then follows behind the kart with room for the results")
 
 	Game.set_camera_view(0, was_view)
 	print("All camera checks passed." if failures == 0 else "%d camera checks failed." % failures)

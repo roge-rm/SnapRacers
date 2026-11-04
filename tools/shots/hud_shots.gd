@@ -186,8 +186,10 @@ func _screens(folder: String, window_size: String) -> void:
 		await _shoot(folder, "pause_" + tag)
 		race.close_menu(race.humans[0])
 		await frames(4)
-		race.humans[0].hud.show_results()
-		await frames(10)
+		race.humans[0].progress.finished = true
+		race.humans[0].progress.finish_time = race.time
+		race._player_finished(race.humans[0])
+		await frames(350)
 		await _shoot(folder, "results_" + tag)
 	Game.settings.set_value("race", "split", split_was)
 

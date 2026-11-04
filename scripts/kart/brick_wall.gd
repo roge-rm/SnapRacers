@@ -87,7 +87,9 @@ func _ready() -> void:
 
 
 func _hit_by(body: Node3D) -> void:
-	if not body is Kart or body.ghost_left > 0.0:
+	# A ghost goes through and leaves the wall standing. A shield throws the
+	# bricks it meets, from the kart, so they aren't just dropped in place.
+	if not body is Kart or body.ghost_left > 0.0 or body.shield_left > 0.0:
 		return
 	for brick in _bricks:
 		if brick.freeze and brick.global_position.distance_to(body.global_position) < 2.5:

@@ -141,6 +141,10 @@ func _grand_prix() -> void:
 		await frames(2)
 		var standings := _standings()
 		check(standings != null, "after race %d the standings come up" % (round + 1))
+		if round == 0:
+			var next_button: Button = standings.find_children("*", "Button", true, false).filter(func(b): return b.text.begins_with("Next race"))[0]
+			var block: Control = next_button.get_parent()
+			check(block.get_global_rect().get_center().distance_to(standings.size * 0.5) < 2.0, "the heading, results and next race button share a centred block")
 		if round < 3:
 			var next := standings.find_children("*", "Button", true, false).filter(func(b): return b.text.begins_with("Next race"))
 			check(next.size() == 1, "with a button for the next race")
@@ -242,6 +246,10 @@ func _grand_prix_for_two() -> void:
 		await frames(2)
 		var standings := _standings()
 		check(standings != null, "after race %d the standings come up" % (round + 1))
+		if round == 0:
+			var next_button: Button = standings.find_children("*", "Button", true, false).filter(func(b): return b.text.begins_with("Next race"))[0]
+			var block: Control = next_button.get_parent()
+			check(block.get_global_rect().get_center().distance_to(standings.size * 0.5) < 2.0, "the heading, results and next race button share a centred block")
 		var coloured := standings.find_children("*", "Label", true, false).filter(func(l): return l.text in [one, two] and l.has_theme_color_override("font_color"))
 		check(coloured.size() == 2 and coloured.all(func(l): return KartPicker.PLAYER_COLOURS.has(l.get_theme_color("font_color"))), "with both people in their colours")
 		if round < rounds - 1:

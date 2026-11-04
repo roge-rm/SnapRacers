@@ -26,6 +26,7 @@ signal repaired
 
 const SUSPENSION_TRAVEL := 0.12 # metres up or down from where the wheel was built
 const SUSPENSION_DAMPING := 0.55 # fraction of critical damping
+const SUSPENSION_STIFFNESS := { "soft": 0.7, "medium": 1.0, "hard": 1.4 }
 ## Past this much of its travel a spring gets much stiffer, like a bump stop,
 ## so hard landings and loops (where the kart is pressed down at three times
 ## its weight) don't bottom it out onto its chassis.
@@ -170,6 +171,14 @@ const TRAIN_HOP := 5.0
 const SPIKE_SPEED := 10.0
 const SPIKE_EVERY := 1.0
 const SHIELD_TIME := 4.0
+## How far the bubble reaches. A brick or trap inside it is shoved aside, and
+## one a little further out is ignored so the kart meets it already clear.
+const SHIELD_REACH := 2.6
+const SHIELD_LOOK := 4.6
+## How hard a brick is thrown, in m/s, and the extra upward speed so it tumbles
+## and lands instead of sliding along under the kart.
+const SHIELD_SHOVE := 7.0
+const SHIELD_HOP := 1.2
 ## How long a ghost goes through karts, bricks and traps. A reset is shorter,
 ## just long enough to get out of the pack's way.
 const GHOST_TIME := 3.0
@@ -335,6 +344,9 @@ class Wheel:
 	var driven := false
 	var spring := 0.0
 	var damper := 0.0
+	var standing_load := 0.0
+	## Preload keeps the wheel at its built height with each spring rate.
+	var spring_offset := 0.0
 	var length := SUSPENSION_TRAVEL # from the top of its travel down to the wheel centre
 	var grounded := false
 	var load := 0.0
@@ -483,6 +495,11 @@ var _ghost_copies: Dictionary = {}
 var _ghost_fade := 0.0
 var zapped_left := 0.0
 var shield_left := 0.0
+## Brick walls and dropped bricks the shield is letting this kart through,
+## and the ones it has already shoved so a brick is thrown once.
+var _shield_clear: Array = []
+var _shield_shoved: Array = []
+var _shield_reach: SphereShape3D
 ## The tow rope it's on the end of, if any (see TowRope).
 var tow: TowRope
 ## A shove from a shockwave, to be added to its speed next step, and a spin.
@@ -564,7 +581,7 @@ var _repair_pending := false
 var _driven_count := 0
 var _steered_count := 0
 var _full: KartStats # the kart as built, before anything broke
-var _wheel_setup := {} # part index -> [steered, driven, spring, damper]
+var _wheel_setup := {} # part index -> [steered, driven, spring, damper, standing load, preload]
 var _impact := {} # part index -> recent knocks, in newton seconds
 var _breaking: Array[int] = []
 var _last_velocity := Vector3.ZERO
@@ -620,11 +637,15 @@ func build(new_design: KartDesign, who: CharacterDesign = null) -> void:
 		var info: KartStats.PartInfo = _full.wheels[n]
 		var share: float = shares[n] * _full.mass
 		var spring := share * KartStats.gravity() / SUSPENSION_TRAVEL
+		var standing := spring * SUSPENSION_TRAVEL
+		var stiffness: float = SUSPENSION_STIFFNESS[KartDesign.suspension_of(design.parts[info.index])]
+		var spring_offset := spring * (1.0 - stiffness) * SUSPENSION_TRAVEL
+		spring *= stiffness
 		# A kart with only one axle steers and drives with it. A quad drives
 		# all four wheels, since its light back end can't grip enough alone.
 		var steers := steered.is_empty() or steered.has(info.index)
 		var drives := driven.is_empty() or driven.has(info.index) or _full.is_quad()
-		_wheel_setup[info.index] = [steers, drives, spring, 2.0 * SUSPENSION_DAMPING * sqrt(spring * share)]
+		_wheel_setup[info.index] = [steers, drives, spring, 2.0 * SUSPENSION_DAMPING * sqrt(spring * share), standing, spring_offset]
 	upright = 0.0
 	var in_line := _full.wheels.filter(func(info: KartStats.PartInfo) -> bool: return absf(info.centre.x - com.x) < IN_LINE).size()
 	if _full.wheels.size() >= 2 and in_line == _full.wheels.size():
@@ -757,6 +778,8 @@ func _assemble() -> void:
 			w.driven = setup[1]
 			w.spring = setup[2]
 			w.damper = setup[3]
+			w.standing_load = setup[4]
+			w.spring_offset = setup[5]
 			w.visual = PartVisuals.make_wheel(info.def)
 			w.visual.position = info.centre
 			_looks.add_child(w.visual)
@@ -1069,6 +1092,7 @@ func _physics_process(delta: float) -> void:
 		shield_left = maxf(shield_left - delta, 0.0)
 		if _bubble != null:
 			_bubble.visible = shield_left > 0.0
+		_shield_blocks()
 		return
 	zapped_left = maxf(zapped_left - delta, 0.0)
 	boost_left = maxf(boost_left - delta, 0.0)
@@ -1095,6 +1119,7 @@ func _physics_process(delta: float) -> void:
 		var breaking := _breaking.duplicate()
 		_breaking.clear()
 		lose_parts(breaking)
+	_shield_blocks()
 
 
 func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
@@ -1220,7 +1245,7 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 		var squash := SUSPENSION_TRAVEL * 2.0 - length
 		var bump := maxf(squash - SUSPENSION_TRAVEL * BUMP_START, 0.0) * w.spring * BUMP_STIFFNESS
 		var damping := w.damper * (BUMP_DAMPING if bump > 0.0 else 1.0)
-		var load := maxf(w.spring * squash + bump - damping * stretch_rate, 0.0)
+		var load := maxf(w.spring * squash + w.spring_offset + bump - damping * stretch_rate, 0.0)
 		w.load = load
 
 		var normal: Vector3 = hit.normal
@@ -1258,13 +1283,13 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 		var grip_here: float = ground.get_meta("grip", 1.0) if ground != null else 1.0
 		var drag_here: float = ground.get_meta("drag", 1.0) if ground != null else 1.0
 		var off: bool = ground != null and bool(ground.get_meta("offroad", false))
-		# A ghost drives over a trap as if it isn't there, and spikes hit fast
-		# mostly pop the first wheel that runs over them.
+		# A ghost or a shield drives over a trap as if it isn't there. Spikes
+		# hit fast mostly pop the first wheel that runs over them.
 		if ground != null and ground.get_meta("trap", "") == "spikes" and speed > SPIKE_SPEED and _spike_wait <= 0.0 and ghost_left <= 0.0 and shield_left <= 0.0 and not remote:
 			_spike_wait = SPIKE_EVERY
 			if randf() < spike_pop_chance:
 				popped.append(w.index)
-		if ghost_left > 0.0 and ground != null and ground.has_meta("trap"):
+		if (ghost_left > 0.0 or shield_left > 0.0) and ground != null and ground.has_meta("trap"):
 			grip_here = 1.0
 			drag_here = 1.0
 		on_any += 1
@@ -1326,7 +1351,7 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 		if drive > 0.0 and w.driven:
 			f_lat = clampf(f_lat, -most, most)
 			var left_over := sqrt(maxf(most * most - f_lat * f_lat, 0.0))
-			var standing := w.spring * SUSPENSION_TRAVEL
+			var standing := w.standing_load
 			room = minf(room, left_over / maxf(standing, 1.0))
 			f_long = minf(f_long, lerpf(minf(left_over, _drive_room * standing), left_over, maxf(turned, slide_amount)))
 		var tire := Vector2(f_long, f_lat).limit_length(most)
@@ -2019,9 +2044,60 @@ func zap() -> void:
 		return
 	if not remote:
 		zapped_left = ZAP_TIME
-	Sounds.play_at("fx/lightning", sound, -4.0)
+	Sounds.play_at("fx/lightning", sound, -8.0)
 	react("surprised", 2.0)
 	_show_zap()
+
+
+## While the shield is up, brick walls and dropped bricks are thrown aside and
+## don't stop the kart, and a marble or spike patch is slid off the road. They
+## stay where they come to rest.
+func _shield_blocks() -> void:
+	if shield_left <= 0.0:
+		if _shield_clear.is_empty() and _shield_shoved.is_empty():
+			return
+		for body in _shield_clear:
+			if is_instance_valid(body):
+				remove_collision_exception_with(body)
+		_shield_clear.clear()
+		_shield_shoved.clear()
+		return
+	var world := get_world_3d()
+	if world == null:
+		return
+	if _shield_reach == null:
+		_shield_reach = SphereShape3D.new()
+		_shield_reach.radius = SHIELD_LOOK
+	var query := PhysicsShapeQueryParameters3D.new()
+	query.shape = _shield_reach
+	query.transform = global_transform
+	query.collision_mask = LAYER_HAZARD
+	query.exclude = [get_rid()]
+	for hit in world.direct_space_state.intersect_shape(query, 64):
+		var body: Object = hit.collider
+		if body == null:
+			continue
+		if not (body is BrickPile or body.get_parent() is BrickWall):
+			continue
+		if not _shield_clear.has(body):
+			add_collision_exception_with(body)
+			_shield_clear.append(body)
+		if _shield_shoved.has(body):
+			continue
+		var away: Vector3 = body.global_position - global_position
+		if away.length() > SHIELD_REACH:
+			continue
+		away.y = 0.0
+		_shield_shoved.append(body)
+		var out := away.normalized() if away.length() > 0.25 else -global_basis.z
+		var carry := linear_velocity
+		carry.y = 0.0
+		BrickPile.throw(body, out * SHIELD_SHOVE + Vector3.UP * SHIELD_HOP + carry * 0.25)
+	for trap in get_tree().get_nodes_in_group("traps"):
+		if _shield_shoved.has(trap) or not trap.overlaps_shield(global_position):
+			continue
+		_shield_shoved.append(trap)
+		trap.shove_from(self)
 
 
 ## A shield put up while struck ends the slowdown and the bolt.

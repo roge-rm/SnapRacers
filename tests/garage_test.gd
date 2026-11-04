@@ -123,6 +123,7 @@ func _ready() -> void:
 	await _moving(parts)
 	await _snapping(parts)
 	await _controller(parts)
+	await _suspension()
 	await _camera()
 	await _camera_hole()
 	await _loose_and_new(parts)
@@ -419,6 +420,101 @@ func _moving(parts: int) -> void:
 	check(garage._mode == GarageUI.Mode.PLACING and garage._holding == picked.id, "Copy picks up another one the same")
 	garage.cancel()
 	garage.select(-1)
+
+
+func _suspension() -> void:
+	var original := garage.design.duplicate_design()
+	var old_undo := garage._undo.duplicate(true)
+	var old_redo := garage._redo.duplicate(true)
+	var old_mirror := garage.mirror
+	var wheels: Array = range(garage.design.parts.size()).filter(func(i): return KartDesign.is_wheel(garage.design.parts[i].id))
+	var wheel: int = wheels[0]
+	var twin: int = wheels[1]
+	garage.design.parts[twin] = Garage.mirrored(garage.design.parts[wheel], garage.design.middle())
+	garage._rebuild()
+	garage.set_mirror(false)
+	garage.select(wheel)
+	await frames(2)
+	check(garage.ui._suspension.visible and garage.ui._suspension_buttons[1].button_pressed, "an installed wheel shows Soft, Medium and Hard with Medium selected")
+	var steps := garage._undo.size()
+	garage.ui._suspension_buttons[0].pressed.emit()
+	check(KartDesign.suspension_of(garage.design.parts[wheel]) == "soft" and KartDesign.suspension_of(garage.design.parts[twin]) == "medium", "Soft tunes only the selected wheel with Mirror off")
+	check(garage._selected == wheel and garage._undo.size() == steps + 1 and garage.ui._suspension_buttons[0].button_pressed, "and keeps it selected with one undo step")
+	garage.set_suspension("soft")
+	check(garage._undo.size() == steps + 1, "choosing the same suspension adds no undo step")
+	garage.undo()
+	check(KartDesign.suspension_of(garage.design.parts[wheel]) == "medium", "undo restores its suspension")
+	garage.redo()
+	check(KartDesign.suspension_of(garage.design.parts[wheel]) == "soft", "redo restores the tuning")
+	garage.select(wheel)
+	garage.set_mirror(true)
+	steps = garage._undo.size()
+	garage.set_suspension("hard")
+	check(KartDesign.suspension_of(garage.design.parts[wheel]) == "hard" and KartDesign.suspension_of(garage.design.parts[twin]) == "hard" and garage._undo.size() == steps + 1, "Mirror tunes the existing opposite wheel in one step")
+	garage.undo()
+	check(KartDesign.suspension_of(garage.design.parts[wheel]) == "soft" and KartDesign.suspension_of(garage.design.parts[twin]) == "medium", "undo restores both wheels independently")
+	garage.select(wheel)
+	var pad: GaragePad = garage.find_children("*", "GaragePad", false, false)[0]
+	pad._button(JOY_BUTTON_RIGHT_SHOULDER)
+	check(KartDesign.suspension_of(garage.design.parts[wheel]) == "medium" and KartDesign.suspension_of(garage.design.parts[twin]) == "medium", "RB steps wheel suspension and honours Mirror")
+	pad._button(JOY_BUTTON_LEFT_SHOULDER)
+	check(KartDesign.suspension_of(garage.design.parts[wheel]) == "soft", "LB steps it back")
+	var key := InputEventKey.new()
+	key.physical_keycode = KEY_S
+	key.pressed = true
+	garage._on_key(key)
+	check(KartDesign.suspension_of(garage.design.parts[wheel]) == "medium", "S steps suspension on the selected wheel")
+	key.echo = true
+	garage._on_key(key)
+	check(KartDesign.suspension_of(garage.design.parts[wheel]) == "medium", "holding S doesn't repeat the setting")
+	garage.set_mirror(false)
+	garage.set_suspension("hard")
+	var entry := garage.design.parts[wheel].duplicate(true)
+	garage.move_selected()
+	check(garage._holding_suspension == "hard", "moving a wheel carries its tuning")
+	garage.cancel()
+	check(KartDesign.suspension_of(garage.design.parts[garage._selected]) == "hard", "cancelling a move restores its tuning")
+	garage.move_selected()
+	check(garage._ghost_ok, "the wheel still fits where it was installed")
+	garage.place()
+	check(KartDesign.suspension_of(garage.design.parts[garage._selected]) == "hard", "placing a moved wheel retains its tuning")
+	garage.copy_selected()
+	check(garage._holding_suspension == "hard" and KartDesign.suspension_of(Garage.mirrored(entry, garage.design.middle())) == "hard", "copying and mirroring carry the wheel's tuning")
+	garage.cancel()
+	var source := garage.find_part(entry)
+	var opposite := garage.find_part(Garage.mirrored(entry, garage.design.middle()))
+	garage.select(opposite)
+	garage.delete_selected()
+	source = garage.find_part(entry)
+	garage.select(source)
+	garage.copy_selected()
+	var snapped := false
+	for spot in garage._spots:
+		if garage.snap_to(spot) and garage._ghost_ok:
+			snapped = true
+			break
+	check(snapped, "a copied wheel snaps onto the empty opposite mount")
+	if snapped:
+		garage.place()
+		check(KartDesign.suspension_of(garage.design.parts.back()) == "hard" and garage._holding_suspension == "hard", "a placed copy retains tuning and keeps it for the next copy")
+	garage.cancel()
+	garage.start_placing(entry.id)
+	check(garage._holding_suspension == "medium", "a new wheel starts at Medium after copying a tuned one")
+	garage.cancel()
+	var body: int = range(garage.design.parts.size()).filter(func(i): return not KartDesign.is_wheel(garage.design.parts[i].id))[0]
+	garage.select(body)
+	check(not garage.ui._suspension.visible, "other parts have no suspension controls")
+	steps = garage._undo.size()
+	garage.set_suspension("soft")
+	pad._button(JOY_BUTTON_LEFT_SHOULDER)
+	check(not garage.design.parts[body].has("suspension") and garage._undo.size() == steps, "suspension shortcuts don't tune other parts")
+	garage.design = original
+	garage._undo.assign(old_undo)
+	garage._redo.assign(old_redo)
+	garage.set_mirror(old_mirror)
+	garage.select(-1)
+	garage._rebuild()
+	await frames(2)
 
 
 func _camera() -> void:

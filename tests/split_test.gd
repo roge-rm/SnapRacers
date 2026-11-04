@@ -188,7 +188,22 @@ func check_race(race: Race, mode: String) -> void:
 
 	# Finishing shows the results to whoever finished.
 	race._player_finished(second)
-	check(second.hud._results.visible and not race.player.hud._results.visible, "results come up in the half of whoever finished")
+	check(not second.hud._results.visible and not race.player.hud._results.visible, "finishing leaves both views clear at first")
+	check(second.hud._message.text.ends_with("place") and not second.hud.touch.visible, "with only the finishing place and no driving controls")
+	await frames(60)
+	check(not second.hud._results.visible, "the results stay hidden for the first second")
+	await frames(65)
+	check(second.hud._results.visible and not race.player.hud._results.visible, "then results come up only in the half of whoever finished")
+	var panel := second.hud._results.get_rect()
+	check(panel.position.y >= second.hud.size.y * 0.5 and panel.end.x <= second.hud.size.x and panel.end.y <= second.hud.size.y, "the split-screen table stays below the car and inside its half")
+	var car := second.camera.unproject_position(second.kart.global_position + Vector3.UP * 0.5)
+	check(car.y < panel.position.y and car.y > 0.0, "the finishing camera keeps the car above the results")
+	second.hud._results.next_tab(1)
+	await frames(2)
+	check(not second.hud._results.table.get_v_scroll_bar().visible or second.hud._results.table.scroll_vertical > 0, "the controller can page down when the table is taller than its panel")
+	second.hud._results.next_tab(-1)
+	await frames(2)
+	check(second.hud._results.table.scroll_vertical == 0, "and back up to the winner")
 
 
 func _key(code: Key, down: bool) -> void:

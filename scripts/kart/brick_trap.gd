@@ -11,7 +11,8 @@ extends StaticBody3D
 ##   (see Kart).
 ##
 ## Wheels feel it through the ground's "grip" and "drag", and a ghost drives
-## over it as if it isn't there ("trap").
+## over it as if it isn't there ("trap"). A shield slides the whole patch
+## aside, and it stays where it comes to rest.
 
 const LIFETIME := 15.0
 ## Clear space between the kart's tail and the nearest edge of the patch.
@@ -33,6 +34,12 @@ const SPIKE := Color("#635f61")
 
 var kind := "marbles"
 var _age := 0.0
+## Slide left after a shield shove, in m/s, world space and horizontal.
+var _slide := Vector3.ZERO
+## How fast a shield throws the patch, and how fast that slide dies, in m/s
+## and m/s², so it moves a few metres and stops.
+const SHOVE_SPEED := 9.0
+const SHOVE_DAMP := 8.0
 
 
 ## A trap on the ground just behind this kart.
@@ -66,6 +73,7 @@ func _init(what := "marbles", look_seed := 0) -> void:
 	set_meta("grip", of.grip)
 	set_meta("drag", of.drag)
 	set_meta("trap", kind)
+	add_to_group("traps")
 	# A flat oval, thin enough that nothing catches on its edge.
 	var shape := CollisionShape3D.new()
 	var oval := ConvexPolygonShape3D.new()
@@ -142,7 +150,50 @@ func _pieces(count: int, across: float, along: float, look_seed: int) -> MeshIns
 	return baked
 
 
+## True when `at` is on the patch or close enough that the bubble meets it.
+func overlaps_shield(at: Vector3) -> bool:
+	if absf((at - global_position).dot(global_basis.y.normalized())) > Kart.SHIELD_REACH:
+		return false
+	var away := global_position - at
+	away.y = 0.0
+	var span: float = maxf(KINDS[kind].across, KINDS[kind].along)
+	return away.length() < Kart.SHIELD_REACH + span * 0.55
+
+
+## Slides the patch off the kart. One shove: it coasts to a stop and stays.
+func shove_from(kart: Node3D) -> void:
+	if _slide.length() > 0.5:
+		return
+	var away := global_position - kart.global_position
+	away.y = 0.0
+	var side := kart.global_basis.x
+	side.y = 0.0
+	if side.length() < 0.1:
+		side = Vector3.RIGHT
+	else:
+		side = side.normalized()
+	var forward := -kart.global_basis.z
+	forward.y = 0.0
+	if forward.length() < 0.1:
+		forward = Vector3.FORWARD
+	else:
+		forward = forward.normalized()
+	var lean := away.dot(side)
+	if absf(lean) < 0.4:
+		lean = 1.0
+	var out := (side * signf(lean) + forward * 0.4).normalized()
+	_slide = out * SHOVE_SPEED
+
+
 func _physics_process(delta: float) -> void:
 	_age += delta
+	if _slide.length() > 0.15:
+		# Along the ground the patch is lying on.
+		var along := global_basis.inverse() * _slide
+		along.y = 0.0
+		global_position += global_basis * along * delta
+		_slide = _slide.move_toward(Vector3.ZERO, SHOVE_DAMP * delta)
+	else:
+		_slide = Vector3.ZERO
 	if _age > LIFETIME:
 		queue_free()

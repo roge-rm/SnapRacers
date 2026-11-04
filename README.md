@@ -93,7 +93,7 @@ Drive through a gold stud to get a power-up. You can hold two at once, one on ea
 | Shockwave | Shoves nearby karts away and knocks parts off the closest ones. |
 | Cannonball | Fires ahead, knocks three parts off the kart it hits and shoves it. A shield keeps the parts on but still lets it be shoved. |
 | Homing brick | Follows the road to the kart ahead and knocks one part off, most often a wheel. It beeps for the driver it's after. |
-| Shield | Protects your parts for four seconds. |
+| Shield | Protects your parts for four seconds. It pushes brick walls, dropped bricks, marbles and spikes aside, and they stay where they land. |
 | Repair kit | Puts back your lost parts without the reset slowdown. |
 | Ghost | Lets you pass through karts, bricks and traps for three seconds. |
 | Lightning | Strikes every kart ahead and slows them for five seconds. |

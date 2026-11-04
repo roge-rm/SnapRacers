@@ -94,9 +94,10 @@ func _build() -> void:
 	var done := grand_prix.finished()
 	var races := grand_prix.track_ids().size()
 	var level := Difficulty.name_of(grand_prix.difficulty)
-	var column := _over_podium() if over_podium else MenuStyle.page(self, grand_prix.cup.name, go_back, 620.0)
+	var column := _over_podium() if over_podium else _between_races()
 	var where := Label.new()
 	where.text = level if done else "%s, after race %d of %d" % [level, grand_prix.round, races]
+	where.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER if not over_podium else HORIZONTAL_ALIGNMENT_LEFT
 	where.uppercase = true
 	where.theme_type_variation = "LeadLabel"
 	column.add_child(where)
@@ -124,6 +125,7 @@ func _build() -> void:
 	table.columns = 3
 	table.add_theme_constant_override("h_separation", 40)
 	table.add_theme_constant_override("v_separation", 6)
+	table.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	column.add_child(table)
 	for i in standings.size():
 		for text in [RaceHud.ordinal(i + 1), standings[i][0], ("%d point" if standings[i][1] == 1 else "%d points") % standings[i][1]]:
@@ -158,6 +160,45 @@ func _build() -> void:
 	if over_podium and UiMotion.enabled(self) and _age < IGNORE_INPUT:
 		modulate.a = 0.0
 		create_tween().tween_property(self, "modulate:a", 1.0, UiMotion.FADE * 2.0).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+
+
+## The heading, standings and next race button form one centred block.
+func _between_races() -> VBoxContainer:
+	theme = MenuStyle.theme()
+	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	var back := MenuStyle.backdrop()
+	add_child(back)
+	back.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	var margin := MarginContainer.new()
+	for side in ["left", "right", "top", "bottom"]:
+		margin.add_theme_constant_override("margin_" + side, 32)
+	add_child(margin)
+	margin.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	var safe := SafeArea.new()
+	add_child(safe)
+	safe.pad(margin, true)
+	var scroll := ScrollContainer.new()
+	scroll.follow_focus = true
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	margin.add_child(scroll)
+	var centre := CenterContainer.new()
+	centre.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	centre.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	scroll.add_child(centre)
+	var column := VBoxContainer.new()
+	column.custom_minimum_size.x = 620.0
+	column.add_theme_constant_override("separation", 18)
+	centre.add_child(column)
+	var title := MenuStyle.ribbon(grand_prix.cup.name)
+	title.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	column.add_child(title)
+	MenuStyle.fit_ribbon(title, grand_prix.cup.name, 620.0)
+	var button := MenuStyle.link("Back", go_back, "back")
+	add_child(button)
+	button.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)
+	button.position += Vector2(-24.0, 12.0)
+	safe.watch(button)
+	return column
 
 
 ## The page over the podium: a shade over the side the panel's on, and the

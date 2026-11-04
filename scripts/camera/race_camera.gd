@@ -20,7 +20,7 @@ extends Camera3D
 ## Holding look back turns the view around. In first person it sits behind
 ## the head looking down the road behind. Hood looking back is the same
 ## height at the tail, behind wings and the rest. When you cross the line
-## the camera circles your kart for a moment, then goes to the TV cameras
+## the camera circles your kart for a moment, then follows behind it
 ## while the AI drives you home.
 
 signal view_changed(view: String)
@@ -114,12 +114,11 @@ func set_view(which: String) -> void:
 	snap()
 
 
-## Circles the kart for a moment, then goes to the TV cameras (or back to the
-## view it was on, with no track).
+## Circles the kart for a moment, then follows behind it.
 func finish() -> void:
 	_orbit_left = ORBIT_TIME
 	_orbit_angle = 0.0
-	_after_orbit = "tv" if track != null else view
+	_after_orbit = "far"
 	_show_view()
 
 

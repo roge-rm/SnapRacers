@@ -101,7 +101,13 @@ const MESSAGE_FADE := 0.5
 static var _nothing: StyleBoxEmpty
 static var _bar_back: SlantBox
 var _fps: Label
-var _results: PanelContainer
+const RESULTS_DELAY := 2.0
+const RESULTS_SLIDE := 0.25
+var _results_left := -1.0
+var _results_slide := 0.0
+var _results_rect := Rect2()
+var _results_column: VBoxContainer
+var _results: ResultsPanel
 var _results_title: Label
 var _results_list: GridContainer
 ## Standings in a Grand Prix, which waits for the other player to finish.
@@ -282,7 +288,7 @@ func _ready() -> void:
 	var safe := SafeArea.new()
 	_safe = safe
 	add_child(safe)
-	for control in [corner, _camera, _fps, top, right, bottom, _slots]:
+	for control in [corner, _camera, _fps, top, right, bottom, _slots, _results]:
 		safe.watch(control)
 
 
@@ -461,7 +467,7 @@ func _process(delta: float) -> void:
 	if me.progress.finished:
 		_lap.text = "Finished"
 	# Touch controls show what's held on their gadget buttons already.
-	_slots.visible = not trial and not _results.visible and (touch == null or not touch.visible)
+	_slots.visible = not trial and _results_left < 0.0 and not _results.visible and (touch == null or not touch.visible)
 	_slots.show_held(me.kart.held, me.kart.held_uses)
 	if touch != null:
 		for slot in Powerups.HOLD:
@@ -523,7 +529,7 @@ func _process(delta: float) -> void:
 		status = "%d part%s lost, reset to fix" % [lost, "" if lost == 1 else "s"]
 		# Once you've seen it a while it fades back, until more come off.
 		faint = lerpf(1.0, LOST_FADED, clampf(_lost_for - LOST_SHOWN_FOR, 0.0, 1.0))
-	if _results.visible:
+	if _results.visible or _results_left >= 0.0:
 		status = ""
 	_status.text = status
 	_status_box.visible = status != ""
@@ -537,9 +543,17 @@ func _process(delta: float) -> void:
 	else:
 		_message.get_parent().visible = false
 
+	if _results_left >= 0.0:
+		_results_left -= delta
+		_show_waiting()
+		if _results_left <= 0.0:
+			_results_left = -1.0
+			_reveal_results()
 	if _results.visible:
 		_fill_results()
 		_show_waiting()
+		_results_slide = maxf(_results_slide - delta / RESULTS_SLIDE, 0.0)
+		_layout_results()
 	var areas := _touch_areas()
 	_clear_of_touch(areas)
 	# The menu button covers your place and lap, at least BUTTON big.
@@ -580,25 +594,33 @@ func _touch_areas() -> Array[Rect2]:
 
 
 func _build_results() -> void:
-	_results = PanelContainer.new()
+	_results = ResultsPanel.new()
 	_results.visible = false
 	_results.add_theme_stylebox_override("panel", UiKit.popup())
 	add_child(_results)
-	_results.set_anchors_and_offsets_preset(PRESET_CENTER)
 	var box := VBoxContainer.new()
+	_results_column = box
 	box.add_theme_constant_override("separation", UiKit.GAP_M)
 	_results.add_child(box)
 	_results_title = Label.new()
 	_results_title.text = "Results"
-	_results_title.theme_type_variation = "HeadingLabel"
+	_results_title.theme_type_variation = "LeadLabel"
 	box.add_child(_results_title)
 	_results_list = GridContainer.new()
 	_results_list.columns = 4 if race.mode == Game.MODE_GRAND_PRIX else (2 if race.mode == Game.MODE_TIME_TRIAL else 3)
-	_results_list.add_theme_constant_override("h_separation", 28)
-	box.add_child(_results_list)
-	var row := HBoxContainer.new()
-	row.alignment = BoxContainer.ALIGNMENT_CENTER
-	row.add_theme_constant_override("separation", 16)
+	_results_list.add_theme_constant_override("h_separation", 12)
+	var scroll := ScrollContainer.new()
+	_results.table = scroll
+	scroll.get_v_scroll_bar().focus_mode = Control.FOCUS_ALL
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	box.add_child(scroll)
+	_results_list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	scroll.add_child(_results_list)
+	var row := GridContainer.new()
+	row.columns = 2
+	row.add_theme_constant_override("h_separation", 8)
+	row.add_theme_constant_override("v_separation", 6)
 	box.add_child(row)
 	var choices := [["Race again", again_pressed], ["Garage", garage_pressed], ["Menu", menu_pressed]]
 	match race.mode:
@@ -616,12 +638,14 @@ func _build_results() -> void:
 		var next := Label.new()
 		next.text = "The standings come up once everyone's home" if race.mode == Game.MODE_GRAND_PRIX else "Back to the lobby once everyone's home"
 		next.theme_type_variation = "NoteLabel"
+		next.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		box.add_child(next)
 		box.move_child(next, box.get_child_count() - 2)
 	for pair in choices:
 		var button := Button.new()
 		button.text = pair[0]
-		button.custom_minimum_size = Vector2(160, 60)
+		button.custom_minimum_size = Vector2(0, 48)
+		button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		button.focus_mode = FOCUS_ALL
 		if row.get_child_count() == 0:
 			button.theme_type_variation = "MainButton"
@@ -633,6 +657,7 @@ func _build_results() -> void:
 	if _next != null and race.humans.size() > 1:
 		_waiting = Label.new()
 		_waiting.theme_type_variation = "NoteLabel"
+		_waiting.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		_waiting.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		box.add_child(_waiting)
 
@@ -652,15 +677,47 @@ func _show_waiting() -> void:
 
 
 func show_results() -> void:
-	_results.visible = true
-	_menu.visible = false
-	PadFocus.focus_first.call_deferred(_results)
-	if touch != null:
-		touch.visible = false
 	_fill_results()
 	_show_waiting()
-	_results.reset_size()
-	_results.set_anchors_and_offsets_preset(PRESET_CENTER)
+	if _results.visible or _results_left >= 0.0:
+		return
+	_results_left = RESULTS_DELAY
+	_menu.visible = false
+	if touch != null:
+		touch.visible = false
+	flash("Finished" if race.mode == Game.MODE_TIME_TRIAL else "%s place" % ordinal(race.place_of(me)))
+
+
+func _reveal_results() -> void:
+	_results.visible = true
+	_results_slide = 1.0 if DisplayServer.get_name() != "headless" else 0.0
+	_layout_results()
+	PadFocus.focus_first.call_deferred(_results)
+
+
+## Wide views leave the car clear in the middle. Short or narrow views keep
+## the table below it, with scrolling for the rest of the field.
+func _layout_results() -> void:
+	var side := size.x >= 1000.0 and not _small
+	var width := minf(440.0, size.x * 0.34) if side else minf(440.0, size.x - 32.0)
+	var height := minf(_results_column.get_combined_minimum_size().y + _results_list.get_combined_minimum_size().y + 40.0, size.y - 32.0 if side else size.y * 0.42)
+	var at := Vector2(size.x - width - 16.0, (size.y - height) * 0.5) if side else Vector2((size.x - width) * 0.5, size.y - height - 16.0)
+	at += Vector2((width + 16.0) * _results_slide, 0.0) if side else Vector2(0.0, (height + 16.0) * _results_slide)
+	var wanted := Rect2(at, Vector2(width, height))
+	if not wanted.is_equal_approx(_results_rect):
+		_results_rect = wanted
+		_results.size = wanted.size
+		_results.position = wanted.position
+		if _safe != null:
+			_safe.moved(_results)
+			_safe.refit()
+	if me.camera != null:
+		var camera := me.camera
+		var distance := camera.global_position.distance_to(me.kart.global_position + Vector3.UP * RaceCamera.LOOK_HEIGHT)
+		var half_height := distance * tan(deg_to_rad(camera.fov) * 0.5)
+		var shown := 1.0 - _results_slide
+		camera.h_offset = (width + 32.0) / size.y * half_height * shown if side else 0.0
+		camera.v_offset = 0.0 if side else -(height + 32.0) / size.y * half_height * shown
 
 
 func _fill_results() -> void:
@@ -689,7 +746,12 @@ func _fill_results() -> void:
 			highlight.append(racer.player)
 	var columns := _results_list.columns
 	while _results_list.get_child_count() < rows.size() * columns:
-		_results_list.add_child(Label.new())
+		var cell := Label.new()
+		if _results_list.get_child_count() % columns == 1:
+			cell.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			cell.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+			cell.custom_minimum_size.x = 60.0
+		_results_list.add_child(cell)
 	for i in rows.size():
 		for column in columns:
 			var cell: Label = _results_list.get_child(i * columns + column)
@@ -702,3 +764,11 @@ func _fill_results() -> void:
 				cell.theme_type_variation = "TimeAccentLabel" if gold else "TimeLabel"
 			else:
 				cell.theme_type_variation = "AccentLabel" if gold else ""
+
+
+## Shoulder buttons page through the table while the action buttons stay put.
+class ResultsPanel extends PanelContainer:
+	var table: ScrollContainer
+
+	func next_tab(by: int) -> void:
+		table.scroll_vertical += by * maxi(int(table.size.y * 0.8), 32)

@@ -16,6 +16,7 @@ const BUILD_SIZE := Vector3i(20, 30, 24)
 ## plates, so it doesn't scrape when the springs squash.
 const CLEARANCE := 2
 const SAVE_DIR := "user://karts"
+const SUSPENSION := ["soft", "medium", "hard"]
 ## How much of a wheel's height its two crossed boxes cover, for bumping
 ## into other parts.
 const ROUND_SHARE := 0.7
@@ -25,6 +26,7 @@ var name := "Kart"
 var about := ""
 ## Each entry is { "id": String, "place": Transform3D }, plus "color" (a
 ## Color) when the part has been painted something other than its own colour.
+## A wheel can have "suspension" set to "soft" or "hard"; absent is medium.
 ## The place takes the part's own space to the kart's, in the fine unit (see
 ## Grid). Each entry also has "at" (Vector3i) and "rot" (int), where it sits
 ## on the stud grid and how many quarter turns it's turned, for parts that sit
@@ -61,7 +63,20 @@ static func from_dict(data: Dictionary) -> KartDesign:
 			# it sat on the stud grid.
 			var at: Array = entry.get("at", [0, 0, 0])
 			design.parts.append(grid_entry(id, Vector3i(int(at[0]), int(at[1]), int(at[2])), int(entry.get("rot", 0)), color))
+		set_suspension(design.parts[-1], str(entry.get("suspension", "medium")))
 	return design
+
+
+## A wheel's suspension, with medium for older saves or unknown settings.
+static func suspension_of(entry: Dictionary) -> String:
+	var preset := str(entry.get("suspension", "medium"))
+	return preset if is_wheel(str(entry.get("id", ""))) and preset in SUSPENSION else "medium"
+
+
+static func set_suspension(entry: Dictionary, preset: String) -> void:
+	entry.erase("suspension")
+	if is_wheel(str(entry.get("id", ""))) and preset in SUSPENSION and preset != "medium":
+		entry["suspension"] = preset
 
 
 ## An entry for a part sitting on the stud grid flat side down, with the
@@ -189,6 +204,9 @@ func to_dict() -> Dictionary:
 		var entry := { "id": p.id, "pos": pos, "turn": maxi(Grid.turn_index(place.basis), 0) }
 		if p.has("color"):
 			entry["color"] = "#" + p.color.to_html(false)
+		var suspension := suspension_of(p)
+		if suspension != "medium":
+			entry["suspension"] = suspension
 		out.append(entry)
 	var data := { "name": name, "parts": out }
 	if about != "":
@@ -326,6 +344,7 @@ func raise(plates: int) -> void:
 		var place := place_of(p)
 		place.origin.y += plates * Grid.PLATE_FINE
 		parts[i] = placed_entry(p.id, place, p.get("color"))
+		set_suspension(parts[i], suspension_of(p))
 
 
 ## Whether these two parts, where they've been put, hold onto each other.

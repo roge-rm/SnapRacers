@@ -499,13 +499,14 @@ def ghost():
 
 
 def lightning():
-    """Lightning: a sharp crackle, then a low rumble."""
-    n = seconds(1.1)
-    crackle = highpass(noise(n, 82), 1500) * decay(n, 0.12)
-    for k, at in enumerate((0.0, 0.03, 0.07)):
-        crackle = crackle + highpass(noise(n, 83 + k), 2500) * np.roll(decay(n, 0.02), seconds(at)) * 0.7
-    rumble = lowpass(noise(n, 86), 180) * ramp(n, [(0.0, 0.0), (0.1, 1.0), (1.0, 0.0)]) * 2.5
-    return normalise(drive(crackle + rumble, 1.5), 0.85)
+    """A thunderclap on the kart: a sharp crack, then a short low roll.
+    Quieter than the storm's thunder."""
+    n = seconds(1.5)
+    crack = highpass(noise(n, 82), 200) * decay(n, 0.045)
+    snap = highpass(noise(n, 84), 500) * np.roll(decay(n, 0.03), seconds(0.045)) * 0.4
+    boom = lowpass(noise(n, 86), 110) * ramp(n, [(0.0, 0.0), (0.015, 1.0), (0.12, 0.65), (1.0, 0.0)]) * 2.4
+    roll = lowpass(noise(n, 87), 70) * ramp(n, [(0.0, 0.0), (0.06, 1.0), (0.3, 0.5), (1.0, 0.0)]) * 1.8
+    return normalise(drive(crack + snap + boom + roll, 1.15), 0.42)
 
 
 def thunder():

@@ -6,7 +6,7 @@ extends Node3D
 ##
 ## Three stepped blocks in the cup's colour with 1, 2 and 3 on their fronts,
 ## built from the same bricks as the rest of the scenery. The top three stand
-## on them with their karts parked behind, and everyone else stands in a row
+## on them with their karts parked in front, and everyone else stands in a row
 ## either side. The camera sweeps in and then holds still.
 ##
 ## As it does, third, second and first jump up onto their steps, the cup's
@@ -32,7 +32,7 @@ const ACROSS := [0.0, -1.0, 1.0]
 ## The size of a square of the numbers on the fronts, which are 3 by 5.
 const PIXEL := 0.06
 ## How far each kart is turned in from straight ahead, in degrees.
-const TURNED := [-25.0, -35.0, 35.0]
+const TURNED := [0.0, -25.0, 25.0]
 ## How thick the plate under it all is, and its colour.
 const BASE := 0.12
 const BASE_COLOUR := Color("#a3a2a4")
@@ -109,7 +109,7 @@ const SETTLE := 0.8
 ## How much of the clear part's width the steps and karts fill then, and how
 ## high over the top step the camera is.
 const SETTLE_FILL := 0.88
-const SETTLE_HIGH := 1.5
+const SETTLE_HIGH := 3.5
 ## How tall a number is, row by row from the top, for 1, 2 and 3.
 const DIGITS := {
 	1: ["010", "110", "010", "010", "111"],
@@ -297,8 +297,8 @@ func _ready() -> void:
 		_number(kit, place + 1, Vector3(x, height - HEIGHTS[place] * 0.5, STEP_DEPTH * 0.5), ink)
 	kit.build(self)
 
-	# The karts are parked off to the sides at an angle, past the ends of the
-	# steps and a little back. The winner's is behind the second's.
+	# The winner parks in the centre foreground, with second and third
+	# angled out either side.
 	var spots := _parking()
 	_reach = STEP_WIDTH * 1.5 + 0.6
 	var in_row := 0
@@ -386,8 +386,8 @@ func _ready() -> void:
 	add_child(camera)
 	_top = top
 	_look = Vector3(0.0, top + 0.7, -0.4)
-	var out := _seeing_all(_camera_distance(), top + 2.1)
-	_to = _looking(Vector3(0.0, top + 2.1, out), _look)
+	var out := _seeing_all(_camera_distance(), top + SETTLE_HIGH)
+	_to = _looking(Vector3(0.0, top + SETTLE_HIGH, out), _look)
 	var start := Vector3(0.0, top + 7.0, out * 1.8).rotated(Vector3.UP, deg_to_rad(50.0))
 	_from = _looking(start, _look)
 	camera.global_transform = _from
@@ -406,11 +406,11 @@ func _parking() -> Array:
 	var r: Array = []
 	for place in 3:
 		r.append(_radius(KartModel.bounds(order[place][1])) if place < order.size() else 1.0)
-	var edge := STEP_WIDTH * 1.5 + 0.4
-	var back := STEP_DEPTH * 0.5 + 0.2
-	var second := Vector3(-(edge + r[1]), 0.0, -(back + r[1]))
-	var third := Vector3(edge + r[2], 0.0, -(back + r[2]))
-	var first := Vector3(second.x + r[0] * 0.9, 0.0, second.z - (r[0] + r[1]) * 1.1)
+	var side := maxf(STEP_WIDTH * 1.5 + 0.4, r[0] + maxf(r[1], r[2]) + 0.4)
+	var forward := STEP_DEPTH * 0.5 + maxf(r[1], r[2]) + 0.4
+	var second := Vector3(-side, 0.0, forward)
+	var third := Vector3(side, 0.0, forward)
+	var first := Vector3(0.0, 0.0, forward + r[0] * 0.5)
 	return [[first, TURNED[0]], [second, TURNED[1]], [third, TURNED[2]]]
 
 
@@ -418,12 +418,16 @@ func _parking() -> Array:
 ## the steps, the nearest first.
 func _in_row(n: int) -> Vector3:
 	var side := -1.0 if n % 2 == 0 else 1.0
-	return Vector3(side * (STEP_WIDTH * 1.5 + 0.5 + (n / 2) * SPACING), 0.0, STEP_DEPTH * 0.5 + 0.9)
+	return Vector3(side * (STEP_WIDTH * 1.5 + 0.5 + (n / 2) * SPACING), 0.0, -STEP_DEPTH * 0.5 - 0.9)
 
 
 ## Where a player off the steps stands, on the left or right.
 func _in_front(side: float) -> Vector3:
-	return Vector3(side * (STEP_WIDTH * 1.5 + 0.2), 0.0, FRONT)
+	var forward := FRONT
+	var spots := _parking()
+	for place in mini(order.size(), 3):
+		forward = maxf(forward, spots[place][0].z + _radius(KartModel.bounds(order[place][1])) + 0.6)
+	return Vector3(side * (STEP_WIDTH * 1.5 + 0.2), 0.0, forward)
 
 
 ## A place tag like "5th" in the player's colour.
@@ -474,18 +478,22 @@ func _camera_distance(clear := 1.0) -> float:
 	var size := get_viewport().get_visible_rect().size if is_inside_tree() else Vector2(16.0, 9.0)
 	var aspect := size.x * clear / maxf(size.y, 1.0)
 	var across := atan(tan(deg_to_rad(camera.fov) * 0.5) * aspect)
-	var out := _reach / tan(across) * 1.1 + STEP_DEPTH
+	var near := STEP_DEPTH
+	var spots := _parking()
+	for place in karts.size():
+		near = maxf(near, spots[place][0].z + _radius(KartModel.bounds(order[place][1])))
+	var out := _reach / tan(across) * 1.1 + near
 	# The players in front are nearer the camera, so they need more room.
 	for place in tags:
 		var local := _in_front(-1.0)
 		out = maxf(out, (absf(local.x) + 0.5) / tan(across) * 1.1 + local.z)
-	return minf(out, CAMERA_FAR if aspect < 1.7 else CAMERA_OUT)
+	return minf(out, CAMERA_FAR)
 
 
 ## `out`, or further out if that leaves anyone in front, or their tag, off
 ## the top or bottom of the screen, with the camera at `high`.
 func _seeing_all(out: float, high: float) -> float:
-	var points := _front_points()
+	var points := _core_points() + _front_points()
 	if points.is_empty() or not is_inside_tree():
 		return out
 	var was := camera.global_transform
@@ -872,7 +880,7 @@ func _core_points() -> Array[Vector3]:
 ## fill most of the clear part of the screen's width, or `out` if it's given,
 ## and how far it's shifted sideways to put their middle in the clear part's
 ## middle without turning. Measured through the camera, as the karts are
-## further back than the steps and lopsided, and a sideways shift moves
+## in front of the steps, and a sideways shift moves
 ## nearer things more.
 func _fit(points: Array[Vector3], high: float, out := -1.0) -> Array:
 	var was := camera.global_transform

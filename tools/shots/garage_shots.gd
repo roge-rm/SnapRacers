@@ -24,6 +24,23 @@ func _ready() -> void:
 				garage = child
 	await get_tree().create_timer(2.0).timeout
 	var args := OS.get_cmdline_user_args()
+	if args.size() >= 2 and args[0] == "suspension":
+		OUT = args[1]
+		DirAccess.make_dir_recursive_absolute(OUT)
+		garage.design = KartDesign.load_file("res://tests/data/old_starter.json")
+		garage._rebuild()
+		garage.show_view("angle")
+		var wheel: int = range(garage.design.parts.size()).filter(func(i): return KartDesign.is_wheel(garage.design.parts[i].id))[0]
+		garage.select(wheel)
+		await _save("suspension_medium")
+		garage.set_suspension("soft")
+		await _save("suspension_soft")
+		garage.set_suspension("hard")
+		await _save("suspension_hard")
+		garage.select(0)
+		await _save("suspension_other_part")
+		get_tree().quit()
+		return
 	if args.size() >= 2 and args[0] == "wheel":
 		OUT = args[1]
 		DirAccess.make_dir_recursive_absolute(OUT)

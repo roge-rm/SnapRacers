@@ -107,6 +107,9 @@ func _cup(id: String, place: int) -> void:
 	var names := gp.standings().map(func(s): return s[0])
 	check(podium.order.map(func(e): return e[0]) == names, "everyone's there in the standings' order")
 	check(podium.drivers.size() == names.size() and podium.karts.size() == 3, "%d drivers and 3 karts" % podium.drivers.size())
+	var parked := podium.karts.map(func(k): return _local(podium, k))
+	check(absf(parked[0].x) < 0.01 and parked[1].x < parked[0].x and parked[2].x > parked[0].x and parked[0].z > parked[1].z and parked[0].z > parked[2].z, "the winner's car is in the centre foreground, second and third either side")
+	check(range(3, podium.drivers.size()).all(func(p): return podium.players.has(podium.order[p][0]) or _local(podium, podium.drivers[p]).z < parked[0].z), "the crowd stands behind the winner's car")
 	check(range(names.size()).all(func(i): return podium.drivers[i].design == who.get(names[i], Kart.default_driver())), "each in the driver they raced as")
 	if gone != "":
 		check(names[0] == gone and podium.order[0][0] == gone and podium.order[0][1] != null and podium.drivers[0].design == Kart.default_driver(), "someone in the standings who didn't race stands in as the plain racer")
@@ -160,10 +163,12 @@ func _cup(id: String, place: int) -> void:
 	for i in range(3, podium.drivers.size()):
 		var at := podium.drivers[i].global_position
 		var floor_at: float = race.builder.ground_at(at.x, at.z) if podium.ground != null else podium.middle.y
-		below = below and absf(feet[i] - floor_at) < 0.05 and feet[i] < feet[2]
-	check(below, "and the rest of the field stand on the ground below")
+		below = below and absf(feet[i] - floor_at) < 0.05 and (podium.players.has(podium.order[i][0]) or feet[i] < feet[2])
+	check(below, "and the field stand on the ground, with the crowd below the steps")
 	var mine: int = names.find(me)
 	if mine >= 3:
+		var front := _local(podium, podium.drivers[mine]).z
+		check(range(3).all(func(p): return front > parked[p].z + podium._radius(KartModel.bounds(podium.order[p][1]))), "the player stands clear of the parked cars")
 		check(_in_front(podium, [mine]), "the player, %s, stands in front of the crowd" % RaceHud.ordinal(mine + 1))
 		check(podium.tags.keys() == [mine] and podium.tags[mine].get_child(0).text == RaceHud.ordinal(mine + 1), "with their place over them")
 	else:
@@ -235,11 +240,10 @@ func _cup(id: String, place: int) -> void:
 	check(_tags_clear(podium), "the player's tag isn't under them")
 	var laid := [0]
 	standings.laid_out.connect(func(): laid[0] += 1)
-	var was_shift := podium.camera.h_offset
 	var was_window := get_window().size
 	get_window().size = Vector2i(900, 1100)
 	await frames(4)
-	check(laid[0] == 1 and not is_equal_approx(podium.camera.h_offset, was_shift), "a resize lays the panel and camera out again")
+	check(laid[0] == 1 and podium.camera.global_transform.is_equal_approx(podium._to) and is_equal_approx(podium.camera.h_offset, podium._shift_to), "a resize lays the panel and camera out again")
 	# On a wide screen the panel's down the side, and a player off the steps
 	# has their tag showing in the clear part.
 	if mine >= 3:

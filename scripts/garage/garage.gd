@@ -70,6 +70,7 @@ var _mode := GarageUI.Mode.IDLE
 # the kart's, in the fine unit (see KartDesign).
 var _holding := ""
 var _holding_colour: Variant = null
+var _holding_suspension := "medium"
 var _ghost_place := Transform3D.IDENTITY
 var _ghost: Node3D
 var _twin_ghost: Node3D
@@ -181,6 +182,7 @@ func _ready() -> void:
 	ui.move_pressed.connect(move_selected)
 	ui.copy_pressed.connect(copy_selected)
 	ui.delete_pressed.connect(delete_selected)
+	ui.suspension_chosen.connect(set_suspension)
 	ui.deselect_pressed.connect(func() -> void: select(-1))
 	ui.undo_pressed.connect(undo)
 	ui.redo_pressed.connect(redo)
@@ -248,11 +250,12 @@ func redo() -> void:
 ## Starts placing a part, turned by `turn`. It shows up where you're looking
 ## unless `at` says where, as a Transform3D place or a Vector3i spot on the
 ## grid.
-func start_placing(id: String, turn := Basis.IDENTITY, colour: Variant = null, at: Variant = null, spots_later := false) -> void:
+func start_placing(id: String, turn := Basis.IDENTITY, colour: Variant = null, at: Variant = null, spots_later := false, suspension := "medium") -> void:
 	if _mode == GarageUI.Mode.PLACING and not _moving.is_empty():
 		cancel()
 	_holding = id
 	_holding_colour = colour
+	_holding_suspension = suspension
 	_spot = {}
 	_way = {}
 	ui.set_held_picture(PartThumbnails.picture(id))
@@ -272,6 +275,7 @@ func start_placing(id: String, turn := Basis.IDENTITY, colour: Variant = null, a
 
 func _stop_placing() -> void:
 	_holding = ""
+	_holding_suspension = "medium"
 	_spots_due = false
 	_moving = {}
 	_spot = {}
@@ -416,6 +420,7 @@ func place() -> void:
 		_ghost_place.origin.y += _ghost_lift * Grid.PLATE_FINE
 		_ghost_lift = 0
 	var entry := KartDesign.placed_entry(_holding, _ghost_place, _holding_colour)
+	KartDesign.set_suspension(entry, _holding_suspension)
 	# Across the middle from before the part goes on, the same as its ghost.
 	var middle := design.middle()
 	design.parts.append(entry)
@@ -465,7 +470,7 @@ func move_selected() -> void:
 	Sounds.play("fx/unsnap")
 	_selected = -1
 	_rebuild()
-	start_placing(p.id, KartDesign.place_of(p).basis, p.get("color"), KartDesign.place_of(p), true)
+	start_placing(p.id, KartDesign.place_of(p).basis, p.get("color"), KartDesign.place_of(p), true, KartDesign.suspension_of(p))
 	_moving = { "index": index, "entry": p }
 	_show_ghost()
 
@@ -484,7 +489,35 @@ func copy_selected() -> void:
 		if design.fits_place(p.id, place):
 			spot = place
 			break
-	start_placing(p.id, from.basis, p.get("color"), spot)
+	start_placing(p.id, from.basis, p.get("color"), spot, false, KartDesign.suspension_of(p))
+
+
+## Tunes the installed wheel and its existing twin with Mirror on.
+func set_suspension(preset: String) -> void:
+	if _mode != GarageUI.Mode.SELECTED or _selected < 0 or not ["soft", "medium", "hard"].has(preset):
+		return
+	var entry := design.parts[_selected]
+	if not KartDesign.is_wheel(entry.id):
+		return
+	var indices := [_selected]
+	if mirror:
+		var twin := find_part(mirrored(entry, design.middle()))
+		if twin >= 0 and twin != _selected:
+			indices.append(twin)
+	if indices.all(func(i): return KartDesign.suspension_of(design.parts[i]) == preset):
+		_refresh_ui()
+		return
+	_remember()
+	for i in indices:
+		KartDesign.set_suspension(design.parts[i], preset)
+	_refresh_ui()
+
+
+func next_suspension(by: int) -> void:
+	if _mode != GarageUI.Mode.SELECTED or _selected < 0 or not KartDesign.is_wheel(design.parts[_selected].id):
+		return
+	var presets := ["soft", "medium", "hard"]
+	set_suspension(presets[posmod(presets.find(KartDesign.suspension_of(design.parts[_selected])) + by, presets.size())])
 
 
 func delete_selected() -> void:
@@ -552,7 +585,9 @@ func set_painting(on: bool) -> void:
 static func mirrored(entry: Dictionary, middle: float) -> Dictionary:
 	# A left handed part's twin is the right handed one.
 	var id: String = PartCatalog.get_part(entry.id).get("mirror", entry.id)
-	return KartDesign.placed_entry(id, Snap.mirror_place(entry.id, KartDesign.place_of(entry), middle), entry.get("color"))
+	var twin := KartDesign.placed_entry(id, Snap.mirror_place(entry.id, KartDesign.place_of(entry), middle), entry.get("color"))
+	KartDesign.set_suspension(twin, KartDesign.suspension_of(entry))
+	return twin
 
 
 ## The index of the part that's exactly this one, or -1.
@@ -734,6 +769,8 @@ func _refresh_ui() -> void:
 		var id: String = design.parts[_selected].id
 		what = PartCatalog.get_part(id).get("name", id)
 		moves = { "turn": not KartDesign.is_wheel(id) }
+		if KartDesign.is_wheel(id):
+			moves["suspension"] = KartDesign.suspension_of(design.parts[_selected])
 	ui.set_mode(_mode, what, moves)
 	ui.set_can_place(_ghost_ok, _ghost_why)
 	ui.set_history(not _undo.is_empty(), not _redo.is_empty())
@@ -1193,7 +1230,11 @@ func _on_key(event: InputEventKey) -> void:
 		KEY_T:
 			way_on()
 		KEY_S:
-			slide()
+			if _mode == GarageUI.Mode.SELECTED:
+				if not event.echo:
+					next_suspension(1)
+			else:
+				slide()
 		KEY_ENTER, KEY_KP_ENTER:
 			place()
 		KEY_M:

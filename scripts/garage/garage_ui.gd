@@ -31,6 +31,7 @@ signal cancel_pressed
 signal move_pressed
 signal copy_pressed
 signal delete_pressed
+signal suspension_chosen(preset: String)
 signal deselect_pressed
 signal undo_pressed
 signal redo_pressed
@@ -126,6 +127,8 @@ var _way: Button
 var _slide: Button
 var _actions: PanelContainer
 var _action_title: Label
+var _suspension: HBoxContainer
+var _suspension_buttons: Array[Button] = []
 var _anchor := Vector2.ZERO
 var _painting: PanelContainer
 var _swatches: Array[Button] = []
@@ -208,6 +211,9 @@ func set_mode(mode: Mode, what: String, moves := {}) -> void:
 	_held_chip.visible = mode == Mode.PLACING
 	_placing.visible = mode == Mode.PLACING
 	_actions.visible = mode == Mode.SELECTED
+	_suspension.visible = mode == Mode.SELECTED and moves.has("suspension")
+	for i in _suspension_buttons.size():
+		_suspension_buttons[i].set_pressed_no_signal(["soft", "medium", "hard"][i] == moves.get("suspension", ""))
 	_painting.visible = mode == Mode.PAINTING
 	_paint.on = mode == Mode.PAINTING
 	match mode:
@@ -666,8 +672,10 @@ func _build_actions() -> void:
 	_actions = PanelContainer.new()
 	_actions.add_theme_stylebox_override("panel", BuilderStyle.scrim(8, 6, 0.75))
 	add_child(_actions)
+	var column := VBoxContainer.new()
+	_actions.add_child(column)
 	var row := HBoxContainer.new()
-	_actions.add_child(row)
+	column.add_child(row)
 	_action_title = Label.new()
 	_action_title.theme_type_variation = "SmallLabel"
 	_action_title.custom_minimum_size = Vector2(150, 0)
@@ -683,6 +691,23 @@ func _build_actions() -> void:
 	close.custom_minimum_size = Vector2(40, 40)
 	close.pressed.connect(func() -> void: deselect_pressed.emit())
 	row.add_child(close)
+	_suspension = HBoxContainer.new()
+	_suspension.add_theme_constant_override("separation", 8)
+	column.add_child(_suspension)
+	var label := Label.new()
+	label.text = "Suspension"
+	label.theme_type_variation = "SmallLabel"
+	label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	label.tooltip_text = "S or LB/RB changes suspension"
+	_suspension.add_child(label)
+	for preset in ["soft", "medium", "hard"]:
+		var button := Button.new()
+		BuilderStyle.chip(button, preset)
+		button.toggle_mode = true
+		button.tooltip_text = "%s suspension (S or LB/RB to change)" % preset.capitalize()
+		button.pressed.connect(func() -> void: suspension_chosen.emit(preset))
+		_suspension.add_child(button)
+		_suspension_buttons.append(button)
 
 
 ## Under the part where there's room, otherwise over it, and always on screen.

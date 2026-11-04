@@ -87,7 +87,7 @@ class Runner:
 		karts.zap_blocked = kart_with(["shield"], Vector3(-90, 0.05, 115))
 		karts.popped = kart_with([], Vector3(107.5, 0.05, -10))
 
-		steps = [_start, _turbo, _turbo_check, _others, _tow_check, _others_check, _repair_check, _ram_check, _marbles, _marbles_check, _wall, _wall_check, _shockwave, _shockwave_check, _spikes, _spikes_check, _spike_pops, _spike_pops_check, _blasts, _blasts_check, _drop_looks, _ghost, _ghost_check, _homing_wheels, _homing_warning, _homing_warning_check, _drop_spread, _drop_spread_check, _tow_targets, _boxes]
+		steps = [_start, _turbo, _turbo_check, _others, _tow_check, _others_check, _repair_check, _ram_check, _marbles, _marbles_check, _wall, _wall_check, _shockwave, _shockwave_check, _spikes, _spikes_check, _spike_pops, _spike_pops_check, _shield_road, _shield_road_check, _blasts, _blasts_check, _drop_looks, _ghost, _ghost_check, _homing_wheels, _homing_warning, _homing_warning_check, _drop_spread, _drop_spread_check, _tow_targets, _boxes]
 
 	func _start() -> int:
 		for kart in [karts.turbo, karts.plain, karts.rammer, karts.bumper, karts.zapped, karts.unzapped]:
@@ -351,6 +351,93 @@ class Runner:
 				others += 1
 		check(wheels == 1 and karts.unspiked.lost.is_empty(), "spikes pop one tire of a kart that hits them fast (%d popped)" % wheels)
 		check(others == 0, "and take nothing else (%d other parts)" % others)
+		return 0
+
+	## A shield throws a brick wall and a dropped brick aside, slides marbles and
+	## spikes off the road, and isn't slowed or popped. They stay where they land.
+	func _shield_road() -> int:
+		var wall := BrickWall.new()
+		wall.colour_seed = 7
+		add_child(wall)
+		wall.global_position = Vector3(-80.0, 0.0, -108.0)
+		var pile := BrickPile.new(Vector3(2.4, 0.45, 0.8), Color("#c4281c"))
+		add_child(pile)
+		pile.global_position = Vector3(-80.0, 0.25, -112.0)
+		pile.freeze = true
+		karts.shield_wall = wall
+		karts.shield_pile = pile
+		var upper := BrickPile.new()
+		upper.freeze = true
+		add_child(upper)
+		upper.global_position = Vector3(-80.0, 4.0, -108.0)
+		karts.shield_upper = upper
+		karts.shield_through = kart_with(["shield"], Vector3(-80.0, 0.05, -104.0))
+		karts.shield_through.use_gadget(0)
+		karts.shield_through.linear_velocity = Vector3(0.0, 0.0, -16.0)
+		karts.shield_through.controls.throttle = 1.0
+
+		var marbles := BrickTrap.new("marbles")
+		add_child(marbles)
+		marbles.global_position = Vector3(20.0, 0.03, -100.0)
+		var marbles_shield := BrickTrap.new("marbles")
+		add_child(marbles_shield)
+		marbles_shield.global_position = Vector3(20.0, 0.03, -112.0)
+		karts.shield_marbles = [marbles, marbles_shield]
+		karts.marbles_at = marbles_shield.global_position
+		check(marbles_shield.overlaps_shield(marbles_shield.global_position + Vector3.UP), "a shield meets a trap on the same road")
+		check(not marbles_shield.overlaps_shield(marbles_shield.global_position + Vector3.UP * 8.0) and not marbles_shield.overlaps_shield(marbles_shield.global_position - Vector3.UP * 8.0), "a shield cannot reach traps on another level above or below")
+		karts.bare_slide = kart_with([], Vector3(18.0, 0.05, -100.0))
+		karts.shield_slide = kart_with(["shield"], Vector3(18.0, 0.05, -112.0))
+		karts.shield_slide.use_gadget(0)
+		for kart in [karts.bare_slide, karts.shield_slide]:
+			kart.linear_velocity = Vector3(6.0, 0.0, 0.0)
+
+		var spikes := BrickTrap.new("spikes")
+		add_child(spikes)
+		spikes.global_position = Vector3(50.0, 0.03, -108.0)
+		karts.shield_spikes_trap = spikes
+		karts.spikes_at = spikes.global_position
+		Kart.spike_pop_chance = 1.0
+		karts.shield_spikes = kart_with(["shield"], Vector3(50.0, 0.05, -103.0))
+		karts.shield_spikes.use_gadget(0)
+		karts.shield_spikes.linear_velocity = Vector3(0.0, 0.0, -14.0)
+		return 40
+
+	func _shield_road_check() -> int:
+		Kart.spike_pop_chance = 0.9
+		var wall: BrickWall = karts.shield_wall
+		var shoved := 0
+		for brick in wall._bricks:
+			if brick.freeze:
+				continue
+			var flat: Vector3 = brick.global_position - wall.global_position
+			flat.y = 0.0
+			if flat.length() > 1.2:
+				shoved += 1
+		check(shoved > 0, "a shield pushes the wall's bricks aside (%d)" % shoved)
+		var through: Kart = karts.shield_through
+		check(through.global_position.z < -112.5, "and drives on through the wall and a dropped brick (z %.1f)" % through.global_position.z)
+		check(through.forward_speed > 8.0, "without being slowed (%.1f m/s)" % through.forward_speed)
+		check(through.lost.is_empty(), "or losing a part")
+		var pile: BrickPile = karts.shield_pile
+		var pile_went: float = pile.global_position.distance_to(Vector3(-80.0, 0.25, -112.0))
+		check(pile_went > 1.0, "the dropped brick is pushed aside (%.1f m)" % pile_went)
+		check(karts.shield_upper.freeze, "a shield leaves a brick on the road above it alone")
+		var bare: float = karts.bare_slide.linear_velocity.x
+		var held: float = karts.shield_slide.linear_velocity.x
+		check(held < bare - 1.5, "a shield keeps its grip on marbles (%.1f against %.1f m/s)" % [held, bare])
+		var marbles_went: float = karts.shield_marbles[1].global_position.distance_to(karts.marbles_at)
+		check(marbles_went > 1.2, "and pushes the marbles aside (%.1f m)" % marbles_went)
+		check(karts.shield_marbles[0].global_position.distance_to(Vector3(20.0, 0.03, -100.0)) < 0.3, "marbles with no shield stay put")
+		check(karts.shield_spikes.lost.is_empty(), "and spikes pop nothing while it's up")
+		check(karts.shield_spikes.forward_speed > 8.0, "and don't slow it down (%.1f m/s)" % karts.shield_spikes.forward_speed)
+		var spikes_went: float = karts.shield_spikes_trap.global_position.distance_to(karts.spikes_at)
+		check(spikes_went > 1.2, "and the spikes are pushed aside (%.1f m)" % spikes_went)
+		through.controls.throttle = 0.0
+		for node in [wall, pile, karts.shield_upper, karts.shield_spikes_trap, through, karts.bare_slide, karts.shield_slide, karts.shield_spikes]:
+			node.queue_free()
+		for node in karts.shield_marbles:
+			node.queue_free()
 		return 0
 
 	## A shockwave and a cannonball throw dropped bricks about and knock walls
