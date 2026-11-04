@@ -45,6 +45,11 @@ const TUNES := ["menu", "race_one", "race_two", "race_three", "race_four", "race
 
 static var _music: AudioStreamPlayer
 static var _music_name := ""
+static var _menu_music := false
+static var _menu_started := false
+static var _menu_bag: Array[String] = []
+static var _menu_last := ""
+static var _menu_rng := RandomNumberGenerator.new()
 static var _host: SoundHost
 
 
@@ -59,6 +64,10 @@ static func stream(name: String) -> AudioStream:
 static func forget() -> void:
 	_music = null
 	_music_name = ""
+	_menu_music = false
+	_menu_started = false
+	_menu_bag.clear()
+	_menu_last = ""
 	_host = null
 
 
@@ -136,10 +145,25 @@ static func play_at(name: String, where: Node3D, volume_db := 0.0, pitch := 1.0)
 
 ## Plays this tune, fading out whatever was playing. Asking for the tune
 ## that's already playing leaves it going. "" fades the music out.
+## "menu" plays the menu tune once, then shuffles through the race tunes.
 static func music(name: String) -> void:
-	var host := _host_node()
-	if host == null or name == _music_name:
+	var menu_music := name == "menu"
+	if menu_music == _menu_music and (menu_music or name == _music_name):
 		return
+	var host := _host_node()
+	if host == null:
+		return
+	_menu_music = menu_music
+	if menu_music:
+		if _menu_started:
+			name = _next_menu_tune()
+		else:
+			_menu_started = true
+			_menu_rng.randomize()
+	_start_music(name, host)
+
+
+static func _start_music(name: String, host: SoundHost) -> void:
 	_music_name = name
 	var old := _music
 	_music = null
@@ -151,13 +175,47 @@ static func music(name: String) -> void:
 	var tune := stream("music/" + name) if name != "" else null
 	if tune == null:
 		return
+	if _menu_music:
+		# The imported tunes keep looping for races. Only this player ends.
+		tune = tune.duplicate()
+		(tune as AudioStreamOggVorbis).loop = false
 	_music = AudioStreamPlayer.new()
 	_music.stream = tune
 	_music.bus = MUSIC_BUS
 	_music.volume_db = -40.0
 	_music.autoplay = audible()
+	if _menu_music:
+		_music.finished.connect(_menu_finished.bind(_music))
 	host.add_child(_music)
 	tree.create_tween().bind_node(_music).tween_property(_music, "volume_db", MUSIC_LEVEL, CROSSFADE * 0.6)
+
+
+static func _menu_finished(player: AudioStreamPlayer) -> void:
+	if not _menu_music or player != _music:
+		return
+	var host := _host_node()
+	if host != null:
+		_start_music(_next_menu_tune(), host)
+
+
+static func _next_menu_tune() -> String:
+	if _menu_bag.is_empty():
+		for name in TUNES:
+			if name != "menu":
+				_menu_bag.append(name)
+		for i in range(_menu_bag.size() - 1, 0, -1):
+			var j := _menu_rng.randi_range(0, i)
+			var swap := _menu_bag[i]
+			_menu_bag[i] = _menu_bag[j]
+			_menu_bag[j] = swap
+		# The first tune in a new shuffle differs from the last one played.
+		if _menu_bag.size() > 1 and _menu_bag.back() == _menu_last:
+			var last := _menu_bag.size() - 1
+			_menu_bag[last] = _menu_bag[0]
+			_menu_bag[0] = _menu_last
+	var name: String = _menu_bag.pop_back()
+	_menu_last = name
+	return name
 
 
 ## The tune that's playing, or "".

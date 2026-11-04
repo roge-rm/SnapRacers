@@ -763,7 +763,7 @@ func _swap(next: Node) -> void:
 	if _screen != null:
 		_screen.queue_free()
 	_screen = next
-	# Each cup has its own race tune, and everywhere else plays the menu's.
+	# Each cup has its own race tune, everywhere else uses the menu playlist.
 	# The splash is quiet.
 	if next is Race:
 		Sounds.music(Sounds.race_tune(Tracks.id_of(track_path)))
