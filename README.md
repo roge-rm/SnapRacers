@@ -71,13 +71,13 @@ Single race is one race against the AI, time trial keeps your best times and pra
 
 Two players can race one course or a whole Grand Prix from the Multiplayer menu. On a phone you can play side by side in landscape, or face to face in portrait with the phone flat between you. Each player picks a kart and enters their name.
 
-There are seven camera views: close chase, far chase, first person, hood, bumper, overhead and TV cameras beside the track. Hold look back to see behind you. After the finish the camera circles your kart and the AI drives it home.
+There are seven camera views: close chase, far chase, first person, hood, bumper, overhead and TV cameras beside the track. Hold look back to see behind you. After the finish the AI keeps driving your kart. The camera circles it for a moment, then follows behind. Results slide in after two seconds, beside the kart on a wide screen or below it on a smaller one.
 
 To slide, hold the gas and brake together while steering. On a touch screen you can slide your thumb from GO down onto the brake and back up. Keep the gas on and steer into the bend to hold the slide, then straighten up to grip again. Smoke comes off the drive wheels, and sparks show the turbo charging in blue, then orange, then purple. Hold it for at least half a second and straighten up with the gas still on for a turbo. A longer slide gives a longer turbo, up to one and a half seconds, but loses more speed. Hard and Expert AI drivers slide too.
 
 Grass and sand slow you down, and a slide ends as soon as a wheel leaves the road. Sand slows you more than grass. If you get stuck or lose parts, reset puts you upright and repairs the kart. You slow down briefly and go through other karts for one second.
 
-After the last race of a Grand Prix, the top three stand on a podium by the start line, with their karts parked behind. The winner holds up the trophy, and the cup standings come up over it. Online everyone sees the podium. A skip button in the top left leaves it early.
+After the last race of a Grand Prix, the top three stand on a podium by the start line, with their karts parked in front. The winner holds up the trophy, and the cup standings come up over it. Online everyone sees the podium. A skip button in the top left leaves it early.
 
 Tap your place in the top corner, or press Start on a controller, to open the race menu. It pauses a race on your own or in split screen, where either player can carry on. Online the race keeps going while your menu is open.
 
@@ -102,7 +102,11 @@ Drive through a gold stud to get a power-up. You can hold two at once, one on ea
 
 Drag a part from the drawer onto the kart. It snaps on where its studs, clips, pins or axles fit, and dots show the places it can go. Tap a part to move, turn, flip, slide, copy or delete it. Mirror builds on both sides at once, and you can paint each part in sixteen brick colours.
 
-Undo and redo changes, save as many karts as you like or start from a stock kart. The card in the corner shows speed, pull, cornering, control, off-road grip, weight and drag. The wind button shows where the drag comes from, and you can take the kart straight out for a test drive.
+Select an installed wheel to set its suspension to Soft, Medium or Hard. Medium is the default. Press S or LB/RB to change it. With Mirror on, the opposite wheel changes too. The setting stays with the wheel when you move, copy or save it, and you can undo it.
+
+Undo and redo changes, save as many karts as you like or start from a stock kart. The card in the corner shows speed, pull, cornering, control, off-road grip, weight and drag. The wind button shows where the drag comes from.
+
+Test drive takes your kart onto a short course with jumps, a raised bridge and drop, a chicane and a loop. Falling off or wandering too far puts you back on the road. A reset near the loop puts you further back for another run at it.
 
 ### Parts
 
@@ -127,7 +131,7 @@ The kart's shape decides its drag. Flat faces catch the wind, slopes and nose co
 
 ### Stock vehicles
 
-You can pick any of the 24 stock vehicles before a race. The AI uses them too, picking one at random for a race or a whole Grand Prix. Their lap times are within about ten percent of each other overall.
+You can pick any of the 24 stock vehicles before a race, even while your garage kart is unfinished. The AI uses them too, picking one at random for a race or a whole Grand Prix. Their lap times are within about ten percent of each other overall.
 
 | Vehicle | How it drives |
 |---|---|
@@ -159,6 +163,8 @@ You can pick any of the 24 stock vehicles before a race. The AI uses them too, p
 ## Drivers
 
 Build a driver from a face, hair, facial hair, headgear, neckwear, a torso, a back piece, arms and legs. There are at least twenty choices for each, and you can change their colours. Heavier clothes and accessories make a heavier driver and a steadier kart. The seven AI drivers use the same parts.
+
+The file menu lets you save, load and rename drivers or start a new one. Load offers your saved drivers and stock drivers to change.
 
 The figures blink and look at nearby karts. The winner throws their fists in the air. On the driver screen they look around, wave and hop when you try a new part.
 
