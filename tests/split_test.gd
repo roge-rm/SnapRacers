@@ -190,10 +190,34 @@ func check_race(race: Race, mode: String) -> void:
 	race._player_finished(second)
 	check(not second.hud._results.visible and not race.player.hud._results.visible, "finishing leaves both views clear at first")
 	check(second.hud._message.text.ends_with("place") and not second.hud.touch.visible, "with only the finishing place and no driving controls")
+	var after_finish := InputEventScreenTouch.new()
+	after_finish.index = 5
+	after_finish.pressed = true
+	after_finish.position = Vector2(5.0, 5.0)
+	views[1].push_input(after_finish, true)
+	after_finish.pressed = false
+	views[1].push_input(after_finish, true)
+	await frames(2)
+	check(not second.hud.touch.visible and not second.hud.touch.is_processing_input(), "touching the finished half cannot bring driving controls back")
 	await frames(60)
 	check(not second.hud._results.visible, "the results stay hidden for the first second")
 	await frames(65)
 	check(second.hud._results.visible and not race.player.hud._results.visible, "then results come up only in the half of whoever finished")
+	after_finish.pressed = true
+	views[1].push_input(after_finish, true)
+	after_finish.pressed = false
+	views[1].push_input(after_finish, true)
+	await frames(2)
+	check(not second.hud.touch.visible, "touching the results leaves the driving controls hidden")
+	var still_racing := InputEventScreenTouch.new()
+	still_racing.index = 6
+	still_racing.pressed = true
+	still_racing.position = Vector2(5.0, 5.0)
+	views[0].push_input(still_racing, true)
+	still_racing.pressed = false
+	views[0].push_input(still_racing, true)
+	await frames(2)
+	check(race.player.hud.touch.visible and race.player.hud.touch.is_processing_input(), "the other player's driving controls still work")
 	var panel := second.hud._results.get_rect()
 	check(panel.position.y >= second.hud.size.y * 0.5 and panel.end.x <= second.hud.size.x and panel.end.y <= second.hud.size.y, "the split-screen table stays below the car and inside its half")
 	var car := second.camera.unproject_position(second.kart.global_position + Vector3.UP * 0.5)

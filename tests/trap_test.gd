@@ -22,6 +22,117 @@ class Runner:
 		add_child(kart)
 		return kart
 
+	func surface(at: Vector3, size: Vector3, angle := 0.0) -> StaticBody3D:
+		var ground := StaticBody3D.new()
+		ground.collision_layer = Kart.LAYER_WORLD
+		var shape := CollisionShape3D.new()
+		var box := BoxShape3D.new()
+		box.size = size
+		shape.shape = box
+		ground.add_child(shape)
+		ground.transform = Transform3D(Basis(Vector3.BACK, angle), at)
+		ground.position -= ground.basis.y * size.y * 0.5
+		add_child(ground)
+		return ground
+
+	func moving_trap(kind: String, at: Vector3, normal := Vector3.UP) -> BrickTrap:
+		var trap := BrickTrap.new(kind)
+		trap.transform = Transform3D(Basis.looking_at(Vector3.FORWARD.slide(normal).normalized(), normal), at)
+		add_child(trap)
+		var shield := Node3D.new()
+		add_child(shield)
+		shield.global_position = at - Vector3.RIGHT
+		trap.shove_from(shield)
+		shield.queue_free()
+		return trap
+
+	func _shoved_ground() -> void:
+		for kind in ["marbles", "spikes"]:
+			var flat := surface(Vector3(200, 0, 0), Vector3(30, 0.5, 30))
+			await frames(2)
+			var trap := moving_trap(kind, Vector3(197, 0.01, 0))
+			await frames(100)
+			check(trap.position.x > 200.0 and absf(trap.position.y - 0.01) < 0.03 and not trap._moving, "%s slide along flat ground and stop on it" % kind)
+			trap.queue_free()
+			flat.queue_free()
+
+			var slope := surface(Vector3(240, 2, 0), Vector3(30, 0.5, 30), 0.2)
+			await frames(2)
+			var normal := slope.basis.y
+			trap = moving_trap(kind, Vector3(237, 2.0 - tan(0.2) * 3.0, 0) + normal * 0.01, normal)
+			await frames(100)
+			check(absf((trap.position - Vector3(240, 2, 0)).dot(normal) - 0.01) < 0.03 and trap.basis.y.dot(normal) > 0.999, "%s follow the height and normal of a slope" % kind)
+			trap.queue_free()
+			slope.queue_free()
+
+			var crest := StaticBody3D.new()
+			crest.collision_layer = Kart.LAYER_WORLD
+			var shape := CollisionShape3D.new()
+			var mesh := ConcavePolygonShape3D.new()
+			var points := PackedVector3Array()
+			for ends in [[Vector2(-10, -1), Vector2(0, 1)], [Vector2(0, 1), Vector2(10, -1)]]:
+				var a := Vector3(ends[0].x, ends[0].y, -15)
+				var b := Vector3(ends[1].x, ends[1].y, -15)
+				var c := Vector3(ends[1].x, ends[1].y, 15)
+				var d := Vector3(ends[0].x, ends[0].y, 15)
+				points.append_array(PackedVector3Array([a, b, c, a, c, d]))
+			mesh.set_faces(points)
+			shape.shape = mesh
+			crest.add_child(shape)
+			crest.position = Vector3(280, 2, 0)
+			add_child(crest)
+			await frames(2)
+			normal = Vector3(-0.2, 1, 0).normalized()
+			trap = moving_trap(kind, Vector3(278, 2.6, 0) + normal * 0.01, normal)
+			await frames(100)
+			var down_normal := Vector3(0.2, 1, 0).normalized()
+			check(trap.position.x > 280 and trap.position.y < 3.0 and absf((trap.position - Vector3(280, 3, 0)).dot(down_normal) - 0.01) < 0.03 and trap.basis.y.dot(down_normal) > 0.999, "%s follow a crest onto the downward slope (%s, normal %s)" % [kind, trap.position, trap.basis.y])
+			trap.queue_free()
+			crest.queue_free()
+
+			var lower := surface(Vector3(320, 0, 0), Vector3(30, 0.5, 30))
+			var bridge := surface(Vector3(315, 5, 0), Vector3(10, 0.5, 30))
+			await frames(2)
+			trap = moving_trap(kind, Vector3(319, 5.01, 0))
+			await frames(18)
+			check(trap.position.x > 320 and trap.position.y > 2.5 and trap.position.y < 5.0 and trap.collision_layer == 0, "%s fall from a bridge without snapping to the lower road" % kind)
+			await frames(100)
+			check(absf(trap.position.y - 0.01) < 0.03 and trap.collision_layer == Kart.LAYER_WORLD and not trap._moving, "%s land on the lower road after their slide stops" % kind)
+			trap.queue_free()
+			lower.queue_free()
+			bridge.queue_free()
+
+			trap = moving_trap(kind, Vector3(360, 5, 0))
+			await frames(100)
+			var fallen := trap.position.y
+			await frames(30)
+			check(trap._slide == Vector3.ZERO and trap.position.y < fallen - 1.0 and trap.collision_layer == 0, "%s keep falling in a gap after horizontal movement stops" % kind)
+			trap.queue_free()
+
+			flat = surface(Vector3(400, 0, 0), Vector3(30, 0.5, 30))
+			var other := BrickTrap.new(kind)
+			other.position = Vector3(400, 0.12, 0)
+			add_child(other)
+			await frames(2)
+			trap = moving_trap(kind, Vector3(397, 0.01, 0))
+			await frames(100)
+			check(absf(trap.position.y - 0.01) < 0.03 and absf(other.position.y - 0.12) < 0.001, "%s find the road instead of landing on another trap" % kind)
+			trap.queue_free()
+			other.queue_free()
+			flat.queue_free()
+
+			var suspended := make_kart("starter", Vector3(440, 8, 0))
+			suspended.freeze = true
+			await frames(2)
+			trap = BrickTrap.drop_behind(suspended, kind)
+			add_child(trap)
+			var dropped_at := trap.position.y
+			await frames(30)
+			check(trap.position.y < dropped_at - 0.5 and trap.collision_layer == 0, "%s dropped over a gap fall immediately" % kind)
+			trap.queue_free()
+			suspended.queue_free()
+			await frames(2)
+
 	func _ready() -> void:
 		var ground := StaticBody3D.new()
 		ground.collision_layer = Kart.LAYER_WORLD
@@ -58,6 +169,7 @@ class Runner:
 				dropper.queue_free()
 				control.queue_free()
 				await frames(2)
+		await _shoved_ground()
 		print("All trap checks passed." if failures == 0 else "%d trap checks failed." % failures)
 		get_tree().quit(1 if failures > 0 else 0)
 

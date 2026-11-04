@@ -36,6 +36,12 @@ var kind := "marbles"
 var _age := 0.0
 ## Slide left after a shield shove, in m/s, world space and horizontal.
 var _slide := Vector3.ZERO
+var _moving := false
+var _falling := false
+var _fall_speed := 0.0
+## Nearby ground follows the patch's current plane. Larger drops use gravity.
+const GROUND_STEP := 0.2
+const GROUND_CLEAR := 0.01
 ## How fast a shield throws the patch, and how fast that slide dies, in m/s
 ## and m/s², so it moves a few metres and stops.
 const SHOVE_SPEED := 9.0
@@ -55,12 +61,21 @@ static func drop_behind(from: Kart, what := "marbles") -> BrickTrap:
 	var space := from.get_world_3d().direct_space_state
 	var query := PhysicsRayQueryParameters3D.create(behind + Vector3.UP * 2.0, behind + Vector3.DOWN * 4.0, Kart.LAYER_WORLD)
 	var hit := space.intersect_ray(query)
+	for i in 32:
+		if hit.is_empty() or not hit.collider is BrickTrap:
+			break
+		query.exclude = query.exclude + [hit.rid]
+		hit = space.intersect_ray(query)
 	var ground: Vector3 = hit.position if not hit.is_empty() else behind
 	var normal: Vector3 = hit.normal if not hit.is_empty() else Vector3.UP
 	var forward := (-from.global_basis.z).slide(normal).normalized()
 	if forward.length() < 0.1:
 		forward = Vector3.FORWARD
 	trap.transform = Transform3D(Basis.looking_at(forward, normal), ground + normal * 0.01)
+	trap._moving = hit.is_empty()
+	trap._falling = hit.is_empty()
+	if trap._falling:
+		trap.collision_layer = 0
 	return trap
 
 
@@ -183,17 +198,65 @@ func shove_from(kart: Node3D) -> void:
 		lean = 1.0
 	var out := (side * signf(lean) + forward * 0.4).normalized()
 	_slide = out * SHOVE_SPEED
+	_moving = true
+
+
+## Other patches aren't ground, including ones above or below this one.
+func _ground_between(from: Vector3, to: Vector3) -> Dictionary:
+	var query := PhysicsRayQueryParameters3D.create(from, to, Kart.LAYER_WORLD, [get_rid()])
+	var space := get_world_3d().direct_space_state
+	for i in 32:
+		var hit := space.intersect_ray(query)
+		if hit.is_empty():
+			return {}
+		if not hit.collider is BrickTrap:
+			return hit if hit.normal.y > 0.1 else {}
+		query.exclude = query.exclude + [hit.rid]
+	return {}
+
+
+func _land(hit: Dictionary) -> void:
+	var normal: Vector3 = hit.normal
+	var forward := (-global_basis.z).slide(normal).normalized()
+	if forward.length() < 0.1:
+		forward = Vector3.RIGHT.cross(normal).normalized()
+	global_transform = Transform3D(Basis.looking_at(forward, normal), hit.position + normal * GROUND_CLEAR)
+	_falling = false
+	_fall_speed = 0.0
+	collision_layer = Kart.LAYER_WORLD
+
+
+func _move(delta: float) -> void:
+	var before := global_position
+	var velocity := _slide
+	if not _falling:
+		velocity = _slide.slide(global_basis.y)
+	var next := before + velocity * delta
+	if not _falling:
+		var support := _ground_between(next + Vector3.UP * GROUND_STEP, next - Vector3.UP * GROUND_STEP)
+		if not support.is_empty():
+			_land(support)
+		else:
+			_falling = true
+			_fall_speed = velocity.y
+			collision_layer = 0
+	if _falling:
+		_fall_speed -= KartStats.gravity() * delta
+		next.y = before.y + _fall_speed * delta
+		var landing := _ground_between(Vector3(next.x, before.y + GROUND_CLEAR, next.z), next - Vector3.UP * GROUND_CLEAR)
+		if _fall_speed <= 0.0 and not landing.is_empty():
+			_land(landing)
+		else:
+			global_position = next
+	_slide = _slide.move_toward(Vector3.ZERO, SHOVE_DAMP * delta)
+	if _slide.length() <= 0.15:
+		_slide = Vector3.ZERO
+		_moving = _falling
 
 
 func _physics_process(delta: float) -> void:
 	_age += delta
-	if _slide.length() > 0.15:
-		# Along the ground the patch is lying on.
-		var along := global_basis.inverse() * _slide
-		along.y = 0.0
-		global_position += global_basis * along * delta
-		_slide = _slide.move_toward(Vector3.ZERO, SHOVE_DAMP * delta)
-	else:
-		_slide = Vector3.ZERO
+	if _moving:
+		_move(delta)
 	if _age > LIFETIME:
 		queue_free()

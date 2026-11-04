@@ -685,6 +685,7 @@ func show_results() -> void:
 	_menu.visible = false
 	if touch != null:
 		touch.visible = false
+		touch.set_process_input(false)
 	flash("Finished" if race.mode == Game.MODE_TIME_TRIAL else "%s place" % ordinal(race.place_of(me)))
 
 

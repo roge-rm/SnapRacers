@@ -181,10 +181,18 @@ func _ready() -> void:
 		for i in drivers.size():
 			var who := Game.roster_driver(drivers[i])
 			var design := Game.stock_kart(karts.get(drivers[i], Game.DEFAULT_STOCK))
-			entries.append({ "name": who.name, "design": design, "who": who, "rank": ranks.get(drivers[i], i), "line": (i % 3 - 1) * 1.5 })
+			entries.append({ "identity": "ai:" + drivers[i], "name": who.name, "design": design, "who": who, "rank": ranks.get(drivers[i], i), "line": (i % 3 - 1) * 1.5 })
 		if people > 1:
-			entries.append({ "name": Game.player_two_name(), "design": Game.player_two_design(), "who": Game.roster_driver(two_driver), "human": 1 })
-	entries.append({ "name": Game.player_one_name() if people > 1 else Game.player_name(), "design": Game.chosen_design(), "who": Game.character, "human": 0 })
+			entries.append({ "identity": "player:1", "name": Game.player_two_name(), "design": Game.player_two_design(), "who": Game.roster_driver(two_driver), "human": 1 })
+	entries.append({ "identity": "player:0", "name": Game.player_one_name() if people > 1 else Game.player_name(), "design": Game.chosen_design(), "who": Game.character, "human": 0 })
+	var names := Game.grand_prix.race_names if mode == Game.MODE_GRAND_PRIX and Game.grand_prix != null else RaceNames.new()
+	names.assign(entries)
+	if mode == Game.MODE_GRAND_PRIX and Game.grand_prix != null:
+		Game.grand_prix.people = []
+		for person in people:
+			for entry in entries:
+				if entry.get("human", -1) == person:
+					Game.grand_prix.people.append(entry.name)
 	# After the first race of a Grand Prix, the grid goes by the points so far.
 	if mode == Game.MODE_GRAND_PRIX and Game.grand_prix != null and Game.grand_prix.round > 0:
 		var order: Array = Game.grand_prix.grid_order()
@@ -747,16 +755,18 @@ func _player_finished(racer: Racer) -> void:
 		racer.hud.show_results()
 	if racer.camera != null:
 		racer.camera.finish()
-	if racer.ai != null:
-		return
-	var driver := AIDriver.new()
-	driver.kart = racer.kart
-	driver.track = track
-	driver.skill = 0.85
-	driver.others.assign(racers.map(func(r): return r.kart))
-	driver.crossings = builder.crossings
-	add_child(driver)
-	racer.ai = driver
+	var driver := racer.ai
+	if driver == null:
+		driver = AIDriver.new()
+		driver.kart = racer.kart
+		driver.track = track
+		driver.skill = 0.85
+		driver.others.assign(racers.map(func(r): return r.kart))
+		driver.crossings = builder.crossings
+		add_child(driver)
+		racer.ai = driver
+	driver.offset = racer.offset
+	driver.clock = train_clock.now
 	racer.kart.controls = driver.controls
 
 

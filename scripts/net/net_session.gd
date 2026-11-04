@@ -126,6 +126,7 @@ func leave() -> void:
 	members.clear()
 	setup = {}
 	_loaded.clear()
+	_race_names = RaceNames.new()
 
 
 static func default_settings() -> Dictionary:
@@ -249,6 +250,7 @@ func can_start() -> bool:
 func start() -> void:
 	if not can_start():
 		return
+	_race_names = RaceNames.new()
 	if settings.mode == CUP:
 		cup_points = {}
 		cup_round = 0
@@ -258,6 +260,7 @@ func start() -> void:
 ## Where a cup's got to, which only the host keeps.
 var cup_points := {}
 var cup_round := 0
+var _race_names := RaceNames.new()
 
 
 func _begin_round() -> void:
@@ -274,7 +277,7 @@ func _setup() -> Dictionary:
 	for peer in ids:
 		var players: Array = members[peer].players
 		for i in players.size():
-			entries.append({"owner": peer, "local": i, "human": true, "name": players[i].name, "driver": players[i].driver, "kart": players[i].kart})
+			entries.append({"identity": "player:%d:%d" % [peer, i], "owner": peer, "local": i, "human": true, "name": players[i].name, "driver": players[i].driver, "kart": players[i].kart})
 	if settings.ai:
 		var drivers := Game.ai_driver_keys()
 		var karts := Game.draw_karts(drivers)
@@ -282,7 +285,10 @@ func _setup() -> Dictionary:
 		var fill := mini(drivers.size(), MOST_KARTS - entries.size())
 		for i in fill:
 			var who := Game.roster_driver(drivers[i])
-			entries.push_front({"owner": 1, "ai": true, "name": who.name, "driver": who.to_dict(), "kart": Game.stock_kart(karts.get(drivers[i], Game.DEFAULT_STOCK)).to_dict(), "rank": ranks.get(drivers[i], i), "line": (i % 3 - 1) * 1.5})
+			entries.push_front({"identity": "ai:" + drivers[i], "owner": 1, "ai": true, "name": who.name, "driver": who.to_dict(), "kart": Game.stock_kart(karts.get(drivers[i], Game.DEFAULT_STOCK)).to_dict(), "rank": ranks.get(drivers[i], i), "line": (i % 3 - 1) * 1.5})
+	_race_names.assign(entries)
+	for entry in entries:
+		entry.erase("identity")
 	# In a cup, after the first race the grid goes by the points so far,
 	# leader at the back.
 	if settings.mode == CUP and cup_round > 0:
@@ -429,6 +435,10 @@ func _begin(race_setup: Dictionary) -> void:
 		for i in int(race_setup.rounds):
 			gp.cup.paths.append(path)
 		gp.points = race_setup.points.duplicate()
+		var mine: Array = race_setup.get("entries", []).filter(func(e): return e.get("human", false) and int(e.owner) == my_id())
+		mine.sort_custom(func(a, b): return int(a.local) < int(b.local))
+		gp.people = mine.map(func(e): return e.name)
+		gp.two = mine.size() > 1
 		for entry in race_setup.get("entries", []):
 			gp.designs[entry.name] = [entry.kart, entry.driver]
 	else:

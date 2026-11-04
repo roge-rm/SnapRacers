@@ -18,6 +18,8 @@ var cup: Dictionary
 var round := 0
 ## Points so far, by racer name.
 var points := {}
+## Stable unique race labels for the whole cup.
+var race_names := RaceNames.new()
 ## Each race's finishing order so far, as lists of names.
 var results: Array = []
 ## The stock kart each AI driver races the whole cup in, as { driver: kart }.

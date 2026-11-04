@@ -6,6 +6,7 @@ extends Node
 ##
 ##   ... res://tests/net_test.tscn -- host
 ##   ... res://tests/net_test.tscn -- join
+## Add same-name after the role to race both people as Brickley.
 ##
 ## Each lets the AI drive its own kart, and checks what it sees: the other
 ## player's kart moving, the AI karts, the lobby, the race starting for both
@@ -16,6 +17,7 @@ const PORT := 27290
 var failures := 0
 var host: Node
 var role := "host"
+var same_name := false
 var order: Array = []
 ## The puddles' sizes as they build up, by level, to compare with the other
 ## copy's (see tools/run-net-test.sh).
@@ -50,10 +52,11 @@ func until(test: Callable, seconds: float) -> bool:
 func _ready() -> void:
 	var args := OS.get_cmdline_user_args()
 	role = args[0] if not args.is_empty() else "host"
+	same_name = args.size() > 1 and args[1] == "same-name"
 	host = Node.new()
 	add_child(host)
 	Game.start(host, false)
-	Game.settings.set_value("player", "name", "Host" if role == "host" else "Joiner")
+	Game.settings.set_value("player", "name", "Brickley" if same_name else ("Host" if role == "host" else "Joiner"))
 	Game.settings.set_value("race", "kart", "kart_kid")
 	var net := Game.net
 	net.race_begun.connect(func() -> void: order.clear())
@@ -78,6 +81,9 @@ func _ready() -> void:
 	check(await until(func(): return screen() is Race, 30.0), "the race starts")
 	var race: Race = screen()
 	check(race.racers.size() == 8, "with both of us and six AI karts (%d)" % race.racers.size())
+	if same_name:
+		var names := race.racers.map(func(r): return r.name)
+		check(names.all(func(n): return names.count(n) == 1), "matching online human and AI names have distinct race labels")
 	# Whoever's hosting picks the weather, and everyone races in it with the
 	# same puddles.
 	var puddles := race.builder.puddles
@@ -93,17 +99,19 @@ func _ready() -> void:
 	race.player.ai = driver
 	race.player.kart.controls = driver.controls
 	check(await until(func(): return race.started, 30.0), "the countdown runs out and it's go")
-	var other: Race.Racer = race.racers.filter(func(r): return r.player == false and r.name == ("Joiner" if role == "host" else "Host"))[0]
+	var other: Race.Racer = race.racers.filter(func(r): return not r.player and not r.cpu)[0]
 	var at := other.kart.global_position
 	await get_tree().create_timer(5.0).timeout
 	check(other.kart.global_position.distance_to(at) > 20.0, "the other player's kart is seen moving (%.0f m)" % other.kart.global_position.distance_to(at))
 	# Keep the finishing order while the race is still here to ask.
+	var race_ref: WeakRef = weakref(race)
 	var back := await until(func():
-		if is_instance_valid(race) and screen() == race:
-			order = race.standings().map(func(r): return r.name)
-			var level := roundi(race.builder.puddles.level * 100.0)
+		var active := race_ref.get_ref() as Race
+		if active != null and screen() == active:
+			order = active.standings().map(func(r): return r.name)
+			var level := roundi(active.builder.puddles.level * 100.0)
 			if level in [25, 50, 75, 100] and not puddle_sizes.has(level):
-				puddle_sizes[level] = hash(race.builder.puddles.radius_now)
+				puddle_sizes[level] = hash(active.builder.puddles.radius_now)
 		return screen() is Lobby, 180.0)
 	check(back, "when everyone's home, it's back to the lobby")
 	check(order.size() == 8, "and the race had a finishing order")
@@ -128,6 +136,8 @@ func _ready() -> void:
 	for round in 2:
 		check(await until(func(): return screen() is Race, 30.0), "race %d of the cup starts" % (round + 1))
 		var leg: Race = screen()
+		if same_name:
+			check(Game.grand_prix.people == [leg.player.name], "the local cup player uses their assigned race label")
 		var ai := AIDriver.new()
 		ai.kart = leg.player.kart
 		ai.track = leg.track
@@ -139,6 +149,8 @@ func _ready() -> void:
 			check(await until(func(): return screen() is GrandPrixStandings, 180.0), "then the standings")
 		else:
 			await _podium(leg)
+		if same_name:
+			check(Game.grand_prix.points.size() == 8 and Game.grand_prix.best_place() > 0, "same-name racers keep separate cup scores and a local place")
 		print("[%s] points after race %d: %s" % [role, round + 1, Game.grand_prix.standings()])
 		if role == "host":
 			await get_tree().create_timer(1.0).timeout
@@ -164,7 +176,7 @@ func _podium(leg: Race) -> void:
 	var podium := leg.podium
 	var names := Game.grand_prix.standings().map(func(s): return s[0])
 	check(podium.order.map(func(e): return e[0]) == names and names.size() == 8, "with everyone in the standings' order (%d)" % podium.order.size())
-	var me := "Host" if role == "host" else "Joiner"
+	var me: String = Game.grand_prix.people[0] if same_name else ("Host" if role == "host" else "Joiner")
 	var mine: int = names.find(me)
 	check(podium.tags.keys() == ([mine] if mine >= 3 else []), "and a tag over just our own player, %s" % RaceHud.ordinal(mine + 1))
 	check(screen() == leg and leg.net == null and Game.net.race == null, "on the race's course, with the race's network part gone")

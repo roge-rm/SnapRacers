@@ -80,15 +80,17 @@ func _process(delta: float) -> void:
 		queue_free()
 		return
 	var fade := 1.0 - t
+	# Expand quickly enough to pass ahead of a moving first person camera.
+	var expansion := 1.0 - pow(1.0 - t, 4.0)
 	_flash.scale = Vector3(lerpf(0.6, reach * 0.35, t), 1.0, lerpf(0.6, reach * 0.35, t))
 	_tint(_flash, fade * fade * 1.2)
-	var wall_r := lerpf(0.5, reach, t)
+	var wall_r := lerpf(0.5, reach, expansion)
 	_wall.scale = Vector3(wall_r, 1.0 + 0.35 * t, wall_r)
 	_tint(_wall, fade * 0.7)
 	for i in _rings.size():
 		var delay := i * 0.12
 		var u := clampf((_age - delay) / (TIME - delay * 0.5), 0.0, 1.0)
-		var r := lerpf(0.6, reach, u)
+		var r := lerpf(0.6, reach, 1.0 - pow(1.0 - u, 4.0))
 		_rings[i].visible = _age >= delay
 		_rings[i].basis = Basis(Vector3.RIGHT, PI * 0.5).scaled(Vector3(r, r, 1.0))
 		_rings[i].position.y = 0.12 + i * 0.18

@@ -70,6 +70,7 @@ func _ready() -> void:
 	Game.start(host, false)
 	# Normal difficulty, whatever was last picked, without saving over it.
 	Game.settings.set_value("race", "difficulty", Difficulty.DEFAULT)
+	await _kart_validation()
 	await _grand_prix()
 	await _grand_prix_for_two()
 	await _difficulty()
@@ -79,6 +80,62 @@ func _ready() -> void:
 	Records.use_file(Records.FILE)
 	print("All mode checks passed." if failures == 0 else "%d mode checks failed." % failures)
 	get_tree().quit(1 if failures > 0 else 0)
+
+
+func _kart_validation() -> void:
+	print("-- Selected kart validation")
+	var saved_design := Game.design
+	var saved_settings := Game.settings.encode_to_text()
+	var settings_existed := FileAccess.file_exists(Game.SETTINGS)
+	var settings_file := FileAccess.get_file_as_bytes(Game.SETTINGS) if settings_existed else PackedByteArray()
+	Game.design = KartDesign.new()
+	var draft := Game.design
+	Game.settings.set_value("race", "kart", Game.OWN_KART)
+	Game.settings.set_value("race", "split", Game.SOLO)
+	Game.racing_alone = false
+	var path := Tracks.path_of("peach_pit")
+	Game.show_kart_picker(Game.start_race.bind(path), Game.show_menu)
+	await frames(2)
+	var picker := screen() as KartPicker
+	check(picker != null and picker._cards[Game.OWN_KART].disabled, "an unfinished garage kart cannot be picked")
+	var key: String = Game.stock_keys().filter(func(k): return k != Game.DEFAULT_STOCK)[0]
+	if picker != null:
+		picker._cards[key].tapped.emit()
+		picker._race.pressed.emit()
+	var race := await wait_for(Race) as Race
+	check(race != null and race.player.kart.design.name == Game.stock_kart(key).name, "picking another kart starts the race while the garage draft is unfinished")
+	check(Game.design == draft and Game.design.parts.is_empty(), "racing a stock kart leaves the garage draft alone")
+
+	Game.start_grand_prix("baseplate")
+	race = await wait_for(Race) as Race
+	check(race != null and race.player.kart.design.name == Game.stock_kart(key).name, "a cup also starts with the chosen stock kart and an unfinished draft")
+	Game.settings.set_value("race", "kart", Game.OWN_KART)
+	Game.next_grand_prix_race()
+	race = await wait_for(Race) as Race
+	check(race != null and race.player.kart.design.name == Game.stock_kart(key).name, "carrying on a cup checks its original kart choice")
+	Game.grand_prix = null
+	Game.settings.set_value("race", "kart", key)
+	Game.settings.set_value("race", "player_two", Game.DEFAULT_STOCK)
+	Game.settings.set_value("race", "split", Game.SIDE_BY_SIDE)
+	Game.start_race(path)
+	race = await wait_for(Race) as Race
+	check(race != null and race.humans.size() == 2 and race.humans[0].kart.design.name == Game.stock_kart(key).name and race.humans[1].kart.design.name == Game.stock_kart(Game.DEFAULT_STOCK).name, "two selected stock karts race with an unfinished garage draft")
+
+	Game.settings.set_value("race", "kart", Game.OWN_KART)
+	Game.settings.set_value("race", "split", Game.SOLO)
+	Game.start_race(path)
+	await frames(2)
+	check(screen() is Garage and Game.design == draft and not Game.design.problems().is_empty(), "racing the unfinished garage kart still returns to the garage")
+	Game.design = saved_design
+	Game.settings.clear()
+	Game.settings.parse(saved_settings)
+	if settings_existed:
+		var file := FileAccess.open(Game.SETTINGS, FileAccess.WRITE)
+		file.store_buffer(settings_file)
+	else:
+		DirAccess.remove_absolute(Game.SETTINGS)
+	Game.show_menu()
+	await frames(2)
 
 
 func _grand_prix() -> void:

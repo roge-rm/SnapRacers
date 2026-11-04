@@ -406,11 +406,12 @@ func show_about() -> void:
 func show_race(path := "") -> void:
 	if path != "":
 		track_path = path
-	# A kart that can't race goes to the garage instead, which lists what's
-	# missing.
-	if not design.problems().is_empty():
-		show_garage()
-		return
+	# Online races use the host's roster. Offline, check the karts picked for
+	# this race, including the cup's choices when carrying on a Grand Prix.
+	if not net.is_online() or net.setup.is_empty():
+		if not chosen_design().problems().is_empty() or (race_split() != SOLO and not player_two_design().problems().is_empty()):
+			show_garage()
+			return
 	show_loading(true)
 	await get_tree().process_frame
 	await get_tree().process_frame
