@@ -151,6 +151,15 @@ func _bank() -> void:
 			shown[id] = true
 	var missing := PartCatalog.in_garage().filter(func(id): return not shown.has(id))
 	check(missing.is_empty(), "every part is in the drawer somewhere %s" % [missing])
+	check(shown.has("p_round_brick_1x1") and shown.has("p_round_tile_1x1"), "the round 1×1 brick and tile are in the drawer")
+	var mounts := ["p_inverted_bracket_1x2", "p_opposite_stud_brick", "p_jumper_2x2", "p_technic_brick_1x2", "p_axle_hole_brick_1x1"]
+	check(mounts.all(func(id): return shown.has(id)), "the inverted and opposite-side mounts, centred jumper and compact Technic adapters are in the drawer")
+	var shapes := ["p_inverted_slope_1x2", "p_inverted_slope_1x3", "p_brick_1x3", "p_tile_1x3", "p_tile_2x3", "p_wedge_2x4_left", "p_wedge_2x4_right"]
+	check(shapes.all(func(id): return shown.has(id)), "the narrow inverted slopes, 1×3 brick, smooth tiles and medium wedges are in the drawer")
+	check(shown.size() == 302 and PartCatalog.ids().size() == 325, "the drawer offers 302 parts and keeps all 325 saved IDs")
+	check(GarageUI.category_of(PartCatalog.get_part("d_number_brick")) == 1, "the race-number brick is in Bricks")
+	check(shown.has("p_tile_2x4") and not shown.has("tile_2x4"), "the smooth 2×4 tile replaces the legacy tile in the drawer")
+	check(shown.has("plate_6x10") and shown.has("p_plate_6x10") and shown.has("plate_6x12") and shown.has("p_plate_6x12"), "both chassis plate sizes offer the side-mount and plain versions")
 	var replaced := PartCatalog.ids().filter(func(id): return PartCatalog.get_part(id).has("replaced_by"))
 	check(not replaced.is_empty() and replaced.all(func(id): return not shown.has(id)), "but not the old parts that have been replaced (%d)" % replaced.size())
 	var names := {}

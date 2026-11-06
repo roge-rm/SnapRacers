@@ -25,8 +25,24 @@ var mistakes := 0.0
 ## The chance, each time it comes to a loop, that it loses its nerve on the
 ## way up, backs off, and falls off it (see Difficulty).
 var loop_nerves := 0.0
-## How often it uses a gadget when the moment's right, from 0 to 1.
+## How often it notices a useful gadget opportunity.
 var gadget_sense := 1.0
+var gadget_reaction := 0.25
+## Seconds ahead it judges moving targets and threats.
+var gadget_planning := 1.5
+## How certain a fixed shot must be, from 0 to 1.
+var gadget_confidence := 0.75
+## Traffic reaction time, prediction horizon and clearance, in seconds and metres.
+var traffic_reaction := 0.45
+var traffic_planning := 2.0
+var traffic_clearance := 0.8
+## Zero disables deliberate contact. Otherwise these bound a contested pass.
+var traffic_mass_ratio := 0.0
+var traffic_contact_closing := 0.0
+var traffic_contact_side := 0.0
+var traffic_contact_time := 0.0
+var traffic_contact_cooldown := 3.0
+var traffic := AITrafficPlanner.new()
 ## Whether it slides round the tightest bends instead of braking for them
 ## (see Kart.sliding). Only Hard and Expert drivers do.
 var slides := false
@@ -99,9 +115,6 @@ const KART_GAP := 0.8
 const STRAIGHT_STEER_RATE := 5.0
 ## How bent the road can be and still count as a straight for that.
 const STRAIGHT_BEND := 0.01
-## This close behind a kart that's still in the way, it matches their speed
-## instead of driving into their back.
-const SIT_BEHIND := 8.0
 ## Pointing further than this from where it's going, it slows down enough
 ## to turn onto it, though never below TURN_ROUND_SPEED.
 const TURN_ROUND_ANGLE := 0.5
@@ -124,6 +137,9 @@ var _stuck := 0.0
 var _think := 0.0
 ## How long it's held what's on each gadget button, in seconds.
 var _held_for: Array[float] = [0.0, 0.0]
+var _held_kind: Array[String] = ["", ""]
+var _held_uses: Array[int] = [0, 0]
+var _held_revision: Array[int] = [-1, -1]
 var _rng := RandomNumberGenerator.new()
 ## Whether there's a bend coming up, and how it's misjudging it: 1 is right,
 ## more is too fast and less is too slow.
@@ -147,6 +163,7 @@ var _mark_time := 0.0
 ## Which side the kart it backed off is on, 1 right, -1 left or 0 for none,
 ## and how long it has left pulling away from it.
 var _away := 0.0
+var _recover_from: Kart
 var _leaving := 0.0
 ## How long it's been going with a wheel knocked off.
 var _wheel_gone := 0.0
@@ -164,11 +181,6 @@ static var _walls: Array = []
 static var _walls_frame := -1
 ## Last steering, so a straight can ease the stick instead of snapping it.
 var _steer := 0.0
-## The kart it's stuck behind, how far, and how fast they're going, for
-## sitting behind until there's a gap.
-var _block_ahead := INF
-var _block_speed := INF
-
 ## The level crossings on the course, and the race clock their trains run
 ## on (see TrainTimetable), so it can wait for a train or beat it across.
 var crossings: Array[LevelCrossing] = []
@@ -238,8 +250,7 @@ var _scan_right := PackedVector3Array()
 var _scan_frame := -1
 var _scan_offset := NAN
 var _scan_from := 0.0
-## After holding a power-up this long it uses it at the next moment that
-## isn't a bad one, so it has room for the next box.
+## After this long it favours using a safe opportunity over saving the item.
 const HOLD_AT_MOST := 12.0
 ## How often it looks at the bends down the road for braking, in metres, and
 ## what it saw, kept from step to step.
@@ -364,10 +375,8 @@ func _drive(delta: float, speed: float) -> void:
 	if absf(angle) > TURN_ROUND_ANGLE and not kart.sliding:
 		var across := 1.0 if absf(angle) > PI * 0.5 else sin(absf(angle))
 		allowed = minf(allowed, maxf(sqrt(grip * to_target.length() / (2.0 * across)), TURN_ROUND_SPEED))
-	# Someone still in the way up close: match their speed until the pass
-	# has moved it aside, rather than driving into their back.
-	if _block_ahead < SIT_BEHIND and is_finite(_block_speed):
-		allowed = minf(allowed, maxf(_block_speed + maxf(_block_ahead - 2.5, 0.0) * 0.9, TURN_ROUND_SPEED))
+	# Traffic braking also follows the corridor while a pass moves aside.
+	allowed = minf(allowed, traffic.speed_limit)
 	if not crossings.is_empty():
 		allowed = minf(allowed, _train_limit(speed, braking))
 
@@ -455,6 +464,15 @@ func _drive(delta: float, speed: float) -> void:
 		controls.throttle = 1.0
 		controls.brake = 0.0
 
+	# Queue braking has to release before the pedal starts reversing.
+	if is_finite(traffic.speed_limit) and not _looping() and _backing <= 0.0 and _leaving <= 0.0 and not kart.sliding:
+		var forward_speed := kart.linear_velocity.dot(-kart.global_basis.z)
+		if speed > traffic.speed_limit + 0.25:
+			controls.throttle = 0.0
+			controls.brake = 1.0 if forward_speed > 0.6 else 0.0
+		elif traffic.speed_limit < 0.6:
+			controls.throttle = 0.0
+			controls.brake = 1.0 if forward_speed > 0.6 else 0.0
 	_steer = controls.steer
 
 
@@ -585,65 +603,21 @@ func _judge_bends() -> void:
 ## right. It picks a side that's still on the road and empty, and holds that
 ## until it's past, so it doesn't weave back into them.
 func _dodge() -> float:
-	_block_ahead = INF
-	_block_speed = INF
-	var facing := -kart.global_basis.z
-	var half_road := track.width * 0.5 - 1.5
-	var here := (kart.global_position - track.point_at(offset)).dot(track.right_at(offset))
-	var wall := _dodge_wall(facing)
-	if not is_nan(wall):
-		_patch_dodge = 0.0
-		_patch_eased = 0.0
-		return wall
 	if kart.ghost_left > 0.0 or TrackPiece.turns_over(track.piece_type_at(offset)):
 		_patch_dodge = 0.0
 		_patch_eased = 0.0
+		traffic.speed_limit = INF
+		traffic.queueing = false
 		return 0.0
-	var along := track.forward_at(offset)
-	var best_ahead := SEE_AHEAD + 1.0
-	var best: Kart = null
-	var best_across := 0.0
-	var best_need := 0.0
-	var best_speed := 0.0
-	for other in others:
-		# A kart can go mid-race, like when someone online leaves.
-		if other == kart or not is_instance_valid(other) or other.ghost_left > 0.0:
-			continue
-		var gap := other.global_position - kart.global_position
-		var ahead := gap.dot(along)
-		if ahead < -2.0 or ahead > SEE_AHEAD:
-			continue
-		var at := offset + maxf(ahead, 0.0)
-		var other_across := (other.global_position - track.point_at(at)).dot(track.right_at(at))
-		var need := (kart.width() + other.width()) * 0.5 + KART_GAP
-		if absf(other_across - line) < need and ahead < best_ahead:
-			best_ahead = ahead
-			best = other
-			best_across = other_across
-			best_need = need
-			best_speed = other.linear_velocity.dot(along)
-	if best == null:
-		return _dodge_patches()
-	# Going round a kart comes first.
-	_patch_dodge = 0.0
-	_patch_eased = 0.0
-	# Still overlapping where it is now, and close: sit behind until the
-	# pass has moved it clear.
-	if best_ahead > 0.0 and absf(best_across - here) < best_need * 0.85:
-		_block_ahead = best_ahead
-		_block_speed = best_speed
-	var go_right := best_across < line
-	if line + best_need > half_road:
-		go_right = false
-	elif line - best_need < -half_road:
-		go_right = true
-	var cleared := best_across + (best_need if go_right else -best_need)
-	if not _side_clear(cleared, best_need, best, along) or absf(cleared) > half_road:
-		go_right = not go_right
-		cleared = best_across + (best_need if go_right else -best_need)
-	if not _side_clear(cleared, best_need, best, along) or absf(cleared) > half_road:
-		return 0.0
-	return clampf(cleared, -half_road, half_road) - line
+	var wall := _dodge_wall(-kart.global_basis.z)
+	var preferred := line + _dodge_patches() if is_nan(wall) else line + wall
+	# Finish pulling past the kart it actually backed off. The planner still
+	# checks the free side against every other kart and the wall.
+	if is_nan(wall) and _tries > 0 and _stuck > 0.0 and is_instance_valid(_recover_from):
+		var edge := maxf(track.width * 0.5 - kart.width() * 0.5 - 0.8, 0.0)
+		preferred = -_away * edge
+	var wall_line := NAN if is_nan(wall) else line + wall
+	return traffic.plan(self, preferred, _since_drive, wall_line) - line
 
 
 ## How far to move over to keep out of puddles and drifts ahead. It
@@ -783,23 +757,6 @@ func _scan_ahead() -> void:
 		ahead += PATCH_STEP
 
 
-## Whether this line across the road is empty of other karts, besides the
-## one it's passing.
-func _side_clear(across: float, need: float, ignore: Kart, along: Vector3) -> bool:
-	for other in others:
-		if other == kart or other == ignore or not is_instance_valid(other) or other.ghost_left > 0.0:
-			continue
-		var gap := other.global_position - kart.global_position
-		var ahead := gap.dot(along)
-		if ahead < -2.0 or ahead > SEE_AHEAD:
-			continue
-		var at := offset + maxf(ahead, 0.0)
-		var other_across := (other.global_position - track.point_at(at)).dot(track.right_at(at))
-		if absf(other_across - across) < need:
-			return false
-	return true
-
-
 ## How far to move over to get past the end of a brick wall ahead, or NAN
 ## when there's none in the way. It goes round whichever end has more road
 ## beyond it.
@@ -829,103 +786,39 @@ func _dodge_wall(facing: Vector3) -> float:
 	return NAN
 
 
-## Every so often it looks at the power-ups it's holding and uses one if the
-## moment's right. That's a turbo on a straight with no jump coming, the
-## cannon at a kart dead ahead, a homing brick or lightning when anyone's
-## ahead, bricks or marbles for a kart right behind, a repair once it's lost a
-## couple of parts, a shield when someone's close, a ghost to get through a
-## kart in the way or free when it's stuck, a tow rope onto a kart ahead on a
-## clear bit of road, a brick wall or spikes for a kart close behind, and a
-## shockwave in a crowd.
+## Checks both ready buttons and uses the most useful safe opportunity.
 func _use_gadgets(delta: float, speed: float) -> void:
+	for slot in Powerups.HOLD:
+		if kart.held[slot] != _held_kind[slot] or kart.held_uses[slot] != _held_uses[slot] or kart.held_revision[slot] != _held_revision[slot]:
+			_held_for[slot] = 0.0
+			_held_kind[slot] = kart.held[slot]
+			_held_uses[slot] = kart.held_uses[slot]
+			_held_revision[slot] = kart.held_revision[slot]
+		elif kart.held[slot] != "":
+			_held_for[slot] += delta
 	_think -= delta
 	if _think > 0.0:
 		return
+	_think = minf(THINK_EVERY, gadget_reaction)
+	var best := -1
+	var best_score := 0.0
 	for slot in Powerups.HOLD:
-		_held_for[slot] = _held_for[slot] + THINK_EVERY - _think if kart.held[slot] != "" else 0.0
-	_think = THINK_EVERY
-	for slot in Powerups.HOLD:
-		var kind := kart.held[slot]
-		var waited := _held_for[slot] > HOLD_AT_MOST and not kind.ends_with("turbo")
-		# A turbo it's held twice as long goes on anything but a bend or a jump.
-		if kind.ends_with("turbo") and _held_for[slot] > HOLD_AT_MOST * 2.0:
-			waited = speed > 8.0 and track.bend_at(offset + 10.0) < 0.008 and track.piece_type_at(offset + 30.0) != "jump"
-		if kind != "" and (waited or _worth_using(kind, speed)):
-			# A less canny driver lets the moment pass more often.
-			if _rng.randf() > gadget_sense:
-				_think = THINK_EVERY * 4.0
-			elif kart.can_use(slot):
-				controls.gadget[slot] = true
-			return
+		if not kart.can_use(slot) or _held_for[slot] < gadget_reaction:
+			continue
+		var score := AIGadgetTactics.score(self, kart.held[slot], speed)
+		if score <= 0.0:
+			continue
+		score += minf(_held_for[slot] / HOLD_AT_MOST, 1.0) * 0.2
+		if score > best_score:
+			best_score = score
+			best = slot
+	if best >= 0 and _rng.randf() <= gadget_sense:
+		controls.gadget[best] = true
+		_held_for[best] = 0.0
 
 
 func _worth_using(kind: String, speed: float) -> bool:
-	match kind:
-		"turbo", "big_turbo", "triple_turbo":
-			if speed < 8.0:
-				return false
-			# Not in a bend, with one coming or before a jump it would fly off.
-			# The faster it's going and the longer the turbo, the further ahead
-			# it has to be clear, or it carries the kart wide out of a hairpin.
-			var time := Kart.BIG_TURBO_TIME if kind == "big_turbo" else Kart.TURBO_TIME
-			var ahead := -4.0
-			while ahead <= maxf(40.0, speed * time * 1.5 + 15.0):
-				if track.bend_at(offset + ahead) > 0.008 or track.piece_type_at(offset + ahead) == "jump":
-					return false
-				ahead += 4.0
-			return true
-		"cannon":
-			return _nearest(3.0, 28.0, 2.2) != null
-		"homing":
-			return _nearest(3.0, 120.0, 40.0) != null
-		"lightning":
-			return _nearest(3.0, 400.0, 400.0) != null
-		"dropper", "marbles":
-			return _nearest(-14.0, -2.0, 4.0) != null
-		"shield":
-			return _nearest(-5.0, 5.0, 4.0) != null
-		"repair":
-			return kart.lost.size() >= 2 or _lost_a_wheel()
-		"ghost":
-			return _nearest(2.0, 12.0, 2.5) != null or (speed < 2.0 and not kart.locked)
-		"tow":
-			if TowRope.target(kart) == null:
-				return false
-			# Not into a tight bend, which it would be pulled wide of.
-			var ahead := 0.0
-			while ahead <= 40.0:
-				if track.bend_at(offset + ahead) > 0.02:
-					return false
-				ahead += 4.0
-			return true
-		"wall":
-			return _nearest(-20.0, -3.0, 6.0) != null
-		"spikes":
-			return _nearest(-14.0, -2.0, 4.0) != null
-		"shockwave":
-			return _count_near(Kart.SHOCK_REACH * 0.7) >= 2 or _nearest(-4.0, 4.0, 4.0) != null
-	return false
-
-
-## How many other karts are within this far.
-func _count_near(reach: float) -> int:
-	return others.filter(func(k): return is_instance_valid(k) and k != kart and k.global_position.distance_to(kart.global_position) < reach).size()
-
-
-## The closest other kart between these distances ahead (negative is behind)
-## and within this far to either side, or null.
-func _nearest(from: float, to: float, side_room: float) -> Kart:
-	var facing := -kart.global_basis.z
-	var right := kart.global_basis.x
-	for other in others:
-		# A kart can go mid-race, like when someone online leaves.
-		if other == kart or not is_instance_valid(other):
-			continue
-		var gap := other.global_position - kart.global_position
-		var ahead := gap.dot(facing)
-		if ahead > from and ahead < to and absf(gap.dot(right)) < side_room:
-			return other
-	return null
+	return AIGadgetTactics.score(self, kind, speed) > 0.0
 
 
 func _stuck_check(delta: float, speed: float, up: Vector3) -> void:
@@ -938,8 +831,11 @@ func _stuck_check(delta: float, speed: float, up: Vector3) -> void:
 	# which on ice takes a while, so that isn't being stuck.
 	var pulling_away := kart.slowdown_left > 0.0 and not upside_down
 	# Nor is waiting for a train.
-	var waiting := _waiting and not upside_down
+	var waiting := (_waiting or traffic.queueing) and not upside_down
 	var excused := kart.locked or pulling_away or waiting
+	if waiting:
+		_stuck = 0.0
+		_tries = 0
 	# Backing off or pulling away it isn't trying to get on, so that doesn't
 	# count, and it starts counting afresh after.
 	var busy := _backing > 0.0 or _leaving > 0.0
@@ -990,6 +886,7 @@ func _back_off() -> void:
 	for body in kart.get_colliding_bodies():
 		if body is Kart and body != kart and (nearest == null or body.global_position.distance_to(kart.global_position) < nearest.global_position.distance_to(kart.global_position)):
 			nearest = body
+	_recover_from = nearest
 	if nearest == null:
 		_away = 0.0
 		_backing = BACK_FOR

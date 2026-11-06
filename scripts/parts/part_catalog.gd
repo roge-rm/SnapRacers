@@ -67,6 +67,12 @@ static func _read(id: String, part: Dictionary) -> Dictionary:
 		for b in part.solids:
 			solids.append(AABB(_vector(b.slice(0, 3)), _vector(b.slice(3, 6)) - _vector(b.slice(0, 3))))
 		part["solids"] = solids
+	if part.has("racing_hull"):
+		# Convex racing vertices use the same fine unit and corner as solids.
+		var points := PackedVector3Array()
+		for point in part.racing_hull:
+			points.append(_vector(point))
+		part["racing_hull"] = points
 	if part.has("seat_box"):
 		var b: Array = part.seat_box
 		part["seat_box"] = AABB(_vector(b.slice(0, 3)), _vector(b.slice(3, 6)) - _vector(b.slice(0, 3)))

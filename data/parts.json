@@ -2,12 +2,13 @@
 	"_comment": "Sizes are [studs across, plates high, studs long]. A brick is three plates high. Mass is in kg, power in watts, push and thrust in newtons. Strength is how hard a part has to be hit before it comes off, as an impulse in newton seconds (a 100 kg kart hitting a wall at 10 m/s is roughly 1000, shared between the parts that touch it). The seat never comes off, so the driver always stays in. The only gadget part left is the ram plate, which is always on, since power-ups come from the boxes on the track. Aero says how smoothly air gets past a part's front and back, as it's placed with no turn (the front is toward -Z). 1 is a flat face and smaller is smoother. Off-road is how much of the grip a tire loses on grass and dirt it keeps anyway, so 0.6 keeps most of it and a negative number loses even more. Control is how quickly the driver can steer from that seat or with that steering, as a fraction. Driver height is how many plates of the driver stick up above the seat. Replaced by names the modelled part that took its place. Karts that use the old one still load, but it isn't in the garage any more.",
 	"parts": {
 		"plate_6x10": {
-			"name": "Chassis plate 6x10",
+			"name": "Chassis plate 6x10 with side mounts",
 			"kind": "plate",
 			"size": [6, 1, 10],
 			"mass": 10.0,
 			"strength": 5000.0,
-			"color": "#5b6069"
+			"color": "#5b6069",
+			"about": "Studs on top and sockets underneath, with side mounts for wheels, fairings and clips."
 		},
 		"plate_2x4": {
 			"name": "Plate 2x4",
@@ -276,9 +277,9 @@
 			"color": "#d8d8d8"
 		},
 		"plate_6x12": {
-			"name": "Long chassis plate 6x12",
+			"name": "Chassis plate 6x12 with side mounts",
 			"kind": "plate",
-			"about": "A longer chassis, for a kart with room to spare. A long kart is steady in a straight line and slower to turn.",
+			"about": "Studs on top and sockets underneath, with side mounts for wheels, fairings and clips.",
 			"size": [6, 1, 12],
 			"mass": 12.0,
 			"strength": 5500.0,
@@ -301,7 +302,8 @@
 			"size": [2, 1, 4],
 			"mass": 0.6,
 			"strength": 600.0,
-			"color": "#1b2a34"
+			"color": "#1b2a34",
+			"replaced_by": "p_tile_2x4"
 		},
 		"fender_2x4": {
 			"name": "Mudguard 2x4",

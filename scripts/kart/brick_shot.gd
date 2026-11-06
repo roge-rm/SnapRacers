@@ -140,6 +140,7 @@ static func _hot(colour: Color, inside := false) -> StandardMaterial3D:
 
 
 func _ready() -> void:
+	add_to_group("gadget_shots")
 	# The parent is still adding this when _ready runs, so the flash goes in
 	# just after.
 	if not homing:

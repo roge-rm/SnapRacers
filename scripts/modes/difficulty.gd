@@ -14,7 +14,10 @@ extends RefCounted
 ## - mistakes: the chance of going into a bend too fast or too slow.
 ## - loop_nerves: the chance of losing their nerve on the way up a loop,
 ##   backing off and falling off it.
-## - gadgets: how often they use a gadget when the moment's right, from 0 to 1.
+## - gadgets: how often they notice a useful gadget opportunity.
+## - gadget_reaction: seconds before using a newly acquired item.
+## - gadget_planning: seconds ahead they judge moving targets and threats.
+## - gadget_confidence: how certain they need a fixed shot to be.
 ## - catch_up: how much extra push they get when they're a long way behind
 ##   you, as a fraction.
 ## - ease_off: how much they lift off when they're a long way ahead of you.
@@ -26,6 +29,14 @@ const DEFAULT := "normal"
 
 const SETTINGS := {
 	"easy": {
+		"traffic_reaction": 0.65,
+		"traffic_planning": 1.6,
+		"traffic_clearance": 0.8,
+		"traffic_mass_ratio": 0.0,
+		"traffic_contact_closing": 0.0,
+		"traffic_contact_side": 0.0,
+		"traffic_contact_time": 0.0,
+		"traffic_contact_cooldown": 3.0,
 		"name": "Easy",
 		"about": "Relaxed drivers who make mistakes and wait for you.",
 		"skill": [0.44, 0.54],
@@ -33,10 +44,21 @@ const SETTINGS := {
 		"mistakes": 0.25,
 		"loop_nerves": 0.15,
 		"gadgets": 0.3,
+		"gadget_reaction": 0.85,
+		"gadget_planning": 0.65,
+		"gadget_confidence": 0.95,
 		"catch_up": 0.0,
 		"ease_off": 0.3,
 	},
 	"normal": {
+		"traffic_reaction": 0.45,
+		"traffic_planning": 2.0,
+		"traffic_clearance": 0.8,
+		"traffic_mass_ratio": 0.0,
+		"traffic_contact_closing": 0.0,
+		"traffic_contact_side": 0.0,
+		"traffic_contact_time": 0.0,
+		"traffic_contact_cooldown": 3.0,
 		"name": "Normal",
 		"about": "A fair race, with the odd slip.",
 		"skill": [0.64, 0.74],
@@ -44,10 +66,21 @@ const SETTINGS := {
 		"mistakes": 0.1,
 		"loop_nerves": 0.0,
 		"gadgets": 0.7,
+		"gadget_reaction": 0.55,
+		"gadget_planning": 1.0,
+		"gadget_confidence": 0.88,
 		"catch_up": 0.04,
 		"ease_off": 0.2,
 	},
 	"hard": {
+		"traffic_reaction": 0.3,
+		"traffic_planning": 2.5,
+		"traffic_clearance": 0.25,
+		"traffic_mass_ratio": 1.25,
+		"traffic_contact_closing": 1.5,
+		"traffic_contact_side": 0.5,
+		"traffic_contact_time": 0.2,
+		"traffic_contact_cooldown": 3.0,
 		"name": "Hard",
 		"about": "Quick drivers who rarely slip and make the most of their power-ups.",
 		"skill": [0.74, 0.84],
@@ -55,11 +88,22 @@ const SETTINGS := {
 		"mistakes": 0.02,
 		"loop_nerves": 0.0,
 		"gadgets": 1.0,
+		"gadget_reaction": 0.3,
+		"gadget_planning": 1.5,
+		"gadget_confidence": 0.78,
 		"catch_up": 0.06,
 		"ease_off": 0.0,
 		"slides": true,
 	},
 	"expert": {
+		"traffic_reaction": 0.2,
+		"traffic_planning": 3.0,
+		"traffic_clearance": 0.15,
+		"traffic_mass_ratio": 1.1,
+		"traffic_contact_closing": 2.5,
+		"traffic_contact_side": 0.8,
+		"traffic_contact_time": 0.35,
+		"traffic_contact_cooldown": 2.0,
 		"name": "Expert",
 		"about": "Drivers right on the limit who never let up.",
 		"skill": [0.95, 0.99],
@@ -67,6 +111,9 @@ const SETTINGS := {
 		"mistakes": 0.0,
 		"loop_nerves": 0.0,
 		"gadgets": 1.0,
+		"gadget_reaction": 0.15,
+		"gadget_planning": 2.0,
+		"gadget_confidence": 0.68,
 		"catch_up": 0.0,
 		"ease_off": 0.0,
 		"slides": true,
@@ -101,6 +148,11 @@ static func apply(ai: AIDriver, level: String, rank: int, field: int) -> void:
 	ai.mistakes = s.mistakes
 	ai.loop_nerves = s.loop_nerves
 	ai.gadget_sense = s.gadgets
+	ai.gadget_reaction = s.gadget_reaction
+	ai.gadget_planning = s.gadget_planning
+	ai.gadget_confidence = s.gadget_confidence
+	for setting in ["traffic_reaction", "traffic_planning", "traffic_clearance", "traffic_mass_ratio", "traffic_contact_closing", "traffic_contact_side", "traffic_contact_time", "traffic_contact_cooldown"]:
+		ai.set(setting, s[setting])
 	ai.slides = s.get("slides", false)
 	ai.catch_up = s.catch_up
 	ai.ease_off = s.ease_off

@@ -20,6 +20,8 @@ signal random_pressed
 signal pose_toggled(driving: bool)
 signal done_pressed
 signal name_changed(text: String)
+signal share_pressed
+signal import_pressed
 signal save_pressed
 signal new_pressed
 signal load_chosen(path: String)
@@ -181,7 +183,7 @@ func _build_toolbar() -> void:
 	_toolbar.grow_horizontal = GROW_DIRECTION_BOTH
 	_toolbar.offset_top = 8.0
 
-	_file_menu = BuilderStyle.menu(["Save", "Load", "Rename", "New driver"])
+	_file_menu = BuilderStyle.menu(["Save", "Load", "Rename", "New driver", "Share"])
 	add_child(_file_menu)
 	_file_menu.id_pressed.connect(_on_file_menu)
 	more.pressed.connect(func() -> void:
@@ -199,10 +201,13 @@ func _on_file_menu(id: int) -> void:
 			_open_rename()
 		3:
 			_new_dialog.popup_centered()
+		4:
+			share_pressed.emit()
 
 
 func _build_dialogs() -> void:
 	_load_popup = PopupPanel.new()
+	PadFocus.close_on_b(_load_popup)
 	_load_popup.theme = MenuStyle.theme()
 	add_child(_load_popup)
 	var box := VBoxContainer.new()
@@ -259,6 +264,9 @@ func _open_rename() -> void:
 func _open_load() -> void:
 	for child in _load_list.get_children():
 		child.queue_free()
+	_load_list.add_child(MenuStyle.button("Add a driver...", func() -> void:
+		_load_popup.hide()
+		import_pressed.emit()))
 	var saved := CharacterDesign.saved_paths()
 	if not saved.is_empty():
 		_load_list.add_child(MenuStyle.heading("Your drivers"))
@@ -269,6 +277,7 @@ func _open_load() -> void:
 		var path := "%s/%s.json" % [Game.ROSTER, key]
 		_load_list.add_child(_load_button(CharacterDesign.load_file(path).name, path))
 	_load_popup.popup_centered()
+	PadFocus.focus_first(_load_popup)
 
 
 func _load_button(text: String, path: String) -> Button:

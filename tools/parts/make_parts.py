@@ -68,6 +68,9 @@ def entry_for(p):
     solids = p.stats.pop("solids", None)
     if solids is not None:
         out["solids"] = [fine(s[:3]) + fine(s[3:]) for s in solids]
+    hull = p.stats.pop("racing_hull", None)
+    if hull is not None:
+        out["racing_hull"] = [fine(point) for point in hull]
     if p.trim is not None:
         out["trim"] = {"mesh": "res://%s/%s_trim.obj" % (MESHES, p.id), "color": p.trim[1], "finish": p.trim[2]}
     if p.lamp is not None:

@@ -191,6 +191,8 @@ func _ready() -> void:
 	ui.air_toggled.connect(set_air)
 	ui.view_pressed.connect(show_view)
 	ui.new_pressed.connect(_new_kart)
+	ui.share_pressed.connect(_share)
+	ui.import_pressed.connect(_open_import)
 	ui.save_pressed.connect(_save)
 	ui.load_chosen.connect(_load)
 	ui.drive_pressed.connect(_drive)
@@ -624,6 +626,20 @@ func _new_kart() -> void:
 	show_view("fit")
 
 
+func _share() -> void:
+	if design.parts.is_empty():
+		return
+	ShareWindow.open(Sharing.envelope_for(Sharing.KART, design.to_dict()), ui)
+
+
+func _open_import() -> void:
+	var window := AddWindow.open(ui, "Add a kart", Sharing.KART)
+	window.added.connect(func(kind: String, path: String) -> void:
+		if kind == Sharing.KART:
+			_load(path)
+			Game.keep_design(design))
+
+
 func _save() -> void:
 	if design.name.strip_edges() == "":
 		design.name = "My kart"
@@ -745,6 +761,7 @@ func _rebuild() -> void:
 		_mode = GarageUI.Mode.IDLE
 	_outline.visible = design.parts.is_empty()
 	ui.set_kart_name(design.name)
+	ui._file_menu.set_item_disabled(4, design.parts.is_empty())
 	# Checking for problems takes a while, so the card catches up on the
 	# next frame instead of holding this one up.
 	_card_stats = stats

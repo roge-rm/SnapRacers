@@ -482,6 +482,8 @@ var _rail_done := Vector3.INF
 ## each has left.
 var held: Array[String] = ["", ""]
 var held_uses: Array[int] = [0, 0]
+## Identifies a new pickup even when a button receives the same kind again.
+var held_revision: Array[int] = [0, 0]
 ## Every power-up picked up this race.
 var pickups := 0
 var boost_left := 0.0
@@ -874,9 +876,21 @@ func _bake_body(looks: Array[Node3D]) -> void:
 		look.free()
 
 
-## The part's collision shapes: its box, or for a modelled part with gaps in
-## it, like a motorbike's fork, a box for each of its solid bits.
+## Racing uses a convex hull where supplied, or boxes for each solid bit
+## of a part with gaps, like a motorbike's fork.
 func _add_bodies(info: KartStats.PartInfo) -> void:
+	if info.def.has("racing_hull"):
+		var middle := PartCatalog.fine_size(info.def.id) * 0.5
+		var points := PackedVector3Array()
+		for point in info.def.racing_hull:
+			points.append((point - middle) * Grid.FINE)
+		var hull := ConvexPolygonShape3D.new()
+		hull.points = points
+		var shape := CollisionShape3D.new()
+		shape.shape = hull
+		shape.transform = Transform3D(info.basis, info.centre)
+		add_child(shape)
+		return
 	var boxes: Array[AABB] = []
 	if info.def.has("solids"):
 		var middle := PartCatalog.fine_size(info.def.id) * 0.5
@@ -1935,6 +1949,7 @@ func give(kind: String) -> bool:
 	for slot in Powerups.HOLD:
 		if held[slot] == "":
 			held[slot] = kind
+			held_revision[slot] += 1
 			held_uses[slot] = int(Powerups.ALL.get(kind, {}).get("uses", 1))
 			pickups += 1
 			Sounds.play_at("fx/powerup", sound, -2.0)

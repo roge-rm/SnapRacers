@@ -486,7 +486,7 @@ func _driver() -> void:
 	var stock_ok := true
 	for key in Game.stock_driver_keys():
 		stock_ok = stock_ok and texts.has(CharacterDesign.load_file("%s/%s.json" % [Game.ROSTER, key]).name)
-	check(not (ui._load_list.get_child(0) is Button) and ui._load_list.get_child(1) is Button and ui._load_list.get_child(1).text == "Menu Test Zq" and texts.count("") == 2, "the saved driver is listed first, under Your drivers")
+	check(ui._load_list.get_child(0) is Button and ui._load_list.get_child(0).text == "Add a driver..." and ui._load_list.get_child(2) is Button and ui._load_list.get_child(2).text == "Menu Test Zq" and texts.count("") == 2, "the saved driver is listed first, under Your drivers")
 	check(stock_ok, "and every stock driver's name is listed, racer included")
 	check(Game.stock_driver_keys()[0] == "racer" and Game.stock_driver_keys().size() == Game.ai_driver_keys().size() + 1, "stock drivers are the roster with racer first")
 	if not existed:

@@ -67,7 +67,11 @@ Use the x86_64 AppImage. In Desktop Mode, download it, right-click it and turn o
 
 Grand Prix has 14 cups of four races, with points and trophies. From the second race on, the leader starts at the back. Finish in the top three for a gold, silver or bronze trophy, kept separately for each difficulty. You can also make cups of 2 to 8 races from any courses.
 
-Single race is one race against the AI, time trial keeps your best times and practice lets you drive on your own for as long as you like. There are four AI levels, from Easy drivers who wait for you and make mistakes to Expert drivers who drive on the limit and slide through bends.
+Single race is one race against the AI, time trial keeps your best times and practice lets you drive on your own for as long as you like.
+
+There are four AI levels, from Easy drivers who wait for you and make mistakes to Expert drivers who drive on the limit and slide through bends. They use all 15 power-ups, choosing when to boost, attack, repair or protect themselves, and wait for an active boost or protection to finish before using another of the same kind. Higher levels react sooner and judge moving targets and threats further ahead.
+
+AI drivers watch karts ahead and behind, allowing for their weight, braking distance and the room to pass. Easy and Normal try for clean passes. Hard and Expert can hold a contested line when their kart is heavier and its body or a shield protects the wheels.
 
 Two players can race one course or a whole Grand Prix from the Multiplayer menu. On a phone you can play side by side in landscape, or face to face in portrait with the phone flat between you. Each player picks a kart and enters their name.
 
@@ -110,13 +114,13 @@ Test drive takes your kart onto a short course with jumps, a raised bridge and d
 
 ### Parts
 
-There are 289 parts.
+There are 302 parts.
 
 | Parts | What's there |
 |---|---|
-| Plates | Small plates, long and wide chassis plates, tiles, grilles and wedges. |
-| Bricks | Plain and round bricks, brackets, race numbers, headlights and ballast. |
-| Curves | Slopes, nose cones, arches, fairings, side pods and a ram plate. |
+| Plates | Small plates, long and wide chassis plates with or without side mounts, smooth tiles, grilles, wedges and centred jumpers. |
+| Bricks | Plain and round bricks, brackets, opposite side studs, race numbers, headlights and ballast. |
+| Curves | Slopes, inverted slopes, nose cones, arches, fairings, side pods and a ram plate. |
 | Car bodies | Bonnets, cabs, engine covers, scoops, dragster bodies, roll cages, mudguards, exhausts and wheelie bars. |
 | Rods and joints | Bars, clips, beams, pins, axles, hinges and ball joints. |
 | Wheels | Kart, truck, dragster, quad, scooter and motorbike wheels, from tiny to monster truck size. |
@@ -124,6 +128,8 @@ There are 289 parts.
 | Cockpit | Seats, steering wheels, handlebars, windscreens, canopies, mirrors and lights. |
 | Bikes, trikes and quads | Frames, forks, bodywork, saddles, tanks, footpegs and fairings. |
 | Wings | Front and rear wings, spoilers and a ducktail. |
+
+Brackets and side studs hold panels sideways or below a deck. Jumpers offset a part by half a stud, and compact hole bricks hold pins and axles. The brick with a race number is in Bricks.
 
 Slick tires grip the road best, knobbly tires handle dirt and grass, studded tires help on ice and balloon tires handle sand and curbs. Skinny wheels roll further.
 
@@ -201,11 +207,11 @@ Close it up joins the road back to the start with as few pieces as it can. The c
 
 Saving puts the start line on the longest straight. Your course then appears in the race lists with its own records.
 
-### Sharing courses and cups
+### Sharing designs
 
-Share a course or cup as a code or a file. A course code is about 400 characters, so you can paste it into a message. On a phone you can send either through the share sheet. On a computer you copy the code or save the file, and in a browser you download it.
+Share a driver, kart, course or whole cup as a code or a file. A course code is about 400 characters, so you can paste it into a message. On a phone you can send either through the share sheet. On a computer you copy the code or save the file, and in a browser you download it.
 
-Use Add a course or Add a cup to paste a code or open a file. Cups include their courses, and copies aren't added twice. Online the host sends the course or cup to everyone. Keep in the lobby saves it to yours.
+In the driver screen or garage, use Share in the file menu. To import one, open Load and choose Add a driver or Add a kart, then paste a code or open a file. Courses and cups have Add buttons on their pages. Share a cup from Your cups or while changing it. Cups include their custom courses in race order, and copies aren't added twice. Online the host sends the course or cup to everyone. Keep in the lobby saves it to yours.
 
 ## Weather and time of day
 
@@ -246,6 +252,8 @@ In a browser you can join a server but not host or find games. Web players need 
 ## Graphics and sound
 
 Change the graphics in Settings under Display. Medium and Low draw at a lower resolution and keep the menus sharp. They reduce shadows, distant scenery, crowds, rain and snow. Low draws headlight beams only for your kart, Medium for nearby karts and High for karts up to 40 metres away. Things you can drive into stay in place at every setting.
+
+The menus play the original menu tune once, then shuffle through the 14 race tunes, playing each one before any repeat. Moving between menus and editors keeps the current tune playing.
 
 Each engine has its own sound. Tires squeal, surfaces rumble, bricks clatter and the wind gets louder as you speed up. Drifts have their own tire sound on tarmac, dirt and snow, and a whoosh when the turbo kicks in. Effects volume is in Settings.
 

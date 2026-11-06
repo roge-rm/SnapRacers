@@ -1,72 +1,109 @@
 class_name Sharing
 extends RefCounted
 
-## Courses and cups as something to send to someone else, and back again.
-##
-## A share code is CODE_START, then the course or cup as JSON packed small
-## with deflate and written in base64, then CODE_END, so it fits in a chat
-## message and it's clear where it stops. A
-## course comes to about 400 characters and a cup of eight to a few thousand.
-## A file is the same JSON as the game saves, so a file from the courses or
-## cups folder works too.
-##
-## read() finds a code anywhere in what's pasted, even split over lines by a
-## chat app, or takes the JSON itself. add() puts what it found with your own
-## courses or cups.
+## Courses, cups, drivers and karts as files or compressed codes to send.
+## read() validates data before the design classes see it. add() keeps it in
+## the player's library and rolls back a cup's new files if a save fails.
 
 const CODE_START := "SNAPRACERS:"
 const CODE_END := "."
-## The most a course or cup can unpack to, so a bad code can't fill the phone.
 const MOST_BYTES := 1 << 20
+const FORMAT := "SnapRacers"
+const VERSION := 1
 const COURSE := "course"
 const CUP := "cup"
-
-## What a course someone's sent can have in it (see buildable()), well past
-## what the game's own courses use.
+const DRIVER := "driver"
+const KART := "kart"
+const KINDS := [COURSE, CUP, DRIVER, KART]
 const MOST_PIECES := 200
 const MOST_LANDMARKS := 100
+## Bound model creation and connector comparisons before opening an import.
+const MOST_PARTS := 256
+const MOST_CONNECTORS := 4096
+const MOST_CONNECTOR_PAIRS := 50000
+const MOST_NAME := 120
+const MOST_ABOUT := 2000
 const PIECE_TYPES := ["straight", "curve", "slant", "crest", "ramp", "jump", "loop", "corkscrew", "crossing"]
 const LIMITS := {"length": 12.0, "size": 4.0, "rise": 8.0, "across": 6.0, "height": 10.0, "bank": 90.0}
 
-## The game's own courses, as they'd be shared, by path.
 static var _game_courses := {}
 
 
-## The share code for a course or a cup.
+## Explicitly tags a design for sharing. Export helpers also recognise raw
+## saved designs, so ShareWindow.open(design.to_dict(), parent) works.
+static func envelope_for(kind: String, data: Dictionary) -> Dictionary:
+	return {"format": FORMAT, "version": VERSION, "kind": kind, "data": data.duplicate(true)}
+
+
+## The design inside an envelope, or the raw saved design itself.
+static func data_of(data: Dictionary) -> Dictionary:
+	return data.data if _is_envelope(data) and data.get("data") is Dictionary else data
+
+
 static func code_for(data: Dictionary) -> String:
-	var packed := JSON.stringify(data).to_utf8_buffer().compress(FileAccess.COMPRESSION_DEFLATE)
+	var packed := JSON.stringify(_export_data(data)).to_utf8_buffer().compress(FileAccess.COMPRESSION_DEFLATE)
 	return CODE_START + Marshalls.raw_to_base64(packed) + CODE_END
 
 
-## What to send with the code, so whoever gets it knows what it is.
 static func message_for(data: Dictionary) -> String:
-	var by := str(data.get("made_by", "")).strip_edges()
-	var what := "a SnapRacers cup" if kind_of(data) == CUP else "a SnapRacers course"
-	return "%s, %s%s\n%s" % [str(data.get("name", "")), what, (" by " + by) if by != "" else "", code_for(data)]
+	var payload := data_of(data)
+	var by := str(payload.get("made_by", "")).strip_edges()
+	var noun: String = {COURSE: "course", CUP: "cup", DRIVER: "racer", KART: "kart"}.get(kind_of(data), "design")
+	return "%s, a SnapRacers %s%s\n%s" % [str(payload.get("name", "")), noun, (" by " + by) if by != "" else "", code_for(data)]
 
 
-## The file name to send a course or cup as.
 static func file_name_for(data: Dictionary) -> String:
-	return CourseDesign.path_for(str(data.get("name", kind_of(data)))).get_file()
+	return path_for(kind_of(data), str(data_of(data).get("name", "Shared"))).get_file()
 
 
-## The file's contents, the same as the game saves.
 static func file_for(data: Dictionary) -> String:
-	return JSON.stringify(data, "\t")
+	return JSON.stringify(_export_data(data), "\t")
 
 
-## COURSE or CUP, or "" when it's neither.
+static func _export_data(data: Dictionary) -> Dictionary:
+	var kind := kind_of(data)
+	var payload := data_of(data).duplicate(true)
+	if kind == CUP:
+		# Only a matching stock snapshot can carry a path to another player.
+		var found := _validate(CUP, payload)
+		if not found.has("why"):
+			payload = found.data
+		else:
+			for race in payload.get("races", []):
+				if race is Dictionary:
+					race["from"] = ""
+	if kind in [DRIVER, KART] or _is_envelope(data):
+		return envelope_for(kind, payload)
+	return payload
+
+
+static func _is_envelope(data: Dictionary) -> bool:
+	return data.has("format") or data.has("version") or data.has("kind") or data.has("data")
+
+
+## A kind constant, or "" when the shape or envelope isn't recognised.
 static func kind_of(data: Dictionary) -> String:
+	if _is_envelope(data):
+		if data.get("format") == FORMAT and data.get("version") == VERSION and data.get("kind") in KINDS and data.get("data") is Dictionary:
+			return data.kind
+		return ""
+	var kinds := []
 	if data.get("races") is Array:
-		return CUP
+		kinds.append(CUP)
 	if data.get("pieces") is Array:
-		return COURSE
-	return ""
+		kinds.append(COURSE)
+	if data.get("parts") is Array:
+		kinds.append(KART)
+	if data.get("head") is Dictionary and data.get("torso") is Dictionary:
+		kinds.append(DRIVER)
+	return kinds[0] if kinds.size() == 1 else ""
 
 
-## What was pasted or opened, as { "kind", "data" }, or { "why" } saying
-## what's wrong with it.
+## Returns {kind, data}, or {why}. Raw library JSON and old course/cup codes
+## remain valid; unknown envelope kinds and versions never fall back to raw.
 static func read(text: String) -> Dictionary:
+	if text.to_utf8_buffer().size() > MOST_BYTES:
+		return {"why": "That file or code is too large."}
 	var data = null
 	var at := text.find(CODE_START)
 	if at >= 0:
@@ -75,55 +112,190 @@ static func read(text: String) -> Dictionary:
 		if packed.is_empty():
 			return {"why": "That code isn't all there."}
 		var unpacked := packed.decompress_dynamic(MOST_BYTES, FileAccess.COMPRESSION_DEFLATE)
-		if unpacked.is_empty():
-			return {"why": "That code isn't all there."}
+		if unpacked.is_empty() or unpacked.size() > MOST_BYTES:
+			return {"why": "That code is incomplete or too large."}
 		data = JSON.parse_string(unpacked.get_string_from_utf8())
 	elif text.strip_edges().begins_with("{"):
 		data = JSON.parse_string(text.strip_edges())
-	if not data is Dictionary or kind_of(data) == "":
-		return {"why": "That isn't a SnapRacers course or cup."}
-	if kind_of(data) == COURSE:
-		var course := CourseDesign.from_dict(data)
-		if course.pieces.is_empty():
-			return {"why": "That course hasn't got any road."}
-		if not buildable(course):
+	if not data is Dictionary:
+		return {"why": "That isn't a SnapRacers course, cup, racer or kart."}
+	if _is_envelope(data):
+		if data.get("format") != FORMAT or not _integer(data.get("version"), VERSION, VERSION):
+			return {"why": "That sharing format or version isn't supported."}
+		if not data.get("kind") in KINDS or not data.get("data") is Dictionary:
+			return {"why": "That sharing kind isn't supported."}
+		return _validate(data.kind, data.data)
+	var kind := kind_of(data)
+	if kind == "":
+		return {"why": "That isn't a SnapRacers course, cup, racer or kart."}
+	return _validate(kind, data)
+
+
+static func _validate(kind: String, data: Dictionary) -> Dictionary:
+	if not _text(data.get("name", ""), MOST_NAME) or not _text(data.get("made_by", ""), MOST_NAME):
+		return {"why": "That design has an invalid name or author."}
+	match kind:
+		COURSE:
+			return _read_course(data)
+		CUP:
+			if not data.get("races") is Array or data.races.size() < CupDesign.FEWEST or data.races.size() > CupDesign.MOST:
+				return {"why": "A cup needs 2 to 8 races."}
+			var cup := {"name": data.get("name", "My cup"), "made_by": data.get("made_by", ""), "races": []}
+			for race in data.races:
+				if not race is Dictionary or not race.get("course") is Dictionary or not _text(race.get("from", ""), 4096):
+					return {"why": "That cup has an invalid race."}
+				var found := _validate(COURSE, race.course)
+				if found.has("why"):
+					return found
+				var stock := game_path_of(found.data)
+				if stock == "" and not CourseDesign.from_dict(found.data).problems().is_empty():
+					return {"why": "%s isn't finished." % found.data.get("name", "A course")}
+				cup.races.append({"from": stock, "course": found.data})
+			return {"kind": CUP, "data": cup}
+		DRIVER:
+			if not data.get("head") is Dictionary or not data.get("torso") is Dictionary:
+				return {"why": "That racer needs a head and torso."}
+			for slot in CharacterDesign.SLOTS:
+				if not data.has(slot):
+					continue
+				var entry = data[slot]
+				if not entry is Dictionary or not entry.get("style") is String or not _colour(entry.get("color", "#f2cd37")):
+					return {"why": "That racer has an invalid piece or colour."}
+				var retired: bool = slot == "headgear" and CharacterDesign.HAIR_THAT_WAS_HEADGEAR.has(entry.style)
+				if not retired and not entry.style in CharacterDesign.styles(slot):
+					return {"why": "That racer has a style the game doesn't have."}
+			return {"kind": DRIVER, "data": CharacterDesign.from_dict(data).to_dict()}
+		KART:
+			if not _text(data.get("about", ""), MOST_ABOUT) or not data.get("parts") is Array:
+				return {"why": "That kart has invalid parts or description."}
+			if data.parts.size() > MOST_PARTS:
+				return {"why": "A shared kart can have up to %d parts." % MOST_PARTS}
+			for entry in data.parts:
+				if not entry is Dictionary or not entry.get("id") is String or PartCatalog.get_part(entry.id).is_empty():
+					return {"why": "That kart has a part the game doesn't have."}
+				if entry.has("pos"):
+					if not _coordinates(entry.pos, [KartDesign.BUILD_SIZE.x * Grid.STUD_FINE, KartDesign.BUILD_SIZE.y * Grid.PLATE_FINE, KartDesign.BUILD_SIZE.z * Grid.STUD_FINE], false) or not _integer(entry.get("turn", 0), 0, 23):
+						return {"why": "That kart has an invalid position or turn."}
+				elif not _coordinates(entry.get("at", [0, 0, 0]), [KartDesign.BUILD_SIZE.x, KartDesign.BUILD_SIZE.y, KartDesign.BUILD_SIZE.z], true) or not _integer(entry.get("rot", 0), 0, 3):
+					return {"why": "That kart has an invalid position or turn."}
+				if entry.has("color") and not _colour(entry.color):
+					return {"why": "That kart has an invalid colour."}
+				if entry.has("suspension") and (not entry.suspension is String or not entry.suspension in KartDesign.SUSPENSION):
+					return {"why": "That kart has invalid suspension."}
+			var canonical := KartDesign.from_dict(data).to_dict()
+			if not _kart_work_bounded(KartDesign.from_dict(canonical)):
+				return {"why": "That kart has too many overlapping connections to import."}
+			return {"kind": KART, "data": canonical}
+	return {"why": "That sharing kind isn't supported."}
+
+
+static func _kart_work_bounded(design: KartDesign) -> bool:
+	var spots := {}
+	var connectors := 0
+	var pairs := 0
+	for part in design.parts:
+		for connector in Connectors.placed(part.id, design.place_of(part)):
+			connectors += 1
+			if connectors > MOST_CONNECTORS:
+				return false
+			var key := Connectors.key_of(connector.at)
+			var count: int = spots.get(key, 0)
+			pairs += count
+			if pairs > MOST_CONNECTOR_PAIRS:
+				return false
+			spots[key] = count + 1
+	return true
+
+
+static func _read_course(data: Dictionary) -> Dictionary:
+	if not data.get("pieces") is Array or data.pieces.is_empty() or data.pieces.size() > MOST_PIECES:
+		return {"why": "That course needs 1 to %d road pieces." % MOST_PIECES}
+	for key in ["theme", "weather", "time"]:
+		if not _text(data.get(key, ""), MOST_NAME):
+			return {"why": "That course has an invalid setting."}
+	for key in ["width", "hills", "grid", "laps"]:
+		if data.has(key) and not _number(data[key]):
+			return {"why": "That course has an invalid size."}
+	if data.has("grid") and not data.grid in [TrackPiece.OLD_TILE, TrackPiece.TILE]:
+		return {"why": "That course has an invalid grid."}
+	if data.has("laps") and not _integer(data.laps, 1, 9):
+		return {"why": "That course has an invalid lap count."}
+	if data.has("fixed_time") and not data.fixed_time is bool:
+		return {"why": "That course has an invalid time setting."}
+	if data.has("start") and (not data.start is Array or (not data.start.is_empty() and (data.start.size() != 4 or not _vector(data.start.slice(0, 3), 100000.0) or not _integer(data.start[3], 0, 3)))):
+		return {"why": "That course has an invalid start."}
+	for spec in data.pieces:
+		if not spec is Dictionary or not spec.get("type", "straight") in PIECE_TYPES:
 			return {"why": "That course has pieces the game can't build."}
-		return {"kind": COURSE, "data": course.to_dict()}
-	var cup := _clean_cup(CupDesign.from_dict(data))
-	if cup.races.size() > CupDesign.MOST or not cup.races.all(func(r): return buildable(CourseDesign.from_dict(r.course))):
-		return {"why": "That cup has a course the game can't build."}
-	if cup.problem() != "":
-		return {"why": cup.problem()}
-	return {"kind": CUP, "data": cup.to_dict()}
+		for key in LIMITS:
+			if spec.has(key) and (not _number(spec[key]) or absf(spec[key]) > LIMITS[key] or (key in ["length", "size"] and spec[key] < 1)):
+				return {"why": "That course has pieces the game can't build."}
+		for key in ["turn", "side", "surface", "edges"]:
+			if spec.has(key) and not _text(spec[key], MOST_NAME):
+				return {"why": "That course has an invalid road setting."}
+		for key in ["cut", "sticky"]:
+			if spec.has(key) and not spec[key] is bool:
+				return {"why": "That course has an invalid road setting."}
+	if not data.get("landmarks", []) is Array or data.get("landmarks", []).size() > MOST_LANDMARKS:
+		return {"why": "That course has invalid landmarks."}
+	for mark in data.get("landmarks", []):
+		if not mark is Dictionary or not mark.get("prop") is String or not Props.ROOM.has(mark.prop) or not _vector(mark.get("at", [0, 0]), 100000.0, 2) or not _integer(mark.get("facing", 0), 0, 3):
+			return {"why": "That course has an invalid landmark."}
+	var course := CourseDesign.from_dict(data)
+	if not buildable(course):
+		return {"why": "That course has pieces the game can't build."}
+	return {"kind": COURSE, "data": course.to_dict()}
 
 
-## Whether every piece of a course someone's sent is one the track editor
-## could have made, so a bad one can't build something enormous.
+static func _text(value: Variant, most: int) -> bool:
+	return value is String and value.length() <= most
+
+
+static func _number(value: Variant) -> bool:
+	return (value is int or value is float) and is_finite(float(value))
+
+
+static func _integer(value: Variant, least: int, most: int) -> bool:
+	return _number(value) and value >= least and value <= most and floorf(value) == float(value)
+
+
+static func _colour(value: Variant) -> bool:
+	return value is String and value.length() <= 32 and Color.html_is_valid(value)
+
+
+static func _vector(value: Variant, bound: float, count := 3) -> bool:
+	if not value is Array or value.size() != count:
+		return false
+	return value.all(func(n): return _number(n) and absf(n) <= bound)
+
+
+static func _coordinates(value: Variant, bounds: Array, integral: bool) -> bool:
+	if not value is Array or value.size() != 3:
+		return false
+	for i in 3:
+		if not _number(value[i]) or absf(value[i]) > bounds[i] or (integral and floorf(value[i]) != float(value[i])):
+			return false
+	return true
+
+
+## Keeps online host validation using the same course build limits.
 static func buildable(course: CourseDesign) -> bool:
 	if course.pieces.size() > MOST_PIECES or course.landmarks.size() > MOST_LANDMARKS:
 		return false
-	if course.width < 4.0 or course.width > 30.0 or course.hills < 0.0 or course.hills > 100.0:
+	if not is_finite(course.width) or not is_finite(course.hills) or course.width < 4.0 or course.width > 30.0 or course.hills < 0.0 or course.hills > 100.0:
 		return false
 	for spec in course.pieces:
 		if not str(spec.get("type", "straight")) in PIECE_TYPES:
 			return false
 		for key in LIMITS:
-			if spec.has(key):
-				var value = spec[key]
-				if not (value is float or value is int) or absf(value) > LIMITS[key]:
-					return false
-				if key in ["length", "size"] and value < 1:
-					return false
-	# A crossing's tunnels are solid, so they mustn't land on other road.
+			if spec.has(key) and (not _number(spec[key]) or absf(spec[key]) > LIMITS[key] or (key in ["length", "size"] and spec[key] < 1)):
+				return false
 	if course.pieces.any(func(spec): return str(spec.get("type", "")) == "crossing"):
 		if LevelCrossing.problem(course.track()) != "":
 			return false
 	return true
 
 
-## The base64 in a code, from `from` up to CODE_END, or "" if it doesn't get
-## there. Spaces and line breaks are skipped, since a chat app may have
-## wrapped it.
 static func _base64_after(text: String, from: int) -> String:
 	var out := ""
 	for i in range(from, text.length()):
@@ -138,20 +310,7 @@ static func _base64_after(text: String, from: int) -> String:
 	return ""
 
 
-## A cup from someone else, with every race that says it's one of the game's
-## courses checked that it really is. The rest are raced from the copy in the
-## cup.
-static func _clean_cup(cup: CupDesign) -> CupDesign:
-	var game := {}
-	for id in Tracks.all():
-		game[Tracks.path_of(id)] = true
-	for race in cup.races:
-		if not game.has(str(race.from)):
-			race.from = game_path_of(race.course)
-	return cup
-
-
-## The path of the game's own course that's the same as this one, or "".
+## Exact normalised stock identity. A cup's inline snapshot is authoritative.
 static func game_path_of(course: Dictionary) -> String:
 	if _game_courses.is_empty():
 		for id in Tracks.all():
@@ -166,73 +325,141 @@ static func game_path_of(course: Dictionary) -> String:
 	return ""
 
 
-## A cup the way it's sent online ({ "name", "made_by", "courses" }) as one
-## to keep, with the game's own courses raced from the game.
 static func cup_from_online(cup: Dictionary) -> Dictionary:
 	var races := []
 	for course in cup.get("courses", []):
 		if course is Dictionary:
-			races.append({"from": game_path_of(course), "course": course})
+			var found := _validate(COURSE, course)
+			races.append({"from": game_path_of(found.data) if not found.has("why") else "", "course": course})
 	return {"name": str(cup.get("name", "A cup")), "made_by": str(cup.get("made_by", "")), "races": races}
 
 
-## The file of yours that's the same as this, or "". The name doesn't
-## count, since one added under another name is still the same one.
+static func saved_paths(kind: String) -> Array[String]:
+	match kind:
+		COURSE: return CourseDesign.saved()
+		CUP: return CupDesign.saved()
+		DRIVER: return CharacterDesign.saved_paths()
+		KART: return KartDesign.saved_paths()
+	return []
+
+
+static func path_for(kind: String, name: String) -> String:
+	match kind:
+		COURSE: return CourseDesign.path_for(name)
+		CUP: return CupDesign.path_for(name)
+		DRIVER: return "%s/%s.json" % [CharacterDesign.SAVE_DIR, CharacterDesign.file_name_for(name)]
+		KART: return "%s/%s.json" % [KartDesign.SAVE_DIR, KartDesign.file_name_for(name)]
+	return ""
+
+
+## Content duplicates ignore the display name, and a cup's source paths and
+## its course names. Repeated races and every race setting still count.
+static func _unnamed(kind: String, data: Dictionary) -> Dictionary:
+	var out := data.duplicate(true)
+	out.erase("name")
+	if kind == CUP:
+		for race in out.races:
+			race.erase("from")
+			race.course.erase("name")
+	return out
+
+
 static func yours_already(kind: String, data: Dictionary) -> String:
 	var wanted := _unnamed(kind, data)
-	for path in (CourseDesign.saved() if kind == COURSE else CupDesign.saved()):
-		var mine = JSON.parse_string(FileAccess.get_file_as_string(path))
-		if mine is Dictionary and _unnamed(kind, mine) == wanted:
+	for path in saved_paths(kind):
+		var text := FileAccess.get_file_as_string(path)
+		var mine := read(text)
+		if mine.get("kind") == kind and _unnamed(kind, mine.data) == wanted:
 			return path
 	return ""
 
 
-## A course or cup as it's saved, without its name.
-static func _unnamed(kind: String, data: Dictionary) -> Dictionary:
-	var out := CourseDesign.from_dict(data).to_dict() if kind == COURSE else CupDesign.from_dict(data).to_dict()
-	out.erase("name")
-	return out
-
-
-## Whether this is one of the game's own courses, which needs no keeping.
 static func is_the_games(kind: String, data: Dictionary) -> bool:
 	return kind == COURSE and game_path_of(data) != ""
 
 
-## Puts a course or cup that's been read with your own, and says how it went
-## as { "path", "said" }. A cup's own courses go with your courses too, so
-## each can be raced on its own. Something you've already got isn't saved
-## twice, and one with the same name as one of yours gets a number after it.
+## Returns {path, said}, or {path: "", said, why}. Revalidates callers' data,
+## plans all names before writing and never replaces an existing file.
 static func add(found: Dictionary) -> Dictionary:
-	var kind: String = found.kind
-	var data: Dictionary = found.data
+	if not found.get("kind") in KINDS or not found.get("data") is Dictionary:
+		return _save_error(str(found.get("why", "That design isn't valid.")))
+	var checked := _validate(found.kind, found.data)
+	if checked.has("why"):
+		return _save_error(checked.why)
+	var kind: String = checked.kind
+	var data: Dictionary = checked.data
 	if is_the_games(kind, data):
 		return {"path": game_path_of(data), "said": "%s is one of the game's courses already." % data.get("name", "That")}
 	var have := yours_already(kind, data)
 	if have != "":
 		return {"path": have, "said": "You've already got %s." % data.get("name", "that")}
-	if kind == COURSE:
-		var course := CourseDesign.from_dict(data)
-		course.name = _free_name(course.name, CourseDesign.path_for)
-		var path := course.save()
-		return {"path": path, "said": "%s is with your courses now." % course.name if path != "" else "I couldn't save it."}
-	var cup := CupDesign.from_dict(data)
-	for race in cup.races:
-		if str(race.from) == "" and yours_already(COURSE, race.course) == "":
-			var course := CourseDesign.from_dict(race.course)
-			course.name = _free_name(course.name, CourseDesign.path_for)
-			course.save()
-	cup.name = _free_name(cup.name, CupDesign.path_for)
-	var path := cup.save()
-	return {"path": path, "said": "%s is with your cups now." % cup.name if path != "" else "I couldn't save it."}
+	var plan: Array[Dictionary] = []
+	var reserved := {}
+	if kind == CUP:
+		var courses := []
+		for race in data.races:
+			if race.from != "" or yours_already(COURSE, race.course) != "":
+				continue
+			var signature := _unnamed(COURSE, race.course)
+			if signature in courses:
+				continue
+			courses.append(signature)
+			_plan_file(COURSE, race.course.duplicate(true), reserved, plan)
+	var path := _plan_file(kind, data, reserved, plan)
+	if not _write_plan(plan):
+		return _save_error("I couldn't save it. No new designs were kept.")
+	var folder: String = {COURSE: "courses", CUP: "cups", DRIVER: "racers", KART: "karts"}[kind]
+	return {"path": path, "said": "%s is with your %s now." % [data.get("name", "That"), folder]}
 
 
-## This name, or with a number after it if one of yours already has its file.
-static func _free_name(wanted: String, path_for: Callable) -> String:
-	var name := wanted.strip_edges() if wanted.strip_edges() != "" else "Shared"
+static func _save_error(why: String) -> Dictionary:
+	return {"path": "", "said": why, "why": why}
+
+
+static func _exists(path: String) -> bool:
+	return FileAccess.file_exists(path) or DirAccess.dir_exists_absolute(path)
+
+
+static func _plan_file(kind: String, data: Dictionary, reserved: Dictionary, plan: Array[Dictionary]) -> String:
+	var name: String = str(data.get("name", "Shared")).strip_edges()
+	if name == "":
+		name = "Shared"
+	var chosen := name
+	var path := path_for(kind, chosen)
 	var tries := 1
-	var out := name
-	while FileAccess.file_exists(path_for.call(out)):
+	while _exists(path) or reserved.has(path):
 		tries += 1
-		out = "%s %d" % [name, tries]
-	return out
+		var suffix := " %d" % tries
+		chosen = name.left(MOST_NAME - suffix.length()) + suffix
+		path = path_for(kind, chosen)
+	data.name = chosen
+	reserved[path] = true
+	plan.append({"path": path, "data": data})
+	return path
+
+
+static func _write_plan(plan: Array[Dictionary]) -> bool:
+	var written: Array[String] = []
+	for item in plan:
+		var path: String = item.path
+		if _exists(path) or DirAccess.make_dir_recursive_absolute(path.get_base_dir()) != OK:
+			_rollback(written)
+			return false
+		var file := FileAccess.open(path, FileAccess.WRITE)
+		if file == null:
+			_rollback(written)
+			return false
+		written.append(path)
+		file.store_string(JSON.stringify(item.data, "\t"))
+		file.flush()
+		var error := file.get_error()
+		file.close()
+		if error != OK:
+			_rollback(written)
+			return false
+	return true
+
+
+static func _rollback(paths: Array[String]) -> void:
+	for path in paths:
+		DirAccess.remove_absolute(path)

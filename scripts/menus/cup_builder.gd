@@ -10,6 +10,7 @@ var _name: LineEdit
 var _list: VBoxContainer
 var _problem: Label
 var _save: Button
+var _share: Button
 var _delete_dialog: ConfirmationDialog
 
 
@@ -49,6 +50,8 @@ func _ready() -> void:
 	_save.theme_type_variation = "MainButton"
 	_save.size_flags_horizontal = SIZE_EXPAND_FILL
 	row.add_child(_save)
+	_share = MenuStyle.button("Share", share)
+	row.add_child(_share)
 	if path != "":
 		row.add_child(MenuStyle.link("Delete it", func() -> void: _delete_dialog.popup_centered()))
 
@@ -114,6 +117,13 @@ func _show() -> void:
 	_problem.text = problem
 	_problem.visible = problem != ""
 	_save.disabled = problem != ""
+	_share.disabled = problem != ""
+
+
+func share() -> void:
+	if cup.problem() != "" or cup.name.strip_edges() == "":
+		return
+	ShareWindow.open(Sharing.envelope_for(Sharing.CUP, cup.to_dict()), self)
 
 
 func save() -> void:

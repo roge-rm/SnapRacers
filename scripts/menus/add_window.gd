@@ -1,21 +1,22 @@
 class_name AddWindow
 extends PopupPanel
 
-## Adds a course or cup someone's sent you, from a share code or a file (see
-## Sharing). Whichever it turns out to be goes with your courses or your cups.
+## Adds a shared design from a code or file to its library.
 
 ## Something was added, or was yours already, with its kind and where it is.
 signal added(kind: String, path: String)
 ## It's closed, with whether anything was added while it was open.
 signal done(any_added: bool)
 
-var heading := "Add a course or cup"
+var heading := "Add a SnapRacers design"
+var expected_kind := ""
 var _code: LineEdit
 var _said: Label
 var _any_added := false
 
 
-func _init(title := "") -> void:
+func _init(title := "", kind := "") -> void:
+	expected_kind = kind
 	if title != "":
 		heading = title
 
@@ -71,7 +72,14 @@ func _add(text: String) -> void:
 	if found.has("why"):
 		_say(found.why)
 		return
+	if expected_kind != "" and found.kind != expected_kind:
+		var nouns := {Sharing.COURSE: "course", Sharing.CUP: "cup", Sharing.DRIVER: "driver", Sharing.KART: "kart"}
+		_say("That is a %s. Add a %s here." % [nouns[found.kind], nouns[expected_kind]])
+		return
 	var result := Sharing.add(found)
+	if result.has("why"):
+		_say(result.why)
+		return
 	_say(result.said)
 	_code.text = ""
 	if result.path != "":
@@ -84,8 +92,8 @@ func _say(text: String) -> void:
 
 
 ## Opens an add window over `parent`.
-static func open(parent: Node, title := "") -> AddWindow:
-	var window := AddWindow.new(title)
+static func open(parent: Node, title := "", kind := "") -> AddWindow:
+	var window := AddWindow.new(title, kind)
 	parent.add_child(window)
 	window.popup_centered()
 	PadFocus.focus_first(window)

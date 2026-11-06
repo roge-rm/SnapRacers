@@ -98,7 +98,7 @@ static func _dialog(mode: FileDialog.FileMode, parent: Node) -> FileDialog:
 	dialog.file_mode = mode
 	dialog.access = FileDialog.ACCESS_FILESYSTEM
 	dialog.use_native_dialog = true
-	dialog.filters = PackedStringArray(["*.json ; Courses and cups"])
+	dialog.filters = PackedStringArray(["*.json ; SnapRacers designs"])
 	dialog.current_dir = OS.get_system_dir(OS.SYSTEM_DIR_DOWNLOADS)
 	parent.add_child(dialog)
 	dialog.visibility_changed.connect(func() -> void:

@@ -91,6 +91,8 @@ func _ready() -> void:
 		_driving = driving
 		_rebuild())
 	ui.done_pressed.connect(go_back)
+	ui.share_pressed.connect(_share)
+	ui.import_pressed.connect(_open_import)
 	ui.save_pressed.connect(_save)
 	ui.load_chosen.connect(_load)
 	ui.new_pressed.connect(_new_driver)
@@ -150,6 +152,17 @@ func randomise() -> void:
 	design = CharacterDesign.random(rng)
 	design.name = name
 	_rebuild()
+
+
+func _share() -> void:
+	ShareWindow.open(Sharing.envelope_for(Sharing.DRIVER, design.to_dict()), ui)
+
+
+func _open_import() -> void:
+	var window := AddWindow.open(ui, "Add a driver", Sharing.DRIVER)
+	window.added.connect(func(kind: String, path: String) -> void:
+		if kind == Sharing.DRIVER:
+			_load(path))
 
 
 func _save() -> void:

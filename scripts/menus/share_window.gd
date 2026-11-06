@@ -1,7 +1,7 @@
 class_name ShareWindow
 extends PopupPanel
 
-## Sends a course or cup to someone else, as a share code to paste in a
+## Sends a design to someone else, as a share code to paste in a
 ## message or as a file (see Sharing). On a phone both go through Android's
 ## share sheet. Elsewhere the code's copied, and the file's downloaded (the
 ## web) or saved where you pick (a computer).
@@ -11,7 +11,7 @@ var _said: Label
 
 
 func _init(what: Dictionary) -> void:
-	data = what
+	data = what.duplicate(true)
 
 
 func _ready() -> void:
@@ -25,9 +25,9 @@ func _ready() -> void:
 	column.custom_minimum_size = Vector2(480.0, 0.0)
 	column.add_theme_constant_override("separation", 12)
 	add_child(column)
-	var cup := Sharing.kind_of(data) == Sharing.CUP
-	column.add_child(MenuStyle.heading("Share %s" % str(data.get("name", "this")), "A cup brings its courses with it" if cup else ""))
-	var title := "Share %s" % str(data.get("name", ""))
+	var payload := Sharing.data_of(data)
+	column.add_child(MenuStyle.heading("Share %s" % str(payload.get("name", "this"))))
+	var title := "Share %s" % str(payload.get("name", ""))
 	if ShareSheet.can_send_text():
 		column.add_child(MenuStyle.button("Send the code", func() -> void: _say(ShareSheet.send_text(Sharing.message_for(data), title))))
 	column.add_child(MenuStyle.button("Copy the code", func() -> void: _say(ShareSheet.copy(Sharing.message_for(data)))))
@@ -46,7 +46,7 @@ func _say(text: String) -> void:
 	_said.text = text
 
 
-## Opens a share window for this course or cup over `parent`.
+## Opens a share window for this design over `parent`.
 static func open(what: Dictionary, parent: Node) -> ShareWindow:
 	var window := ShareWindow.new(what)
 	parent.add_child(window)

@@ -41,6 +41,8 @@ signal air_toggled(on: bool)
 signal colour_chosen(colour: Color)
 signal view_pressed(view: String)
 signal new_pressed
+signal share_pressed
+signal import_pressed
 signal save_pressed
 signal load_chosen(path: String)
 signal drive_pressed
@@ -353,7 +355,7 @@ func _build_toolbar() -> void:
 	_views_menu = _menu(["Front", "Side", "Top", "Angle", "Fit the kart"])
 	_views_menu.id_pressed.connect(func(id: int) -> void: view_pressed.emit(["front", "side", "top", "angle", "fit"][id]))
 	camera.pressed.connect(_pop_under.bind(_views_menu, camera))
-	_file_menu = _menu(["Save", "Load", "Rename", "New kart"])
+	_file_menu = _menu(["Save", "Load", "Rename", "New kart", "Share"])
 	_file_menu.id_pressed.connect(_on_file_menu)
 	more.pressed.connect(_pop_under.bind(_file_menu, more))
 
@@ -368,6 +370,8 @@ func _on_file_menu(id: int) -> void:
 			_open_rename()
 		3:
 			_new_dialog.popup_centered()
+		4:
+			share_pressed.emit()
 
 
 func _menu(items: Array) -> PopupMenu:
@@ -804,6 +808,7 @@ func _build_bottom() -> void:
 
 func _build_dialogs() -> void:
 	_load_popup = PopupPanel.new()
+	PadFocus.close_on_b(_load_popup)
 	_load_popup.theme = MenuStyle.theme()
 	add_child(_load_popup)
 	var box := VBoxContainer.new()
@@ -861,6 +866,9 @@ func _open_rename() -> void:
 func _open_load() -> void:
 	for child in _load_list.get_children():
 		child.queue_free()
+	_load_list.add_child(MenuStyle.button("Add a kart...", func() -> void:
+		_load_popup.hide()
+		import_pressed.emit()))
 	var saved := KartDesign.saved_paths()
 	if not saved.is_empty():
 		_load_list.add_child(MenuStyle.heading("Your karts"))
@@ -871,6 +879,7 @@ func _open_load() -> void:
 		var design := Game.stock_kart(key)
 		_load_list.add_child(_load_button(design.name, "%s/%s.json" % [Game.STOCK, key]))
 	_load_popup.popup_centered()
+	PadFocus.focus_first(_load_popup)
 
 
 func _load_button(text: String, path: String) -> Button:

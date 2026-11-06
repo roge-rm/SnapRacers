@@ -46,6 +46,8 @@ class Part:
         self.solid = solid
         self.connectors = connectors
         self.color = color
+        # Optional racing_hull vertices are in metres from the part's corner.
+        # They bound a convex body without changing the editor's solid boxes.
         self.stats = stats
         # A second piece in its own colour that isn't painted, like a tire or
         # a lens: (solid, colour, finish).
@@ -101,10 +103,10 @@ def _block(id, name, kind, group, across, along, plates, color, stud=True, aero=
 for _a, _b in [(1, 1), (1, 2), (1, 3), (1, 4), (1, 6), (1, 8), (2, 2), (2, 3), (2, 4), (2, 6), (2, 8), (2, 10), (4, 4), (4, 6), (4, 8), (6, 6), (6, 8), (6, 10), (6, 12)]:
     part((lambda a, b: lambda: _block("p_plate_%dx%d" % (a, b), "Plate %d×%d" % (a, b), "plate", "plates", a, b, 1, LIGHT_GREY if a >= 4 else RED))(_a, _b))
 
-for _a, _b in [(1, 1), (1, 2), (1, 4), (1, 6), (2, 2), (2, 4)]:
+for _a, _b in [(1, 1), (1, 2), (1, 3), (1, 4), (1, 6), (2, 2), (2, 4)]:
     part((lambda a, b: lambda: _block("p_brick_%dx%d" % (a, b), "Brick %d×%d" % (a, b), "brick", "bricks", a, b, 3, RED))(_a, _b))
 
-for _a, _b in [(1, 1), (1, 2), (1, 4), (1, 6), (2, 2), (2, 4), (2, 6), (1, 8), (2, 8)]:
+for _a, _b in [(1, 1), (1, 2), (1, 3), (1, 4), (1, 6), (2, 2), (2, 3), (2, 4), (2, 6), (1, 8), (2, 8)]:
     part((lambda a, b: lambda: _block("p_tile_%dx%d" % (a, b), "Tile %d×%d" % (a, b), "plate", "tiles", a, b, 1, BLACK, stud=False, aero={"front": 0.9, "back": 0.9}))(_a, _b))
 
 
@@ -121,9 +123,26 @@ def round_plate_2x2():
 
 
 @part
+def round_tile_1x1():
+    solid = cylinder(STUD * 0.5 - 0.004, PLATE - 0.002, "y", (STUD * 0.5, 0.001, STUD * 0.5))
+    return Part("p_round_tile_1x1", "Round tile 1×1", "plate", "tiles", (STUD, PLATE, STUD), solid, sockets([(0, 0)]), BLACK)
+
+
+@part
 def round_tile_2x2():
     solid = cylinder(STUD - 0.004, PLATE - 0.002, "y", (STUD, 0.001, STUD), 28)
     return Part("p_round_tile_2x2", "Round tile 2×2", "plate", "tiles", (2 * STUD, PLATE, 2 * STUD), solid, sockets(grid_cells(2, 2)), BLACK)
+
+
+@part
+def round_brick_1x1():
+    centre = STUD * 0.5
+    body = cylinder(centre - 0.004, BRICK - 0.036, "y", (centre, 0.035, centre))
+    collar = cylinder(0.1, 0.043, "y", (centre, 0.001, centre))
+    stud = cylinder(STUD_RADIUS, STUD_HEIGHT, "y", (centre, BRICK - 0.001, centre))
+    hole = cylinder(0.05, STUD_HEIGHT + 0.02, "y", (centre, BRICK - 0.015, centre))
+    solid = cut(union([body, collar, stud]), hole)
+    return Part("p_round_brick_1x1", "Round brick 1×1", "brick", "bricks", (STUD, BRICK, STUD), solid, sockets([(0, 0)]) + top_studs([(0, 0)], BRICK), BLACK)
 
 
 @part
@@ -198,6 +217,27 @@ def inverted_curve_1x2():
     return Part("p_inverted_curve_1x2", "Inverted curve 1×2", "body", "curves", (STUD, h, l), solid, top_studs(grid_cells(1, 2), h) + sockets([(0, 1)]), RED, aero={"front": 0.7, "back": 1.0})
 
 
+def _inverted_slope(along):
+    h = BRICK
+    l = along * STUD
+    run = l - STUD
+    lip = PLATE
+    outline = [(0, h), (0, h - lip), (run, 0), (l, 0), (l, h)]
+    solid = union([profile_x(outline, 0.002, STUD - 0.002), studs(grid_cells(1, along), h)])
+    # Fine strips follow the underside, leaving room below the overhang.
+    strips = round(run / FINE)
+    solids = [[0, (h - lip) * (1 - (k + 1) / strips), k * FINE, STUD, h, (k + 1) * FINE] for k in range(strips)]
+    solids.append([0, 0, run, STUD, h, l])
+    return Part("p_inverted_slope_1x%d" % along, "Inverted slope 1×%d" % along, "body", "slopes", (STUD, h, l), solid,
+                top_studs(grid_cells(1, along), h) + sockets([(0, along - 1)]), RED,
+                aero={"front": 0.7, "back": 1.0}, solids=solids,
+                racing_hull=[(x, y, z) for x in (0, STUD) for z, y in outline])
+
+
+part(lambda: _inverted_slope(2))
+part(lambda: _inverted_slope(3))
+
+
 @part
 def bow_1x4():
     """An arch-shaped curved brick, highest in the middle, for wheel arches
@@ -230,6 +270,29 @@ def _wedge(id, name, side, color):
 
 part(lambda: _wedge("p_wedge_3x2_left", "Wedge plate 3×2 left", "left", WHITE))
 part(lambda: _wedge("p_wedge_3x2_right", "Wedge plate 3×2 right", "right", WHITE))
+
+
+def _wedge_2x4(side):
+    w, l = 2 * STUD, 4 * STUD
+    outline = [(0, l), (w, l), (w, 0), (STUD, 0), (0, 3 * STUD)]
+    cells = [(1, k) for k in range(4)] + [(0, 2), (0, 3)]
+    solid = plan_y(outline, 0.001, PLATE - 0.001)
+    # The boxes follow the diagonal so another part can use the cutaway.
+    solids = [[max(0, STUD - (k + 1) * FINE / 3), 0, k * FINE, w, PLATE, (k + 1) * FINE] for k in range(round(l / FINE))]
+    if side == "right":
+        solid = mirror_x(solid).translate([w, 0, 0])
+        outline = [(w - x, z) for x, z in outline]
+        cells = [(1 - i, k) for i, k in cells]
+        solids = [[w - x1, y0, z0, w - x0, y1, z1] for x0, y0, z0, x1, y1, z1 in solids]
+    solid = union([solid, studs(cells, PLATE)])
+    return Part("p_wedge_2x4_" + side, "Wedge plate 2×4 " + side, "plate", "plates", (w, PLATE, l), solid,
+                sockets(cells) + top_studs(cells, PLATE), WHITE,
+                mirror="p_wedge_2x4_" + ("right" if side == "left" else "left"), solids=solids,
+                racing_hull=[(x, y, z) for y in (0, PLATE) for x, z in outline])
+
+
+part(lambda: _wedge_2x4("left"))
+part(lambda: _wedge_2x4("right"))
 
 
 @part
@@ -328,6 +391,44 @@ def technic_brick_1x4():
     return Part("p_technic_brick_1x4", "Brick 1×4 with holes", "brick", "technic", (STUD, BRICK, 4 * STUD), cut(solid, *holes), con, BLACK)
 
 
+
+def _hole_walls(w, h, l, y, z, radius):
+    """Four solid boxes leave clearance along a hole's axis."""
+    return [[0, 0, 0, w, y - radius, l], [0, y + radius, 0, w, h, l],
+            [0, y - radius, 0, w, y + radius, z - radius],
+            [0, y - radius, z + radius, w, y + radius, l]]
+
+
+@part
+def technic_brick_1x2():
+    cells = grid_cells(1, 2)
+    solid = union([box(0, 0, 0, STUD, BRICK, 2 * STUD), studs(cells, BRICK)])
+    hole = cylinder(HOLE, STUD + 0.02, "x", (-0.01, 0.17, STUD), 20)
+    # Shallow rims clear the collar of a pin joining adjacent bricks.
+    rims = [cylinder(HOLE + 0.012, 0.022, "x", (x, 0.17, STUD), 20) for x in (-0.01, STUD - 0.012)]
+    con = sockets(cells) + top_studs(cells, BRICK) + [c("hole", (0, 0.17, STUD), (1, 0, 0), STUD)]
+    return Part("p_technic_brick_1x2", "Brick 1×2 with pin hole", "brick", "technic", (STUD, BRICK, 2 * STUD), cut(solid, hole, *rims), con, BLACK,
+                solids=_hole_walls(STUD, BRICK, 2 * STUD, 0.17, STUD, HOLE))
+
+
+@part
+def axle_hole_brick_1x1():
+    y, z = BRICK * 0.5, STUD * 0.5
+    # The cross clears the existing axle's 0.03 m arms and 0.055 m tips.
+    arm, tip = 0.034, 0.059
+    hole = union([box(-0.01, y - arm, z - tip, STUD + 0.01, y + arm, z + tip, edge=0),
+                  box(-0.01, y - tip, z - arm, STUD + 0.01, y + tip, z + arm, edge=0)])
+    solid = union([box(0, 0, 0, STUD, BRICK, STUD), studs([(0, 0)], BRICK)])
+    walls = _hole_walls(STUD, BRICK, STUD, y, z, tip)
+    for sy in (-1, 1):
+        for sz in (-1, 1):
+            ya, yb = sorted((y + sy * arm, y + sy * tip))
+            za, zb = sorted((z + sz * arm, z + sz * tip))
+            walls.append([0, ya, za, STUD, yb, zb])
+    con = sockets([(0, 0)]) + top_studs([(0, 0)], BRICK) + [c("axle_hole", (0, y, z), (1, 0, 0), STUD)]
+    return Part("p_axle_hole_brick_1x1", "Brick 1×1 with axle hole", "brick", "technic", (STUD, BRICK, STUD), cut(solid, hole), con, DARK_GREY, solids=walls)
+
+
 @part
 def pin():
     """A pin two studs long, half in one hole and half in the next."""
@@ -423,6 +524,22 @@ def bracket_1x2():
     return Part("p_bracket_1x2", "Bracket 1×2", "plate", "brackets", (2 * STUD, 2 * STUD, STUD + PLATE), solid.translate([0, 0, PLATE]), [_shift(x, (0, 0, PLATE)) for x in con], WHITE)
 
 
+@part
+def inverted_bracket_1x2():
+    """A top plate with a front mounting face hanging below it."""
+    h = 2 * STUD
+    flat = box(0, h - PLATE, PLATE, 2 * STUD, h, STUD + PLATE)
+    down = box(0, 0, 0, 2 * STUD, h, PLATE)
+    cells = [(0, 0), (1, 0)]
+    face_studs = [cylinder(STUD_RADIUS, STUD_HEIGHT, "-z", ((i + 0.5) * STUD, STUD * 0.5, 0.001), 12) for i in range(2)]
+    con = [_shift(co, (0, h - PLATE, PLATE)) for co in sockets(cells)]
+    con += [_shift(co, (0, 0, PLATE)) for co in top_studs(cells, h)]
+    con += [c("stud", ((i + 0.5) * STUD, STUD * 0.5, 0), (0, 0, -1)) for i in range(2)]
+    solid = union([flat, down, studs(cells, h).translate([0, 0, PLATE])] + face_studs)
+    return Part("p_inverted_bracket_1x2", "Inverted bracket 1×2", "plate", "brackets", (2 * STUD, h, STUD + PLATE), solid, con, WHITE,
+                solids=[[0, h - PLATE, PLATE, 2 * STUD, h, STUD + PLATE], [0, 0, 0, 2 * STUD, h, PLATE]])
+
+
 def _shift(conn, by):
     out = dict(conn)
     out["at"] = [conn["at"][0] + by[0], conn["at"][1] + by[1], conn["at"][2] + by[2]]
@@ -435,6 +552,16 @@ def side_stud_brick_1x1():
     solid = union([box(0, 0, 0, STUD, BRICK, STUD), studs([(0, 0)], BRICK), cylinder(STUD_RADIUS, STUD_HEIGHT, "-z", (STUD * 0.5, BRICK * 0.5, 0.001), 12)])
     con = sockets([(0, 0)]) + top_studs([(0, 0)], BRICK) + [c("stud", (STUD * 0.5, BRICK * 0.5, 0.0), (0, 0, -1))]
     return Part("p_side_stud_brick", "Brick 1×1 with side stud", "brick", "brackets", (STUD, BRICK, STUD), solid, con, WHITE)
+
+
+@part
+def opposite_stud_brick_1x1():
+    solid = union([box(0, 0, 0, STUD, BRICK, STUD), studs([(0, 0)], BRICK),
+                   cylinder(STUD_RADIUS, STUD_HEIGHT, "-z", (STUD * 0.5, BRICK * 0.5, 0.001), 12),
+                   cylinder(STUD_RADIUS, STUD_HEIGHT, "z", (STUD * 0.5, BRICK * 0.5, STUD - 0.001), 12)])
+    con = sockets([(0, 0)]) + top_studs([(0, 0)], BRICK)
+    con += [c("stud", (STUD * 0.5, BRICK * 0.5, z), axis) for z, axis in [(0, (0, 0, -1)), (STUD, (0, 0, 1))]]
+    return Part("p_opposite_stud_brick", "Brick 1×1 with opposite side studs", "brick", "brackets", (STUD, BRICK, STUD), solid, con, WHITE)
 
 
 @part
@@ -1842,6 +1969,14 @@ def jumper_1x2():
 
 
 @part
+def jumper_2x2():
+    solid = union([box(0, 0, 0, 2 * STUD, PLATE, 2 * STUD),
+                   cylinder(STUD_RADIUS, STUD_HEIGHT, "y", (STUD, PLATE - 0.001, STUD), 12)])
+    con = sockets(grid_cells(2, 2)) + [c("stud", (STUD, PLATE, STUD), (0, 1, 0))]
+    return Part("p_jumper_2x2", "Jumper plate 2×2", "plate", "plates", (2 * STUD, PLATE, 2 * STUD), solid, con, LIGHT_GREY)
+
+
+@part
 def drag_body_2x10_flames():
     """A dragster's long body 2×10, narrowing and dropping to a thin nose at
     the front, with orange flames licking forward along its top."""
@@ -2029,7 +2164,7 @@ def number_brick():
     four = [seg(four_z, cy - s / 2, four_z + s, hi), seg(four_z, cy - s / 2, four_z + dw, cy + s / 2), seg(four_z + dw - s, lo, four_z + dw, hi)]
     seven = [seg(seven_z, hi - s, seven_z + dw, hi), seg(seven_z + dw - s, lo, seven_z + dw, hi)]
     body = union([box(0, 0, 0, STUD, BRICK, STUD), studs([(0, 0)], BRICK), disc])
-    return Part("d_number_brick", "Brick 1×1 with a race number", "brick", "details", (STUD, BRICK, STUD), body,
+    return Part("d_number_brick", "Brick 1×1 with a race number", "brick", "bricks", (STUD, BRICK, STUD), body,
                 sockets([(0, 0)]) + top_studs([(0, 0)], BRICK), WHITE, trim=(union([ring] + four + seven), BLACK, "plastic"),
                 solids=[[0, 0, 0, STUD, BRICK, STUD]])
 
