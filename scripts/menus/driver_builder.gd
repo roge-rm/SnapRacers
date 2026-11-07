@@ -10,6 +10,11 @@ extends Node3D
 
 const SPIN := 0.35 # radians a second when nobody's touching it
 
+var initial_path := ""
+var saved_path := ""
+var back := Callable()
+var _opening := false
+
 var design: CharacterDesign
 var ui: DriverUI
 var _rig: CharacterRig
@@ -25,8 +30,15 @@ var _wheel: SteeringVisual
 var _time := 0.0
 
 
+func _init(from := "", leave := Callable()) -> void:
+	initial_path = from
+	saved_path = from
+	back = leave
+
+
 func _ready() -> void:
-	design = Game.character.duplicate_design()
+	_opening = initial_path != ""
+	design = CharacterDesign.load_file(initial_path) if initial_path != "" else Game.character.duplicate_design()
 	SkyAndSun.add_to(self, 20.0, BuilderStyle.BACKGROUND)
 	# Lit like a toy on a shelf, softly with light shadows, a cool light from
 	# the other side and a warm one from behind that picks out the edges of the
@@ -100,6 +112,7 @@ func _ready() -> void:
 		design.name = text.strip_edges() if text.strip_edges() != "" else "Driver"
 		_show())
 	_rebuild()
+	_opening = false
 
 
 ## Changes one piece's style or colour, as one step to undo.
@@ -116,15 +129,22 @@ func _change(slot: String, style := "", colour := Color(0, 0, 0, 0)) -> void:
 func undo() -> void:
 	if not _undo.is_empty():
 		var look: Dictionary = _undo.pop_back()
-		_redo.append(_marked(design.to_dict(), look))
+		_redo.append(_marked(_snapshot(look.has("creation_path")), look))
 		_restore(look)
 
 
 func redo() -> void:
 	if not _redo.is_empty():
 		var look: Dictionary = _redo.pop_back()
-		_undo.append(_marked(design.to_dict(), look))
+		_undo.append(_marked(_snapshot(look.has("creation_path")), look))
 		_restore(look)
+
+
+func _snapshot(identity := false) -> Dictionary:
+	var step := design.to_dict()
+	if back.is_valid() and identity:
+		step["creation_path"] = saved_path
+	return step
 
 
 ## Steps from loading another driver carry a mark, so undo and redo swap the
@@ -138,6 +158,8 @@ func _marked(step: Dictionary, like: Dictionary) -> Dictionary:
 func _restore(look: Dictionary) -> void:
 	var name := design.name
 	design = CharacterDesign.from_dict(look)
+	if back.is_valid() and look.has("creation_path"):
+		saved_path = str(look.get("creation_path", ""))
 	if not look.has("with_name"):
 		design.name = name
 	_rebuild()
@@ -146,7 +168,7 @@ func _restore(look: Dictionary) -> void:
 func randomise() -> void:
 	var rng := RandomNumberGenerator.new()
 	rng.randomize()
-	_undo.append(design.to_dict())
+	_undo.append(_snapshot())
 	_redo.clear()
 	var name := design.name
 	design = CharacterDesign.random(rng)
@@ -166,15 +188,25 @@ func _open_import() -> void:
 
 
 func _save() -> void:
-	var path := design.save()
+	var path := ""
+	if back.is_valid():
+		var result := CreationLibrary.save(Sharing.DRIVER, saved_path if saved_path != "" else Sharing.path_for(Sharing.DRIVER, design.name), design.to_dict(), saved_path != "")
+		if result.has("why"):
+			ui.toast(result.why)
+			return
+		path = result.path
+		saved_path = path
+	else:
+		path = design.save()
 	ui.toast("Saved %s" % design.name if path != "" else "I couldn't save it.")
 
 
 ## Swaps in another driver, as one step to undo.
 func _load(path: String) -> void:
-	_undo.append(_marked(design.to_dict(), { "with_name": true }))
+	_undo.append(_marked(_snapshot(true), { "with_name": true }))
 	_redo.clear()
 	design = CharacterDesign.load_file(path)
+	saved_path = path if path.begins_with(CharacterDesign.SAVE_DIR + "/") else ""
 	_rebuild()
 
 
@@ -218,7 +250,8 @@ func _rebuild() -> void:
 func _show() -> void:
 	ui.show_design(design)
 	ui.set_history(not _undo.is_empty(), not _redo.is_empty())
-	Game.keep_character(design)
+	if not _opening:
+		Game.keep_character(design)
 
 
 func _process(delta: float) -> void:
@@ -254,4 +287,7 @@ func next_tab(by: int) -> void:
 
 func go_back() -> void:
 	Game.keep_character(design)
-	Game.show_editors()
+	if back.is_valid():
+		back.call()
+	else:
+		Game.show_editors()

@@ -1,0 +1,6 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://tests/rear_view_mirror_test.gd" id="1"]
+
+[node name="RearViewMirrorTest" type="Node"]
+script = ExtResource("1")

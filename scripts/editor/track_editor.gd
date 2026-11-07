@@ -30,6 +30,10 @@ const HIGHLIGHT := Color(0.702, 0.616, 1.0, 0.45)
 ## Each kind of piece's road, made once: key -> [mesh, collision shape].
 static var _meshes := {}
 
+var initial_path := ""
+var back := Callable()
+var _opening := false
+
 var course: CourseDesign
 ## Where the course was last saved, or "" if it hasn't been.
 var path := ""
@@ -65,6 +69,7 @@ var _holding := {}
 var _ghost: Node3D
 var _closing := -1
 var _closer_result: Array = []
+var _closer_source: Dictionary = {}
 var _ghost_look: StandardMaterial3D
 
 var _fingers := {}
@@ -75,13 +80,22 @@ var _pinch_start := 0.0
 var _pinch_distance_start := 0.0
 
 
+func _init(from := "", leave := Callable()) -> void:
+	initial_path = from
+	back = leave
+
+
 func _ready() -> void:
-	if FileAccess.file_exists(CURRENT):
+	_opening = initial_path != ""
+	if initial_path != "":
+		course = CourseDesign.load_file(initial_path)
+		path = initial_path
+	elif FileAccess.file_exists(CURRENT):
 		var data = JSON.parse_string(FileAccess.get_file_as_string(CURRENT))
 		if data is Dictionary:
 			course = CourseDesign.from_dict(data.get("course", {}))
 			path = str(data.get("path", ""))
-	if course == null or course.pieces.is_empty():
+	if course == null or (initial_path == "" and course.pieces.is_empty()):
 		course = CourseDesign.starter()
 		path = ""
 	if course.made_by == "":
@@ -132,12 +146,12 @@ func _ready() -> void:
 	ui.fit_pressed.connect(fit_view)
 	ui.menu_pressed.connect(go_back)
 	ui.new_pressed.connect(func() -> void:
-		_remember()
+		_remember(true)
 		course = CourseDesign.starter()
 		course.made_by = Game.player_name()
 		path = ""
 		_select(-1)
-		_refresh()
+		_refresh(true)
 		fit_view())
 	ui.save_pressed.connect(save)
 	ui.load_chosen.connect(load_course)
@@ -184,8 +198,9 @@ func _ready() -> void:
 	ui.drive_pressed.connect(test_drive)
 	ui.race_pressed.connect(race)
 	_select(-1)
-	_refresh()
+	_refresh(true)
 	fit_view()
+	_opening = false
 
 
 ## The editor has its own way of using a controller and the keys.
@@ -194,7 +209,10 @@ func own_controls() -> bool:
 
 
 func go_back() -> void:
-	Game.show_editors()
+	if back.is_valid():
+		back.call()
+	else:
+		Game.show_editors()
 
 
 # Changing the course.
@@ -242,6 +260,7 @@ func close_up() -> void:
 	if _closing != -1:
 		return
 	ui.set_hint("Working out how to close it up...")
+	_closer_source = course.to_dict().duplicate(true)
 	_closer_result = []
 	_closing = WorkerThreadPool.add_task(_closer(course.duplicate_design(), _closer_result))
 
@@ -262,8 +281,11 @@ func _finish_closing() -> void:
 	WorkerThreadPool.wait_for_task_completion(_closing)
 	_closing = -1
 	ui.set_hint("")
+	if course.to_dict() != _closer_source:
+		ui.toast("The layout changed. Try Close it up again.")
+		return
 	if _closer_result.is_empty():
-		ui.toast("I couldn't find a way back from there. Try taking out the last few pieces.")
+		ui.show_close_failure()
 		Sounds.play("fx/nope")
 		return
 	_remember()
@@ -278,8 +300,9 @@ func _finish_closing() -> void:
 func undo() -> void:
 	if _undo.is_empty():
 		return
-	_redo.append(course.to_dict())
-	course = CourseDesign.from_dict(_undo.pop_back())
+	var step: Dictionary = _undo.pop_back()
+	_redo.append(_snapshot(step.has("creation_path")))
+	_restore(step)
 	_select(-1)
 	_refresh()
 
@@ -287,14 +310,28 @@ func undo() -> void:
 func redo() -> void:
 	if _redo.is_empty():
 		return
-	_undo.append(course.to_dict())
-	course = CourseDesign.from_dict(_redo.pop_back())
+	var step: Dictionary = _redo.pop_back()
+	_undo.append(_snapshot(step.has("creation_path")))
+	_restore(step)
 	_select(-1)
 	_refresh()
 
 
-func _remember() -> void:
-	_undo.append(course.to_dict())
+func _snapshot(identity := false) -> Dictionary:
+	var step := course.to_dict()
+	if back.is_valid() and identity:
+		step["creation_path"] = path
+	return step
+
+
+func _restore(step: Dictionary) -> void:
+	course = CourseDesign.from_dict(step)
+	if back.is_valid() and step.has("creation_path"):
+		path = str(step.get("creation_path", ""))
+
+
+func _remember(identity := false) -> void:
+	_undo.append(_snapshot(identity))
 	if _undo.size() > 100:
 		_undo.pop_front()
 	_redo.clear()
@@ -336,7 +373,14 @@ func save() -> String:
 			_select(-1)
 	if course.made_by == "":
 		course.made_by = Game.player_name()
-	path = course.save(path if path.begins_with(CourseDesign.FOLDER) else "")
+	if back.is_valid():
+		var result := CreationLibrary.save(Sharing.COURSE, path if path != "" else Sharing.path_for(Sharing.COURSE, course.name), course.to_dict(), path != "")
+		if result.has("why"):
+			ui.toast(result.why)
+			return ""
+		path = result.path
+	else:
+		path = course.save(path if path.begins_with(CourseDesign.FOLDER) else "")
 	ui.toast("Saved" if path != "" else "I couldn't save it")
 	_refresh()
 	return path
@@ -354,17 +398,19 @@ func load_course(from: String) -> void:
 	if loaded == null:
 		ui.toast("I couldn't load that course")
 		return
-	_remember()
+	_remember(true)
 	course = loaded
 	if course.made_by == "":
 		course.made_by = Game.player_name()
 	path = from if from.begins_with(CourseDesign.FOLDER) else ""
 	_select(-1)
-	_refresh()
+	_refresh(true)
 	fit_view()
 
 
 func _keep() -> void:
+	if _opening:
+		return
 	var file := FileAccess.open(CURRENT, FileAccess.WRITE)
 	if file != null:
 		file.store_string(JSON.stringify({"path": path, "course": course.to_dict()}))
@@ -525,7 +571,7 @@ func _rebuild_landmarks() -> void:
 
 # Laying the course out.
 
-func _refresh() -> void:
+func _refresh(immediate := false) -> void:
 	track = course.track()
 	_lay_out()
 	_rebuild_landmarks()
@@ -550,6 +596,9 @@ func _refresh() -> void:
 	# Up in the sky there's no ground.
 	_ground.visible = not Scenery.theme_named(course.theme).get("void", false)
 	_build_in = IDLE_BUILD
+	# A course being opened or replaced is complete before its first draw.
+	if immediate:
+		_build_full()
 
 
 ## Puts each piece's road where it goes, from the ones already made.
@@ -590,7 +639,7 @@ func _insert_pose() -> Transform3D:
 	var pose := course.start
 	var upto := insert_after + 1 if insert_after >= 0 else course.pieces.size()
 	for i in upto:
-		pose = pose * TrackPiece.from_spec(course.pieces[i]).exit()
+		pose = TrackPath.advance_pose(pose, TrackPiece.from_spec(course.pieces[i]))
 	return pose
 
 
@@ -620,7 +669,8 @@ func _process(delta: float) -> void:
 
 
 func _build_full() -> void:
-	if track.pieces.is_empty():
+	_build_in = -1.0
+	if _full != null or track.pieces.is_empty():
 		return
 	_full = TrackBuilder.new(track)
 	_full.scenery = "none"

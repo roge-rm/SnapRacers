@@ -5,6 +5,7 @@ extends Control
 ## in order, from the game's courses and the ones you've built.
 
 var path := ""
+var back := Callable()
 var cup: CupDesign
 var _name: LineEdit
 var _list: VBoxContainer
@@ -14,8 +15,9 @@ var _share: Button
 var _delete_dialog: ConfirmationDialog
 
 
-func _init(from := "") -> void:
+func _init(from := "", leave := Callable()) -> void:
 	path = from
+	back = leave
 
 
 func _ready() -> void:
@@ -69,12 +71,16 @@ func _ready() -> void:
 	_delete_dialog = ConfirmationDialog.new()
 	PadFocus.close_on_b(_delete_dialog)
 	_delete_dialog.theme = MenuStyle.theme()
-	_delete_dialog.title = "Delete this cup?"
+	_delete_dialog.title = "Delete %s?" % cup.name
 	_delete_dialog.dialog_text = "The courses in it stay where they are."
 	_delete_dialog.ok_button_text = "Delete"
 	_delete_dialog.confirmed.connect(func() -> void:
-		DirAccess.remove_absolute(path)
-		Game.show_your_cups())
+		var result := CreationLibrary.delete(Sharing.CUP, path)
+		if result.has("why"):
+			_problem.text = result.why
+			_problem.show()
+		else:
+			go_back())
 	add_child(_delete_dialog)
 	_show()
 
@@ -130,12 +136,31 @@ func save() -> void:
 	if cup.problem() != "" or cup.name == "":
 		return
 	var old := path
-	path = cup.save()
-	# When it's renamed the old file goes, so there aren't two.
+	# Keep the saved file's identity while editing from Creations.
+	if back.is_valid():
+		var result := CreationLibrary.save(Sharing.CUP, path if path != "" else Sharing.path_for(Sharing.CUP, cup.name), cup.to_dict(), path != "")
+		if result.has("why"):
+			_problem.text = result.why
+			_problem.show()
+			return
+		path = result.path
+	else:
+		path = cup.save()
+	if path == "":
+		_problem.text = "I couldn't save the cup."
+		_problem.show()
+		return
 	if old != "" and old != path:
-		DirAccess.remove_absolute(old)
-	Game.show_your_cups()
+		var result := CreationLibrary.delete(Sharing.CUP, old)
+		if result.has("why"):
+			_problem.text = result.why
+			_problem.show()
+			return
+	go_back()
 
 
 func go_back() -> void:
-	Game.show_your_cups()
+	if back.is_valid():
+		back.call()
+	else:
+		Game.show_your_cups()

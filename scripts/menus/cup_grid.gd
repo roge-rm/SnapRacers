@@ -221,13 +221,18 @@ func _your_cup(mine: CupDesign, path: String) -> void:
 	card.tapped.connect(func() -> void:
 		Game.mode = Game.MODE_GRAND_PRIX
 		Game.show_kart_picker(_starter(mine, id, Game.cups_for_two), Game.show_your_cups, true, Game.cups_for_two))
-	var links := HBoxContainer.new()
+	var inset := MarginContainer.new()
+	inset.add_theme_constant_override("margin_right", MenuCard.EDGE)
+	inset.mouse_filter = MOUSE_FILTER_IGNORE
+	card.content.add_child(inset)
+	var links := VBoxContainer.new()
 	links.alignment = BoxContainer.ALIGNMENT_CENTER
-	links.add_theme_constant_override("separation", 24)
+	links.add_theme_constant_override("separation", 6)
 	links.mouse_filter = MOUSE_FILTER_IGNORE
-	card.content.add_child(links)
+	inset.add_child(links)
 	for pair in [["Change", Game.show_cup_builder.bind(path)], ["Share", func() -> void: ShareWindow.open(mine.to_dict(), self)]]:
 		var link := MenuStyle.chip(pair[0], pair[1])
+		link.custom_minimum_size.y = 40.0
 		# The card's words ignore the mouse, but these have to be tapped.
 		link.mouse_filter = MOUSE_FILTER_STOP
 		links.add_child(link)

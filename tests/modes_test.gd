@@ -221,7 +221,7 @@ func _grand_prix_for_two() -> void:
 	print("-- Grand Prix for two")
 	var was := {}
 	for key in ["split", "kart", "player_two"]:
-		was[key] = Game.settings.get_value("race", key, null)
+		was[key] = Game.settings.get_value("race", key) if Game.settings.has_section_key("race", key) else null
 	var stock := Game.stock_keys()
 	Game.settings.set_value("race", "split", Game.SIDE_BY_SIDE)
 	Game.settings.set_value("race", "kart", stock[0])
@@ -462,6 +462,18 @@ func _your_cup() -> void:
 	check(FileAccess.file_exists(path), "it saves as a cup of your own")
 	var listed := picker.find_children("*", "Button", true, false).filter(func(b): return b.get_meta("cup", "") == CupDesign.id_of(path))
 	check(picker.yours and listed.size() == 1, "and it's with your cups")
+	await frames(3)
+	check(_cup_actions_fit(listed[0]), "Change and Share fit inside the custom cup's slanted card")
+	var narrow := SubViewport.new()
+	narrow.size = Vector2i(800, 450)
+	add_child(narrow)
+	var narrow_picker := CupGrid.new(Game.MODE_GRAND_PRIX, false, true)
+	narrow.add_child(narrow_picker)
+	await frames(4)
+	var narrow_cards := narrow_picker.find_children("*", "Button", true, false).filter(func(b): return b.get_meta("cup", "") == CupDesign.id_of(path))
+	check(narrow_cards.size() == 1 and _cup_actions_fit(narrow_cards[0]), "custom cup actions stay readable and inside the card at 800 by 450")
+	narrow.queue_free()
+	await frames(2)
 	Game.show_cups()
 	await frames(2)
 	var yours := screen().find_children("*", "Button", true, false).filter(func(b): return b.has_meta("yours"))
@@ -482,3 +494,21 @@ func _your_cup() -> void:
 	await frames(2)
 	DirAccess.remove_absolute(path)
 	DirAccess.remove_absolute(course_path)
+
+
+func _cup_actions_fit(card: MenuCard) -> bool:
+	var actions := card.find_children("*", "Button", true, false).filter(func(button): return button.text in ["Change", "Share"])
+	if actions.size() != 2 or actions[0].get_global_rect().intersects(actions[1].get_global_rect()):
+		return false
+	var face := card.get_theme_stylebox("normal") as SlantBox
+	var tilt := face.tilt_for(card.size.y)
+	var into := card.get_global_transform().affine_inverse()
+	for action in actions:
+		if action.size.y < 40.0 or action.size.x < action.get_combined_minimum_size().x:
+			return false
+		for corner in [Vector2.ZERO, Vector2(action.size.x, 0), action.size, Vector2(0, action.size.y)]:
+			var point: Vector2 = into * (action.get_global_transform() * corner)
+			var right := card.size.x - point.y * tilt - face.edge_width
+			if point.y < 0.0 or point.y > card.size.y or point.x < face.left_at(card.size, point.y) or point.x > right:
+				return false
+	return true

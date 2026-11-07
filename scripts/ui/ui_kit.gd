@@ -671,7 +671,7 @@ static func icon_picture(what: String, ink: Color, size := 20) -> ImageTexture:
 
 ## Draws a small line picture centred on `c`, `s` pixels across, onto any
 ## control from its _draw(). The pictures: race (a chequered flag), two
-## (people), wrench, gear, info, close, back, plus, trophy, clock, loop,
+## (people), wrench, cards, gear, info, close, back, plus, trophy, clock, loop,
 ## person, track, pause, camera, reset (an arrow going round) and look (an
 ## eye with an arrow pointing back).
 static func draw_icon(on: CanvasItem, what: String, c: Vector2, s: float, ink: Color, w := 3.0) -> void:
@@ -696,6 +696,12 @@ static func draw_icon(on: CanvasItem, what: String, c: Vector2, s: float, ink: C
 		"wrench":
 			on.draw_line(p.call(-9, 9), p.call(2, -2), ink, w * 1.5, true)
 			on.draw_arc(p.call(5, -5), 6.0 * k, deg_to_rad(-10), deg_to_rad(260), 16, ink, w * 1.1, true)
+		"cards":
+			on.draw_polyline(PackedVector2Array([p.call(-11, 3), p.call(-11, -10), p.call(4, -10), p.call(4, -8)]), ink, w * 0.75, true)
+			on.draw_polyline(PackedVector2Array([p.call(-8, 6), p.call(-8, -6), p.call(7, -6), p.call(7, -3)]), ink, w * 0.75, true)
+			on.draw_rect(Rect2(p.call(-4, -2), Vector2(15, 13) * k), ink, false, w * 0.8)
+			for y in [2, 6]:
+				on.draw_line(p.call(-1, y), p.call(8, y), ink, w * 0.65, true)
 		"gear":
 			on.draw_arc(c, 6.5 * k, 0, TAU, 24, ink, w * 1.2, true)
 			for i in 8:

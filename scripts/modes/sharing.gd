@@ -23,7 +23,7 @@ const MOST_CONNECTORS := 4096
 const MOST_CONNECTOR_PAIRS := 50000
 const MOST_NAME := 120
 const MOST_ABOUT := 2000
-const PIECE_TYPES := ["straight", "curve", "slant", "crest", "ramp", "jump", "loop", "corkscrew", "crossing"]
+const PIECE_TYPES := ["straight", "half_straight", "curve", "arc", "slant", "crest", "ramp", "jump", "loop", "corkscrew", "crossing"]
 const LIMITS := {"length": 12.0, "size": 4.0, "rise": 8.0, "across": 6.0, "height": 10.0, "bank": 90.0}
 
 static var _game_courses := {}
@@ -105,6 +105,7 @@ static func read(text: String) -> Dictionary:
 	if text.to_utf8_buffer().size() > MOST_BYTES:
 		return {"why": "That file or code is too large."}
 	var data = null
+	var json := JSON.new()
 	var at := text.find(CODE_START)
 	if at >= 0:
 		var inside := _base64_after(text, at + CODE_START.length())
@@ -114,9 +115,11 @@ static func read(text: String) -> Dictionary:
 		var unpacked := packed.decompress_dynamic(MOST_BYTES, FileAccess.COMPRESSION_DEFLATE)
 		if unpacked.is_empty() or unpacked.size() > MOST_BYTES:
 			return {"why": "That code is incomplete or too large."}
-		data = JSON.parse_string(unpacked.get_string_from_utf8())
+		if json.parse(unpacked.get_string_from_utf8()) == OK:
+			data = json.data
 	elif text.strip_edges().begins_with("{"):
-		data = JSON.parse_string(text.strip_edges())
+		if json.parse(text.strip_edges()) == OK:
+			data = json.data
 	if not data is Dictionary:
 		return {"why": "That isn't a SnapRacers course, cup, racer or kart."}
 	if _is_envelope(data):
@@ -131,24 +134,34 @@ static func read(text: String) -> Dictionary:
 	return _validate(kind, data)
 
 
-static func _validate(kind: String, data: Dictionary) -> Dictionary:
-	if not _text(data.get("name", ""), MOST_NAME) or not _text(data.get("made_by", ""), MOST_NAME):
+## Checks saved editor data without sharing size limits or race readiness.
+static func validate_saved(kind: String, data: Dictionary) -> Dictionary:
+	return _validate(kind, data, true)
+
+
+## Checks raw host data before start parsing or geometry can discard bad fields.
+static func validate_course(data: Dictionary) -> Dictionary:
+	return _validate(COURSE, data)
+
+
+static func _validate(kind: String, data: Dictionary, saved := false) -> Dictionary:
+	if not data.get("name", "") is String or not data.get("made_by", "") is String or (not saved and (not _text(data.get("name", ""), MOST_NAME) or not _text(data.get("made_by", ""), MOST_NAME))):
 		return {"why": "That design has an invalid name or author."}
 	match kind:
 		COURSE:
-			return _read_course(data)
+			return _read_course(data, saved)
 		CUP:
-			if not data.get("races") is Array or data.races.size() < CupDesign.FEWEST or data.races.size() > CupDesign.MOST:
+			if not data.get("races") is Array or data.races.size() < (0 if saved else CupDesign.FEWEST) or data.races.size() > CupDesign.MOST:
 				return {"why": "A cup needs 2 to 8 races."}
 			var cup := {"name": data.get("name", "My cup"), "made_by": data.get("made_by", ""), "races": []}
 			for race in data.races:
 				if not race is Dictionary or not race.get("course") is Dictionary or not _text(race.get("from", ""), 4096):
 					return {"why": "That cup has an invalid race."}
-				var found := _validate(COURSE, race.course)
+				var found := _validate(COURSE, race.course, saved)
 				if found.has("why"):
 					return found
 				var stock := game_path_of(found.data)
-				if stock == "" and not CourseDesign.from_dict(found.data).problems().is_empty():
+				if not saved and stock == "" and not CourseDesign.from_dict(found.data).problems().is_empty():
 					return {"why": "%s isn't finished." % found.data.get("name", "A course")}
 				cup.races.append({"from": stock, "course": found.data})
 			return {"kind": CUP, "data": cup}
@@ -166,9 +179,9 @@ static func _validate(kind: String, data: Dictionary) -> Dictionary:
 					return {"why": "That racer has a style the game doesn't have."}
 			return {"kind": DRIVER, "data": CharacterDesign.from_dict(data).to_dict()}
 		KART:
-			if not _text(data.get("about", ""), MOST_ABOUT) or not data.get("parts") is Array:
+			if not data.get("about", "") is String or (not saved and not _text(data.get("about", ""), MOST_ABOUT)) or not data.get("parts") is Array:
 				return {"why": "That kart has invalid parts or description."}
-			if data.parts.size() > MOST_PARTS:
+			if not saved and data.parts.size() > MOST_PARTS:
 				return {"why": "A shared kart can have up to %d parts." % MOST_PARTS}
 			for entry in data.parts:
 				if not entry is Dictionary or not entry.get("id") is String or PartCatalog.get_part(entry.id).is_empty():
@@ -183,7 +196,7 @@ static func _validate(kind: String, data: Dictionary) -> Dictionary:
 				if entry.has("suspension") and (not entry.suspension is String or not entry.suspension in KartDesign.SUSPENSION):
 					return {"why": "That kart has invalid suspension."}
 			var canonical := KartDesign.from_dict(data).to_dict()
-			if not _kart_work_bounded(KartDesign.from_dict(canonical)):
+			if not saved and not _kart_work_bounded(KartDesign.from_dict(canonical)):
 				return {"why": "That kart has too many overlapping connections to import."}
 			return {"kind": KART, "data": canonical}
 	return {"why": "That sharing kind isn't supported."}
@@ -207,8 +220,8 @@ static func _kart_work_bounded(design: KartDesign) -> bool:
 	return true
 
 
-static func _read_course(data: Dictionary) -> Dictionary:
-	if not data.get("pieces") is Array or data.pieces.is_empty() or data.pieces.size() > MOST_PIECES:
+static func _read_course(data: Dictionary, saved := false) -> Dictionary:
+	if not data.get("pieces") is Array or (not saved and data.pieces.is_empty()) or (not saved and data.pieces.size() > MOST_PIECES):
 		return {"why": "That course needs 1 to %d road pieces." % MOST_PIECES}
 	for key in ["theme", "weather", "time"]:
 		if not _text(data.get(key, ""), MOST_NAME):
@@ -222,29 +235,60 @@ static func _read_course(data: Dictionary) -> Dictionary:
 		return {"why": "That course has an invalid lap count."}
 	if data.has("fixed_time") and not data.fixed_time is bool:
 		return {"why": "That course has an invalid time setting."}
-	if data.has("start") and (not data.start is Array or (not data.start.is_empty() and (data.start.size() != 4 or not _vector(data.start.slice(0, 3), 100000.0) or not _integer(data.start[3], 0, 3)))):
+	if not _start(data.get("start", [])):
 		return {"why": "That course has an invalid start."}
 	for spec in data.pieces:
-		if not spec is Dictionary or not spec.get("type", "straight") in PIECE_TYPES:
+		if not _piece(spec):
 			return {"why": "That course has pieces the game can't build."}
-		for key in LIMITS:
-			if spec.has(key) and (not _number(spec[key]) or absf(spec[key]) > LIMITS[key] or (key in ["length", "size"] and spec[key] < 1)):
-				return {"why": "That course has pieces the game can't build."}
-		for key in ["turn", "side", "surface", "edges"]:
-			if spec.has(key) and not _text(spec[key], MOST_NAME):
-				return {"why": "That course has an invalid road setting."}
-		for key in ["cut", "sticky"]:
-			if spec.has(key) and not spec[key] is bool:
-				return {"why": "That course has an invalid road setting."}
-	if not data.get("landmarks", []) is Array or data.get("landmarks", []).size() > MOST_LANDMARKS:
+	if not data.get("landmarks", []) is Array or (not saved and data.get("landmarks", []).size() > MOST_LANDMARKS):
 		return {"why": "That course has invalid landmarks."}
 	for mark in data.get("landmarks", []):
 		if not mark is Dictionary or not mark.get("prop") is String or not Props.ROOM.has(mark.prop) or not _vector(mark.get("at", [0, 0]), 100000.0, 2) or not _integer(mark.get("facing", 0), 0, 3):
 			return {"why": "That course has an invalid landmark."}
-	var course := CourseDesign.from_dict(data)
-	if not buildable(course):
+	var canonical := data.duplicate(true)
+	if not canonical.get("start", []).is_empty():
+		canonical.start[3] = roundf(float(canonical.start[3]) * 6.0) / 6.0
+	var course := CourseDesign.from_dict(canonical)
+	if not buildable(course, saved):
 		return {"why": "That course has pieces the game can't build."}
 	return {"kind": COURSE, "data": course.to_dict()}
+
+
+static func _start(value: Variant) -> bool:
+	if not value is Array:
+		return false
+	if value.is_empty():
+		return true
+	if value.size() != 4 or not _vector(value.slice(0, 3), 100000.0) or not _number(value[3]):
+		return false
+	var turns := float(value[3])
+	var heading := roundf(turns * 6.0)
+	# Accept decimal starts such as 0.166667, then store the canonical heading.
+	return turns >= 0.0 and turns < 4.0 and heading >= 0.0 and heading < 24.0 and absf(turns * 6.0 - heading) <= 0.00001
+
+
+static func _piece(spec: Variant) -> bool:
+	if not spec is Dictionary or not spec.get("type", "straight") in PIECE_TYPES:
+		return false
+	if spec.get("type") == "half_straight":
+		for key in spec:
+			if key not in ["type", "surface", "edges"]:
+				return false
+	for key in LIMITS:
+		if spec.has(key) and (not _number(spec[key]) or absf(spec[key]) > LIMITS[key] or (key in ["length", "size"] and spec[key] < 1)):
+			return false
+	for key in ["turn", "side", "surface", "edges"]:
+		if spec.has(key) and not _text(spec[key], MOST_NAME):
+			return false
+	for key in ["cut", "sticky"]:
+		if spec.has(key) and not spec[key] is bool:
+			return false
+	if spec.get("type") == "arc":
+		if not _integer(spec.get("angle", 90), 30, 90) or not int(spec.get("angle", 90)) in TrackPiece.ARC_ANGLES:
+			return false
+		if not _integer(spec.get("size", 2), 1, 4) or spec.get("cut", false):
+			return false
+	return true
 
 
 static func _text(value: Variant, most: int) -> bool:
@@ -278,19 +322,18 @@ static func _coordinates(value: Variant, bounds: Array, integral: bool) -> bool:
 	return true
 
 
-## Keeps online host validation using the same course build limits.
-static func buildable(course: CourseDesign) -> bool:
-	if course.pieces.size() > MOST_PIECES or course.landmarks.size() > MOST_LANDMARKS:
+## Checks a design. Raw payloads must pass validate_course before parsing.
+static func buildable(course: CourseDesign, saved := false) -> bool:
+	if not saved and (course.pieces.size() > MOST_PIECES or course.landmarks.size() > MOST_LANDMARKS):
 		return false
 	if not is_finite(course.width) or not is_finite(course.hills) or course.width < 4.0 or course.width > 30.0 or course.hills < 0.0 or course.hills > 100.0:
 		return false
+	if TrackPath.heading_of(course.start.basis) < 0 or not course.start.origin.is_finite() or maxf(maxf(absf(course.start.origin.x), absf(course.start.origin.y)), absf(course.start.origin.z)) > 200000.0:
+		return false
 	for spec in course.pieces:
-		if not str(spec.get("type", "straight")) in PIECE_TYPES:
+		if not _piece(spec):
 			return false
-		for key in LIMITS:
-			if spec.has(key) and (not _number(spec[key]) or absf(spec[key]) > LIMITS[key] or (key in ["length", "size"] and spec[key] < 1)):
-				return false
-	if course.pieces.any(func(spec): return str(spec.get("type", "")) == "crossing"):
+	if not saved and course.pieces.any(func(spec): return str(spec.get("type", "")) == "crossing"):
 		if LevelCrossing.problem(course.track()) != "":
 			return false
 	return true
@@ -318,7 +361,10 @@ static func game_path_of(course: Dictionary) -> String:
 			var theirs = JSON.parse_string(FileAccess.get_file_as_string(path))
 			if theirs is Dictionary:
 				_game_courses[path] = CourseDesign.from_dict(theirs).to_dict()
-	var mine := CourseDesign.from_dict(course).to_dict()
+	var checked := _read_course(course, true)
+	if checked.has("why"):
+		return ""
+	var mine: Dictionary = checked.data
 	for path in _game_courses:
 		if _game_courses[path] == mine:
 			return path

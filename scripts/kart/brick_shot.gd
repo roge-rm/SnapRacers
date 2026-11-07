@@ -5,14 +5,14 @@ extends RigidBody3D
 ## smoke, flies fast and nearly flat trailing fire, and the first kart it hits
 ## loses several parts and is shoved, with a bang. A homing brick knocks one
 ## part off, mostly a wheel, and beeps for the person it's after. It's gone
-## after a couple of seconds either way.
+## when its flight time runs out.
 
 const SPEED := 34.0
-const LIFETIME := 2.5
+const LIFETIME := 5.0
 ## A homing brick flies a little slower and for longer, turning this fast
 ## toward its kart, in radians a second.
 const HOMING_SPEED := 30.0
-const HOMING_LIFETIME := 6.0
+const HOMING_LIFETIME := 12.0
 const TURN := 3.0
 ## The warning beeps every BEEP_FAR seconds a long way off, down to BEEP_NEAR
 ## close up, rising in pitch, closest at BEEP_CLOSE metres, at BEEP_LEVEL dB.

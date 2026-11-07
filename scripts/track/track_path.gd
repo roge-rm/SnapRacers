@@ -10,6 +10,8 @@ extends RefCounted
 ## which way the AI should head, and where to put a kart back after a reset.
 
 const SAMPLE := 1.0
+const HEADINGS := 24
+const HEADING_STEP := TAU / HEADINGS
 ## How far along the road a bend is measured over (see bend_at()).
 const BEND_SPAN := 6.0
 ## Room beside the road's edge line, where the curbs go on the corners.
@@ -145,6 +147,33 @@ static func start_from(spec: Array) -> Transform3D:
 	return Transform3D(Basis(Vector3.UP, float(spec[3]) * PI * 0.5), Vector3(float(spec[0]), float(spec[1]), float(spec[2])))
 
 
+## The connector heading, or -1 for a basis outside the 15 degree set.
+static func heading_of(basis: Basis) -> int:
+	if not basis.is_finite():
+		return -1
+	var yaw := atan2(basis.z.x, basis.z.z)
+	if not is_finite(yaw):
+		return -1
+	var heading := posmod(roundi(yaw / HEADING_STEP), HEADINGS)
+	var canonical := heading_basis(heading)
+	if basis.x.distance_to(canonical.x) > 0.00001 or basis.y.distance_to(canonical.y) > 0.00001 or basis.z.distance_to(canonical.z) > 0.00001:
+		return -1
+	return heading
+
+
+static func heading_basis(heading: int) -> Basis:
+	return Basis(Vector3.UP, (posmod(heading + HEADINGS / 2, HEADINGS) - HEADINGS / 2) * HEADING_STEP)
+
+
+## Joins the real endpoint and rebuilds the next rigid connector basis.
+static func advance_pose(pose: Transform3D, piece: TrackPiece) -> Transform3D:
+	var heading := heading_of(pose.basis)
+	if heading < 0:
+		push_error("Track connectors must face a multiple of 15 degrees")
+		return pose
+	return Transform3D(heading_basis(heading + piece.heading_delta()), pose * piece.exit().origin)
+
+
 func to_dict() -> Dictionary:
 	var specs := []
 	for piece in pieces:
@@ -243,7 +272,7 @@ func build() -> void:
 			solids.append(piece.solid(t))
 			stickies.append(piece.sticky)
 			piece_of.append(i)
-		pose = pose * piece.exit()
+		pose = advance_pose(pose, piece)
 	closes = not pieces.is_empty() and pose.origin.distance_to(start.origin) < 0.5 \
 		and (-pose.basis.z).dot(-start.basis.z) > 0.999
 
@@ -546,6 +575,14 @@ func clashes(clearance := 5.0) -> Array:
 	var reach := width + 2.0 * KERB + 1.0
 	var skip := int(ceil(reach * 2.0 / SAMPLE))
 	var count := points.size()
+	# Banked road needs headroom across its rolled road, kerbs and walls.
+	# Loops and corkscrews keep their own clearance rules.
+	var spread := PackedFloat64Array()
+	spread.resize(count)
+	for i in count:
+		var piece := pieces[piece_of[i]]
+		if piece.type in ["curve", "arc"] and piece.bank != 0.0:
+			spread[i] = absf(rights[i].y) * (width * 0.5 + KERB + 0.5)
 	for i in range(0, count, step):
 		for j in range(i + skip, count, step):
 			if count - (j - i) < skip:
@@ -553,6 +590,6 @@ func clashes(clearance := 5.0) -> Array:
 			var a := points[i]
 			var b := points[j]
 			var flat := Vector2(a.x - b.x, a.z - b.z).length()
-			if flat < reach and absf(a.y - b.y) < clearance:
+			if flat < reach and absf(a.y - b.y) < clearance + spread[i] + spread[j]:
 				out.append([distances[i], distances[j]])
 	return out

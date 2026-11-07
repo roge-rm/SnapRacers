@@ -71,6 +71,9 @@ var input: LocalPlayerInput
 var view := "chase"
 ## The render layer of this person's own driver's head, or 0 for none.
 var head_layer := 0
+## Only the single local player's camera can have a mirror.
+var mirror_available := false
+var finished := false
 
 var _up := Vector3.UP
 ## Where the chase camera sits around the kart, eased toward where it wants to be.
@@ -116,6 +119,7 @@ func set_view(which: String) -> void:
 
 ## Circles the kart for a moment, then follows behind it.
 func finish() -> void:
+	finished = true
 	_orbit_left = ORBIT_TIME
 	_orbit_angle = 0.0
 	_after_orbit = "far"
@@ -141,6 +145,8 @@ func _physics_process(delta: float) -> void:
 	if input != null:
 		if input.take_view_press():
 			next_view()
+		if input.take_mirror_press() and mirror_available and not finished:
+			Game.set_rear_view_mirror(not Game.rear_view_mirror())
 		var back := input.look_back
 		if back != _looking_back:
 			_looking_back = back

@@ -11,6 +11,7 @@ const EDGE := Color("#f2f2f2")
 const KERB := Color("#d8261c")
 const GRID := Color(1, 1, 1, 0.08)
 const PROFILE := Color("#7fd8ff")
+const HILL_HEIGHT := 6.0
 
 var spec: Dictionary
 
@@ -57,7 +58,7 @@ func _draw() -> void:
 	for p in points:
 		line.append(to_icon.call(p))
 	var road := maxf(10.0 * scale, 4.0)
-	if spec.get("cut", false):
+	if piece.type == "curve" and piece.cut:
 		# The dirt patch inside a cut bend, from the middle of the bend out
 		# most of the way to the road.
 		var middle := Vector2(piece.turn * piece.radius, 0.0)
@@ -92,7 +93,8 @@ func _draw() -> void:
 			draw_line(middle - rail * reach + run * g, middle + rail * reach + run * g, Color("#c8ccd2"), 1.5)
 	# Which way it runs.
 	var tip := line[line.size() - 1]
-	var way := (tip - line[line.size() - 3]).normalized()
+	var forward := piece.exit().basis * Vector3.FORWARD
+	var way := Vector2(forward.x, forward.z).normalized()
 	var side := Vector2(-way.y, way.x)
 	draw_colored_polygon(PackedVector2Array([tip + way * 4.0, tip - way * 4.0 + side * 4.0, tip - way * 4.0 - side * 4.0]), Color.WHITE)
 	if TrackPiece.turns_over(piece.type):
@@ -116,12 +118,10 @@ func _climbs(heights: PackedFloat32Array) -> bool:
 
 ## The piece from the side, so you can see it climb, drop or hump.
 func _draw_profile(heights: PackedFloat32Array, box: Rect2) -> void:
-	var top := 0.0
 	var bottom := 0.0
 	for h in heights:
-		top = maxf(top, h)
 		bottom = minf(bottom, h)
-	var tall := maxf(top - bottom, 1.0)
+	var tall := profile_height(heights)
 	var line := PackedVector2Array()
 	for k in heights.size():
 		var x := box.position.x + box.size.x * k / (heights.size() - 1)
@@ -129,3 +129,15 @@ func _draw_profile(heights: PackedFloat32Array, box: Rect2) -> void:
 		line.append(Vector2(x, y))
 	draw_line(Vector2(box.position.x, box.end.y + 1), Vector2(box.end.x, box.end.y + 1), Color(1, 1, 1, 0.2), 1.0)
 	draw_polyline(line, PROFILE, 2.5, true)
+
+
+## Ordinary hills share a 6 m scale. Stunt captions give their full height.
+func profile_height(heights: PackedFloat32Array) -> float:
+	if not TrackPiece.turns_over(str(spec.get("type", "straight"))):
+		return HILL_HEIGHT
+	var low := 0.0
+	var high := 0.0
+	for h in heights:
+		low = minf(low, h)
+		high = maxf(high, h)
+	return maxf(HILL_HEIGHT, ceilf((high - low) / HILL_HEIGHT) * HILL_HEIGHT)

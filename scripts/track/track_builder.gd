@@ -173,7 +173,7 @@ func _ready() -> void:
 	# Keep the dirt inside cut bends clear, since you drive across it.
 	for i in track.pieces.size():
 		var piece := track.pieces[i]
-		if piece.cut:
+		if piece.type == "curve" and piece.cut:
 			dressing.keep_clear.append([track.piece_starts[i] * Vector3(piece.turn * piece.radius, 0.0, 0.0), piece.radius])
 	# And the railways.
 	for crossing in crossings:
@@ -333,7 +333,7 @@ func _add_piece(index: int) -> void:
 	body.add_child(shape)
 	add_child(body)
 
-	if piece.cut:
+	if piece.type == "curve" and piece.cut:
 		_add_cut(index, piece)
 
 

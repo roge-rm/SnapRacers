@@ -46,7 +46,7 @@ func _ready() -> void:
 
 	var buttons := screen().find_children("*", "Button", true, false)
 	var labels := buttons.map(func(b): return b.text.get_slice("\n", 0))
-	check(labels == ["Single player", "Multiplayer", "Editors", "Settings", "About", "Quit"], "the menu has its buttons %s" % [labels])
+	check(labels == ["Single player", "Multiplayer", "Editors", "Creations", "Settings", "About", "Quit"], "the menu has its buttons %s" % [labels])
 	# The garage, the driver screen and the track editor are all under Editors.
 	buttons.filter(func(b): return b.text.begins_with("Editors"))[0].pressed.emit()
 	await frames(2)

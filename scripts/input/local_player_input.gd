@@ -34,9 +34,24 @@ var look_back := false
 var _view_pressed := false
 var _view_held := false
 var _menu_held := false
+const VIEW_HOLD := 0.55
+var mirror_hold_enabled := false
+var camera_controls_enabled := true:
+	set(value):
+		camera_controls_enabled = value
+		cancel_camera_press()
+var _mirror_pressed := false
+var _view_time := 0.0
+var _view_consumed := false
+var _wait_view_release := false
+var _touch_view_held := false
+var _touch_view_time := 0.0
+var _touch_view_consumed := false
+var _touch_cancelled := false
+var _camera_button: BaseButton
 
 
-func _physics_process(_delta: float) -> void:
+func _physics_process(delta: float) -> void:
 	var settings := Game.settings
 	var B := InputBindings
 	var push := {}
@@ -86,10 +101,7 @@ func _physics_process(_delta: float) -> void:
 	controls.reset = reset
 	controls.gadget = gadget
 	look_back = back
-	# The view changes once each time the key or button goes down.
-	if view and not _view_held:
-		_view_pressed = true
-	_view_held = view
+	_update_camera_button(view, delta)
 
 
 ## True once for each press of the change view key or button (or the camera
@@ -101,7 +113,77 @@ func take_view_press() -> bool:
 
 
 func press_view() -> void:
-	_view_pressed = true
+	if camera_controls_enabled:
+		_view_pressed = true
+
+
+func take_mirror_press() -> bool:
+	var pressed := _mirror_pressed
+	_mirror_pressed = false
+	return pressed
+
+
+## A tap changes view on release. A hold toggles the mirror once.
+func _update_camera_button(down: bool, delta: float) -> void:
+	if not camera_controls_enabled:
+		cancel_camera_press()
+		return
+	if _wait_view_release:
+		_wait_view_release = down
+	else:
+		if down:
+			_view_time += delta
+			if mirror_hold_enabled and _view_time >= VIEW_HOLD and not _view_consumed:
+				_mirror_pressed = true
+				_view_consumed = true
+		elif _view_held:
+			if not _view_consumed:
+				_view_pressed = true
+			_view_time = 0.0
+			_view_consumed = false
+		_view_held = down
+	if _touch_view_held:
+		_touch_view_time += delta
+		if mirror_hold_enabled and _touch_view_time >= VIEW_HOLD and not _touch_view_consumed:
+			_mirror_pressed = true
+			_touch_view_consumed = true
+
+
+func bind_camera_button(button: BaseButton) -> void:
+	_camera_button = button
+	button.button_down.connect(func() -> void:
+		_touch_cancelled = not camera_controls_enabled
+		_touch_view_held = camera_controls_enabled
+		_touch_view_time = 0.0
+		_touch_view_consumed = false)
+	button.button_up.connect(func() -> void: _touch_view_held = false)
+	button.pressed.connect(func() -> void:
+		if not _touch_view_consumed and not _touch_cancelled:
+			press_view())
+	button.mouse_exited.connect(func() -> void:
+		if _touch_view_held:
+			_touch_view_held = false
+			_touch_cancelled = true)
+
+
+## Wait for release after a menu, focus loss or cancelled input.
+func cancel_camera_press() -> void:
+	_view_pressed = false
+	_mirror_pressed = false
+	_view_held = false
+	_view_time = 0.0
+	_view_consumed = false
+	_wait_view_release = true
+	_touch_view_held = false
+	_touch_cancelled = true
+	_touch_view_consumed = true
+	if is_instance_valid(_camera_button):
+		_camera_button.set_pressed_no_signal(false)
+
+
+func _notification(what: int) -> void:
+	if what in [NOTIFICATION_PAUSED, NOTIFICATION_APPLICATION_FOCUS_OUT, NOTIFICATION_APPLICATION_PAUSED]:
+		cancel_camera_press()
 
 
 ## Whether this controller is this player's. With one player on their own,

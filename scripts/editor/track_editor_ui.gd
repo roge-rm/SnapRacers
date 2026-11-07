@@ -42,36 +42,9 @@ signal remove_landmark_pressed
 signal drive_pressed
 signal race_pressed
 
-## The pieces, tab by tab, as [what it says on the tile, spec].
-const CATEGORIES := [
-	["Straights", "straights", [
-		["1 tile", {"type": "straight", "length": 1}], ["2 tiles", {"type": "straight", "length": 2}],
-		["3 tiles", {"type": "straight", "length": 3}], ["4 tiles", {"type": "straight", "length": 4}],
-		["Level crossing", {"type": "crossing"}],
-	]],
-	["Bends", "bends", [
-		["Tight left", {"type": "curve", "turn": "left", "size": 1}], ["Tight right", {"type": "curve", "turn": "right", "size": 1}],
-		["Left", {"type": "curve", "turn": "left", "size": 2}], ["Right", {"type": "curve", "turn": "right", "size": 2}],
-		["Wide left", {"type": "curve", "turn": "left", "size": 3}], ["Wide right", {"type": "curve", "turn": "right", "size": 3}],
-	]],
-	["Slants", "slants", [
-		["S bend left", {"type": "slant", "turn": "left", "length": 2, "across": 1}], ["S bend right", {"type": "slant", "turn": "right", "length": 2, "across": 1}],
-		["Slant left", {"type": "slant", "turn": "left", "length": 3, "across": 1}], ["Slant right", {"type": "slant", "turn": "right", "length": 3, "across": 1}],
-		["Long slant left", {"type": "slant", "turn": "left", "length": 4, "across": 2}], ["Long slant right", {"type": "slant", "turn": "right", "length": 4, "across": 2}],
-	]],
-	["Hills", "hills", [
-		["Hump", {"type": "crest", "length": 3, "height": 1.5}], ["Big hump", {"type": "crest", "length": 3, "height": 3.0}],
-		["Ramp up", {"type": "ramp", "length": 2, "rise": 1}], ["Ramp down", {"type": "ramp", "length": 2, "rise": -1}],
-		["Climb left", {"type": "curve", "turn": "left", "size": 2, "rise": 1}], ["Climb right", {"type": "curve", "turn": "right", "size": 2, "rise": 1}],
-		["Drop left", {"type": "curve", "turn": "left", "size": 2, "rise": -1}], ["Drop right", {"type": "curve", "turn": "right", "size": 2, "rise": -1}],
-	]],
-	["Stunts", "stunts", [
-		["Jump", {"type": "jump"}], ["Loop", {"type": "loop", "side": "right"}], ["Corkscrew", {"type": "corkscrew", "side": "right"}],
-		["Wall ride left", {"type": "curve", "turn": "left", "size": 3, "bank": 80}], ["Wall ride right", {"type": "curve", "turn": "right", "size": 3, "bank": 80}],
-		["Banked left", {"type": "curve", "turn": "left", "size": 3, "bank": 22}], ["Banked right", {"type": "curve", "turn": "right", "size": 3, "bank": 22}],
-		["Shortcut left", {"type": "curve", "turn": "left", "size": 2, "cut": true}], ["Shortcut right", {"type": "curve", "turn": "right", "size": 2, "cut": true}],
-	]],
-]
+## Shared drawer data, including its row order and mirrored pieces.
+const CATEGORIES := TrackCatalogue.CATEGORIES
+const CLOSE_FAILED := "Couldn't close this layout with the available pieces. Adjust the final bends or straights and try again."
 ## The landmarks you can put down, as [name, prop].
 const LANDMARKS := [
 	["Barn", "barn"], ["Silo", "silo"], ["Windmill", "big_windmill"], ["Church", "church"],
@@ -100,7 +73,19 @@ const LANDMARKS := [
 	["Rainbow", "rainbow"], ["Weather vane", "weather_vane"], ["Windmill island", "windmill_isle"], ["Sky lighthouse", "sky_lighthouse"],
 	["Floating island", "sky_isle"], ["Cloud", "cloud_puff"],
 ]
-const SURFACES := [["Road", "asphalt"], ["Dirt", "dirt"], ["Gravel", "gravel"], ["Grass", "grass"], ["Mud", "mud"], ["Sand", "sand"], ["Ice", "ice"]]
+const LANDMARK_GROUPS := [
+	["Countryside", ["barn", "silo", "big_windmill", "church", "villa", "cottage", "cabin", "trullo", "stilt_hut", "oast_house", "red_roof"]],
+	["Castles", ["castle", "tower", "castle_wall", "lighthouse", "ruins", "pagoda", "standing_stones"]],
+	["Industry", ["rocket", "radar", "factory", "crane", "tanks", "chimney", "headframe", "excavator", "wind_turbine", "slag_heap"]],
+	["Nature", ["volcano", "mountain", "lake", "pond", "lava_pool"]],
+	["Trackside & parks", ["station", "ferris_wheel", "old_banking", "control_tower", "spectator_bank", "viewing_deck", "kart_office", "kart_row", "carousel", "drop_tower"]],
+	["Alpine", ["chalet", "alpine_church", "cable_car", "ski_jump", "snowy_peak"]],
+	["Desert", ["dune", "mesa", "butte", "saloon", "water_tower", "saguaro", "mine_carts", "windpump"]],
+	["Jungle", ["stepped_pyramid", "stone_head", "waterfall", "rope_bridge", "canopy_walk", "karst", "jungle_hut", "parrots"]],
+	["City", ["skyscraper", "neon_tower", "lantern_gate", "tunnel_mouth", "spire_tower", "clock_tower", "overpass", "chedi", "city_block", "townhouses", "double_decker", "tuk_tuk", "traffic_light", "neon_sign", "phone_box"]],
+	["Sky", ["hot_air_balloon", "airship", "sky_dock", "falls_isle", "rainbow", "weather_vane", "windmill_isle", "sky_lighthouse", "sky_isle", "cloud_puff"]],
+]
+const SURFACES := [["Road", "asphalt"], ["Concrete", "concrete"], ["Dirt", "dirt"], ["Gravel", "gravel"], ["Grass", "grass"], ["Mud", "mud"], ["Sand", "sand"], ["Ice", "ice"]]
 ## "Auto" has walls only where you'd fall off, and grass runoff everywhere
 ## else (see TrackPiece.edges).
 const EDGES := [["Auto", "auto"], ["Walls", "walls"], ["Left open", "left_open"], ["Right open", "right_open"], ["Open", "open"]]
@@ -139,7 +124,11 @@ var _rail_box: RailBox
 var _rail: Array[IconButton] = []
 var _heading: Label
 var _tiles: GridContainer
+var _drawer_clearance: Control
 var _category := 0
+var _landmark_filter: OptionButton
+var _landmark_group := 0
+var _tile_memory: Dictionary = {}
 var _pictures: LandmarkThumbnails
 
 var _chip: Button
@@ -156,6 +145,7 @@ var _themes: Dictionary = {}
 
 var _actions: PanelContainer
 var _action_title: Label
+var _action_dimensions: Label
 var _surfaces: Dictionary = {}
 var _edges: Dictionary = {}
 var _landmark_actions: PanelContainer
@@ -174,6 +164,7 @@ var _load_list: VBoxContainer
 var _new_dialog: ConfirmationDialog
 var _name_dialog: ConfirmationDialog
 var _name_edit: LineEdit
+var _close_failure: AcceptDialog
 var _course_name := ""
 ## Whether the course is up in the sky, so the landmarks under the road are
 ## offered too.
@@ -220,6 +211,13 @@ func _lift_actions() -> void:
 ## above the piece or landmark panel when one's up.
 func _keep_clear() -> void:
 	BuilderStyle.slide_clear(_bottom, [_drawer], [_card, _actions, _landmark_actions])
+	# Leave room to scroll every part above the race buttons on narrow screens.
+	var drawer_rect := _drawer.get_global_rect()
+	var buttons_rect := _bottom.get_global_rect()
+	var clearance := 0.0
+	if drawer_rect.intersects(buttons_rect):
+		clearance = maxf(0.0, drawer_rect.end.y - buttons_rect.position.y + 8.0)
+	_drawer_clearance.custom_minimum_size.y = clearance
 	var bottom := 1.0
 	if size.y > 0.0:
 		for panel: Control in [_actions, _landmark_actions]:
@@ -231,7 +229,7 @@ func _keep_clear() -> void:
 
 ## Whether this screen position is on one of the panels instead of the course.
 func is_over_ui(pos: Vector2) -> bool:
-	if _load_popup.visible or _new_dialog.visible or _name_dialog.visible or _file_menu.visible:
+	if _load_popup.visible or _new_dialog.visible or _name_dialog.visible or _file_menu.visible or _close_failure.visible:
 		return true
 	for panel in [_toolbar, _drawer, _chip, _card, _actions, _landmark_actions, _bottom]:
 		if panel.is_visible_in_tree() and panel.get_global_rect().has_point(pos):
@@ -280,7 +278,9 @@ func show_selection(index: int, spec: Dictionary) -> void:
 	_actions.visible = index != -1
 	if index == -1:
 		return
-	_action_title.text = "Piece %d" % (index + 1)
+	_action_title.text = "%d · %s" % [index + 1, TrackCatalogue.piece_name(spec)]
+	_action_dimensions.text = TrackCatalogue.dimensions(spec)
+	_action_dimensions.tooltip_text = _action_dimensions.text
 	var surface: String = spec.get("surface", "asphalt")
 	for id in _surfaces:
 		MenuStyle.mark(_surfaces[id], id == surface)
@@ -307,6 +307,10 @@ func toast(text: String) -> void:
 	_status.add_theme_color_override("font_color", UiKit.WHITE)
 	_status_panel.visible = true
 	_toast_left = 2.5
+
+
+func show_close_failure() -> void:
+	_close_failure.popup_centered(Vector2i(440, 0))
 
 
 func _show_status() -> void:
@@ -395,6 +399,18 @@ func _build_drawer() -> void:
 	_heading.custom_minimum_size.y = 40.0
 	_heading.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	column.add_child(_heading)
+	_landmark_filter = OptionButton.new()
+	_landmark_filter.focus_mode = FOCUS_ALL
+	_landmark_filter.fit_to_longest_item = false
+	_landmark_filter.clip_text = true
+	_landmark_filter.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	_landmark_filter.add_item("All landmarks")
+	for group in LANDMARK_GROUPS:
+		_landmark_filter.add_item(group[0])
+	_landmark_filter.custom_minimum_size.y = 44.0
+	_landmark_filter.item_selected.connect(_choose_landmark_group)
+	PadFocus.close_on_b(_landmark_filter.get_popup())
+	column.add_child(_landmark_filter)
 	var scroll := ScrollContainer.new()
 	scroll.follow_focus = true
 	scroll.size_flags_vertical = SIZE_EXPAND_FILL
@@ -405,36 +421,32 @@ func _build_drawer() -> void:
 	_tiles.add_theme_constant_override("h_separation", 4)
 	_tiles.add_theme_constant_override("v_separation", 4)
 	scroll.add_child(_tiles)
+	_drawer_clearance = Control.new()
+	_drawer_clearance.mouse_filter = MOUSE_FILTER_IGNORE
+	column.add_child(_drawer_clearance)
 
 
 func _show_category(index: int) -> void:
+	var focused := get_viewport().gui_get_focus_owner()
+	var restore_focus := focused != null and _tiles.is_ancestor_of(focused)
 	_category = index
 	for i in _rail.size():
 		_rail[i].on = i == index
 	for child in _tiles.get_children():
+		_tiles.remove_child(child)
 		child.queue_free()
+	_landmark_filter.visible = index >= CATEGORIES.size()
 	if index < CATEGORIES.size():
 		_heading.text = CATEGORIES[index][0].to_upper()
-		for entry in CATEGORIES[index][2]:
-			var spec: Dictionary = entry[1]
-			var tile := _tile("")
-			var label := Label.new()
-			label.text = entry[0]
-			label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-			label.theme_type_variation = "TileLabel"
-			label.mouse_filter = MOUSE_FILTER_IGNORE
-			tile.add_child(label)
-			label.set_anchors_and_offsets_preset(PRESET_BOTTOM_WIDE)
-			label.offset_top = -24.0
-			var picture := PieceIcon.new(spec)
-			tile.add_child(picture)
-			picture.set_anchors_and_offsets_preset(PRESET_FULL_RECT)
-			picture.offset_bottom = -26.0
-			tile.tapped.connect(func() -> void: piece_chosen.emit(spec.duplicate()))
-			_tiles.add_child(tile)
+		for row in CATEGORIES[index][2]:
+			for entry in row:
+				_add_piece_tile(entry)
 	else:
 		_heading.text = "LANDMARKS"
-		var offered := LANDMARKS.filter(func(l): return _in_sky or not l[1] in Props.BELOW_ROAD)
+		_landmark_filter.select(_landmark_group)
+		var offered := LANDMARKS.filter(func(l):
+			return (_in_sky or not l[1] in Props.BELOW_ROAD) and (
+				_landmark_group == 0 or l[1] in LANDMARK_GROUPS[_landmark_group - 1][1]))
 		_pictures.take(offered.map(func(l): return l[1]))
 		for entry in offered:
 			var prop: String = entry[1]
@@ -442,7 +454,97 @@ func _show_category(index: int) -> void:
 			tile.set_meta("prop", prop)
 			tile.icon = LandmarkThumbnails.picture(prop)
 			tile.tapped.connect(func() -> void: landmark_chosen.emit(prop))
-			_tiles.add_child(tile)
+			_add_palette_tile(tile, prop)
+	if restore_focus:
+		_restore_palette_focus.call_deferred()
+
+
+func _choose_landmark_group(index: int) -> void:
+	_landmark_group = index
+	_show_category(_category)
+
+
+func palette_has_focus() -> bool:
+	var focused := get_viewport().gui_get_focus_owner()
+	return focused != null and (_tiles.is_ancestor_of(focused) or focused == _landmark_filter)
+
+
+func palette_popup_open() -> bool:
+	return _landmark_filter.get_popup().visible
+
+
+func _add_piece_tile(entry: Array) -> void:
+	var spec: Dictionary = entry[1]
+	var tile := _tile("")
+	var label := Label.new()
+	label.text = entry[0]
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	label.theme_type_variation = "TileLabel"
+	label.mouse_filter = MOUSE_FILTER_IGNORE
+	tile.add_child(label)
+	label.set_anchors_and_offsets_preset(PRESET_BOTTOM_WIDE)
+	label.offset_top = -44.0
+	label.offset_left = 3.0
+	label.offset_right = -3.0
+	var picture := PieceIcon.new(spec)
+	tile.add_child(picture)
+	picture.set_anchors_and_offsets_preset(PRESET_FULL_RECT)
+	picture.offset_bottom = -46.0
+	tile.set_meta("spec", spec)
+	tile.tooltip_text = "%s\n%s" % [TrackCatalogue.piece_name(spec), TrackCatalogue.dimensions(spec)]
+	if spec.type == "slant":
+		tile.tooltip_text += "\nEnds face forward."
+	tile.tapped.connect(func() -> void: piece_chosen.emit(spec.duplicate()))
+	_add_palette_tile(tile, entry[0])
+
+
+func _palette_key() -> String:
+	return "%d:%d" % [_category, _landmark_group if _category >= CATEGORIES.size() else 0]
+
+
+func _add_palette_tile(tile: ScrollButton, id: String) -> void:
+	var key := _palette_key()
+	var remember := func() -> void: _tile_memory[key] = id
+	tile.set_meta("palette_id", id)
+	tile.focus_entered.connect(remember)
+	tile.tapped.connect(remember)
+	_tiles.add_child(tile)
+
+
+## Returns to the last tile used in this tab or landmark group.
+func focus_palette() -> bool:
+	var remembered: String = _tile_memory.get(_palette_key(), "")
+	var first: BaseButton
+	for tile in _tiles.get_children():
+		if tile is BaseButton and not tile.is_queued_for_deletion():
+			if first == null:
+				first = tile
+			if tile.get_meta("palette_id", "") == remembered:
+				tile.grab_focus()
+				_scroll_to_focused_tile.call_deferred(tile)
+				return true
+	if first != null:
+		first.grab_focus()
+		return true
+	if _landmark_filter.visible:
+		_landmark_filter.grab_focus()
+		return true
+	return false
+
+
+func _scroll_to_focused_tile(tile: Control) -> void:
+	# Rebuilt tabs need a layout pass before their final rows can scroll into view.
+	await get_tree().process_frame
+	if is_instance_valid(tile) and get_viewport().gui_get_focus_owner() == tile:
+		var scroll: ScrollContainer = _tiles.get_parent()
+		scroll.ensure_control_visible(tile)
+
+
+func _restore_palette_focus() -> void:
+	if get_viewport().gui_get_focus_owner() == null:
+		focus_palette()
 
 
 func _tile(label: String) -> ScrollButton:
@@ -591,11 +693,16 @@ func _build_actions() -> void:
 	_action_title = Label.new()
 	_action_title.theme_type_variation = "CardTitleLabel"
 	_action_title.size_flags_horizontal = SIZE_EXPAND_FILL
+	_action_title.clip_text = true
 	top.add_child(_action_title)
 	var done := IconButton.new("close", "Done with this piece")
 	done.custom_minimum_size = Vector2(40, 40)
 	done.pressed.connect(func() -> void: deselect_pressed.emit())
 	top.add_child(done)
+	_action_dimensions = Label.new()
+	_action_dimensions.theme_type_variation = "SmallLabel"
+	_action_dimensions.clip_text = true
+	box.add_child(_action_dimensions)
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 16)
 	box.add_child(row)
@@ -631,9 +738,8 @@ func _build_actions() -> void:
 
 ## A row of small pills to pick one of, like the surfaces.
 func _choices(items: Array, keep: Dictionary, picked: Callable, columns := 0) -> Container:
-	var row: Container = HBoxContainer.new()
+	var row: Container = GridContainer.new() if columns > 0 else HBoxContainer.new()
 	if columns > 0:
-		row = GridContainer.new()
 		row.columns = columns
 		row.add_theme_constant_override("h_separation", 4)
 		row.add_theme_constant_override("v_separation", 4)
@@ -675,6 +781,13 @@ func _build_bottom() -> void:
 
 
 func _build_dialogs() -> void:
+	_close_failure = AcceptDialog.new()
+	_close_failure.theme = MenuStyle.theme()
+	_close_failure.title = "Close it up"
+	_close_failure.dialog_text = CLOSE_FAILED
+	_close_failure.get_label().autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	add_child(_close_failure)
+	PadFocus.close_on_b(_close_failure)
 	_load_popup = PopupPanel.new()
 	_load_popup.theme = MenuStyle.theme()
 	add_child(_load_popup)

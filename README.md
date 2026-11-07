@@ -75,7 +75,7 @@ AI drivers watch karts ahead and behind, allowing for their weight, braking dist
 
 Two players can race one course or a whole Grand Prix from the Multiplayer menu. On a phone you can play side by side in landscape, or face to face in portrait with the phone flat between you. Each player picks a kart and enters their name.
 
-There are seven camera views: close chase, far chase, first person, hood, bumper, overhead and TV cameras beside the track. Hold look back to see behind you. After the finish the AI keeps driving your kart. The camera circles it for a moment, then follows behind. Results slide in after two seconds, beside the kart on a wide screen or below it on a smaller one.
+There are seven camera views: close chase, far chase, first person, hood, bumper, overhead and TV cameras beside the track. Hold look back to see behind you. First person, hood and bumper have a small rear-view mirror at the top when one person plays on the device, including online races and test drives. Hold the change-view button for half a second to turn it off or on, or tap to change view. The mirror setting is kept for next time. After the finish the AI keeps driving your kart. The camera circles it for a moment, then follows behind. Results slide in after two seconds, beside the kart on a wide screen or below it on a smaller one.
 
 To slide, hold the gas and brake together while steering. On a touch screen you can slide your thumb from GO down onto the brake and back up. Keep the gas on and steer into the bend to hold the slide, then straighten up to grip again. Smoke comes off the drive wheels, and sparks show the turbo charging in blue, then orange, then purple. Hold it for at least half a second and straighten up with the gas still on for a turbo. A longer slide gives a longer turbo, up to one and a half seconds, but loses more speed. Hard and Expert AI drivers slide too.
 
@@ -203,13 +203,21 @@ Walls keep you from falling off, and tire stacks stop you cutting between nearby
 
 Tap pieces onto the end of the road. There are straights, bends, S bends, humps, ramps, jumps, loops, wall rides, banked bends and shortcuts. Tap a piece to remove it, add pieces after it, change its surface or add and remove walls.
 
-Close it up joins the road back to the start with as few pieces as it can. The card in the corner says what's stopping the course being raced. Pick the ground, colours, trees and hills, then place landmarks like windmills, castles and lighthouses.
+The drawer has 97 parts under Straights, Bends, Offsets, Hills, Banked and Specials, with Landmarks in its own tab. Straights run from 16 to 128 m and follow the direction of the road. Bends has 30°, 45°, 60° and 90° parts, each from tight to extra wide, with left and right beside each other. Offsets show how far they go along and across. Hills has 3 and 6 m ramps, 45° and 90° climbs and drops, then humps. Banked has 22° bends and 80° wall rides. Specials has jumps, crossings, loops, corkscrews and shortcuts.
+
+Part captions show their size. Hill side views share a 6 m height scale, and loops and corkscrews show their full height in their captions. Pick a placed part to see its name and dimensions. The controller shoulder buttons change tabs and remember your last part in each one.
+
+Close it up tries to join the road back to the start using pieces from the drawer. If it can't, the layout stays as it was. Adjust the final bends or straights and try again. The card in the corner says what's stopping the course being raced. Pick the ground, colours, trees and hills, then place landmarks like windmills, castles and lighthouses.
 
 Saving puts the start line on the longest straight. Your course then appears in the race lists with its own records.
 
 ### Sharing designs
 
 Share a driver, kart, course or whole cup as a code or a file. A course code is about 400 characters, so you can paste it into a message. On a phone you can send either through the share sheet. On a computer you copy the code or save the file, and in a browser you download it.
+
+Courses with angled bends or 16 m straights need an updated game to import. Everyone in an online race needs the updated game. Existing saved designs still work.
+
+Open Creations from the main menu to edit, rename, duplicate, share or delete your saved courses, cups, karts and drivers, including imports and unfinished designs. Duplicate suggests a free name you can change before saving the copy. Import accepts a code or file and opens its tab. Deleting a saved design leaves editor drafts and the courses copied into cups alone. Renaming a course or cup changes which records are shown for it.
 
 In the driver screen or garage, use Share in the file menu. To import one, open Load and choose Add a driver or Add a kart, then paste a code or open a file. Courses and cups have Add buttons on their pages. Share a cup from Your cups or while changing it. Cups include their custom courses in race order, and copies aren't added twice. Online the host sends the course or cup to everyone. Keep in the lobby saves it to yours.
 

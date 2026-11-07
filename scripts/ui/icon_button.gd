@@ -202,6 +202,13 @@ func _draw() -> void:
 				hump.append(c + Vector2(lerpf(-13.0, 13.0, t), 8.0 - 14.0 * pow(sin(PI * t), 2.0)))
 			draw_polyline(hump, ink, w, true)
 			draw_line(c + Vector2(-13, 10), c + Vector2(13, 10), ink, 1.5)
+		"banked":
+			# A tilted road deck with a raised outside edge.
+			var deck := PackedVector2Array([c + Vector2(-13, 6), c + Vector2(7, -5), c + Vector2(13, 2), c + Vector2(-7, 13), c + Vector2(-13, 6)])
+			draw_polyline(deck, ink, w, true)
+			draw_line(c + Vector2(-13, 6), c + Vector2(-13, -2), ink, w, true)
+			draw_line(c + Vector2(-13, -2), c + Vector2(7, -13), ink, w, true)
+			draw_line(c + Vector2(7, -13), c + Vector2(7, -5), ink, w, true)
 		"stunts":
 			draw_arc(c + Vector2(0, -2), 8.0, 0.0, TAU, 20, ink, w, true)
 			draw_line(c + Vector2(-13, 7), c + Vector2(13, 7), ink, w, true)

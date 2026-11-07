@@ -162,7 +162,7 @@ static func describe(track: TrackPath) -> String:
 		things.append("a loop" if loops == 1 else "two loops" if loops == 2 else "%d loops" % loops)
 	if has.call(func(p): return p.type == "corkscrew"):
 		things.append("a corkscrew")
-	if has.call(func(p): return p.type == "curve" and p.sticky):
+	if has.call(func(p): return p.type in ["curve", "arc"] and p.sticky):
 		things.append("a wall ride")
 	if crosses_over(track):
 		things.append("a bridge")

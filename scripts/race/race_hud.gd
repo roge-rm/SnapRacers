@@ -58,6 +58,7 @@ var _big_was := ""
 ## Quick notes (see flash()), dropping in under the clock and fading.
 var _message: Label
 var _message_left := 0.0
+var _message_row: HBoxContainer
 ## How long the time for the lap just finished stays up, and how many laps
 ## it had last time it looked.
 var _split: Label
@@ -91,6 +92,7 @@ var _menu: Button
 ## The box with your place and lap in it, lighter while it's pressed.
 var _standing: PanelContainer
 var _camera: IconButton
+var mirror: RearViewMirror
 ## Split screen, with smaller words and boxes.
 var _small := false
 ## How long a quick note stays up, in seconds, and how long it takes to fade.
@@ -204,7 +206,8 @@ func _ready() -> void:
 	if where == "right":
 		for pill in [timing, _split.get_parent()]:
 			pill.size_flags_horizontal = Control.SIZE_SHRINK_END
-	_message = _label(_kind("HudLabel"), _pill(_centred(top)))
+	_message_row = _centred(top)
+	_message = _label(_kind("HudLabel"), _pill(_message_row))
 	_message.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_message.get_parent().visible = false
 
@@ -290,6 +293,13 @@ func _ready() -> void:
 	add_child(safe)
 	for control in [corner, _camera, _fps, top, right, bottom, _slots, _results]:
 		safe.watch(control)
+	if not _small and race != null and race.split == Game.SOLO and me != null and me.camera != null and me.camera.mirror_available:
+		mirror = RearViewMirror.new()
+		mirror.camera = me.camera
+		mirror.blockers.assign([corner, _camera, _clock.get_parent().get_parent(), _split.get_parent()])
+		add_child(mirror)
+		mirror.item_rect_changed.connect(_place_mirror_message)
+		_layout_message()
 
 
 ## What's on a gadget button, with how many goes are left when there's more
@@ -429,6 +439,42 @@ func flash(text: String) -> void:
 	_message.text = text
 	_message_left = MESSAGE_FOR
 	_message.get_parent().visible = true
+	_message.get_parent().modulate.a = 1.0
+	_layout_message()
+
+
+func _layout_message() -> void:
+	if mirror == null:
+		return
+	var pill := _message.get_parent() as Control
+	if mirror.is_active():
+		# Keep quick notes out of the clock's container while the mirror is up.
+		if pill.get_parent() != self:
+			pill.reparent(self, false)
+		mirror._fit()
+		_place_mirror_message()
+	elif pill.get_parent() != _message_row:
+		pill.reparent(_message_row, false)
+		pill.reset_size()
+
+
+func _place_mirror_message() -> void:
+	var pill := _message.get_parent() as Control
+	if pill.get_parent() != self:
+		return
+	pill.size = pill.get_combined_minimum_size()
+	var room := mirror.get_rect()
+	pill.position = Vector2(clampf(room.get_center().x - pill.size.x * 0.5, RearViewMirror.GAP, maxf(RearViewMirror.GAP, size.x - pill.size.x - RearViewMirror.GAP)), room.end.y + RearViewMirror.GAP)
+	var into := get_global_transform_with_canvas().affine_inverse()
+	var holes := SafeArea.holes_in(get_viewport()).map(func(hole: Rect2) -> Rect2: return into * hole)
+	for i in holes.size():
+		var below := pill.position.y
+		for hole: Rect2 in holes:
+			if pill.get_rect().intersects(hole.grow(RearViewMirror.GAP)):
+				below = maxf(below, hole.end.y + RearViewMirror.GAP)
+		if is_equal_approx(below, pill.position.y):
+			break
+		pill.position.y = below
 
 
 static func ordinal(n: int) -> String:
@@ -542,6 +588,7 @@ func _process(delta: float) -> void:
 		_message.get_parent().modulate.a = clampf(_message_left / MESSAGE_FADE, 0.0, 1.0)
 	else:
 		_message.get_parent().visible = false
+	_layout_message()
 
 	if _results_left >= 0.0:
 		_results_left -= delta

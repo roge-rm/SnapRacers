@@ -1,17 +1,13 @@
 class_name CourseCloser
 extends RefCounted
 
-## Finds pieces to finish a course off, from the end of the road back around
-## to the start, facing the right way and at ground level.
-##
-## Every piece starts and ends in the middle of a tile edge, facing along the
-## grid, so where the road's got to is always one of a small number of
-## places: which half tile it's at, which of four ways it faces, and which
-## level it's on. That makes it a search over a grid. It tries the fewest
-## pieces first, guided by how far there is still to go, and keeps out of
-## tiles the road already uses unless it's two levels above or below them.
-## Anything it finds gets a proper check for the road running into itself
-## before it's offered.
+## Tries the cardinal grid first, then the exact standard-parts search.
+## Both searches share the caller's expansion budget and check the finished
+## road for clashes before offering a return.
+
+const MAX_EXPANSIONS := 40000
+const MAX_LEGACY_EXPANSIONS := 10000
+const MAX_QUEUE := 40000
 
 ## The pieces it can use. Ramps only get used if the end of the road is up
 ## off the ground.
@@ -27,6 +23,8 @@ const CHOICES := [
 const DOWN := {"type": "ramp", "length": 2, "rise": -1}
 const HALF := TrackPiece.TILE * 0.5
 
+var expanded_count := 0
+var _legacy_expanded := 0
 var course: CourseDesign
 ## Each choice's way out and the points along its middle, in its own space.
 var _exits: Array[Transform3D] = []
@@ -53,7 +51,33 @@ func _init(for_course: CourseDesign) -> void:
 
 ## The pieces to add, or [] if nothing up to `most` pieces long fits.
 func find(most: int, budget: int) -> Array:
-	if course.pieces.is_empty() or course.track().closes:
+	expanded_count = 0
+	if most <= 0 or budget <= 0 or course.pieces.is_empty():
+		return []
+	most = mini(most, 7)
+	budget = mini(budget, MAX_EXPANSIONS)
+	var heading := TrackPath.heading_of(course.start.basis)
+	if heading < 0 or not course.start.origin.is_finite():
+		return []
+	# Half straights use exact endpoints and sampled road occupancy.
+	var exact := heading % 6 != 0 or course.pieces.any(func(spec): return spec.get("type") == "half_straight" or (spec.get("type") == "arc" and spec.get("angle", 90) != 90))
+	if not exact:
+		var result := _find_legacy(most, mini(MAX_LEGACY_EXPANSIONS, maxi(1, budget / 2)))
+		expanded_count = _legacy_expanded
+		if not result.is_empty():
+			return result
+	if expanded_count >= budget:
+		return []
+	var advanced := AdvancedCourseCloser.new(course)
+	var result := advanced.find(most, budget - expanded_count)
+	expanded_count += advanced.expanded_count
+	return result
+
+
+func _find_legacy(most: int, budget: int) -> Array:
+	_legacy_expanded = 0
+	_taken.clear()
+	if most <= 0 or budget <= 0 or course.pieces.is_empty() or course.track().closes:
 		return []
 	# The tiles the road already uses. The very ends of each piece sit on the
 	# edge between two tiles, so they're left out, or the tile just behind the
@@ -73,17 +97,16 @@ func find(most: int, budget: int) -> Array:
 	var count := 0
 	_push(heap, [_guess(end), 0, [end, [], [], 0.0]])
 	var seen := {}
-	var tried := 0
-	while not heap.is_empty() and tried < budget:
+	while not heap.is_empty() and _legacy_expanded < budget:
 		var node: Array = _pop(heap)[2]
-		tried += 1
+		_legacy_expanded += 1
 		var pose: Transform3D = node[0]
 		var path: Array = node[1]
 		if _is_start(pose):
 			var done := course.duplicate_design()
 			done.pieces.append_array(path)
 			var check := done.track()
-			if check.closes and check.clashes().is_empty():
+			if check.closes and _exact_return(path) and check.clashes().is_empty():
 				return path
 			continue
 		if path.size() >= most:
@@ -112,6 +135,8 @@ func find(most: int, budget: int) -> Array:
 				tiles.append([tile, lvl])
 			if not clear:
 				continue
+			if heap.size() >= MAX_QUEUE:
+				return []
 			count += 1
 			var more: Array = path.duplicate()
 			more.append(spec.duplicate())
@@ -119,6 +144,15 @@ func find(most: int, budget: int) -> Array:
 			var length: float = node[3] + _samples[c].size()
 			_push(heap, [more.size() + _guess(next) + length * 0.0001, count, [next, more, used, length]])
 	return []
+
+
+func _exact_return(path: Array) -> bool:
+	var cursor := ClosureCursor.start(0)
+	for spec in course.pieces + path:
+		cursor = ClosureCursor.advance(cursor, TrackPiece.from_spec(spec))
+		if cursor.is_empty():
+			return false
+	return ClosureCursor.at_start(cursor, 0)
 
 
 func _is_start(pose: Transform3D) -> bool:

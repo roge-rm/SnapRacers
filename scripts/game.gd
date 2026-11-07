@@ -89,6 +89,9 @@ var _loading: CanvasLayer
 var _fade_back: CanvasLayer
 var _loading_since := 0
 var _portrait := false
+var _creation_back := Callable()
+## The saved kart being edited, kept through a test drive.
+var creation_path := ""
 
 
 func _ready() -> void:
@@ -193,6 +196,8 @@ func trophy_pictures() -> TrophyThumbnails:
 
 
 func show_menu() -> void:
+	_creation_back = Callable()
+	creation_path = ""
 	# A switch for timing races on a device. If there's a file called perflog
 	# in the app's data folder, the game goes straight into a race on the
 	# course, in the weather and time and at the graphics level it names, like
@@ -214,11 +219,36 @@ func show_menu() -> void:
 
 ## The garage, the driver screen and the track editor.
 func show_editors() -> void:
+	_creation_back = Callable()
+	creation_path = ""
 	_swap(EditorsMenu.new())
 
 
+func show_creations(kind := Sharing.COURSE, path := "") -> void:
+	_creation_back = Callable()
+	creation_path = ""
+	_swap(CreationsMenu.new(kind, path))
+
+
+func edit_creation(kind: String, path: String) -> void:
+	_creation_back = show_creations.bind(kind, path)
+	creation_path = path
+	match kind:
+		Sharing.COURSE:
+			_swap(TrackEditor.new(path, _creation_back))
+		Sharing.CUP:
+			_swap(CupBuilder.new(path, _creation_back))
+		Sharing.KART:
+			_swap(Garage.new(path, _creation_back))
+		Sharing.DRIVER:
+			_swap(DriverBuilder.new(path, _creation_back))
+
+
 func show_garage() -> void:
-	_swap(Garage.new())
+	var garage := Garage.new("", _creation_back)
+	if _creation_back.is_valid() and creation_path.begins_with(KartDesign.SAVE_DIR + "/"):
+		garage.saved_path = creation_path
+	_swap(garage)
 
 
 ## The test drive. Its course takes a moment to build, so "Loading" goes up
@@ -385,7 +415,7 @@ func start_race(path: String) -> void:
 ## The track editor, with the course you were last working on.
 func show_track_editor() -> void:
 	came_from_editor = false
-	_swap(TrackEditor.new())
+	_swap(TrackEditor.new("", _creation_back))
 
 
 func show_driver() -> void:
@@ -685,6 +715,15 @@ func camera_view(person: int) -> String:
 
 func set_camera_view(person: int, view: String) -> void:
 	set_setting("camera", "player_%d" % (person + 1), view)
+
+
+## The single player's mirror in first person, hood and bumper views.
+func rear_view_mirror() -> bool:
+	return settings.get_value("camera", "rear_view_mirror", true)
+
+
+func set_rear_view_mirror(shown: bool) -> void:
+	set_setting("camera", "rear_view_mirror", shown)
 
 
 ## How each person's map in the corner of a race shows (see CourseMap.MODES),

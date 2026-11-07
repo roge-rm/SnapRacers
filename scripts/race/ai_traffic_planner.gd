@@ -253,7 +253,7 @@ func _contact_safe(ai: AIDriver, body: Dictionary, traffic: Array[Dictionary]) -
 			return false
 	for ahead in [0.0, 8.0, speed * ai.traffic_planning]:
 		var at: float = ai.offset + ahead
-		if track.piece_type_at(at) != "straight" or track.bend_at(at) > 0.01 or track.up_at(at).y < 0.98:
+		if track.piece_type_at(at) not in ["straight", "half_straight"] or track.bend_at(at) > 0.01 or track.up_at(at).y < 0.98:
 			return false
 	# Both footprints need room for the lighter kart's lateral displacement.
 	if maxf(absf(here) + kart.width() * 0.5, absf(body.across) + body.width * 0.5) + 1.5 > track.width * 0.5:

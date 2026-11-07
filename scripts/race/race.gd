@@ -355,6 +355,7 @@ func _add_view(racer: Racer, world_parent: Node, layer: CanvasLayer) -> void:
 	var input := LocalPlayerInput.new()
 	input.use_keyboard = true
 	input.person = index
+	input.mirror_hold_enabled = humans.size() == 1 and split == Game.SOLO
 	if humans.size() == 1:
 		input.any_joypad = true
 		input.both_keys = true
@@ -366,6 +367,7 @@ func _add_view(racer: Racer, world_parent: Node, layer: CanvasLayer) -> void:
 	view.target = racer.kart
 	view.track = track
 	view.input = input
+	view.mirror_available = humans.size() == 1 and split == Game.SOLO
 	# Your own head is on a layer of its own, so your first person view can
 	# leave it out while everyone else still sees it.
 	view.head_layer = RaceCamera.head_layer_of(index)
@@ -410,7 +412,7 @@ func _add_view(racer: Racer, world_parent: Node, layer: CanvasLayer) -> void:
 		if can_move_on():
 			Game.finish_grand_prix_race(standings().map(func(r): return r.name)))
 	racer_hud.courses_pressed.connect(func() -> void: Game.show_tracks(mode, Game.racing_alone, true))
-	racer_hud.camera_pressed.connect(input.press_view)
+	input.bind_camera_button(racer_hud._camera)
 	racer_hud.pause_pressed.connect(open_menu.bind(racer))
 	input.menu_pressed.connect(func() -> void:
 		# Start that just closed the menu is still down when the race carries on.
@@ -1014,6 +1016,7 @@ func _add_menu(racer: Racer, opened: bool) -> void:
 	menu.quit_pressed.connect(func() -> void:
 		get_tree().paused = false
 		leave())
+	racer.input.camera_controls_enabled = false
 	racer.hud.add_child(menu)
 	_menus[racer] = menu
 
@@ -1025,6 +1028,7 @@ func close_menu(racer: Racer) -> void:
 	for other in (_menus.keys() if _can_pause() else [racer]):
 		_menus[other].queue_free()
 		_menus.erase(other)
+		other.input.camera_controls_enabled = true
 	_closed_at = Engine.get_physics_frames()
 	_update_pause()
 

@@ -26,7 +26,7 @@ signal race_begun
 signal race_over(order: Array)
 
 ## Racing uses its own number, so it can't be confused with an older game.
-const VERSION := 13
+const VERSION := 15
 const PORT := 27280
 const MOST_KARTS := 8
 ## What a host can put on.
@@ -413,9 +413,12 @@ func _lobby(everyone: Dictionary, what: Dictionary) -> void:
 func _begin(race_setup: Dictionary) -> void:
 	# A modified game or a hand-edited server file could send a course big
 	# enough to freeze everyone, so it has to pass the same check as a code.
-	if not race_setup.get("course") is Dictionary or not Sharing.buildable(CourseDesign.from_dict(race_setup.course)):
+	var checked := Sharing.validate_course(race_setup.course) if race_setup.get("course") is Dictionary else {"why": "Invalid course"}
+	if checked.has("why"):
 		_end("The host's course can't be built.")
 		return
+	race_setup = race_setup.duplicate(true)
+	race_setup.course = checked.data
 	setup = race_setup
 	DirAccess.make_dir_recursive_absolute("user://net")
 	# Named for this copy of the game, since two copies on one computer (the

@@ -4,9 +4,8 @@ extends RefCounted
 ## One piece of track, the way it sits in its own space. It starts at the
 ## origin heading toward -Z, and `exit()` says where the next piece clicks on.
 ##
-## Everything lines up on a grid of tiles 32 m square, with heights in levels
-## of 3 m. Every piece starts and ends in the middle of a tile edge, flat and
-## level, so any piece can follow any other.
+## Lengths use tiles 32 m long, with heights in levels of 3 m. Connectors
+## are flat and level, with headings in steps of 15 degrees.
 ##
 ## The tiles are sized for the karts, which are about 1.6 times the size of
 ## real ones. The tightest bend is a real kart hairpin at that size, and the
@@ -17,6 +16,7 @@ const TILE := 32.0
 ## without a "grid" in it was made with these.
 const OLD_TILE := 16.0
 const LEVEL := 3.0
+const ARC_ANGLES := [30, 45, 60, 90]
 
 var type := "straight"
 ## How many tiles long a straight, ramp, crest, jump or slant is.
@@ -26,6 +26,8 @@ var across := 0
 ## -1 for a left bend, 1 for a right one, 0 for everything else.
 var turn := 0
 var radius := 0.0
+## How many degrees an arc turns through. Legacy curves always turn 90.
+var angle := 90
 ## How far a ramp climbs (or drops, if negative), in metres. Bends and
 ## slants can climb too, so a bridge can start anywhere.
 var rise := 0.0
@@ -102,12 +104,20 @@ static func from_spec(spec: Dictionary) -> TrackPiece:
 	piece.type = str(spec.get("type", "straight"))
 	piece.surface = str(spec.get("surface", "asphalt"))
 	match piece.type:
-		"curve":
+		"half_straight":
+			pass
+		"curve", "arc":
 			piece.turn = -1 if str(spec.get("turn", "right")) == "left" else 1
 			var size := int(spec.get("size", 2))
 			piece.radius = (size - 0.5) * TILE
 			piece.bank = deg_to_rad(float(spec.get("bank", 0.0)))
-			piece.cut = bool(spec.get("cut", false))
+			if piece.type == "arc":
+				piece.angle = int(spec.get("angle", 90))
+				assert(piece.angle in ARC_ANGLES, "Arc angles must be 30, 45, 60 or 90 degrees")
+				assert(size >= 1 and size <= 4, "Arc sizes must be 1 to 4")
+				assert(not bool(spec.get("cut", false)), "Only legacy curves can have a shortcut")
+			else:
+				piece.cut = bool(spec.get("cut", false))
 			piece.rise = float(spec.get("rise", 0)) * LEVEL
 		"ramp":
 			piece.tiles = int(spec.get("length", 2))
@@ -151,7 +161,7 @@ static func from_spec(spec: Dictionary) -> TrackPiece:
 			pass
 		_:
 			piece.edges = "auto"
-	if piece.type == "curve" and absf(piece.bank) >= STICKY_BANK:
+	if piece.type in ["curve", "arc"] and absf(piece.bank) >= STICKY_BANK:
 		piece.sticky = true
 	piece.sticky = bool(spec.get("sticky", piece.sticky))
 	# The inside of a cut bend is open, or there'd be nothing to cut across.
@@ -166,7 +176,9 @@ static func from_spec(spec: Dictionary) -> TrackPiece:
 func to_spec() -> Dictionary:
 	var spec := { "type": type }
 	match type:
-		"curve":
+		"curve", "arc":
+			if type == "arc":
+				spec["angle"] = angle
 			spec["turn"] = "left" if turn < 0 else "right"
 			spec["size"] = int(radius / TILE + 0.5)
 			if bank != 0.0:
@@ -211,6 +223,9 @@ func path_length() -> float:
 	if type == "curve":
 		var arc := radius * PI * 0.5
 		return sqrt(arc * arc + rise * rise)
+	if type == "arc":
+		var arc := radius * deg_to_rad(angle)
+		return sqrt(arc * arc + rise * rise)
 	if type == "loop":
 		return LOOP_IN + LOOP_ARC + _loop_out()
 	if type == "corkscrew":
@@ -221,17 +236,25 @@ func path_length() -> float:
 		for k in 32:
 			total += point(k / 32.0).distance_to(point((k + 1) / 32.0))
 		return total
-	var run := tiles * TILE
+	var run := run_length()
 	return sqrt(run * run + rise * rise)
+
+
+## The forward run of a straight piece, in metres.
+func run_length() -> float:
+	return TILE * 0.5 if type == "half_straight" else tiles * TILE
 
 
 ## The point on the middle of the road, `t` of the way through the piece.
 func point(t: float) -> Vector3:
-	var run := tiles * TILE
+	var run := run_length()
 	match type:
 		"curve":
 			var angle := t * PI * 0.5
 			return Vector3(turn * (radius - radius * cos(angle)), rise * smoothstep(0.0, 1.0, t), -radius * sin(angle))
+		"arc":
+			var radians := t * deg_to_rad(angle)
+			return Vector3(turn * radius * (1.0 - cos(radians)), rise * smoothstep(0.0, 1.0, t), -radius * sin(radians))
 		"ramp":
 			return Vector3(0.0, rise * smoothstep(0.0, 1.0, t), -run * t)
 		"crest":
@@ -427,7 +450,7 @@ func _jump_height(x: float) -> float:
 
 ## How far the road leans here. Positive tips the right side down.
 func bank_at(t: float) -> float:
-	if type != "curve":
+	if type not in ["curve", "arc"]:
 		return 0.0
 	# Eases in and out, so the road never starts rolling (or climbing, since
 	# banked road leans up from its low edge) all at once, which would throw
@@ -443,6 +466,15 @@ func solid(t: float) -> bool:
 	return x <= KICKER_END or x >= LANDING_START
 
 
+## How much the exit turns, in signed Godot yaw steps of 15 degrees.
+func heading_delta() -> int:
+	if type == "curve":
+		return -turn * 6
+	if type == "arc":
+		return -turn * (angle / 15)
+	return 0
+
+
 ## Where the next piece starts, in this piece's space.
 func exit() -> Transform3D:
 	var end := point(1.0)
@@ -452,4 +484,6 @@ func exit() -> Transform3D:
 		return Transform3D(Basis.IDENTITY, Vector3(across * TILE, rise, -tiles * TILE))
 	if type == "curve":
 		return Transform3D(Basis(Vector3.UP, -turn * PI * 0.5), end)
+	if type == "arc":
+		return Transform3D(Basis(Vector3.UP, -turn * deg_to_rad(angle)), end)
 	return Transform3D(Basis.IDENTITY, end)

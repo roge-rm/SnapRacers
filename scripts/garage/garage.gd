@@ -42,6 +42,10 @@ const VIEWS := {
 	"angle": [215.0, -32.0],
 }
 
+var initial_path := ""
+var saved_path := ""
+var back := Callable()
+
 var design: KartDesign
 var ui: GarageUI
 ## On a touch screen a part being dragged sits a little above your finger, so
@@ -136,8 +140,14 @@ var _pinch_start := 0.0
 var _pinch_distance_start := 0.0
 
 
+func _init(from := "", leave := Callable()) -> void:
+	initial_path = from
+	saved_path = from
+	back = leave
+
+
 func _ready() -> void:
-	design = Game.design.duplicate_design()
+	design = KartDesign.load_file(initial_path) if initial_path != "" else Game.design.duplicate_design()
 	SkyAndSun.add_to(self, 30.0, Color("#2b3440"))
 	# Looking down on the kart catches a lot more light than the track camera
 	# does, so the garage is lit a little more softly.
@@ -222,8 +232,22 @@ func _on_picture(id: String, picture: Texture2D) -> void:
 
 # Changing the kart.
 
-func _remember() -> void:
-	_undo.append(design.to_dict())
+func _snapshot(identity := false) -> Dictionary:
+	var step := design.to_dict()
+	if back.is_valid() and identity:
+		step["creation_path"] = saved_path
+	return step
+
+
+func _restore(step: Dictionary) -> void:
+	design = KartDesign.from_dict(step)
+	if back.is_valid() and step.has("creation_path"):
+		saved_path = str(step.get("creation_path", ""))
+		Game.creation_path = saved_path
+
+
+func _remember(identity := false) -> void:
+	_undo.append(_snapshot(identity))
 	if _undo.size() > UNDO_LIMIT:
 		_undo.pop_front()
 	_redo.clear()
@@ -233,8 +257,9 @@ func undo() -> void:
 	if _undo.is_empty():
 		return
 	_stop_placing()
-	_redo.append(design.to_dict())
-	design = KartDesign.from_dict(_undo.pop_back())
+	var step: Dictionary = _undo.pop_back()
+	_redo.append(_snapshot(step.has("creation_path")))
+	_restore(step)
 	_selected = -1
 	_rebuild()
 
@@ -243,8 +268,9 @@ func redo() -> void:
 	if _redo.is_empty():
 		return
 	_stop_placing()
-	_undo.append(design.to_dict())
-	design = KartDesign.from_dict(_redo.pop_back())
+	var step: Dictionary = _redo.pop_back()
+	_undo.append(_snapshot(step.has("creation_path")))
+	_restore(step)
 	_selected = -1
 	_rebuild()
 
@@ -617,9 +643,11 @@ func select(index: int) -> void:
 
 ## A new kart starts empty, with nothing in hand.
 func _new_kart() -> void:
-	_remember()
+	_remember(true)
 	_stop_placing()
 	design = KartDesign.new()
+	saved_path = ""
+	Game.creation_path = ""
 	design.name = "New kart"
 	_selected = -1
 	_rebuild()
@@ -643,14 +671,27 @@ func _open_import() -> void:
 func _save() -> void:
 	if design.name.strip_edges() == "":
 		design.name = "My kart"
-	var path := design.save()
+	var path := ""
+	if back.is_valid():
+		var result := CreationLibrary.save(Sharing.KART, saved_path if saved_path != "" else Sharing.path_for(Sharing.KART, design.name), design.to_dict(), saved_path != "")
+		if result.has("why"):
+			ui.toast(result.why)
+			return
+		path = result.path
+		saved_path = path
+		Game.creation_path = path
+	else:
+		path = design.save()
 	ui.toast("Saved %s" % design.name if path != "" else "I couldn't save it.")
 
 
 func _load(path: String) -> void:
-	_remember()
+	_remember(true)
 	_stop_placing()
 	design = KartDesign.load_file(path)
+	saved_path = path if path.begins_with(KartDesign.SAVE_DIR + "/") else ""
+	if back.is_valid():
+		Game.creation_path = saved_path
 	_selected = -1
 	_rebuild()
 	show_view("fit")
@@ -672,7 +713,10 @@ func _race() -> void:
 
 func _to_menu() -> void:
 	Game.keep_design(design)
-	Game.show_editors()
+	if back.is_valid():
+		back.call()
+	else:
+		Game.show_editors()
 
 
 ## The garage has its own way of using a controller and the keys.

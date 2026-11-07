@@ -19,6 +19,41 @@ func _ready() -> void:
 		drawer.item_rect_changed.connect(queue_redraw)
 
 
+## The lower half's first tab, if both end-aligned groups clear the cutouts.
+func cutout_split(holes: Array[Rect2]) -> Control:
+	var tabs: Array[Control] = []
+	for child in get_children():
+		if child is IconButton and child.visible:
+			tabs.append(child)
+	if tabs.size() < 2:
+		return null
+	var rect := get_global_rect()
+	var touches := false
+	for hole in holes:
+		touches = touches or rect.intersects(hole)
+	if not touches:
+		return null
+	var split := ceili(tabs.size() * 0.5)
+	var between := float(get_theme_constant("separation"))
+	var heights: Array[float] = [0.0, 0.0]
+	for i in tabs.size():
+		heights[0 if i < split else 1] += tabs[i].get_combined_minimum_size().y
+	heights[0] += between * (split - 1)
+	heights[1] += between * (tabs.size() - split - 1)
+	if heights[0] + heights[1] + between * 2.0 > size.y:
+		return null
+	var along := rect.position.y
+	for i in tabs.size():
+		if i == split:
+			along = rect.end.y - heights[1]
+		var tab := Rect2(Vector2(tabs[i].global_position.x, along), Vector2(tabs[i].size.x, tabs[i].get_combined_minimum_size().y))
+		for hole in holes:
+			if tab.intersects(hole):
+				return null
+		along = tab.end.y + between
+	return tabs[split]
+
+
 func _draw() -> void:
 	if drawer == null:
 		return

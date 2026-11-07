@@ -42,12 +42,33 @@ var _flow_from := {}
 var _gaps := {}
 var _fitting := false
 var _again := false
+var _queued := false
 ## Each control's offsets as they were set, [left, top, right, bottom].
 var _placed := {}
 var _last_holes: Array[Rect2] = []
 var _last_size := Vector2.ZERO
 var _last_sizes := []
 var _wait := 0.0
+
+
+class _LayoutWait extends RefCounted:
+	signal finished
+	var done := false
+	var cancelled := false
+
+	func complete() -> void:
+		if done:
+			return
+		done = true
+		finished.emit()
+
+	func cancel() -> void:
+		cancelled = true
+		complete()
+
+
+func _enter_tree() -> void:
+	_queue_refit()
 
 
 func _ready() -> void:
@@ -57,6 +78,7 @@ func _ready() -> void:
 		var n := fake.split_floats(",")
 		if n.size() == 4:
 			pretend.append(Rect2(n[0], n[1], n[2], n[3]))
+	_queue_refit()
 
 
 ## Keeps this control clear of any hole, from where it is now. A tall panel
@@ -66,7 +88,7 @@ func watch(control: Control, wraps := false) -> void:
 	if wraps:
 		_wraps[control] = true
 	_placed[control] = [control.offset_left, control.offset_top, control.offset_right, control.offset_bottom]
-	_wait = 0.0
+	_queue_refit()
 
 
 ## A watched control has been moved on purpose, so it's kept clear of a hole
@@ -75,7 +97,7 @@ func moved(control: Control) -> void:
 	if not _placed.has(control):
 		return
 	_placed[control] = [control.offset_left, control.offset_top, control.offset_right, control.offset_bottom]
-	_wait = 0.0
+	_queue_refit()
 
 
 ## Makes this margin container widen its margin on the side a hole's on,
@@ -89,15 +111,16 @@ func pad(margin: MarginContainer, mirror := false) -> void:
 	for side in ["margin_left", "margin_top", "margin_right", "margin_bottom"]:
 		sides.append(margin.get_theme_constant(side))
 	_pads[margin] = sides
-	_wait = 0.0
+	_queue_refit()
 
 
 ## Makes this box leave a gap where a hole is, before the first of its
-## children (from `from` on) that would be under it.
+## children (from `from` on) that would be under it. A category rail splits
+## into equal groups at its ends when both groups can clear the hole.
 func flow(box: BoxContainer, from := 0) -> void:
 	_flows.append(box)
 	_flow_from[box] = from
-	_wait = 0.0
+	_queue_refit()
 
 
 ## The screen's size in pixels, which is what the holes are measured in.
@@ -147,6 +170,8 @@ static func holes_in(viewport: Viewport) -> Array[Rect2]:
 
 
 func _process(delta: float) -> void:
+	if _fitting or _queued:
+		return
 	_wait -= delta
 	if _wait > 0.0:
 		return
@@ -158,16 +183,26 @@ func _process(delta: float) -> void:
 	var sizes := _watched.map(func(c: Control) -> Vector2: return c.size if is_instance_valid(c) else Vector2.ZERO)
 	if now == _last_holes and size == _last_size and sizes == _last_sizes:
 		return
-	_last_sizes = sizes
-	_last_holes = now
-	_last_size = size
 	refit()
 
 
+func _queue_refit() -> void:
+	if not is_inside_tree():
+		return
+	if _fitting:
+		_again = true
+	elif not _queued:
+		_queued = true
+		refit.call_deferred()
+
+
 ## Puts every watched control back where it was set, then moves any that
-## are under a hole and opens gaps in the boxes that flow. It waits a frame
-## between steps for the layout to catch up, so it's done a few frames later.
+## are under a hole and opens gaps in the boxes that flow. Container sorts
+## finish in the deferred layout queue, before the screen's first draw.
 func refit() -> void:
+	_queued = false
+	if not is_inside_tree():
+		return
 	if _fitting:
 		_again = true
 		return
@@ -187,7 +222,9 @@ func refit() -> void:
 				control.offset_top = at[1]
 				control.offset_right = at[2]
 				control.offset_bottom = at[3]
-		await get_tree().process_frame
+		if not await _settle_layout():
+			_restart_fit()
+			return
 		var now := holes()
 		var screen := get_viewport().get_visible_rect()
 		for control in _watched:
@@ -198,11 +235,74 @@ func refit() -> void:
 			if is_instance_valid(margin):
 				for hole in now:
 					_widen(margin, hole.grow(CLEAR))
+		if not await _settle_layout():
+			_restart_fit()
+			return
 		for box in _flows:
-			await get_tree().process_frame
 			if is_instance_valid(box):
 				_make_room(box, now)
+				if not await _settle_layout():
+					_restart_fit()
+					return
+	if not is_inside_tree():
+		_fitting = false
+		return
+	_last_holes = holes()
+	_last_size = get_viewport().get_visible_rect().size
+	_last_sizes = _watched.map(func(c: Control) -> Vector2: return c.size if is_instance_valid(c) else Vector2.ZERO)
+	_wait = CHECK_EVERY
 	_fitting = false
+
+
+func _restart_fit() -> void:
+	_fitting = false
+	_queue_refit()
+
+
+## Sort from each control's outermost container down to its children. The
+## deferred connection resumes after the container has finished its sort.
+func _settle_layout() -> bool:
+	var roots: Array[Control] = []
+	for control in _watched + _pads.keys() + _flows:
+		if not is_instance_valid(control) or not control.is_inside_tree():
+			continue
+		var root := control as Control
+		while root.get_parent() is Control:
+			root = root.get_parent()
+		if not roots.has(root):
+			roots.append(root)
+	for root in roots:
+		if is_instance_valid(root):
+			if not await _sort_layout(root):
+				return false
+	return true
+
+
+func _sort_layout(control: Control) -> bool:
+	if not is_instance_valid(control) or not control.is_inside_tree() or not is_inside_tree():
+		return false
+	if control is Container:
+		var pending := _LayoutWait.new()
+		control.sort_children.connect(pending.complete, CONNECT_ONE_SHOT | CONNECT_DEFERRED)
+		control.tree_exiting.connect(pending.cancel, CONNECT_ONE_SHOT)
+		control.queue_sort()
+		if not pending.done:
+			await pending.finished
+		if is_instance_valid(control):
+			if control.sort_children.is_connected(pending.complete):
+				control.sort_children.disconnect(pending.complete)
+			if control.tree_exiting.is_connected(pending.cancel):
+				control.tree_exiting.disconnect(pending.cancel)
+		if pending.cancelled or not is_instance_valid(control) or not control.is_inside_tree() or not is_inside_tree():
+			return false
+	for child in control.get_children():
+		if is_instance_valid(child) and child is Control:
+			if not await _sort_layout(child):
+				return false
+		if not is_instance_valid(control) or not control.is_inside_tree() or not is_inside_tree():
+			return false
+
+	return true
 
 
 ## Widens a margin to clear a hole.
@@ -240,6 +340,18 @@ func _make_room(box: BoxContainer, holes: Array[Rect2]) -> void:
 	var vertical := box is VBoxContainer
 	var from: int = _flow_from[box]
 	var between := float(box.get_theme_constant("separation"))
+	if box is RailBox and from == 0:
+		var padded: Array[Rect2] = []
+		for hole in holes:
+			padded.append(hole.grow(CLEAR))
+		var split: Control = box.cutout_split(padded)
+		if split != null:
+			gap = _gap_before(box, split, gap)
+			gap.size_flags_vertical = Control.SIZE_EXPAND_FILL
+			gap.custom_minimum_size = Vector2.ZERO
+			return
+	if gap != null:
+		gap.size_flags_vertical = Control.SIZE_FILL
 	# Where each child starts with no gap, added up from the box's start.
 	var along := box.get_global_rect().position
 	for child in box.get_children():
@@ -258,17 +370,7 @@ func _make_room(box: BoxContainer, holes: Array[Rect2]) -> void:
 			var hole := h.grow(CLEAR)
 			if not rect.intersects(hole):
 				continue
-			if gap == null:
-				gap = Control.new()
-				gap.mouse_filter = Control.MOUSE_FILTER_IGNORE
-				box.add_child(gap)
-				_gaps[box] = gap
-			# Moving the gap from before the child shifts the child down one.
-			var at := child.get_index()
-			if gap.get_parent() == box and gap.get_index() < at:
-				at -= 1
-			box.move_child(gap, at)
-			gap.visible = true
+			gap = _gap_before(box, child, gap)
 			# The gap takes up the room the child would have had under the
 			# hole, less the space the box puts between them.
 			if vertical:
@@ -279,6 +381,21 @@ func _make_room(box: BoxContainer, holes: Array[Rect2]) -> void:
 	if gap != null:
 		gap.visible = false
 		gap.custom_minimum_size = Vector2.ZERO
+
+
+func _gap_before(box: BoxContainer, child: Control, gap: Control) -> Control:
+	if gap == null:
+		gap = Control.new()
+		gap.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		box.add_child(gap)
+		_gaps[box] = gap
+	# Moving the gap from before the child shifts the child down one.
+	var at := child.get_index()
+	if gap.get_index() < at:
+		at -= 1
+	box.move_child(gap, at)
+	gap.visible = true
+	return gap
 
 
 func _step_aside(control: Control, hole: Rect2, screen: Rect2) -> void:

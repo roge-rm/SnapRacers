@@ -45,6 +45,8 @@ func _input(event: InputEvent) -> void:
 
 
 func _button(button: JoyButton) -> bool:
+	if editor.ui.palette_popup_open() or editor.ui._close_failure.visible:
+		return false
 	var holding := not editor._holding.is_empty()
 	var in_actions := _focus_in(editor.ui._actions)
 	match button:
@@ -130,13 +132,9 @@ func _focus_in(panel: Control) -> bool:
 
 
 func _focus_drawer(again := false) -> bool:
-	if _focus_in(editor.ui._tiles) and not again:
+	if not again and editor.ui.palette_has_focus():
 		return false
-	for tile in editor.ui._tiles.get_children():
-		if tile is BaseButton and not tile.is_queued_for_deletion():
-			tile.grab_focus()
-			return true
-	return false
+	return editor.ui.focus_palette()
 
 
 func _release_focus() -> void:

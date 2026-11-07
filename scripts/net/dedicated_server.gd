@@ -133,7 +133,7 @@ func courses() -> Dictionary:
 			if file.ends_with(".json"):
 				var path := folder.path_join(file)
 				var data = JSON.parse_string(FileAccess.get_file_as_string(path))
-				if data is Dictionary and Sharing.buildable(CourseDesign.from_dict(data)):
+				if data is Dictionary and not Sharing.validate_course(data).has("why"):
 					out["mine_" + file.get_basename()] = path
 				else:
 					printerr("Skipping %s: players couldn't build it." % path)
@@ -147,11 +147,14 @@ func cups() -> Dictionary:
 	var folder := config_path.get_base_dir().path_join("cups")
 	if DirAccess.dir_exists_absolute(folder):
 		for file in DirAccess.get_files_at(folder):
-			var mine := CupDesign.load_file(folder.path_join(file)) if file.ends_with(".json") else null
-			if mine != null and mine.problem() == "" and not mine.races.all(func(r): return Sharing.buildable(CourseDesign.from_dict(r.course))):
+			if not file.ends_with(".json"):
+				continue
+			var data = JSON.parse_string(FileAccess.get_file_as_string(folder.path_join(file)))
+			var found := Sharing.read(JSON.stringify(data))
+			if found.get("kind") != Sharing.CUP:
 				printerr("Skipping %s: players couldn't build one of its courses." % folder.path_join(file))
-			elif mine != null and mine.problem() == "":
-				out["mine_" + file.get_basename()] = {"name": mine.name, "courses": mine.races.map(func(r): return r.course)}
+			else:
+				out["mine_" + file.get_basename()] = {"name": found.data.name, "courses": found.data.races.map(func(r): return r.course)}
 	return out
 
 

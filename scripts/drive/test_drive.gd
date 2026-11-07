@@ -37,6 +37,7 @@ func _ready() -> void:
 	player.use_keyboard = true
 	player.any_joypad = true
 	player.both_keys = true
+	player.mirror_hold_enabled = true
 	add_child(player) # before the kart, so its controls are up to date each tick
 
 	kart = Kart.new()
@@ -55,6 +56,7 @@ func _ready() -> void:
 	camera = RaceCamera.new()
 	camera.target = kart
 	camera.input = player
+	camera.mirror_available = true
 	camera.head_layer = RaceCamera.head_layer_of(0)
 	kart.head_layer = camera.head_layer
 	camera.view = Game.camera_view(0)
@@ -92,7 +94,7 @@ func _ready() -> void:
 	view.offset_right = -190.0 + IconButton.SIZE
 	view.offset_top = 16.0
 	view.offset_bottom = 16.0 + IconButton.SIZE
-	view.pressed.connect(player.press_view)
+	player.bind_camera_button(view)
 
 	var touch := TouchControls.new()
 	touch.visible = TouchControls.shown_at_start()
@@ -108,6 +110,10 @@ func _ready() -> void:
 	hud_root.add_child(safe)
 	for control in [speed_label, garage, view]:
 		safe.watch(control)
+	var mirror := RearViewMirror.new()
+	mirror.camera = camera
+	mirror.blockers.assign([speed_label, garage, view])
+	hud_root.add_child(mirror)
 
 ## The controller and keys drive here, so they don't move round the buttons.
 func own_controls() -> bool:
