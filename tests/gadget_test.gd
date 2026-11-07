@@ -619,7 +619,8 @@ class Runner:
 		for i in xs.size() - 1:
 			gap = maxf(gap, xs[i + 1] - xs[i])
 		print("        bricks across %.1f m, along %.1f m, widest gap across %.1f m" % [across, along, gap])
-		check(across > 9.0, "dropped bricks spread across the road (%.1f m)" % across)
+		check(across > 6.0 and across < 12.0, "dropped bricks cover the road without scattering too far (%.1f m)" % across)
+		check(gap < 2.0, "settled bricks leave no wide gaps across the pile (%.1f m)" % gap)
 		var space := get_viewport().world_3d.direct_space_state
 		var on_marbles := func(at: Vector3) -> bool:
 			var query := PhysicsRayQueryParameters3D.create(at + Vector3.UP, at + Vector3.DOWN, Kart.LAYER_WORLD)

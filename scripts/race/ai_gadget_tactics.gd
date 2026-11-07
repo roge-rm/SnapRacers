@@ -221,7 +221,7 @@ static func _rear(ai: AIDriver, kind: String) -> float:
 		behind = kart.rear_bumper_point().z + along + BrickTrap.DROP_GAP
 	elif kind == "dropper":
 		half = BrickPile.SPREAD * 0.5
-		behind = 3.0
+		behind = BrickPile.drop_distance(kart) + (BrickPile.COUNT - 1) * BrickPile.DROP_STEP * 0.5
 		along = 1.0
 		drift = kart.linear_velocity * 0.3
 	var forward := -kart.global_basis.z

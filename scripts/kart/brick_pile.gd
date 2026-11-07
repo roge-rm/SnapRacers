@@ -17,7 +17,9 @@ const MOST_AT_ONCE := 80
 ## they cover most of the road with gaps between.
 const COUNT := 16
 const SPREAD := 3.4
-const THROW := 3.0
+const THROW := 1.5
+const DROP_STEP := 0.1
+const DROP_GAP := 0.1
 ## The sizes a dropped brick can be, in studs across and along, and how often
 ## one is a plate.
 const SIZES := [Vector2i(1, 1), Vector2i(1, 2), Vector2i(1, 3), Vector2i(1, 4), Vector2i(2, 2), Vector2i(2, 3), Vector2i(2, 4), Vector2i(1, 6), Vector2i(2, 6)]
@@ -45,6 +47,7 @@ static func drop_behind(from: Kart) -> Array[BrickPile]:
 	var back := from.global_basis.z
 	var right := from.global_basis.x
 	var up := from.global_basis.y
+	var behind := drop_distance(from)
 	# Sizes and colours from the kart's grid slot and how many things it's
 	# dropped, which every machine counts the same since the drops arrive in
 	# order, so every device drops the same pile.
@@ -57,7 +60,7 @@ static func drop_behind(from: Kart) -> Array[BrickPile]:
 		var size := Vector3(studs.x * Grid.STUD, PLATE_HIGH if plate else BRICK_HIGH, studs.y * Grid.STUD)
 		var brick := BrickPile.new(size, COLOURS[rng.randi_range(0, COLOURS.size() - 1)])
 		var spot := spot_of(i)
-		var at := from.global_position + back * (2.3 + i * 0.1) + right * spot.x + up * spot.y
+		var at := from.global_position + back * (behind + i * DROP_STEP) + right * spot.x + up * spot.y
 		brick.transform = Transform3D(from.global_basis.rotated(up, i * 0.9), at)
 		# Thrown back and out, spinning, so they spread across the road and a
 		# little along it.
@@ -65,6 +68,14 @@ static func drop_behind(from: Kart) -> Array[BrickPile]:
 		brick.angular_velocity = Vector3(sin(i * 2.1), cos(i * 1.7), sin(i * 3.3)) * 5.0
 		out.append(brick)
 	return out
+
+
+## The first brick's centre, far enough behind the tail for any size and yaw.
+static func drop_distance(from: Kart) -> float:
+	var radius := 0.0
+	for studs: Vector2i in SIZES:
+		radius = maxf(radius, Vector2(studs).length() * Grid.STUD * 0.5)
+	return maxf(2.3, from.rear_bumper_point().z + radius + DROP_GAP)
 
 
 ## Where brick `i` of a drop comes out, as (right, up) in metres from behind

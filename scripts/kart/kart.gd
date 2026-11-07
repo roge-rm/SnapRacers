@@ -517,6 +517,8 @@ var slide_way := 0.0
 var slide_amount := 0.0
 var _slide_straight := 0.0
 var _slide_speed := 0.0
+## Current marble grip averaged across the wheels, for the handling assists.
+var _marble_grip := 1.0
 ## How many physics steps the slide's been held on the gas, past the kick,
 ## and the boost level that's charged so far, 0 to 3 (see SLIDE_LEVELS).
 var _slide_steps := 0
@@ -1230,6 +1232,7 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 	var share := mass / maxf(wheels.size(), 1)
 	var ground_up := Vector3.ZERO
 	var popped: Array[int] = []
+	var marble_loss := 0.0
 	for w in wheels:
 		var anchor := state.transform * (w.rest + Vector3.UP * SUSPENSION_TRAVEL)
 		var reach := SUSPENSION_TRAVEL * 2.0 + w.radius
@@ -1297,6 +1300,7 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 		var grip_here: float = ground.get_meta("grip", 1.0) if ground != null else 1.0
 		var drag_here: float = ground.get_meta("drag", 1.0) if ground != null else 1.0
 		var off: bool = ground != null and bool(ground.get_meta("offroad", false))
+		var marbles: bool = ground != null and ground.get_meta("trap", "") == "marbles"
 		# A ghost or a shield drives over a trap as if it isn't there. Spikes
 		# hit fast mostly pop the first wheel that runs over them.
 		if ground != null and ground.get_meta("trap", "") == "spikes" and speed > SPIKE_SPEED and _spike_wait <= 0.0 and ghost_left <= 0.0 and shield_left <= 0.0 and not remote:
@@ -1306,6 +1310,7 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 		if (ghost_left > 0.0 or shield_left > 0.0) and ground != null and ground.has_meta("trap"):
 			grip_here = 1.0
 			drag_here = 1.0
+			marbles = false
 		on_any += 1
 		if grip_here < 1.0:
 			on_rough += 1
@@ -1321,7 +1326,7 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 		# is the same whatever the weather. It never takes a tire below
 		# LEAST_GRIP, unless it was already below that in the dry, like
 		# slicks on ice.
-		var dry_grip := ground_grip(grip_here, w.offroad)
+		var dry_grip := maxf(grip_here, 0.0) if marbles else ground_grip(grip_here, w.offroad)
 		var drift := 0.0
 		var snow := Vector4.ZERO
 		var water := 0.0
@@ -1333,7 +1338,10 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 			drag_here *= weather_drag
 		w.snow = drift
 		w.water = water
-		grip_here = maxf(ground_grip(grip_here, w.offroad), minf(dry_grip, LEAST_GRIP))
+		# Off-road tread cannot grip the loose marbles underneath it.
+		grip_here = dry_grip if marbles else maxf(ground_grip(grip_here, w.offroad), minf(dry_grip, LEAST_GRIP))
+		if marbles:
+			marble_loss += 1.0 - clampf(grip_here, 0.0, 1.0)
 		var riding := clampf((absf(v_long) - lerpf(HYDRO_SHALLOW, HYDRO_DEEP, water)) / HYDRO_SPAN, 0.0, 1.0) if water > 0.0 else 0.0
 		w.planing = move_toward(w.planing, riding, dt / (HYDRO_RISE if riding > w.planing else HYDRO_FALL))
 		grip_here *= lerpf(1.0, HYDRO_GRIP, w.planing)
@@ -1352,7 +1360,7 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 		elif slide_kick and not w.steered:
 			resist += BRAKE_FORCE * slide_brake / maxf(wheels.size() - _steered_count, 1)
 		f_long -= signf(v_long) * minf(resist, absf(v_long) * stop_force)
-		var most := KartStats.TIRE_FRICTION * w.grip * grip_here * load
+		var most := KartStats.TIRE_FRICTION * maxf(w.grip * grip_here, 0.0) * load
 		if slide_amount > 0.0 and not w.steered:
 			most *= lerpf(1.0, SLIDE_REAR_GRIP if slide_kick else slide_hold_grip, slide_amount)
 		# Traction control. Holding the kart in line comes first and the engine
@@ -1496,6 +1504,7 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 		state.apply_central_force(_ok(push))
 		applied += push
 
+	_marble_grip = 1.0 - marble_loss / maxf(wheels.size(), 1)
 	if sliding and not slide_kick:
 		_hold_slide(state, up)
 	elif slide_amount <= 0.0:
@@ -1610,17 +1619,18 @@ func _hold_slide(state: PhysicsDirectBodyState3D, up: Vector3) -> void:
 	var turning := 0.0
 	if _last_flat_velocity.length() > 1.0:
 		turning = _last_flat_velocity.signed_angle_to(flat, up) / dt
-	var should := -slide_way * into * stats.cornering() * KartStats.gravity() * slide_corner / speed
-	var fix := clampf((should - turning) * dt * 0.8, -0.05, 0.05)
+	var should := -slide_way * into * stats.cornering() * KartStats.gravity() * slide_corner * _marble_grip / speed
+	var fix := clampf((should - turning) * dt * 0.8, -0.05, 0.05) * _marble_grip
 	var vertical := state.linear_velocity - flat
-	# It keeps its speed, losing only the scrub, whatever the tires did.
+	# Marble contact limits how much speed the slide can carry.
 	_slide_speed = minf(_slide_speed - slide_scrub * dt, speed + SLIDE_CARRY * dt)
+	_slide_speed = lerpf(speed, _slide_speed, _marble_grip)
 	var keep := maxf(speed, _slide_speed)
 	state.linear_velocity = _ok((flat / speed).rotated(up, fix) * keep + vertical, state.linear_velocity)
 	# The nose turns with it, and a bit more or less to hold the angle.
 	var spin := turning + (off - slide_way * want) * SLIDE_HOLD
 	var now := state.angular_velocity.dot(up)
-	state.angular_velocity += _ok(up * (spin - now) * minf(1.0, 12.0 * dt))
+	state.angular_velocity += _ok(up * (spin - now) * minf(1.0, 12.0 * dt) * _marble_grip)
 
 
 ## Keeps a bike or trike from falling over, by turning it back upright about
@@ -1745,14 +1755,14 @@ func _steady(state: PhysicsDirectBodyState3D, up: Vector3) -> void:
 		return
 	extra -= signf(extra) * leeway
 	var inertia := (state.inverse_inertia_tensor.inverse() * up).dot(up)
-	state.apply_torque(_ok(-up * extra * inertia * STEADY_RATE))
+	state.apply_torque(_ok(-up * extra * inertia * STEADY_RATE * _marble_grip))
 
 
 ## How much a tire grips on this ground, as a multiple of its grip on the
 ## road. Off-road tires keep some of what they'd lose on grass and dirt, and
 ## slicks lose even more (see "offroad" in parts.json).
 static func ground_grip(ground: float, offroad: float) -> float:
-	return 1.0 - (1.0 - ground) * (1.0 - offroad) if ground < 1.0 else ground
+	return maxf(1.0 - (1.0 - ground) * (1.0 - offroad), 0.0) if ground < 1.0 else ground
 
 
 ## The same for how much the ground drags on a tire.
