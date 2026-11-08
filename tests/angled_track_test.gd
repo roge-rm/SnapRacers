@@ -16,6 +16,7 @@ func _initialize() -> void:
 	_arcs()
 	_headings()
 	_connections()
+	_open_endpoints()
 	_starts()
 	print("All angled track checks passed." if failures == 0 else "%d angled track checks failed." % failures)
 	quit(1 if failures > 0 else 0)
@@ -105,7 +106,8 @@ func _connections() -> void:
 			var local := TrackPath.from_dict({"grid": 32, "pieces": [spec]})
 			var pose := track.piece_starts[1]
 			var first := track.piece_of.find(1)
-			for k in local.points.size():
+			# The joined connector takes the following piece's frame.
+			for k in local.points.size() - 1:
 				worst_point = maxf(worst_point, (pose * local.points[k]).distance_to(track.points[first + k]))
 				worst_frame = maxf(worst_frame, (pose.basis * local.rights[k]).distance_to(track.rights[first + k]))
 			var piece := TrackPiece.from_spec(spec)
@@ -125,6 +127,38 @@ func _connections() -> void:
 	check(worst_point < 0.0001 and worst_frame < 0.0002, "local previews and full samples agree at angled headings (%.6f m, %.6f frame)" % [worst_point, worst_frame])
 	check(placements, "track starts and course placement agree at every angled seam")
 	check(meshes, "full meshes reach each real connector with no missing strip or displaced seam")
+
+
+func _open_endpoints() -> void:
+	for angle in [30, 45, 60, 90]:
+		for turn in ["left", "right"]:
+			for size in [1, 2, 3, 4]:
+				var spec := {"type": "arc", "angle": angle, "turn": turn, "size": size}
+				var piece := TrackPiece.from_spec(spec)
+				var track := TrackPath.from_dict({"grid": 32, "pieces": [spec]})
+				var mesh := TrackBuilder.piece_mesh(spec, track.width, track.theme)
+				var vertices: PackedVector3Array = mesh.surface_get_arrays(0)[Mesh.ARRAY_VERTEX]
+				var end := piece.exit()
+				var correct := not track.closes and track.points[-1].distance_to(end.origin) < 0.00001
+				correct = correct and track.forwards[-1].distance_to(-end.basis.z) < 0.00001
+				for side in [-1, 1]:
+					var edge := Vector3(side * track.width * 0.5, TrackBuilder.LIFT, 0.0)
+					correct = correct and _nearest(vertices, edge) < 0.0001
+					correct = correct and _nearest(vertices, end * edge) < 0.0001
+				check(correct, "%d degree %s size %d preview reaches both connector edges at their exact heading" % [angle, turn, size])
+	var course := TrackPath.from_dict({"grid": 32, "pieces": [{"type": "straight"}, {"type": "arc", "angle": 30, "turn": "right", "size": 1}]})
+	var builder := TrackBuilder.new(course)
+	builder._prepare()
+	var mesh := builder._piece_mesh(1)
+	var vertices: PackedVector3Array = mesh.surface_get_arrays(0)[Mesh.ARRAY_VERTEX]
+	var end := TrackPath.advance_pose(course.piece_starts[-1], course.pieces[-1])
+	check(_nearest(vertices, end * Vector3(course.width * 0.5, TrackBuilder.LIFT, 0.0)) < 0.0001, "full open track mesh reaches its final connector")
+	builder.free()
+	var closed := TrackPath.from_dict({"grid": 32, "pieces": [
+		{"type": "curve", "size": 2, "turn": "right"}, {"type": "curve", "size": 2, "turn": "right"},
+		{"type": "curve", "size": 2, "turn": "right"}, {"type": "curve", "size": 2, "turn": "right"}]})
+	var expected := 4 * ceili(closed.pieces[0].path_length() / TrackPath.SAMPLE)
+	check(closed.closes and closed.points.size() == expected, "closed tracks keep their cyclic sample count without a duplicate endpoint")
 
 
 func _nearest(points: PackedVector3Array, to: Vector3) -> float:

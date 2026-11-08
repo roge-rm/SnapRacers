@@ -347,9 +347,8 @@ func _piece_mesh(index: int) -> ArrayMesh:
 			samples.append(k)
 	if samples.is_empty():
 		return null
-	# Run on into the next piece's first sample so there's no seam. The last
-	# piece of a track that doesn't come back around to the start has nothing
-	# to run on into.
+	# Join the next piece's first sample, or the start of a closed track.
+	# Open tracks already include their final connector.
 	var last_piece := index == track.pieces.size() - 1
 	if not last_piece or track.closes:
 		samples.append((samples[-1] + 1) % track.points.size())

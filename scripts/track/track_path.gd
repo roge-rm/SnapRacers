@@ -236,12 +236,19 @@ func build() -> void:
 	piece_of.clear()
 	piece_starts.clear()
 	grounds.clear()
+	var end := start
+	for piece in pieces:
+		end = advance_pose(end, piece)
+	closes = not pieces.is_empty() and end.origin.distance_to(start.origin) < 0.5 \
+		and (-end.basis.z).dot(-start.basis.z) > 0.999
 	var pose := start
 	for i in pieces.size():
 		var piece := pieces[i]
 		piece_starts.append(pose)
 		var steps := maxi(2, ceili(piece.path_length() / SAMPLE))
-		for k in steps:
+		# Open road includes its final connector; closed road joins the first sample.
+		var count := steps + (1 if i == pieces.size() - 1 and not closes else 0)
+		for k in count:
 			var t := float(k) / steps
 			var t_ahead := minf(t + 0.001, 1.0)
 			var t_behind := maxf(t - 0.001, 0.0)
@@ -254,6 +261,9 @@ func build() -> void:
 			ahead += base_ahead * _rise(piece.bank_at(t_ahead))
 			behind += base_behind * _rise(piece.bank_at(t_behind))
 			var forward := (ahead - behind).normalized()
+			# Flat connectors use their rigid heading at both ends of a piece.
+			if hills <= 0.0 and piece.bank == 0.0 and (k == 0 or k == steps):
+				forward = -(pose.basis * piece.exit().basis).z if k == steps else -pose.basis.z
 			var hill := _hill(pose, piece, t)
 			var base_up := (pose.basis * piece.up(t)).normalized()
 			var flat_right := forward.cross(base_up).normalized()
@@ -273,8 +283,6 @@ func build() -> void:
 			stickies.append(piece.sticky)
 			piece_of.append(i)
 		pose = advance_pose(pose, piece)
-	closes = not pieces.is_empty() and pose.origin.distance_to(start.origin) < 0.5 \
-		and (-pose.basis.z).dot(-start.basis.z) > 0.999
 
 	var total := 0.0
 	for k in points.size():
