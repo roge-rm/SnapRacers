@@ -84,6 +84,8 @@ func _draw() -> void:
 			draw_rect(Rect2(c + Vector2(-12, -7), Vector2(24, 15)), ink, false, w)
 			draw_circle(c + Vector2(0, 0.5), 4.0, ink)
 			draw_rect(Rect2(c + Vector2(-5, -11), Vector2(10, 4)), ink)
+		"play":
+			draw_colored_polygon(PackedVector2Array([c + Vector2(-6, -10), c + Vector2(10, 0), c + Vector2(-6, 10)]), ink)
 		"pause":
 			for x in [-6.0, 6.0]:
 				draw_line(c + Vector2(x, -9), c + Vector2(x, 9), ink, 4.0)

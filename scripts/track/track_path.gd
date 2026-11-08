@@ -572,9 +572,9 @@ func offroad_grip_and_drag(surface: String) -> Array:
 
 
 ## Places where two bits of road that aren't next to each other along the
-## track come too close without one being well above the other. A good track
-## has none. Each is [offset, offset].
-func clashes(clearance := 5.0) -> Array:
+## track come too close without one being well above the other. Ground-level
+## crossings can be allowed for courses built in the editor. Each is [offset, offset].
+func clashes(clearance := 5.0, allow_ground_crossings := false) -> Array:
 	var out := []
 	var step := 4
 	# Road, curbs and a half metre wall on each side. Any closer and the walls
@@ -587,13 +587,21 @@ func clashes(clearance := 5.0) -> Array:
 	# Loops and corkscrews keep their own clearance rules.
 	var spread := PackedFloat64Array()
 	spread.resize(count)
+	var ground_crossing := PackedByteArray()
+	ground_crossing.resize(count)
 	for i in count:
 		var piece := pieces[piece_of[i]]
+		if allow_ground_crossings:
+			ground_crossing[i] = int(piece.type in ["straight", "half_straight", "curve", "arc", "slant"] \
+				and piece.rise == 0.0 and piece.bank == 0.0 and not piece.forced_walls() \
+				and not stickies[i] and ups[i].y >= 0.985 and absf(points[i].y - grounds[i]) < 0.1)
 		if piece.type in ["curve", "arc"] and piece.bank != 0.0:
 			spread[i] = absf(rights[i].y) * (width * 0.5 + KERB + 0.5)
 	for i in range(0, count, step):
 		for j in range(i + skip, count, step):
 			if count - (j - i) < skip:
+				continue
+			if ground_crossing[i] and ground_crossing[j]:
 				continue
 			var a := points[i]
 			var b := points[j]

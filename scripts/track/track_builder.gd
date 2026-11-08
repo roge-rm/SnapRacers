@@ -84,6 +84,7 @@ var terrain: Terrain
 var crossings: Array[LevelCrossing] = []
 ## The course's theme (see Scenery.THEMES), which sets the colours.
 var _theme: Dictionary
+var _kerb_road_hash: Dictionary = {}
 
 # Each shader is made once and kept while the game runs, since the phone
 # compiles a shader the first time it's drawn and a new Shader object counts as
@@ -587,7 +588,7 @@ func _kerb_run(samples: Array, side: int) -> void:
 	for k in samples:
 		var piece := track.pieces[track.piece_of[k]]
 		var blocked: bool = not track.solids[k] or _raised(k) or piece.forced_walls() \
-			or (piece.cut and side == piece.turn)
+			or (piece.cut and side == piece.turn) or _kerb_crosses_road(k, side)
 		if not blocked:
 			usable.append(k)
 	# Split where it's blocked, and drop bits too short to bother with.
@@ -599,6 +600,32 @@ func _kerb_run(samples: Array, side: int) -> void:
 	for run in pieces_of_run:
 		if run.size() >= KERB_SHORTEST:
 			_add_kerb(run, side)
+
+
+## Leave a gap in the curbs where another stretch of road crosses them.
+func _kerb_crosses_road(k: int, side: int) -> bool:
+	var reach := track.width * 0.5 + TrackPath.KERB * 0.5 + TrackPath.SAMPLE
+	if _kerb_road_hash.is_empty():
+		for j in track.points.size():
+			if not track.solids[j] or _raised(j):
+				continue
+			var point := track.points[j]
+			var cell := Vector2i(floori(point.x / reach), floori(point.z / reach))
+			if not _kerb_road_hash.has(cell):
+				_kerb_road_hash[cell] = []
+			_kerb_road_hash[cell].append(j)
+	var at := track.points[k] + track.rights[k] * (track.width + TrackPath.KERB) * 0.5 * side
+	var key := Vector2i(floori(at.x / reach), floori(at.z / reach))
+	for dx in range(-1, 2):
+		for dz in range(-1, 2):
+			for j in _kerb_road_hash.get(key + Vector2i(dx, dz), []):
+				var along := absf(track.distances[j] - track.distances[k])
+				if minf(along, track.length - along) < reach * 2.0:
+					continue
+				var delta: Vector3 = at - track.points[j]
+				if absf(delta.dot(track.ups[j])) < 0.2 and Vector2(delta.x, delta.z).length_squared() < reach * reach:
+					return true
+	return false
 
 
 func _add_kerb(run: Array, side: int) -> void:

@@ -158,7 +158,7 @@ func problems() -> Array[String]:
 		out.append("The road doesn't come back around to the start yet.")
 	elif path.length < SHORTEST:
 		out.append("A lap is only %d m. It needs to be at least %d m." % [roundi(path.length), roundi(SHORTEST)])
-	if not path.clashes().is_empty():
+	if not path.clashes(5.0, true).is_empty():
 		out.append("The road runs into itself.")
 	if _below_ground(path):
 		out.append("The road goes below the ground.")

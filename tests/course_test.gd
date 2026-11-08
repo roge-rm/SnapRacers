@@ -42,13 +42,13 @@ func _initialize() -> void:
 	up.pieces.append_array(down)
 	check(not down.is_empty() and up.track().closes, "from up a ramp too (%d pieces)" % down.size())
 
-	# The road running into itself.
+	# Ground-level road can cross itself.
 	var crossed := CourseDesign.starter()
 	crossed.pieces.append_array([
 		{"type": "curve", "turn": "right", "size": 1}, {"type": "curve", "turn": "right", "size": 1},
 		{"type": "curve", "turn": "right", "size": 1}, {"type": "straight", "length": 2},
 	])
-	check(crossed.problems().has("The road runs into itself."), "running into itself is spotted")
+	check(not crossed.problems().has("The road runs into itself."), "ground-level overlaps are allowed")
 
 	# Moving the start line onto the longest straight keeps the lap the same,
 	# and the landmarks stay in the same place beside the road.

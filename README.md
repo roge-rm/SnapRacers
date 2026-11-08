@@ -211,13 +211,15 @@ Close it up tries to join the road back to the start using pieces from the drawe
 
 Saving puts the start line on the longest straight. Your course then appears in the race lists with its own records.
 
+Ground-level road can touch or cross itself for figure eights. Leave the walls off at the crossing. Raised road still needs enough clearance above the road underneath.
+
 ### Sharing designs
 
 Share a driver, kart, course or whole cup as a code or a file. A course code is about 400 characters, so you can paste it into a message. On a phone you can send either through the share sheet. On a computer you copy the code or save the file, and in a browser you download it.
 
 Courses with angled bends or 16 m straights need an updated game to import. Everyone in an online race needs the updated game. Existing saved designs still work.
 
-Open Creations from the main menu to edit, rename, duplicate, share or delete your saved courses, cups, karts and drivers, including imports and unfinished designs. Duplicate suggests a free name you can change before saving the copy. Import accepts a code or file and opens its tab. Deleting a saved design leaves editor drafts and the courses copied into cups alone. Renaming a course or cup changes which records are shown for it.
+Open Creations from the main menu to edit, rename, duplicate, share or delete your saved courses, cups, karts and drivers, including imports and unfinished designs. Use the play button beside a course to test drive it, then return to the course list. Duplicate suggests a free name you can change before saving the copy. Import accepts a code or file and opens its tab. Deleting a saved design leaves editor drafts and the courses copied into cups alone. Renaming a course or cup changes which records are shown for it.
 
 In the driver screen or garage, use Share in the file menu. To import one, open Load and choose Add a driver or Add a kart, then paste a code or open a file. Courses and cups have Add buttons on their pages. Share a cup from Your cups or while changing it. Cups include their custom courses in race order, and copies aren't added twice. Online the host sends the course or cup to everyone. Keep in the lobby saves it to yours.
 

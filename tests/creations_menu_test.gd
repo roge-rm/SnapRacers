@@ -78,6 +78,37 @@ func _ready() -> void:
 	menu._select(course_path)
 	menu._share()
 	check(menu._status.text != "" and menu.find_children("*", "ShareWindow", true, false).is_empty(), "sharing an unfinished course shows its validation error")
+	var draft_play: IconButton = menu.find_children("*", "IconButton", true, false).filter(func(b): return b.get_meta("test_course", "") == course_path)[0]
+	check(menu.find_children("*", "IconButton", true, false).size() == 2 and draft_play.picture == "play" and draft_play.tooltip_text.contains("Zulu"), "each course has a small labelled test-drive button")
+	draft_play.pressed.emit()
+	check(screen() == menu and menu.selected == course_path and menu._status.text.contains("start"), "test driving an unfinished course shows its validation problem")
+	var playable := CourseDesign.load_file(Tracks.path_of("peach_pit"))
+	playable.name = "Playable"
+	var playable_path := Sharing.path_for(Sharing.COURSE, playable.name)
+	put(playable_path, playable.to_dict())
+	var playable_bytes := FileAccess.get_file_as_string(playable_path)
+	var kept_draft := {"path": "unrelated", "course": CourseDesign.starter().to_dict()}
+	put(TrackEditor.CURRENT, kept_draft)
+	var draft_bytes := FileAccess.get_file_as_string(TrackEditor.CURRENT)
+	menu.refresh()
+	await frames()
+	var play: IconButton = menu.find_children("*", "IconButton", true, false).filter(func(b): return b.get_meta("test_course", "") == playable_path)[0]
+	var row: Button = menu._rows.filter(func(b): return b.get_meta("creation", "") == playable_path)[0]
+	check(play.get_global_rect().position.x >= row.get_global_rect().end.x and play.get_global_rect().end.x <= menu.size.x and play.focus_mode == Control.FOCUS_ALL, "test-drive buttons sit to the right and remain accessible in narrow landscape")
+	play.grab_focus()
+	play.pressed.emit()
+	await frames(8)
+	check(screen() is Race and Game.mode == Game.MODE_PRACTICE and Game.track_path == playable_path and not Game.came_from_editor and Game.race_split() == Game.SOLO, "the course play button starts solo practice directly")
+	if screen() is Race:
+		screen().leave()
+	await frames()
+	menu = screen()
+	check(menu is CreationsMenu and menu.kind == Sharing.COURSE and menu.selected == playable_path and not Game.course_back.is_valid(), "leaving practice returns to the selected saved course and clears its return callback")
+	check(get_viewport().gui_get_focus_owner().get_meta("creation", "") == playable_path, "returning from practice focuses the saved course")
+	check(FileAccess.get_file_as_string(playable_path) == playable_bytes and FileAccess.get_file_as_string(TrackEditor.CURRENT) == draft_bytes, "test driving leaves the saved course and unrelated editor draft untouched")
+	DirAccess.remove_absolute(playable_path)
+	menu.refresh()
+	menu._select(course_path)
 	menu._open_rename()
 	check(menu._rename_name.max_length == 32 and menu._rename_problem.text.contains("records"), "course rename limits names and explains records")
 	menu._rename_name.text = "alpha"
@@ -176,6 +207,7 @@ func _ready() -> void:
 	driver.name = "Imported driver"
 	add._add(Sharing.file_for(Sharing.envelope_for(Sharing.DRIVER, driver.to_dict())))
 	check(menu.kind == Sharing.DRIVER and menu._entries.size() == 1, "global import switches to the imported driver's tab")
+	check(menu.find_children("*", "IconButton", true, false).is_empty(), "other creation types have no course play buttons")
 	var driver_path := menu.selected
 	add.hide()
 	await frames()

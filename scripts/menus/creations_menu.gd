@@ -9,6 +9,7 @@ const TITLES := ["Courses", "Cups", "Karts", "Drivers"]
 var kind := Sharing.COURSE
 var selected := ""
 var _entries: Array[Dictionary] = []
+var _rows: Array[Button] = []
 var _tabs: Array[Button] = []
 var _list_scroll: ScrollContainer
 var _list: VBoxContainer
@@ -72,7 +73,10 @@ func _ready() -> void:
 	_status.theme_type_variation = "DangerLabel"
 	column.add_child(_status)
 	_make_dialogs()
+	var restore := selected != ""
 	refresh()
+	if restore:
+		_restore_focus.call_deferred(true)
 
 
 func focus_key() -> String:
@@ -96,6 +100,7 @@ func refresh() -> void:
 	for child in _list.get_children():
 		_list.remove_child(child)
 		child.queue_free()
+	_rows.clear()
 	_entries = CreationLibrary.entries(kind)
 	if not _entries.any(func(entry: Dictionary) -> bool: return entry.path == selected):
 		selected = "" if _entries.is_empty() else str(_entries[0].path)
@@ -109,7 +114,20 @@ func refresh() -> void:
 		var button := MenuStyle.button(entry.name, _select.bind(entry.path))
 		button.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 		button.set_meta("creation", entry.path)
-		_list.add_child(button)
+		_rows.append(button)
+		if kind == Sharing.COURSE:
+			var row := HBoxContainer.new()
+			row.add_theme_constant_override("separation", 6)
+			_list.add_child(row)
+			button.size_flags_horizontal = SIZE_EXPAND_FILL
+			row.add_child(button)
+			var play := IconButton.new("play", "Test drive %s" % entry.name)
+			play.disabled = not entry.readable
+			play.set_meta("test_course", entry.path)
+			row.add_child(play)
+			ScrollButton.let_scroll(play, _test_drive.bind(entry.path))
+		else:
+			_list.add_child(button)
 	_update_selection()
 
 
@@ -130,9 +148,8 @@ func _update_selection() -> void:
 	var entry := _selected_entry()
 	for action in _actions:
 		action.disabled = entry.is_empty() or (action != _delete_action and not entry.get("readable", false))
-	for child in _list.get_children():
-		if child is Button:
-			MenuStyle.mark(child, child.get_meta("creation", "") == selected)
+	for button in _rows:
+		MenuStyle.mark(button, button.get_meta("creation", "") == selected)
 	if not entry.is_empty() and not entry.readable:
 		_status.text = entry.problem
 
@@ -142,10 +159,10 @@ func _restore_focus(force := false) -> void:
 		return
 	# Refresh needs a layout pass before the scroll range includes new rows.
 	await get_tree().process_frame
-	for child in _list.get_children():
-		if child is Button and child.get_meta("creation", "") == selected:
-			child.grab_focus()
-			_list_scroll.ensure_control_visible(child)
+	for button in _rows:
+		if button.get_meta("creation", "") == selected:
+			button.grab_focus()
+			_list_scroll.ensure_control_visible(button)
 			return
 	_import.grab_focus()
 
@@ -156,6 +173,20 @@ func _edit() -> void:
 		_status.text = found.why
 		return
 	Game.edit_creation(kind, selected)
+
+
+func _test_drive(path: String) -> void:
+	_select(path)
+	var found := CreationLibrary.read(Sharing.COURSE, path)
+	if found.has("why"):
+		_status.text = found.why
+		return
+	var course := CourseDesign.from_dict(found.data)
+	var problems := course.problems()
+	if not problems.is_empty():
+		_status.text = problems[0]
+		return
+	Game.start_course(Game.MODE_PRACTICE, path, false, Game.show_creations.bind(Sharing.COURSE, path))
 
 
 func _share() -> void:

@@ -935,6 +935,11 @@ func leave() -> void:
 		Game.net.leave()
 		Game.show_multiplayer()
 		return
+	if Game.course_back.is_valid():
+		var back := Game.course_back
+		Game.course_back = Callable()
+		back.call()
+		return
 	if Game.came_from_editor:
 		Game.show_track_editor()
 		return

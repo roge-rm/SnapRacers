@@ -64,6 +64,8 @@ var _screen: Node
 ## Whether the race going on was started from the track editor, which is
 ## where leaving it goes back to.
 var came_from_editor := false
+## Where a course returns when it was launched from a saved creation.
+var course_back := Callable()
 ## Whether a race against the AI is just you (a single race), rather than
 ## the two of you from the Multiplayer menu.
 var racing_alone := false
@@ -196,6 +198,7 @@ func trophy_pictures() -> TrophyThumbnails:
 
 
 func show_menu() -> void:
+	course_back = Callable()
 	_creation_back = Callable()
 	creation_path = ""
 	# A switch for timing races on a device. If there's a file called perflog
@@ -344,6 +347,7 @@ func show_kart_picker(go: Callable, back: Callable, ai := false, two := false) -
 func start_grand_prix(which: Variant, two := false) -> void:
 	mode = MODE_GRAND_PRIX
 	came_from_editor = false
+	course_back = Callable()
 	racing_alone = false
 	grand_prix = GrandPrix.new(which)
 	grand_prix.two = two
@@ -384,9 +388,10 @@ func next_grand_prix_race() -> void:
 
 ## Starts a time trial, practice or a race against the AI on this course.
 ## From the track editor, leaving the race goes back there.
-func start_course(for_mode: String, path: String, from_editor := false) -> void:
+func start_course(for_mode: String, path: String, from_editor := false, back := Callable()) -> void:
+	course_back = back
 	came_from_editor = from_editor
-	if from_editor:
+	if from_editor or back.is_valid():
 		racing_alone = true
 	match for_mode:
 		MODE_TIME_TRIAL:
