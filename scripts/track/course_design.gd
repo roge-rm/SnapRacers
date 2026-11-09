@@ -24,6 +24,8 @@ var laps := 3
 var width := TrackPath.WIDTH
 ## How much the ground rises and falls around it (see TrackPath.hills).
 var hills := 0.0
+## Clockwise orientation of course maps, in degrees.
+var map_rotation := 0.0
 ## The weather and time of day it's raced in, unless the player picks (see
 ## Conditions).
 var weather := Conditions.RANDOM
@@ -48,6 +50,7 @@ static func from_dict(data: Dictionary) -> CourseDesign:
 	c.laps = clampi(int(data.get("laps", 3)), 1, 9)
 	c.width = float(data.get("width", TrackPath.WIDTH))
 	c.hills = float(data.get("hills", 0.0))
+	c.map_rotation = fposmod(float(data.get("map_rotation", 0.0)), 360.0)
 	c.weather = str(data.get("weather", Conditions.RANDOM))
 	c.time = str(data.get("time", Conditions.RANDOM))
 	c.fixed_time = bool(data.get("fixed_time", false))
@@ -82,6 +85,8 @@ func to_dict() -> Dictionary:
 		"start": position + [turns],
 		"pieces": pieces.duplicate(true), "landmarks": landmarks.duplicate(true), "hills": hills,
 	}
+	if map_rotation != 0.0:
+		out.map_rotation = map_rotation
 	if weather != Conditions.RANDOM:
 		out.weather = weather
 	if time != Conditions.RANDOM:
@@ -199,7 +204,7 @@ func _units() -> Array:
 	return units
 
 
-## Plain ground-level road length in tiles, including half tiles.
+## Plain ground-level road length in tiles, including half and quarter tiles.
 func _grid_length(unit: Array) -> float:
 	var spec: Dictionary = unit[0]
 	if unit[1] != 0 or spec.has("surface") or spec.has("edges"):
@@ -208,6 +213,8 @@ func _grid_length(unit: Array) -> float:
 		return 1.0
 	if spec.get("type") == "half_straight":
 		return 0.5
+	if spec.get("type") == "quarter_straight":
+		return 0.25
 	return 0.0
 
 

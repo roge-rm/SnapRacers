@@ -17,7 +17,7 @@ const SAVED := "user://pictures/outlines"
 ## Every how many of the course's samples (a metre apart) go in the line.
 const EVERY := 4
 ## Goes up when outlines are worked out differently, so the saved ones go.
-const LOOK := 2
+const LOOK := 3
 
 static var _kept := {}
 static var _tidied := false
@@ -75,12 +75,13 @@ static func of_track(track: TrackPath) -> Dictionary:
 		heights.append(0.0)
 	line.append(line[0])
 	heights.append(heights[0])
-	var box := Rect2(line[0], Vector2.ZERO)
+	var rotation := deg_to_rad(track.map_rotation)
+	var box := Rect2(line[0].rotated(rotation), Vector2.ZERO)
 	for p in line:
-		box = box.expand(p)
+		box = box.expand(p.rotated(rotation))
 	var across := Vector2(track.start.basis.x.x, track.start.basis.x.z)
 	return {
-		"name": track.name, "summary": describe(track),
+		"name": track.name, "summary": describe(track), "map_rotation": track.map_rotation,
 		"line": line, "heights": heights, "loops": loops, "box": box,
 		"start": line[0], "across": across.normalized() if across.length() > 0.01 else Vector2.RIGHT,
 	}
@@ -89,7 +90,7 @@ static func of_track(track: TrackPath) -> Dictionary:
 ## The game's own courses never change while it runs, but yours can.
 static func _key(path: String) -> String:
 	if path.begins_with("user://"):
-		return "%s %d" % [path, FileAccess.get_modified_time(path)]
+		return "%s %s" % [path, FileAccess.get_file_as_string(path).md5_text()]
 	return path
 
 
@@ -107,11 +108,12 @@ static func _read(saved: String) -> Dictionary:
 		loops.append(Vector2(data.loops[i], data.loops[i + 1]))
 	if line.size() < 2:
 		return {}
-	var box := Rect2(line[0], Vector2.ZERO)
+	var rotation := deg_to_rad(float(data.get("map_rotation", 0.0)))
+	var box := Rect2(line[0].rotated(rotation), Vector2.ZERO)
 	for p in line:
-		box = box.expand(p)
+		box = box.expand(p.rotated(rotation))
 	return {
-		"name": str(data.get("name", "")), "summary": str(data.summary),
+		"name": str(data.get("name", "")), "summary": str(data.summary), "map_rotation": float(data.get("map_rotation", 0.0)),
 		"line": line, "heights": PackedFloat32Array(data.heights), "loops": loops, "box": box,
 		"start": line[0], "across": Vector2(data.across[0], data.across[1]),
 	}
@@ -133,7 +135,7 @@ static func _write(saved: String, outline: Dictionary) -> void:
 	if file == null:
 		return
 	file.store_string(JSON.stringify({
-		"name": outline.name, "summary": outline.summary,
+		"name": outline.name, "summary": outline.summary, "map_rotation": outline.get("map_rotation", 0.0),
 		"line": flat.call(Array(outline.line)), "heights": heights, "loops": flat.call(outline.loops),
 		"across": [outline.across.x, outline.across.y],
 	}))
@@ -203,10 +205,10 @@ static func crosses_over(track: TrackPath) -> bool:
 	return false
 
 
-## Fits an outline into a rect, keeping its shape, with north up.
+## Fits an outline into a rect, keeping its shape and chosen map orientation.
 static func fit(outline: Dictionary, rect: Rect2, margin: float) -> Transform2D:
 	var box: Rect2 = outline.box
 	var room := rect.size - Vector2.ONE * margin * 2.0
 	var scale := minf(room.x / maxf(box.size.x, 1.0), room.y / maxf(box.size.y, 1.0))
 	var offset := rect.position + Vector2.ONE * margin + (room - box.size * scale) * 0.5
-	return Transform2D(0.0, Vector2(scale, scale), 0.0, offset - box.position * scale)
+	return Transform2D(0.0, Vector2(scale, scale), 0.0, offset - box.position * scale) * Transform2D(deg_to_rad(float(outline.get("map_rotation", 0.0))), Vector2.ZERO)

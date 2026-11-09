@@ -104,7 +104,7 @@ static func from_spec(spec: Dictionary) -> TrackPiece:
 	piece.type = str(spec.get("type", "straight"))
 	piece.surface = str(spec.get("surface", "asphalt"))
 	match piece.type:
-		"half_straight":
+		"half_straight", "quarter_straight":
 			pass
 		"curve", "arc":
 			piece.turn = -1 if str(spec.get("turn", "right")) == "left" else 1
@@ -242,6 +242,8 @@ func path_length() -> float:
 
 ## The forward run of a straight piece, in metres.
 func run_length() -> float:
+	if type == "quarter_straight":
+		return TILE * 0.25
 	return TILE * 0.5 if type == "half_straight" else tiles * TILE
 
 

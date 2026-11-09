@@ -1,7 +1,7 @@
 class_name ClosureCursor
 extends RefCounted
 
-## x and z are four integer coefficients in 4*(1, sqrt(2), sqrt(3), sqrt(6))
+## x and z are four integer coefficients in 2*(1, sqrt(2), sqrt(3), sqrt(6))
 ## metres, followed by the connector heading and relative height in levels.
 const QUARTER := [[4, 0, 0, 0], [0, 1, 0, 1], [0, 0, 2, 0], [0, 2, 0, 0], [2, 0, 0, 0], [0, -1, 0, 1], [0, 0, 0, 0]]
 
@@ -48,7 +48,7 @@ static func advance(cursor: PackedInt64Array, piece: TrackPiece) -> PackedInt64A
 			return PackedInt64Array()
 		var cj := cosine(j)
 		var sj := sine(j)
-		var k := roundi(radius) * piece.turn
+		var k := 2 * roundi(radius) * piece.turn
 		for i in 4:
 			out[i] += k * (c[i] - cj[i])
 			out[i + 4] += k * (sj[i] - s[i])
@@ -56,17 +56,21 @@ static func advance(cursor: PackedInt64Array, piece: TrackPiece) -> PackedInt64A
 		var across := piece.across
 		if piece.type == "loop":
 			across = piece.side
-		var along_halves := 1 if piece.type == "half_straight" else 2 * piece.tiles
+		var along_quarters := 4 * piece.tiles
+		if piece.type == "half_straight":
+			along_quarters = 2
+		elif piece.type == "quarter_straight":
+			along_quarters = 1
 		for i in 4:
-			out[i] += 2 * across * c[i] - along_halves * s[i]
-			out[i + 4] -= 2 * across * s[i] + along_halves * c[i]
+			out[i] += 4 * across * c[i] - along_quarters * s[i]
+			out[i + 4] -= 4 * across * s[i] + along_quarters * c[i]
 	out[8] = j
 	out[9] += roundi(levels)
 	return out
 
 
 static func pose(cursor: PackedInt64Array) -> Transform3D:
-	return Transform3D(TrackPath.heading_basis(cursor[8]), Vector3(4.0 * value(cursor), cursor[9] * TrackPiece.LEVEL, 4.0 * value(cursor, 4)))
+	return Transform3D(TrackPath.heading_basis(cursor[8]), Vector3(2.0 * value(cursor), cursor[9] * TrackPiece.LEVEL, 2.0 * value(cursor, 4)))
 
 
 static func key(cursor: PackedInt64Array) -> String:

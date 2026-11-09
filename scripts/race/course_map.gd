@@ -51,7 +51,7 @@ var mode := "outline":
 
 ## The course's middle line seen from above, as (x, z), and the box around it.
 var _line := PackedVector2Array()
-var _box := Rect2()
+var _outline := {}
 
 
 func _ready() -> void:
@@ -60,9 +60,8 @@ func _ready() -> void:
 	mode = mode
 	if track == null:
 		return
-	var outline := CourseOutline.of_track(track)
-	_line = outline.line
-	_box = outline.box
+	_outline = CourseOutline.of_track(track)
+	_line = _outline.line
 
 
 func _process(_delta: float) -> void:
@@ -135,12 +134,9 @@ func _draw() -> void:
 		draw_circle(at, 6.0, YOU)
 
 
-## The whole course fitted into the map, north up.
+## The whole course fitted into the map at its saved orientation.
 func _whole() -> Transform2D:
-	var margin := 14.0
-	var fit := (across - margin * 2.0) / maxf(_box.size.x, _box.size.y)
-	var offset := Vector2(margin, margin) + (Vector2.ONE * (across - margin * 2.0) - _box.size * fit) * 0.5
-	return Transform2D(0.0, Vector2(fit, fit), 0.0, offset - _box.position * fit)
+	return CourseOutline.fit(_outline, Rect2(Vector2.ZERO, Vector2.ONE * across), 14.0)
 
 
 ## A close up around your kart, turned so the way it's facing is up.

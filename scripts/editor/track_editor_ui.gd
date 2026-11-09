@@ -26,6 +26,7 @@ signal load_chosen(path: String)
 signal share_pressed
 signal name_changed(text: String)
 signal laps_changed(laps: int)
+signal map_rotation_changed(degrees: float)
 signal theme_chosen(theme: String)
 signal hills_chosen(hills: float)
 signal weather_chosen(weather: String)
@@ -137,6 +138,8 @@ var _name_label: Label
 var _about_label: Label
 var _problems_label: Label
 var _laps_label: Label
+var _map_rotation_label: Label
+var _map_preview: CourseOutlineView
 var _hills: Dictionary = {}
 var _weathers: Dictionary = {}
 var _times: Dictionary = {}
@@ -240,7 +243,7 @@ func is_over_ui(pos: Vector2) -> bool:
 # What the editor tells the panels.
 
 ## The course's name, length and laps on the chip, and its card.
-func show_course(course: CourseDesign, length: float, problems: Array[String], can_close: bool) -> void:
+func show_course(course: CourseDesign, length: float, problems: Array[String], can_close: bool, outline_track: TrackPath = null) -> void:
 	_course_name = course.name
 	var in_sky: bool = Scenery.theme_named(course.theme).get("void", false)
 	if in_sky != _in_sky:
@@ -251,6 +254,8 @@ func show_course(course: CourseDesign, length: float, problems: Array[String], c
 	_name_label.text = course.name
 	_about_label.text = "%d pieces, %d m a lap" % [course.pieces.size(), roundi(length)]
 	_laps_label.text = "%d lap%s" % [course.laps, "" if course.laps == 1 else "s"]
+	_map_rotation_label.text = "Map rotation %d°" % roundi(course.map_rotation)
+	_map_preview.show_track(outline_track if outline_track != null else course.track())
 	for id in _themes:
 		BuilderStyle.show_swatch(_themes[id], Color(Scenery.theme_named(id).ground).darkened(0.35), id == course.theme, UiKit.LEAN)
 	for id in _hills:
@@ -631,6 +636,26 @@ func _build_card() -> void:
 	more.custom_minimum_size = Vector2(40, 40)
 	ScrollButton.let_scroll(more, func() -> void: laps_changed.emit(1))
 	laps.add_child(more)
+
+
+	_map_preview = CourseOutlineView.new()
+	_map_preview.custom_minimum_size = Vector2(180, 110)
+	box.add_child(_map_preview)
+	var rotation := HBoxContainer.new()
+	rotation.add_theme_constant_override("separation", 8)
+	box.add_child(rotation)
+	var left := IconButton.new("undo", "Rotate map left")
+	left.custom_minimum_size = Vector2(40, 40)
+	ScrollButton.let_scroll(left, func() -> void: map_rotation_changed.emit(-15.0))
+	rotation.add_child(left)
+	_map_rotation_label = Label.new()
+	_map_rotation_label.size_flags_horizontal = SIZE_EXPAND_FILL
+	_map_rotation_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	rotation.add_child(_map_rotation_label)
+	var right := IconButton.new("redo", "Rotate map right")
+	right.custom_minimum_size = Vector2(40, 40)
+	ScrollButton.let_scroll(right, func() -> void: map_rotation_changed.emit(15.0))
+	rotation.add_child(right)
 
 	var theme_heading := Label.new()
 	theme_heading.text = "Theme"

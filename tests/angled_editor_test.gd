@@ -86,7 +86,7 @@ func _controls() -> void:
 			if not reached.has(chosen):
 				reached.append(chosen)
 	var catalogue := TrackCatalogue.specs()
-	check(reached.size() == 97 and catalogue.all(func(spec): return reached.has(spec)), "all 97 standard presets are reachable across the drawer")
+	check(reached.size() == 98 and catalogue.all(func(spec): return reached.has(spec)), "all 98 standard presets are reachable across the drawer")
 	var screen := Rect2(Vector2.ZERO, Vector2(viewport.size))
 	var fit := true
 	var clear := true
@@ -104,7 +104,7 @@ func _controls() -> void:
 		await frames(3)
 		var last: Control = ui._tiles.get_child(ui._tiles.get_child_count() - 1)
 		clear = clear and scroll.get_global_rect().encloses(last.get_global_rect()) and last.get_global_rect().end.y < ui._bottom.get_global_rect().position.y
-	check(fit, "all 97 captions fit their 104 px tiles at 800 by 450")
+	check(fit, "all 98 captions fit their 104 px tiles at 800 by 450")
 	check(clear, "the final row in every road tab scrolls fully above the race buttons on narrow screens")
 	check(screen.encloses(ui._drawer.get_global_rect()) and ui._drawer.find_children("*", "OptionButton", true, false).all(func(choice): return not choice.visible), "the parts drawer fits an 800 by 450 view without road dropdowns")
 	check(ui._rail.size() == 7 and ui._rail.all(func(tab): return screen.encloses(tab.get_global_rect())), "all seven rail tabs fit the narrow landscape screen")

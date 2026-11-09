@@ -203,13 +203,15 @@ Walls keep you from falling off, and tire stacks stop you cutting between nearby
 
 Tap pieces onto the end of the road. There are straights, bends, S bends, humps, ramps, jumps, loops, wall rides, banked bends and shortcuts. Tap a piece to remove it, add pieces after it, change its surface or add and remove walls.
 
-The drawer has 97 parts under Straights, Bends, Offsets, Hills, Banked and Specials, with Landmarks in its own tab. Straights run from 16 to 128 m and follow the direction of the road. Bends has 30°, 45°, 60° and 90° parts, each from tight to extra wide, with left and right beside each other. Offsets show how far they go along and across. Hills has 3 and 6 m ramps, 45° and 90° climbs and drops, then humps. Banked has 22° bends and 80° wall rides. Specials has jumps, crossings, loops, corkscrews and shortcuts.
+The drawer has 98 parts under Straights, Bends, Offsets, Hills, Banked and Specials, with Landmarks in its own tab. Straights run from 8 to 128 m and follow the direction of the road. Bends has 30°, 45°, 60° and 90° parts, each from tight to extra wide, with left and right beside each other. Offsets show how far they go along and across. Hills has 3 and 6 m ramps, 45° and 90° climbs and drops, then humps. Banked has 22° bends and 80° wall rides. Specials has jumps, crossings, loops, corkscrews and shortcuts.
 
 Part captions show their size. Hill side views share a 6 m height scale, and loops and corkscrews show their full height in their captions. Pick a placed part to see its name and dimensions. The controller shoulder buttons change tabs and remember your last part in each one.
 
 Close it up tries to join the road back to the start using pieces from the drawer. If it can't, the layout stays as it was. Adjust the final bends or straights and try again. The card in the corner says what's stopping the course being raced. Pick the ground, colours, trees and hills, then place landmarks like windmills, castles and lighthouses.
 
 Saving puts the start line on the longest straight. Your course then appears in the race lists with its own records.
+
+Set Map rotation on the course card to turn its icon and race map in 15° steps. The road and landmarks stay in place.
 
 Ground-level road can touch or cross itself for figure eights. Leave the walls off at the crossing. Raised road still needs enough clearance above the road underneath.
 

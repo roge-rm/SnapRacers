@@ -23,7 +23,7 @@ const MOST_CONNECTORS := 4096
 const MOST_CONNECTOR_PAIRS := 50000
 const MOST_NAME := 120
 const MOST_ABOUT := 2000
-const PIECE_TYPES := ["straight", "half_straight", "curve", "arc", "slant", "crest", "ramp", "jump", "loop", "corkscrew", "crossing"]
+const PIECE_TYPES := ["straight", "half_straight", "quarter_straight", "curve", "arc", "slant", "crest", "ramp", "jump", "loop", "corkscrew", "crossing"]
 const LIMITS := {"length": 12.0, "size": 4.0, "rise": 8.0, "across": 6.0, "height": 10.0, "bank": 90.0}
 
 static var _game_courses := {}
@@ -229,6 +229,8 @@ static func _read_course(data: Dictionary, saved := false) -> Dictionary:
 	for key in ["width", "hills", "grid", "laps"]:
 		if data.has(key) and not _number(data[key]):
 			return {"why": "That course has an invalid size."}
+	if data.has("map_rotation") and (not _number(data.map_rotation) or float(data.map_rotation) < 0.0 or float(data.map_rotation) >= 360.0):
+		return {"why": "That course has an invalid map rotation."}
 	if data.has("grid") and not data.grid in [TrackPiece.OLD_TILE, TrackPiece.TILE]:
 		return {"why": "That course has an invalid grid."}
 	if data.has("laps") and not _integer(data.laps, 1, 9):
@@ -270,7 +272,7 @@ static func _start(value: Variant) -> bool:
 static func _piece(spec: Variant) -> bool:
 	if not spec is Dictionary or not spec.get("type", "straight") in PIECE_TYPES:
 		return false
-	if spec.get("type") == "half_straight":
+	if spec.get("type") in ["half_straight", "quarter_straight"]:
 		for key in spec:
 			if key not in ["type", "surface", "edges"]:
 				return false
@@ -325,6 +327,8 @@ static func _coordinates(value: Variant, bounds: Array, integral: bool) -> bool:
 ## Checks a design. Raw payloads must pass validate_course before parsing.
 static func buildable(course: CourseDesign, saved := false) -> bool:
 	if not saved and (course.pieces.size() > MOST_PIECES or course.landmarks.size() > MOST_LANDMARKS):
+		return false
+	if not is_finite(course.map_rotation) or course.map_rotation < 0.0 or course.map_rotation >= 360.0:
 		return false
 	if not is_finite(course.width) or not is_finite(course.hills) or course.width < 4.0 or course.width > 30.0 or course.hills < 0.0 or course.hills > 100.0:
 		return false

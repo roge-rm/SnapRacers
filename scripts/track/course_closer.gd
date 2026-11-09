@@ -60,7 +60,7 @@ func find(most: int, budget: int) -> Array:
 	if heading < 0 or not course.start.origin.is_finite():
 		return []
 	# Half straights use exact endpoints and sampled road occupancy.
-	var exact := heading % 6 != 0 or course.pieces.any(func(spec): return spec.get("type") == "half_straight" or (spec.get("type") == "arc" and spec.get("angle", 90) != 90))
+	var exact := heading % 6 != 0 or course.pieces.any(func(spec): return spec.get("type") in ["half_straight", "quarter_straight"] or (spec.get("type") == "arc" and spec.get("angle", 90) != 90))
 	if not exact:
 		var result := _find_legacy(most, mini(MAX_LEGACY_EXPANSIONS, maxi(1, budget / 2)))
 		expanded_count = _legacy_expanded

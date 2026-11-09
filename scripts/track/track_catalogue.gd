@@ -4,9 +4,9 @@ extends RefCounted
 ## Rows hold up to two [label, spec] tiles. Mirrored pieces share a row.
 const CATEGORIES := [
 	["Straights", "straights", [
-		[["16 m straight\nHalf tile", {"type": "half_straight"}], ["32 m straight", {"type": "straight", "length": 1}]],
-		[["64 m straight", {"type": "straight", "length": 2}], ["96 m straight", {"type": "straight", "length": 3}]],
-		[["128 m straight", {"type": "straight", "length": 4}]],
+		[["8 m straight\nQuarter tile", {"type": "quarter_straight"}], ["16 m straight\nHalf tile", {"type": "half_straight"}]],
+		[["32 m straight", {"type": "straight", "length": 1}], ["64 m straight", {"type": "straight", "length": 2}]],
+		[["96 m straight", {"type": "straight", "length": 3}], ["128 m straight", {"type": "straight", "length": 4}]],
 	]],
 	["Bends", "bends", [
 		[["30° tight left", {"type": "arc", "turn": "left", "size": 1, "angle": 30}], ["30° tight right", {"type": "arc", "turn": "right", "size": 1, "angle": 30}]],
@@ -165,6 +165,7 @@ const _SPEC_ORDER := [
 	"type=arc|angle=45|turn=right|size=3|rise=1",
 	"type=arc|angle=45|turn=left|size=3|rise=-1",
 	"type=arc|angle=45|turn=right|size=3|rise=-1",
+	"type=quarter_straight",
 ]
 
 const BEND_ANGLES := [30, 45, 60, 90]
@@ -207,7 +208,7 @@ static func closer_choices() -> Array:
 	var out := []
 	for spec in specs():
 		var kind: String = spec.type
-		if kind in ["straight", "half_straight"] or (kind in ["curve", "arc", "slant"] and not spec.has("rise") and not spec.has("bank") and not spec.has("cut")) or (kind == "ramp" and spec.rise < 0):
+		if kind in ["straight", "half_straight", "quarter_straight"] or (kind in ["curve", "arc", "slant"] and not spec.has("rise") and not spec.has("bank") and not spec.has("cut")) or (kind == "ramp" and spec.rise < 0):
 			out.append(spec)
 	return out
 
@@ -243,6 +244,8 @@ static func piece_name(spec: Dictionary) -> String:
 			return "%s offset" % turn.capitalize()
 		"crest":
 			return "Hump"
+		"quarter_straight":
+			return "Quarter straight"
 		"half_straight":
 			return "Half straight"
 		"loop", "corkscrew":
@@ -265,6 +268,8 @@ static func dimensions(spec: Dictionary) -> String:
 				parts.append("bank %s°" % _metres(rad_to_deg(piece.bank)))
 		"slant":
 			parts.append("%s m along · %s m across" % [_metres(length), _metres(absi(piece.across) * TrackPiece.TILE)])
+		"quarter_straight":
+			parts.append("8 m long")
 		"half_straight":
 			parts.append("16 m long")
 		"jump":

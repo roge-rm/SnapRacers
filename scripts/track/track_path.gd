@@ -66,6 +66,8 @@ var width := WIDTH
 ## metres. The road follows it, over gentle hills, and the pieces' own climbs
 ## (ramps, bridges, crests) go on top. 0 is flat.
 var hills := 0.0
+## Clockwise orientation of course maps, in degrees.
+var map_rotation := 0.0
 ## The weather and time of day it's raced in, unless the player picks (see
 ## Conditions). RANDOM leaves them to chance.
 var weather := Conditions.RANDOM
@@ -121,6 +123,7 @@ static func from_dict(data: Dictionary) -> TrackPath:
 	track.laps = int(data.get("laps", 3))
 	track.width = float(data.get("width", WIDTH))
 	track.hills = float(data.get("hills", 0.0))
+	track.map_rotation = fposmod(float(data.get("map_rotation", 0.0)), 360.0)
 	track.weather = str(data.get("weather", Conditions.RANDOM))
 	track.time = str(data.get("time", Conditions.RANDOM))
 	track.fixed_time = bool(data.get("fixed_time", false))
@@ -181,6 +184,8 @@ func to_dict() -> Dictionary:
 	var out := { "name": name, "theme": theme, "about": about, "laps": laps, "width": width, "grid": TrackPiece.TILE, "pieces": specs }
 	if hills > 0.0:
 		out.hills = hills
+	if map_rotation != 0.0:
+		out.map_rotation = map_rotation
 	if weather != Conditions.RANDOM:
 		out.weather = weather
 	if time != Conditions.RANDOM:
@@ -592,7 +597,7 @@ func clashes(clearance := 5.0, allow_ground_crossings := false) -> Array:
 	for i in count:
 		var piece := pieces[piece_of[i]]
 		if allow_ground_crossings:
-			ground_crossing[i] = int(piece.type in ["straight", "half_straight", "curve", "arc", "slant"] \
+			ground_crossing[i] = int(piece.type in ["straight", "half_straight", "quarter_straight", "curve", "arc", "slant"] \
 				and piece.rise == 0.0 and piece.bank == 0.0 and not piece.forced_walls() \
 				and not stickies[i] and ups[i].y >= 0.985 and absf(points[i].y - grounds[i]) < 0.1)
 		if piece.type in ["curve", "arc"] and piece.bank != 0.0:

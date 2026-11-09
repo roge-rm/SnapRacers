@@ -164,6 +164,7 @@ func _ready() -> void:
 		_remember()
 		course.laps = clampi(course.laps + by, 1, 9)
 		_refresh())
+	ui.map_rotation_changed.connect(rotate_map)
 	ui.theme_chosen.connect(func(id: String) -> void:
 		_remember()
 		course.theme = id
@@ -571,6 +572,12 @@ func _rebuild_landmarks() -> void:
 
 # Laying the course out.
 
+func rotate_map(by: float) -> void:
+	_remember()
+	course.map_rotation = fposmod(course.map_rotation + by, 360.0)
+	_refresh()
+
+
 func _refresh(immediate := false) -> void:
 	track = course.track()
 	_lay_out()
@@ -584,7 +591,7 @@ func _refresh(immediate := false) -> void:
 		SkyAndSun.add_to(_sky, 400.0, Color.TRANSPARENT, look.get("sky", []))
 		_ground.material_override = TrackBuilder.ground_material(look)
 	var problems := course.problems()
-	ui.show_course(course, track.length, problems, not track.closes and not course.pieces.is_empty())
+	ui.show_course(course, track.length, problems, not track.closes and not course.pieces.is_empty(), track)
 	ui.set_undo_state(not _undo.is_empty(), not _redo.is_empty())
 	_update_hint()
 	_keep()

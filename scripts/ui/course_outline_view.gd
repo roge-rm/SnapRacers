@@ -90,8 +90,16 @@ func _ready() -> void:
 
 func _changed() -> void:
 	queue_redraw()
-	if path != "":
+	if path != "" or not _outline.is_empty():
 		set_process(true)
+
+
+## Updates the live preview of a course being edited.
+func show_track(track: TrackPath) -> void:
+	path = ""
+	_outline = CourseOutline.of_track(track)
+	_course_key = var_to_str(_outline).md5_text()
+	_changed()
 
 
 func _set_outline() -> void:
@@ -100,7 +108,7 @@ func _set_outline() -> void:
 
 
 func _process(_delta: float) -> void:
-	if path == "":
+	if path == "" and _outline.is_empty():
 		set_process(false)
 		return
 	if _outline.is_empty():
