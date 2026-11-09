@@ -836,7 +836,7 @@ func _dimension_control(parent: VBoxContainer, title: String, key: String, minim
 	label.theme_type_variation = "SmallLabel"
 	label.custom_minimum_size.x = 80
 	row.add_child(label)
-	var less := BuilderStyle.dark_pill("−", func() -> void: pass)
+	var less := BuilderStyle.pill("−", Color(BuilderStyle.SCRIM, 0.7), UiKit.WHITE, func() -> void: pass, 40.0)
 	less.custom_minimum_size.x = 40
 	less.tooltip_text = "Reduce %s by 0.25 m" % title.to_lower()
 	row.add_child(less)
@@ -847,11 +847,12 @@ func _dimension_control(parent: VBoxContainer, title: String, key: String, minim
 	number.suffix = " m"
 	number.custom_minimum_size.x = 116
 	number.size_flags_horizontal = SIZE_EXPAND_FILL
+	number.get_line_edit().add_theme_font_size_override("font_size", UiKit.SMALL)
 	number.update_on_text_changed = false
 	number.value_changed.connect(func(value: float) -> void: dimension_changed.emit(key, value))
 	row.add_child(number)
 	less.pressed.connect(func() -> void: number.value = maxf(number.min_value, number.value - 0.25))
-	var more := BuilderStyle.dark_pill("+", func() -> void: number.value = minf(number.max_value, number.value + 0.25))
+	var more := BuilderStyle.pill("+", Color(BuilderStyle.SCRIM, 0.7), UiKit.WHITE, func() -> void: number.value = minf(number.max_value, number.value + 0.25), 40.0)
 	more.custom_minimum_size.x = 40
 	more.tooltip_text = "Increase %s by 0.25 m" % title.to_lower()
 	row.add_child(more)
