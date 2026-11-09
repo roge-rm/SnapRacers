@@ -278,11 +278,20 @@ func _card(key: String, design: KartDesign, ranges: Dictionary) -> Button:
 	spacer.size_flags_vertical = SIZE_EXPAND_FILL
 	spacer.mouse_filter = MOUSE_FILTER_IGNORE
 	box.add_child(spacer)
+	# Keep the bars inside the card's slanted lower edge.
+	var inset := MarginContainer.new()
+	inset.add_theme_constant_override("margin_right", ceili(UiKit.CARD_LEAN * 200.0))
+	inset.mouse_filter = MOUSE_FILTER_IGNORE
+	box.add_child(inset)
+	var meters := VBoxContainer.new()
+	meters.add_theme_constant_override("separation", 4)
+	meters.mouse_filter = MOUSE_FILTER_IGNORE
+	inset.add_child(meters)
 	var measured := _measure(design)
 	for bar in BARS:
 		var row := HBoxContainer.new()
 		row.mouse_filter = MOUSE_FILTER_IGNORE
-		box.add_child(row)
+		meters.add_child(row)
 		var label := Label.new()
 		label.text = bar[0]
 		label.custom_minimum_size.x = 90.0

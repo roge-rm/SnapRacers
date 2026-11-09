@@ -664,11 +664,11 @@ func _build_results() -> void:
 	box.add_child(scroll)
 	_results_list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	scroll.add_child(_results_list)
-	var row := GridContainer.new()
-	row.columns = 2
-	row.add_theme_constant_override("h_separation", 8)
-	row.add_theme_constant_override("v_separation", 6)
-	box.add_child(row)
+	var actions := VBoxContainer.new()
+	actions.add_theme_constant_override("separation", 6)
+	box.add_child(actions)
+	var secondary := VBoxContainer.new()
+	secondary.add_theme_constant_override("separation", 6)
 	var choices := [["Race again", again_pressed], ["Garage", garage_pressed], ["Menu", menu_pressed]]
 	match race.mode:
 		Game.MODE_GRAND_PRIX:
@@ -694,13 +694,20 @@ func _build_results() -> void:
 		button.custom_minimum_size = Vector2(0, 48)
 		button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		button.focus_mode = FOCUS_ALL
-		if row.get_child_count() == 0:
+		if actions.get_child_count() == 0:
 			button.theme_type_variation = "MainButton"
 		var signal_to_send: Signal = pair[1]
 		button.pressed.connect(func() -> void: signal_to_send.emit())
-		row.add_child(button)
+		if actions.get_child_count() == 0:
+			actions.add_child(button)
+		else:
+			if secondary.get_parent() == null:
+				actions.add_child(secondary)
+			secondary.add_child(button)
 		if signal_to_send == next_pressed:
 			_next = button
+	if secondary.get_parent() == null:
+		secondary.free()
 	if _next != null and race.humans.size() > 1:
 		_waiting = Label.new()
 		_waiting.theme_type_variation = "NoteLabel"

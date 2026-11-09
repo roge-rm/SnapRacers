@@ -42,8 +42,8 @@ func _ready() -> void:
 
 	# Clicking pieces onto the end.
 	var tiles := editor.ui._tiles.get_children()
-	check(tiles.size() == 5, "the drawer starts on straights in length order (%d)" % tiles.size())
-	tiles[2].pressed.emit()
+	check(tiles.size() == 6, "the drawer starts on straights in length order (%d)" % tiles.size())
+	tiles[3].pressed.emit()
 	check(editor.course.pieces.size() == 2 and editor.course.pieces[1].length == 2, "tapping a piece clicks it onto the end")
 	editor.ui._show_category(1)
 	await frames(1)
@@ -167,7 +167,7 @@ func _controller(editor: TrackEditor) -> void:
 	check(not pad._button(JOY_BUTTON_DPAD_DOWN) and get_viewport().gui_get_focus_owner() == editor.ui._landmark_filter, "the d-pad leaves the landmark filter's navigation to its control")
 	pad._button(JOY_BUTTON_RIGHT_SHOULDER)
 	await frames(2)
-	check(editor.ui._category == 0 and get_viewport().gui_get_focus_owner() == editor.ui._tiles.get_child(2), "RB wraps from Landmarks onto the remembered straight tile")
+	check(editor.ui._category == 0 and get_viewport().gui_get_focus_owner() == editor.ui._tiles.get_child(3), "RB wraps from Landmarks onto the remembered straight tile")
 	editor.ui._show_category(tab)
 	editor.ui.focus_palette()
 	var pieces := editor.course.pieces.size()

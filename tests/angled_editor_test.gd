@@ -191,7 +191,7 @@ func _placement() -> void:
 	var end := editor._insert_pose()
 	check(TrackPath.heading_of(end.basis) == 23, "45 right then 30 left leaves a 15-degree clockwise insertion heading")
 	editor.ui._show_category(0)
-	editor.ui._tiles.get_child(1).pressed.emit()
+	editor.ui._tiles.get_child(2).pressed.emit()
 	var pose: Transform3D = editor.track.piece_starts[2]
 	var exit := editor._insert_pose()
 	var travel := exit.origin - pose.origin

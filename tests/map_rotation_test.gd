@@ -40,7 +40,7 @@ func _run() -> void:
 		check(not read.has("why") and CourseDesign.from_dict(read.get("data", {})).map_rotation == 90.0, "map orientation survives code or file sharing")
 	var cup := CupDesign.new()
 	cup.name = "Rotated map cup"
-	cup.races = [{"from": "", "course": course.to_dict()}]
+	cup.races = [{"from": "", "course": course.to_dict()}, {"from": "", "course": course.to_dict()}]
 	var shared_cup := Sharing.read(Sharing.code_for(cup.to_dict()))
 	check(not shared_cup.has("why") and shared_cup.data.races[0].course.map_rotation == 90.0, "courses embedded in shared cups retain their map orientation")
 	var invalid := course.to_dict()
