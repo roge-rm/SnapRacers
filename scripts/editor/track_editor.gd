@@ -71,6 +71,9 @@ var _closing := -1
 var _closer_result: Array = []
 var _closer_source: Dictionary = {}
 var _ghost_look: StandardMaterial3D
+var _join_spec: Dictionary = {}
+var _join_source: Dictionary = {}
+var _join_preview: MeshInstance3D
 
 var _fingers := {}
 var _press_at := Vector2.ZERO
@@ -182,6 +185,10 @@ func _ready() -> void:
 		course.time = time
 		_refresh())
 	ui.close_up_pressed.connect(close_up)
+	ui.join_ends_pressed.connect(join_ends)
+	ui.join_accepted.connect(accept_join)
+	ui.join_cancelled.connect(cancel_join)
+	ui.dimension_changed.connect(set_dimension)
 	ui.delete_pressed.connect(delete_selected)
 	ui.add_after_pressed.connect(func() -> void:
 		insert_after = selected
@@ -210,6 +217,7 @@ func own_controls() -> bool:
 
 
 func go_back() -> void:
+	cancel_join()
 	if back.is_valid():
 		back.call()
 	else:
@@ -255,9 +263,102 @@ func _set_on_selected(key: String, value: String, plain: String) -> void:
 	_refresh()
 
 
+func set_dimension(key: String, value: float) -> void:
+	if selected < 0 or selected >= course.pieces.size() or key not in ["metres", "shift"] or not is_finite(value):
+		return
+	var spec := TrackPiece.adjustable_spec(course.pieces[selected])
+	if spec.is_empty() or (key == "shift" and spec.type != "adjustable_offset"):
+		return
+	var minimum := 2.0 if spec.type == "adjustable_offset" else 0.25
+	var valid := value >= minimum and value <= 512.0 if key == "metres" else absf(value) <= 256.0
+	if not valid or is_equal_approx(float(spec.get(key, 0.0)), value):
+		ui.show_selection(selected, course.pieces[selected])
+		return
+	spec[key] = value
+	if not TrackPiece.from_spec(spec).safe_dimensions(course.width):
+		ui.toast("That offset is too tight. Increase its length or reduce Sideways.")
+		ui.show_selection(selected, course.pieces[selected])
+		return
+	_remember()
+	course.pieces[selected] = spec
+	ui.show_selection(selected, spec)
+	_refresh()
+
+
+func join_ends() -> void:
+	cancel_join(false)
+	if _closing != -1:
+		ui.toast("Wait for Close it up to finish.")
+		return
+	if course.pieces.is_empty() or track.closes:
+		return
+	var end := course.start
+	for spec in course.pieces:
+		end = TrackPath.advance_pose(end, TrackPiece.from_spec(spec))
+	if course.hills != 0.0 or absf(course.start.origin.y) > 0.001 or absf(end.origin.y) > 0.001:
+		ui.toast("Join ends needs two ground-level ends on flat ground.")
+		return
+	var spec := TrackPiece.connector_spec(end.affine_inverse() * course.start, course.width)
+	if spec.is_empty():
+		ui.toast("These ends need more room for a smooth join.")
+		return
+	var proposed := course.duplicate_design()
+	proposed.pieces.append(spec)
+	var joined := proposed.track()
+	if not joined.closes or not joined.clashes(5.0, true).is_empty():
+		ui.toast("The proposed join runs into raised road or walls.")
+		return
+	_drop_holding()
+	_select(-1)
+	_join_spec = spec
+	_join_source = course.to_dict().duplicate(true)
+	_join_preview = MeshInstance3D.new()
+	_join_preview.mesh = TrackBuilder.piece_mesh(spec, course.width, course.theme)
+	var look := StandardMaterial3D.new()
+	look.albedo_color = Color(0.25, 0.85, 1.0, 0.65)
+	look.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	look.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	look.no_depth_test = true
+	_join_preview.material_override = look
+	_join_preview.transform = end
+	add_child(_join_preview)
+	ui.show_join_preview(true)
+	_focus_goal = end.origin.lerp(course.start.origin, 0.5)
+	_following = true
+
+
+func cancel_join(restore_controls := true) -> void:
+	var active := not _join_spec.is_empty()
+	_join_spec = {}
+	_join_source = {}
+	if is_instance_valid(_join_preview):
+		_join_preview.queue_free()
+	_join_preview = null
+	if is_instance_valid(ui):
+		ui.show_join_preview(false, active and restore_controls)
+
+
+func accept_join() -> void:
+	if _join_spec.is_empty():
+		return
+	if course.to_dict() != _join_source:
+		cancel_join()
+		ui.toast("The layout changed. Try Join ends again.")
+		return
+	var spec := _join_spec.duplicate(true)
+	cancel_join(false)
+	_remember()
+	course.pieces.append(spec)
+	insert_after = -1
+	_select(-1)
+	_refresh()
+	Sounds.play("fx/snap")
+
+
 ## Looks for pieces to join the end of the road back to the start. It can
 ## take a moment on a phone, so it works on another thread.
 func close_up() -> void:
+	cancel_join()
 	if _closing != -1:
 		return
 	ui.set_hint("Working out how to close it up...")
@@ -579,6 +680,7 @@ func rotate_map(by: float) -> void:
 
 
 func _refresh(immediate := false) -> void:
+	cancel_join(false)
 	track = course.track()
 	_lay_out()
 	_rebuild_landmarks()
@@ -614,7 +716,8 @@ func _lay_out() -> void:
 	for i in track.pieces.size():
 		var spec: Dictionary = course.pieces[i]
 		var key := "%s %s %s" % [JSON.stringify(spec), course.width, course.theme]
-		if not _meshes.has(key):
+		var adjustable: bool = spec.get("type") in ["adjustable_straight", "adjustable_offset", "connector"]
+		if not adjustable and not _meshes.has(key):
 			var mesh := TrackBuilder.piece_mesh(spec, course.width, course.theme)
 			_meshes[key] = [mesh, mesh.create_trimesh_shape() if mesh != null else null]
 		var body: StaticBody3D
@@ -629,8 +732,16 @@ func _lay_out() -> void:
 			body.add_child(CollisionShape3D.new())
 			_quick.add_child(body)
 		body.set_meta("piece", i)
-		(body.get_child(0) as MeshInstance3D).mesh = _meshes[key][0]
-		(body.get_child(1) as CollisionShape3D).shape = _meshes[key][1]
+		if adjustable:
+			# Metric edits keep only the current mesh, rather than every prior value.
+			if body.get_meta("mesh_key", "") != key:
+				var mesh := TrackBuilder.piece_mesh(spec, course.width, course.theme)
+				(body.get_child(0) as MeshInstance3D).mesh = mesh
+				(body.get_child(1) as CollisionShape3D).shape = mesh.create_trimesh_shape() if mesh != null else null
+		else:
+			(body.get_child(0) as MeshInstance3D).mesh = _meshes[key][0]
+			(body.get_child(1) as CollisionShape3D).shape = _meshes[key][1]
+		body.set_meta("mesh_key", key)
 		body.transform = track.piece_starts[i]
 	for i in range(track.pieces.size(), nodes.size()):
 		nodes[i].queue_free()

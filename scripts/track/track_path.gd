@@ -266,6 +266,11 @@ func build() -> void:
 			ahead += base_ahead * _rise(piece.bank_at(t_ahead))
 			behind += base_behind * _rise(piece.bank_at(t_behind))
 			var forward := (ahead - behind).normalized()
+			if piece.type in TrackPiece.ADJUSTABLE_TYPES:
+				# Short pieces keep their tangent when far from the world origin.
+				var local_delta := pose.basis * (piece.point(t_ahead) - piece.point(t_behind))
+				var ground_delta := _hill(pose, piece, t_ahead) - _hill(pose, piece, t_behind)
+				forward = (local_delta + Vector3.UP * ground_delta).normalized()
 			# Flat connectors use their rigid heading at both ends of a piece.
 			if hills <= 0.0 and piece.bank == 0.0 and (k == 0 or k == steps):
 				forward = -(pose.basis * piece.exit().basis).z if k == steps else -pose.basis.z
@@ -413,6 +418,16 @@ func frame_at(offset: float) -> Transform3D:
 	return Transform3D(Basis(right, right.cross(forward), -forward), point_at(offset))
 
 
+## Include the samples just outside a distance window, even on short pieces.
+func _sample_window(hint: float, window: float) -> Vector2i:
+	var count := points.size()
+	if window * 2.0 >= length:
+		return Vector2i(0, count)
+	var first := _index_before(hint - window)
+	var last := _index_before(hint + window)
+	return Vector2i(first, mini(count, posmod(last - first, count) + 2))
+
+
 ## How far along the track a position is. With a hint (where it was a moment
 ## ago) it only looks nearby, so a kart on a bridge isn't mistaken for one on
 ## the road underneath, or the other way around.
@@ -421,8 +436,9 @@ func offset_of(position: Vector3, hint := -1.0, window := 60.0) -> float:
 	var first := 0
 	var steps := count
 	if hint >= 0.0:
-		first = _index_before(hint - window)
-		steps = mini(count, ceili(window * 2.0 / SAMPLE) + 2)
+		var bounds := _sample_window(hint, window)
+		first = bounds.x
+		steps = bounds.y
 	var best := first
 	var best_distance := INF
 	for n in steps:
@@ -443,8 +459,9 @@ func offset_near(position: Vector3, hint: float, near: float, far: float) -> flo
 	if hint < 0.0:
 		return offset_of(position)
 	var count := points.size()
-	var first := _index_before(hint - near)
-	var steps := mini(count, ceili(near * 2.0 / SAMPLE) + 2)
+	var bounds := _sample_window(hint, near)
+	var first := bounds.x
+	var steps := bounds.y
 	var best := 0
 	var best_distance := INF
 	for n in steps:
@@ -586,7 +603,7 @@ func clashes(clearance := 5.0, allow_ground_crossings := false) -> Array:
 	# would overlap. A loop's way in and way out sit 1 m apart wall to wall,
 	# which is fine.
 	var reach := width + 2.0 * KERB + 1.0
-	var skip := int(ceil(reach * 2.0 / SAMPLE))
+	var skip := reach * 2.0
 	var count := points.size()
 	# Banked road needs headroom across its rolled road, kerbs and walls.
 	# Loops and corkscrews keep their own clearance rules.
@@ -597,14 +614,15 @@ func clashes(clearance := 5.0, allow_ground_crossings := false) -> Array:
 	for i in count:
 		var piece := pieces[piece_of[i]]
 		if allow_ground_crossings:
-			ground_crossing[i] = int(piece.type in ["straight", "half_straight", "quarter_straight", "curve", "arc", "slant"] \
+			ground_crossing[i] = int(piece.type in ["straight", "half_straight", "quarter_straight", "adjustable_straight", "adjustable_offset", "connector", "curve", "arc", "slant"] \
 				and piece.rise == 0.0 and piece.bank == 0.0 and not piece.forced_walls() \
 				and not stickies[i] and ups[i].y >= 0.985 and absf(points[i].y - grounds[i]) < 0.1)
 		if piece.type in ["curve", "arc"] and piece.bank != 0.0:
 			spread[i] = absf(rights[i].y) * (width * 0.5 + KERB + 0.5)
 	for i in range(0, count, step):
-		for j in range(i + skip, count, step):
-			if count - (j - i) < skip:
+		for j in range(i + step, count, step):
+			var along := distances[j] - distances[i]
+			if along < skip or length - along < skip:
 				continue
 			if ground_crossing[i] and ground_crossing[j]:
 				continue

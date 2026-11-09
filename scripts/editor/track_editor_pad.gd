@@ -45,6 +45,12 @@ func _input(event: InputEvent) -> void:
 
 
 func _button(button: JoyButton) -> bool:
+	if not editor._join_spec.is_empty():
+		if button == JOY_BUTTON_B:
+			editor.cancel_join()
+			return true
+		if button == JOY_BUTTON_A or button in [JOY_BUTTON_DPAD_LEFT, JOY_BUTTON_DPAD_RIGHT, JOY_BUTTON_DPAD_UP, JOY_BUTTON_DPAD_DOWN]:
+			return false
 	if editor.ui.palette_popup_open() or editor.ui._close_failure.visible:
 		return false
 	var holding := not editor._holding.is_empty()

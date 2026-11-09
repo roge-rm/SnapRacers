@@ -74,7 +74,8 @@ func _isolated_crossing(height: float) -> TrackPath:
 		track.rights.append(Vector3.RIGHT)
 		track.piece_of.append(0)
 	track.points[0] = Vector3(0, height, 0)
-	track.points[38] = Vector3.ZERO
+	track.points[40] = Vector3.ZERO
+	track.length = 100.0
 	return track
 
 

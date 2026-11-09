@@ -63,7 +63,7 @@ func _run() -> void:
 	check(partial.close_up(1, 1000) == [QUARTER], "automatic closing can fill an exact eight-metre gap")
 	var net := NetSession.new()
 	add_child(net)
-	check(NetSession.VERSION == 16 and net._check({"version": 15}).contains("different version") and net._check({"version": 16, "players": []}) == "Nobody to race.", "current online handshake is accepted and older peers are rejected before misreading quarter straights")
+	check(NetSession.VERSION == 17 and net._check({"version": 16}).contains("different version") and net._check({"version": 17, "players": []}) == "Nobody to race.", "current online handshake is accepted and older peers are rejected before misreading quarter straights")
 	net.queue_free()
 	print("%d quarter-straight checks passed, %d failed." % [checks - failures, failures])
 	get_tree().quit(1 if failures else 0)

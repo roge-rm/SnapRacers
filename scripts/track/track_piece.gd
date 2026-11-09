@@ -17,12 +17,21 @@ const TILE := 32.0
 const OLD_TILE := 16.0
 const LEVEL := 3.0
 const ARC_ANGLES := [30, 45, 60, 90]
+const ADJUSTABLE_TYPES := ["adjustable_straight", "adjustable_offset", "connector"]
+const MAX_METRES := 512.0
+const MAX_SHIFT := 256.0
 
 var type := "straight"
 ## How many tiles long a straight, ramp, crest, jump or slant is.
 var tiles := 1
 ## How many tiles a slant moves across, positive to the right.
 var across := 0
+## Dimensions of metre-sized pieces and the local connector control polygon.
+var metres := 32.0
+var shift := 0.0
+var connector_end := Vector3.ZERO
+var connector_heading := 0
+var handles := Vector2.ONE
 ## -1 for a left bend, 1 for a right one, 0 for everything else.
 var turn := 0
 var radius := 0.0
@@ -106,6 +115,15 @@ static func from_spec(spec: Dictionary) -> TrackPiece:
 	match piece.type:
 		"half_straight", "quarter_straight":
 			pass
+		"adjustable_straight", "adjustable_offset":
+			piece.metres = float(spec.get("metres", 32.0))
+			piece.shift = float(spec.get("shift", 0.0))
+		"connector":
+			var end: Array = spec.get("end", [0.0, -32.0])
+			piece.connector_end = Vector3(float(end[0]), 0.0, float(end[1]))
+			piece.connector_heading = int(spec.get("heading", 0))
+			var lengths: Array = spec.get("handles", [10.0, 10.0])
+			piece.handles = Vector2(float(lengths[0]), float(lengths[1]))
 		"curve", "arc":
 			piece.turn = -1 if str(spec.get("turn", "right")) == "left" else 1
 			var size := int(spec.get("size", 2))
@@ -176,6 +194,14 @@ static func from_spec(spec: Dictionary) -> TrackPiece:
 func to_spec() -> Dictionary:
 	var spec := { "type": type }
 	match type:
+		"adjustable_straight", "adjustable_offset":
+			spec.metres = metres
+			if type == "adjustable_offset":
+				spec.shift = shift
+		"connector":
+			spec.end = [connector_end.x, connector_end.z]
+			spec.heading = connector_heading
+			spec.handles = [handles.x, handles.y]
 		"curve", "arc":
 			if type == "arc":
 				spec["angle"] = angle
@@ -231,7 +257,7 @@ func path_length() -> float:
 	if type == "corkscrew":
 		_corkscrew_profile()
 		return 2.0 * CORKSCREW_RUN + (_cork_points.size() - 1) * _cork_step
-	if type == "slant":
+	if type in ["slant", "adjustable_offset", "connector"]:
 		var total := 0.0
 		for k in 32:
 			total += point(k / 32.0).distance_to(point((k + 1) / 32.0))
@@ -242,6 +268,8 @@ func path_length() -> float:
 
 ## The forward run of a straight piece, in metres.
 func run_length() -> float:
+	if type in ["adjustable_straight", "adjustable_offset"]:
+		return metres
 	if type == "quarter_straight":
 		return TILE * 0.25
 	return TILE * 0.5 if type == "half_straight" else tiles * TILE
@@ -251,6 +279,15 @@ func run_length() -> float:
 func point(t: float) -> Vector3:
 	var run := run_length()
 	match type:
+		"adjustable_offset":
+			var u := clampf(t, 0.0, 1.0)
+			var sideways := u * u * u * (10.0 + u * (-15.0 + 6.0 * u))
+			return Vector3(shift * sideways, 0.0, -metres * u)
+		"connector":
+			var a := Vector3.FORWARD * handles.x
+			var b := connector_end - _connector_forward() * handles.y
+			var u := 1.0 - t
+			return 3.0 * u * u * t * a + 3.0 * u * t * t * b + t * t * t * connector_end
 		"curve":
 			var angle := t * PI * 0.5
 			return Vector3(turn * (radius - radius * cos(angle)), rise * smoothstep(0.0, 1.0, t), -radius * sin(angle))
@@ -470,6 +507,8 @@ func solid(t: float) -> bool:
 
 ## How much the exit turns, in signed Godot yaw steps of 15 degrees.
 func heading_delta() -> int:
+	if type == "connector":
+		return connector_heading
 	if type == "curve":
 		return -turn * 6
 	if type == "arc":
@@ -480,6 +519,8 @@ func heading_delta() -> int:
 ## Where the next piece starts, in this piece's space.
 func exit() -> Transform3D:
 	var end := point(1.0)
+	if type == "connector":
+		return Transform3D(Basis(Vector3.UP, connector_heading * PI / 12.0), end)
 	if type == "loop":
 		return Transform3D(Basis.IDENTITY, Vector3(side * LOOP_STEP, 0.0, -3.0 * TILE))
 	if type == "slant" or type == "corkscrew":
@@ -489,3 +530,94 @@ func exit() -> Transform3D:
 	if type == "arc":
 		return Transform3D(Basis(Vector3.UP, -turn * deg_to_rad(angle)), end)
 	return Transform3D(Basis.IDENTITY, end)
+
+
+func _connector_forward() -> Vector3:
+	return Vector3.FORWARD.rotated(Vector3.UP, connector_heading * PI / 12.0)
+
+
+## Convert a drawer straight or offset without changing its endpoints or finish.
+static func adjustable_spec(spec: Dictionary) -> Dictionary:
+	var piece := from_spec(spec)
+	var out := spec.duplicate(true)
+	if piece.type in ["straight", "half_straight", "quarter_straight", "adjustable_straight"] and not piece.crossing:
+		out = {"type": "adjustable_straight", "metres": piece.run_length()}
+	elif piece.type in ["slant", "adjustable_offset"] and piece.rise == 0.0:
+		out = {"type": "adjustable_offset", "metres": piece.run_length(), "shift": piece.shift if piece.type == "adjustable_offset" else piece.across * TILE}
+	else:
+		return {}
+	for key in ["surface", "edges"]:
+		if spec.has(key):
+			out[key] = spec[key]
+	return out
+
+
+## A local, level return to an existing connector, preserving both headings.
+static func connector_spec(to: Transform3D, width: float) -> Dictionary:
+	var yaw := atan2(to.basis.z.x, to.basis.z.z)
+	var heading := roundi(yaw / (PI / 12.0))
+	var basis := Basis(Vector3.UP, heading * PI / 12.0)
+	var span := to.origin.length()
+	if not to.origin.is_finite() or not to.basis.is_finite() or absf(to.origin.y) > 0.001 or span < 0.25 or span > MAX_METRES:
+		return {}
+	if basis.x.distance_to(to.basis.x) > 0.00001 or basis.y.distance_to(to.basis.y) > 0.00001 or basis.z.distance_to(to.basis.z) > 0.00001:
+		return {}
+	for factor in [0.3333333333, 0.5, 0.75, 1.0, 1.5]:
+		var handle := maxf(0.05, span * factor)
+		if handle > MAX_METRES:
+			continue
+		var spec := {"type": "connector", "end": [to.origin.x, to.origin.z], "heading": posmod(heading + 12, 24) - 12, "handles": [handle, handle]}
+		if from_spec(spec).safe_connector(width):
+			return spec
+	return {}
+
+
+## Reject cusps, reversing loops and bends tighter than the road can carry.
+func safe_connector(width: float) -> bool:
+	if type != "connector":
+		return false
+	var a := Vector3.FORWARD * handles.x
+	var b := connector_end - _connector_forward() * handles.y
+	# A monotone control polygon cannot hide a stationary reversal between samples.
+	var chord := connector_end.normalized()
+	for segment in [a, b - a, connector_end - b]:
+		if segment.dot(chord) < -0.000001:
+			return false
+	var minimum_radius := maxf(width, 8.0)
+	var samples := PackedVector2Array()
+	for k in 97:
+		var t := k / 96.0
+		var u := 1.0 - t
+		var velocity := 3.0 * u * u * a + 6.0 * u * t * (b - a) + 3.0 * t * t * (connector_end - b)
+		var acceleration := 6.0 * u * (b - 2.0 * a) + 6.0 * t * (connector_end - 2.0 * b + a)
+		var speed := velocity.length()
+		if speed < 0.01:
+			return false
+		var bend := velocity.cross(acceleration).length()
+		if bend > 0.000001 and speed * speed * speed / bend < minimum_radius:
+			return false
+		var p := point(t)
+		samples.append(Vector2(p.x, p.z))
+	for i in range(1, samples.size()):
+		for j in range(i + 2, samples.size()):
+			if Geometry2D.segment_intersects_segment(samples[i - 1], samples[i], samples[j - 1], samples[j]) != null:
+				return false
+	return true
+
+
+## Whether edited metre dimensions leave enough radius for the road's width.
+func safe_dimensions(width: float) -> bool:
+	if type == "adjustable_straight":
+		return true
+	if type == "connector":
+		return safe_connector(width)
+	if type != "adjustable_offset":
+		return false
+	for k in 97:
+		var t := k / 96.0
+		var velocity := Vector2(shift * 30.0 * t * t * (t - 1.0) * (t - 1.0), -metres)
+		var acceleration := Vector2(shift * 60.0 * t * (1.0 - 3.0 * t + 2.0 * t * t), 0.0)
+		var bend := absf(velocity.cross(acceleration))
+		if bend > 0.000001 and pow(velocity.length(), 3.0) / bend < maxf(width, 8.0):
+			return false
+	return true

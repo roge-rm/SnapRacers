@@ -196,7 +196,7 @@ static func specs() -> Array:
 
 static func _spec_key(spec: Dictionary) -> String:
 	var parts := PackedStringArray()
-	for key in ["type", "length", "angle", "turn", "size", "across", "rise", "height", "bank", "cut", "side"]:
+	for key in ["type", "length", "angle", "turn", "size", "across", "rise", "height", "bank", "cut", "side", "metres", "shift", "end", "heading", "handles"]:
 		if spec.has(key):
 			var value := _number(spec[key]) if spec[key] is float else str(spec[key]).to_lower()
 			parts.append("%s=%s" % [key, value])
@@ -227,6 +227,12 @@ static func piece_name(spec: Dictionary) -> String:
 	var piece := TrackPiece.from_spec(spec)
 	var turn := "left" if piece.turn < 0 or piece.across < 0 else "right"
 	match kind:
+		"adjustable_straight":
+			return "Adjustable straight"
+		"adjustable_offset":
+			return "Adjustable offset"
+		"connector":
+			return "Join"
 		"curve", "arc":
 			var style := "bend"
 			if piece.cut:
@@ -262,6 +268,12 @@ static func dimensions(spec: Dictionary) -> String:
 	var rise := piece.rise
 	var parts := PackedStringArray()
 	match kind:
+		"adjustable_straight":
+			parts.append("%s m long" % _metres(piece.metres))
+		"adjustable_offset":
+			parts.append("%s m along · %s m sideways" % [_metres(piece.metres), _metres(piece.shift)])
+		"connector":
+			parts.append("%s m long" % _metres(piece.path_length()))
 		"curve", "arc":
 			parts.append("%s° · radius %s m" % [piece.angle, _metres(piece.radius)])
 			if piece.bank != 0:

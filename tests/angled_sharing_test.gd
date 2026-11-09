@@ -148,8 +148,8 @@ func _network() -> void:
 	var net := NetSession.new()
 	get_tree().root.add_child(net)
 	net.ended.connect(func(_reason: String): refused += 1)
-	check(NetSession.VERSION == 16 and Sharing.VERSION == 1, "quarter straights require network protocol 16 and retain sharing format 1")
-	check(net._check({"version": 15}).contains("different version") and net._check({"version": 16, "players": []}) == "Nobody to race.", "online peers reject protocol 15 and accept the protocol 16 handshake")
+	check(NetSession.VERSION == 17 and Sharing.VERSION == 1, "adjustable road requires network protocol 17 and retain sharing format 1")
+	check(net._check({"version": 16}).contains("different version") and net._check({"version": 17, "players": []}) == "Nobody to race.", "online peers reject protocol 16 and accept the protocol 17 handshake")
 	var bad := _course()
 	bad.start[3] = 0.25
 	var values: Array = [bad]

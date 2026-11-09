@@ -23,7 +23,7 @@ const MOST_CONNECTORS := 4096
 const MOST_CONNECTOR_PAIRS := 50000
 const MOST_NAME := 120
 const MOST_ABOUT := 2000
-const PIECE_TYPES := ["straight", "half_straight", "quarter_straight", "curve", "arc", "slant", "crest", "ramp", "jump", "loop", "corkscrew", "crossing"]
+const PIECE_TYPES := ["straight", "half_straight", "quarter_straight", "adjustable_straight", "adjustable_offset", "connector", "curve", "arc", "slant", "crest", "ramp", "jump", "loop", "corkscrew", "crossing"]
 const LIMITS := {"length": 12.0, "size": 4.0, "rise": 8.0, "across": 6.0, "height": 10.0, "bank": 90.0}
 
 static var _game_courses := {}
@@ -272,6 +272,30 @@ static func _start(value: Variant) -> bool:
 static func _piece(spec: Variant) -> bool:
 	if not spec is Dictionary or not spec.get("type", "straight") in PIECE_TYPES:
 		return false
+	if spec.get("type") in TrackPiece.ADJUSTABLE_TYPES:
+		var kind: String = spec.type
+		var allowed := ["type", "surface", "edges"]
+		if kind == "connector":
+			allowed.append_array(["end", "heading", "handles"])
+			if not _vector(spec.get("end"), TrackPiece.MAX_METRES, 2) or not _integer(spec.get("heading"), -12, 11):
+				return false
+			if not _vector(spec.get("handles"), TrackPiece.MAX_METRES, 2) or spec.handles.any(func(n): return n < 0.05):
+				return false
+			var span := Vector2(spec.end[0], spec.end[1]).length()
+			if span < 0.25 or span > TrackPiece.MAX_METRES:
+				return false
+		else:
+			allowed.append("metres")
+			var least := 2.0 if kind == "adjustable_offset" else 0.25
+			if not _number(spec.get("metres")) or spec.metres < least or spec.metres > TrackPiece.MAX_METRES:
+				return false
+			if kind == "adjustable_offset":
+				allowed.append("shift")
+				if not _number(spec.get("shift")) or absf(spec.shift) > TrackPiece.MAX_SHIFT:
+					return false
+		for key in spec:
+			if key not in allowed:
+				return false
 	if spec.get("type") in ["half_straight", "quarter_straight"]:
 		for key in spec:
 			if key not in ["type", "surface", "edges"]:
@@ -336,6 +360,8 @@ static func buildable(course: CourseDesign, saved := false) -> bool:
 		return false
 	for spec in course.pieces:
 		if not _piece(spec):
+			return false
+		if spec.get("type") in TrackPiece.ADJUSTABLE_TYPES and not TrackPiece.from_spec(spec).safe_dimensions(course.width):
 			return false
 	if not saved and course.pieces.any(func(spec): return str(spec.get("type", "")) == "crossing"):
 		if LevelCrossing.problem(course.track()) != "":

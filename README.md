@@ -207,7 +207,11 @@ The drawer has 98 parts under Straights, Bends, Offsets, Hills, Banked and Speci
 
 Part captions show their size. Hill side views share a 6 m height scale, and loops and corkscrews show their full height in their captions. Pick a placed part to see its name and dimensions. The controller shoulder buttons change tabs and remember your last part in each one.
 
+Pick a straight to edit its Length in metres. Offsets also have a signed Sideways distance. Type a value or use −/+ for 0.25 m steps. Everything after the piece moves with it, and Undo restores the previous dimensions.
+
 Close it up tries to join the road back to the start using pieces from the drawer. If it can't, the layout stays as it was. Adjust the final bends or straights and try again. The card in the corner says what's stopping the course being raced. Pick the ground, colours, trees and hills, then place landmarks like windmills, castles and lighthouses.
+
+Join ends previews one smooth connector between ground-level ends on flat ground. Use join adds it, or Cancel leaves the layout as it was. Ends that need a turn tighter than the road can carry need more room first.
 
 Saving puts the start line on the longest straight. Your course then appears in the race lists with its own records.
 

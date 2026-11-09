@@ -52,6 +52,8 @@ func _init(for_course: CourseDesign) -> void:
 ## The pieces to add, or [] if nothing up to `most` pieces long fits.
 func find(most: int, budget: int) -> Array:
 	expanded_count = 0
+	if course.pieces.any(func(spec): return spec.get("type") in TrackPiece.ADJUSTABLE_TYPES):
+		return []
 	if most <= 0 or budget <= 0 or course.pieces.is_empty():
 		return []
 	most = mini(most, 7)

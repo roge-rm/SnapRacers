@@ -32,6 +32,10 @@ signal hills_chosen(hills: float)
 signal weather_chosen(weather: String)
 signal time_chosen(time: String)
 signal close_up_pressed
+signal join_ends_pressed
+signal join_accepted
+signal join_cancelled
+signal dimension_changed(key: String, metres: float)
 signal delete_pressed
 signal add_after_pressed
 signal surface_chosen(surface: String)
@@ -144,11 +148,19 @@ var _hills: Dictionary = {}
 var _weathers: Dictionary = {}
 var _times: Dictionary = {}
 var _close_up: Button
+var _join_ends: Button
+var _join_actions: PanelContainer
+var _join_accept: Button
+var _join_restore_card := false
 var _themes: Dictionary = {}
 
 var _actions: PanelContainer
 var _action_title: Label
 var _action_dimensions: Label
+var _dimension_rows: VBoxContainer
+var _length: SpinBox
+var _sideways: SpinBox
+var _sideways_row: HBoxContainer
 var _surfaces: Dictionary = {}
 var _edges: Dictionary = {}
 var _landmark_actions: PanelContainer
@@ -191,7 +203,7 @@ func _ready() -> void:
 	show_selection(-1, {})
 	var safe := SafeArea.new()
 	add_child(safe)
-	for panel in [_toolbar, _chip, _card, _actions, _landmark_actions, _bottom]:
+	for panel in [_toolbar, _chip, _card, _actions, _join_actions, _landmark_actions, _bottom]:
 		safe.watch(panel)
 	safe.watch(_drawer, true)
 	safe.flow(_rail_box)
@@ -205,7 +217,7 @@ func _ready() -> void:
 ## cover otherwise. Built on where the buttons were put, before SafeArea
 ## moves anything.
 func _lift_actions() -> void:
-	for panel in [_actions, _landmark_actions]:
+	for panel in [_actions, _join_actions, _landmark_actions]:
 		panel.offset_bottom = BOTTOM_GAP - _bottom.size.y - 8.0
 		_safe.moved(panel)
 
@@ -213,7 +225,7 @@ func _lift_actions() -> void:
 ## The race buttons keep clear of the card and the drawer, and the card ends
 ## above the piece or landmark panel when one's up.
 func _keep_clear() -> void:
-	BuilderStyle.slide_clear(_bottom, [_drawer], [_card, _actions, _landmark_actions])
+	BuilderStyle.slide_clear(_bottom, [_drawer], [_card, _actions, _join_actions, _landmark_actions])
 	# Leave room to scroll every part above the race buttons on narrow screens.
 	var drawer_rect := _drawer.get_global_rect()
 	var buttons_rect := _bottom.get_global_rect()
@@ -223,7 +235,7 @@ func _keep_clear() -> void:
 	_drawer_clearance.custom_minimum_size.y = clearance
 	var bottom := 1.0
 	if size.y > 0.0:
-		for panel: Control in [_actions, _landmark_actions]:
+		for panel: Control in [_actions, _join_actions, _landmark_actions]:
 			if panel.visible:
 				bottom = minf(bottom, panel.get_global_rect().position.y / size.y)
 	if not is_equal_approx(_card.anchor_bottom, bottom):
@@ -234,7 +246,7 @@ func _keep_clear() -> void:
 func is_over_ui(pos: Vector2) -> bool:
 	if _load_popup.visible or _new_dialog.visible or _name_dialog.visible or _file_menu.visible or _close_failure.visible:
 		return true
-	for panel in [_toolbar, _drawer, _chip, _card, _actions, _landmark_actions, _bottom]:
+	for panel in [_toolbar, _drawer, _chip, _card, _actions, _join_actions, _landmark_actions, _bottom]:
 		if panel.is_visible_in_tree() and panel.get_global_rect().has_point(pos):
 			return true
 	return false
@@ -267,6 +279,7 @@ func show_course(course: CourseDesign, length: float, problems: Array[String], c
 	_problems_label.text = "\n".join(problems.map(func(p): return "• " + p))
 	_problems_label.visible = not problems.is_empty()
 	_close_up.visible = can_close
+	_join_ends.visible = can_close
 	_problem_count = problems.size()
 	_chip.add_theme_color_override("font_color", DANGER if _problem_count > 0 else DATA)
 	_race.disabled = _problem_count > 0
@@ -286,12 +299,37 @@ func show_selection(index: int, spec: Dictionary) -> void:
 	_action_title.text = "%d · %s" % [index + 1, TrackCatalogue.piece_name(spec)]
 	_action_dimensions.text = TrackCatalogue.dimensions(spec)
 	_action_dimensions.tooltip_text = _action_dimensions.text
+	var adjustable := TrackPiece.adjustable_spec(spec)
+	_dimension_rows.visible = not adjustable.is_empty()
+	if not adjustable.is_empty():
+		_length.set_block_signals(true)
+		_length.min_value = 2.0 if adjustable.type == "adjustable_offset" else 0.25
+		_length.set_value_no_signal(float(adjustable.metres))
+		_length.set_block_signals(false)
+		_sideways_row.visible = adjustable.type == "adjustable_offset"
+		_sideways.set_value_no_signal(float(adjustable.get("shift", 0.0)))
 	var surface: String = spec.get("surface", "asphalt")
 	for id in _surfaces:
 		MenuStyle.mark(_surfaces[id], id == surface)
 	var edges: String = spec.get("edges", "auto")
 	for id in _edges:
 		MenuStyle.mark(_edges[id], id == edges)
+
+
+func show_join_preview(on: bool, restore_controls := false) -> void:
+	_join_actions.visible = on
+	if on:
+		_join_restore_card = _card.visible
+		_card.hide()
+		_actions.hide()
+		_join_accept.grab_focus()
+	else:
+		var focused := get_viewport().gui_get_focus_owner()
+		if focused != null and _join_actions.is_ancestor_of(focused):
+			focused.release_focus()
+		if restore_controls:
+			_card.visible = _join_restore_card
+			(_join_ends if _card.visible else _chip).grab_focus()
 
 
 ## Whether a landmark's in hand, being put down.
@@ -699,6 +737,8 @@ func _build_card() -> void:
 	box.add_child(_problems_label)
 	_close_up = BuilderStyle.main_pill("Close it up", func() -> void: close_up_pressed.emit(), true)
 	box.add_child(_close_up)
+	_join_ends = BuilderStyle.dark_pill("Join ends", func() -> void: join_ends_pressed.emit())
+	box.add_child(_join_ends)
 
 
 func _build_actions() -> void:
@@ -728,6 +768,12 @@ func _build_actions() -> void:
 	_action_dimensions.theme_type_variation = "SmallLabel"
 	_action_dimensions.clip_text = true
 	box.add_child(_action_dimensions)
+	_dimension_rows = VBoxContainer.new()
+	_dimension_rows.add_theme_constant_override("separation", 4)
+	box.add_child(_dimension_rows)
+	_length = _dimension_control(_dimension_rows, "Length", "metres", 0.25, 512.0)
+	_sideways = _dimension_control(_dimension_rows, "Sideways", "shift", -256.0, 256.0)
+	_sideways_row = _sideways.get_parent()
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 16)
 	box.add_child(row)
@@ -735,6 +781,25 @@ func _build_actions() -> void:
 	row.add_child(BuilderStyle.word("Take out", DANGER, func() -> void: delete_pressed.emit()))
 	box.add_child(_choices(SURFACES, _surfaces, func(id: String) -> void: surface_chosen.emit(id)))
 	box.add_child(_choices(EDGES, _edges, func(id: String) -> void: edges_chosen.emit(id)))
+	_join_actions = PanelContainer.new()
+	_join_actions.add_theme_stylebox_override("panel", BuilderStyle.scrim(10, 8))
+	_join_actions.hide()
+	add_child(_join_actions)
+	_join_actions.set_anchors_and_offsets_preset(PRESET_BOTTOM_RIGHT)
+	_join_actions.grow_horizontal = GROW_DIRECTION_BEGIN
+	_join_actions.grow_vertical = GROW_DIRECTION_BEGIN
+	_join_actions.offset_right = -8.0
+	_join_actions.offset_bottom = -8.0
+	var join_box := VBoxContainer.new()
+	join_box.add_theme_constant_override("separation", 6)
+	_join_actions.add_child(join_box)
+	var join_title := Label.new()
+	join_title.text = "Join ends"
+	join_title.theme_type_variation = "CardTitleLabel"
+	join_box.add_child(join_title)
+	_join_accept = BuilderStyle.main_pill("Use join", func() -> void: join_accepted.emit())
+	join_box.add_child(_join_accept)
+	join_box.add_child(BuilderStyle.dark_pill("Cancel", func() -> void: join_cancelled.emit()))
 
 	_landmark_actions = PanelContainer.new()
 	_landmark_actions.add_theme_stylebox_override("panel", BuilderStyle.scrim(10, 8))
@@ -762,6 +827,37 @@ func _build_actions() -> void:
 
 
 ## A row of small pills to pick one of, like the surfaces.
+func _dimension_control(parent: VBoxContainer, title: String, key: String, minimum: float, maximum: float) -> SpinBox:
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 4)
+	parent.add_child(row)
+	var label := Label.new()
+	label.text = title
+	label.theme_type_variation = "SmallLabel"
+	label.custom_minimum_size.x = 80
+	row.add_child(label)
+	var less := BuilderStyle.dark_pill("−", func() -> void: pass)
+	less.custom_minimum_size.x = 40
+	less.tooltip_text = "Reduce %s by 0.25 m" % title.to_lower()
+	row.add_child(less)
+	var number := SpinBox.new()
+	number.min_value = minimum
+	number.max_value = maximum
+	number.step = 0.001
+	number.suffix = " m"
+	number.custom_minimum_size.x = 116
+	number.size_flags_horizontal = SIZE_EXPAND_FILL
+	number.update_on_text_changed = false
+	number.value_changed.connect(func(value: float) -> void: dimension_changed.emit(key, value))
+	row.add_child(number)
+	less.pressed.connect(func() -> void: number.value = maxf(number.min_value, number.value - 0.25))
+	var more := BuilderStyle.dark_pill("+", func() -> void: number.value = minf(number.max_value, number.value + 0.25))
+	more.custom_minimum_size.x = 40
+	more.tooltip_text = "Increase %s by 0.25 m" % title.to_lower()
+	row.add_child(more)
+	return number
+
+
 func _choices(items: Array, keep: Dictionary, picked: Callable, columns := 0) -> Container:
 	var row: Container = GridContainer.new() if columns > 0 else HBoxContainer.new()
 	if columns > 0:

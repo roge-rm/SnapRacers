@@ -34,6 +34,8 @@ static func start(heading: int) -> PackedInt64Array:
 
 ## Empty means the piece's endpoint cannot use integer drawer levels/radii.
 static func advance(cursor: PackedInt64Array, piece: TrackPiece) -> PackedInt64Array:
+	if piece.type in TrackPiece.ADJUSTABLE_TYPES:
+		return PackedInt64Array()
 	var levels := piece.rise / TrackPiece.LEVEL
 	if not is_finite(levels) or absf(levels - roundf(levels)) > 0.000001:
 		return PackedInt64Array()

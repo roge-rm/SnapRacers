@@ -78,7 +78,7 @@ func to_dict() -> Dictionary:
 		push_error("Course starts must face a multiple of 15 degrees")
 		return {}
 	var turns: Variant = heading / 6 if heading % 6 == 0 else heading / 6.0
-	var precise := heading % 6 != 0 or pieces.any(func(spec): return spec.get("type") == "arc")
+	var precise := heading % 6 != 0 or pieces.any(func(spec): return spec.get("type") == "arc" or spec.get("type") in TrackPiece.ADJUSTABLE_TYPES)
 	var position := [start.origin.x, start.origin.y, start.origin.z] if precise else [snappedf(start.origin.x, 0.01), snappedf(start.origin.y, 0.01), snappedf(start.origin.z, 0.01)]
 	var out := {
 		"name": name, "made_by": made_by, "theme": theme, "laps": laps, "width": width, "grid": TrackPiece.TILE,
@@ -188,8 +188,8 @@ func _below_ground(path: TrackPath) -> bool:
 
 # Where the start line goes.
 
-## Plain full straights split into tiles. Every entry holds its spec and
-## level, and half straights keep their original connectors.
+## Plain full and metre-sized straights split into grid-length sections.
+## Every entry keeps its spec and level.
 func _units() -> Array:
 	var units := []
 	var level := 0
@@ -197,6 +197,16 @@ func _units() -> Array:
 		if spec.get("type") == "straight" and not spec.has("surface") and not spec.has("edges"):
 			for k in int(spec.get("length", 1)):
 				units.append([{"type": "straight", "length": 1}, level])
+		elif spec.get("type") == "adjustable_straight":
+			var remaining := float(spec.metres)
+			while remaining > TrackPiece.TILE + 0.249999:
+				var chunk: Dictionary = spec.duplicate(true)
+				chunk.metres = TrackPiece.TILE
+				units.append([chunk, level])
+				remaining -= TrackPiece.TILE
+			var last: Dictionary = spec.duplicate(true)
+			last.metres = remaining
+			units.append([last, level])
 		else:
 			units.append([spec, level])
 			if spec.get("type") in ["ramp", "curve", "arc", "slant"]:
@@ -209,6 +219,8 @@ func _grid_length(unit: Array) -> float:
 	var spec: Dictionary = unit[0]
 	if unit[1] != 0 or spec.has("surface") or spec.has("edges"):
 		return 0.0
+	if spec.get("type") == "adjustable_straight":
+		return float(spec.metres) / TrackPiece.TILE
 	if spec.get("type") == "straight":
 		return 1.0
 	if spec.get("type") == "half_straight":
