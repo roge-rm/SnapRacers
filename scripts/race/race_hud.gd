@@ -525,8 +525,9 @@ func _process(delta: float) -> void:
 		shown = race.time - me.progress.lap_started() if me.progress.laps >= 0 else 0.0
 	_clock.text = clock(shown)
 	var more := ""
-	if trial and race.conditions.records_allowed() and Records.best_time(race.track_id) > 0.0 and not me.progress.finished:
-		more = "record %s" % clock(Records.best_time(race.track_id))
+	var layout := Records.layout_key(race.track.reversed, race.track.mirrored)
+	if trial and race.conditions.records_allowed() and Records.best_time(race.track_id, layout) > 0.0 and not me.progress.finished:
+		more = "record %s" % clock(Records.best_time(race.track_id, layout))
 	elif (practice or trial) and me.progress.best_lap() > 0.0:
 		more = "best lap %s" % clock(me.progress.best_lap())
 	_clock_more.text = more
@@ -785,7 +786,7 @@ func _fill_results() -> void:
 		for i in me.progress.lap_times.size():
 			rows.append(["Lap %d" % (i + 1), clock(me.progress.lap_times[i])])
 		if race.conditions.records_allowed():
-			rows.append(["Course record", clock(Records.best_time(race.track_id))])
+			rows.append(["Course record", clock(Records.best_time(race.track_id, Records.layout_key(race.track.reversed, race.track.mirrored)))])
 		else:
 			rows.append(["Records", "Clear daytime only"])
 		highlight = [records[0], records[1]]

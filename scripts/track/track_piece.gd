@@ -574,7 +574,6 @@ func mirror() -> void:
 	side = -side
 	across = -across
 	shift = -shift
-	bank = -bank
 	connector_end.x = -connector_end.x
 	connector_heading = -connector_heading
 	_swap_sides()

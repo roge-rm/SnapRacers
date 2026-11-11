@@ -38,6 +38,11 @@ func _initialize() -> void:
 	check(oval.start.origin.is_equal_approx(old_origin) and (-oval.start.basis.z).dot(old_forward) < -0.999 \
 		and oval.closes and absf(oval.length - old_length) < 1.0, "a reversed oval starts at the line facing back and closes")
 
+	var banked := TrackPiece.from_spec({"type": "curve", "turn": "right", "size": 2, "bank": 22})
+	check(banked.bank_at(0.5) > 0.0, "a right bank leans the inside down")
+	banked.mirror()
+	check(banked.turn < 0 and banked.bank > 0.0 and banked.bank_at(0.5) < 0.0, "a mirrored bank still leans inward")
+
 	oval = _oval()
 	old_forward = -oval.start.basis.z
 	oval.apply_layout(true, false)
