@@ -1,11 +1,11 @@
-extends SceneTree
+extends Node
 
 ## Checks the sound: every sound and tune is there and loops if it should,
 ## every stock kart has an engine to hear, a kart keeps its sound when bits
 ## fall off, each cup has its own race tune, the menu shuffles tunes, and
 ## the volumes work.
 ##
-##   tools/godot/Godot_v4.7.2-stable_linux.x86_64 --headless --fixed-fps 60 --path . -s tests/sound_test.gd
+##   tools/godot/Godot_v4.7.2-stable_linux.x86_64 --headless --fixed-fps 60 --path . res://tests/sound_test.tscn
 
 
 class Runner:
@@ -173,5 +173,5 @@ class Runner:
 		await get_tree().process_frame
 
 
-func _initialize() -> void:
-	root.add_child(Runner.new())
+func _ready() -> void:
+	add_child(Runner.new())

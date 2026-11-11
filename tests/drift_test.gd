@@ -1,4 +1,4 @@
-extends SceneTree
+extends Node
 
 ## Sliding around a corner. Starter karts go into a hard right turn at the
 ## same speed, one just steering and one with the gas and the brake held
@@ -10,7 +10,7 @@ extends SceneTree
 ## with the gas still on. A longer slide gives a longer turbo, up to the top
 ## level.
 ##
-##   tools/godot/Godot_v4.7.2-stable_linux.x86_64 --headless --fixed-fps 60 --path . -s tests/drift_test.gd
+##   tools/godot/Godot_v4.7.2-stable_linux.x86_64 --headless --fixed-fps 60 --path . res://tests/drift_test.tscn
 
 const SPEED := 18.0
 
@@ -182,5 +182,5 @@ class Runner:
 		check(touch.throttle == 0.0 and touch.brake == 1.0, "a thumb put straight on the brake is just the brake")
 
 
-func _initialize() -> void:
-	root.add_child(Runner.new())
+func _ready() -> void:
+	add_child(Runner.new())

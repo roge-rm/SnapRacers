@@ -1,7 +1,7 @@
-extends SceneTree
+extends Node
 
 ## Marble grip, drift assists and recovery with the same kart and controls.
-##   tools/godot/Godot_v4.7.2-stable_linux.x86_64 --headless --fixed-fps 60 --path . -s tests/marbles_test.gd
+##   tools/godot/Godot_v4.7.2-stable_linux.x86_64 --headless --fixed-fps 60 --path . res://tests/marbles_test.tscn
 class Runner:
 	extends Node
 	var failures := 0
@@ -118,5 +118,5 @@ class Runner:
 		print("All marble checks passed." if failures == 0 else "%d marble checks failed." % failures)
 		get_tree().quit(1 if failures > 0 else 0)
 
-func _initialize() -> void:
-	root.add_child(Runner.new())
+func _ready() -> void:
+	add_child(Runner.new())
