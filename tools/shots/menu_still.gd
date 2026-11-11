@@ -1,12 +1,10 @@
 extends Node
 
-## Takes the race picture beside the main menu's buttons, art/ui/menu_race.jpg:
-## a still from a real race with an AI driving, the HUD and touch controls
-## hidden. It needs a screen.
+## Takes one still of a race into art/ui/menu_race.jpg. The menu window uses
+## art/ui/menu_races/<id>.jpg from tools/shots/menu_stills.tscn instead.
 ##   DISPLAY=:0 tools/godot/Godot_v4.7.2-stable_linux.x86_64 --windowed --path . res://tools/shots/menu_still.tscn
 ## After `--`, a course name picks the course and a number how many frames
-## it drives first. Change RaceWindow.COURSE to
-## match.
+## it drives first.
 
 const OUT := "res://art/ui/menu_race.jpg"
 const SIZE := Vector2i(1600, 900)

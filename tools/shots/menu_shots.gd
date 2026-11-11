@@ -27,6 +27,7 @@ func _ready() -> void:
 	host = Node.new()
 	add_child(host)
 	Game.start(host, false)
+	RaceWindow.forced_id = "windsurf_way"
 	Game.design = Game.stock_kart("quarter_mile").duplicate_design()
 	Game.character = Game.roster_driver("racer").duplicate_design()
 	Game.settings.set_value("race", "kart", "quarter_mile")
@@ -149,6 +150,7 @@ func _screens(only: Array) -> void:
 				Records.add_cup_place(cup.id, places[n % places.size()], level, false)
 		n += 1
 	Game.start(host)
+	RaceWindow.forced_id = "windsurf_way"
 	await frames(4)
 	if want.call("splash"):
 		await save("splash")
