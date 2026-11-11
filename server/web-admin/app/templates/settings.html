@@ -72,6 +72,12 @@
           {% endfor %}
         </select>
       </div>
+      <div class="option">
+        <label><input type="checkbox" name="reversed" {% if config.reversed %}checked{% endif %}> Reverse</label>
+      </div>
+      <div class="option">
+        <label><input type="checkbox" name="mirrored" {% if config.mirrored %}checked{% endif %}> Mirrored</label>
+      </div>
     </div>
   </section>
 

@@ -280,6 +280,8 @@ async def save_settings(request: Request):
             wanted[name] = str(form.get(name)).strip()
     # A box that isn't ticked isn't sent at all.
     wanted["ai"] = "true" if form.get("ai") else "false"
+    wanted["reversed"] = "true" if form.get("reversed") else "false"
+    wanted["mirrored"] = "true" if form.get("mirrored") else "false"
 
     changed, refused, restart = 0, [], False
     for name, value in wanted.items():

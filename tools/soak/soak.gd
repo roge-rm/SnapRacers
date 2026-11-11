@@ -31,6 +31,10 @@ func _ready() -> void:
 		if arg.begins_with("weather=") or arg.begins_with("time=") or arg.begins_with("difficulty="):
 			var parts: PackedStringArray = arg.split("=")
 			Game.settings.set_value("race", parts[0], parts[1])
+		if arg.begins_with("reversed="):
+			Game.set_reversed(arg.get_slice("=", 1) == "on")
+		if arg.begins_with("mirrored="):
+			Game.set_mirrored(arg.get_slice("=", 1) == "on")
 	Game.show_race(Game.TRACKS + "/" + course + ".json")
 	var race: Race = null
 	while race == null:
@@ -52,7 +56,7 @@ func _ready() -> void:
 			print("RESET %s: %s at %.0f m, %.0f s" % [course, racer.name, fposmod(racer.progress.distance(), race.track.length), race.time]))
 	while not race.started:
 		await get_tree().process_frame
-	print("SOAK %s in %s at %s, %s" % [course, race.conditions.weather, race.conditions.time, ", ".join(race.racers.map(func(r: Race.Racer) -> String: return "%s in %s" % [r.name, r.kart.design.name]))])
+	print("SOAK %s in %s at %s, reversed=%s mirrored=%s, %s" % [course, race.conditions.weather, race.conditions.time, Game.reversed(), Game.mirrored(), ", ".join(race.racers.map(func(r: Race.Racer) -> String: return "%s in %s" % [r.name, r.kart.design.name]))])
 	var last := {}
 	var since := {}
 	var stalls := {}
@@ -100,5 +104,5 @@ func _ready() -> void:
 	print("\n".join(lines))
 	var total_resets: int = resets.values().reduce(func(a, b): return a + b, 0)
 	var total_stalls: int = stalls.values().reduce(func(a, b): return a + b, 0)
-	print("RESULT %s %s %s: %d of %d finished, %d resets, %d stalls, %.0f s" % [course, race.conditions.weather, race.conditions.time, finished, race.racers.size(), total_resets, total_stalls, race.time])
+	print("RESULT %s %s %s reversed=%s mirrored=%s: %d of %d finished, %d resets, %d stalls, %.0f s" % [course, race.conditions.weather, race.conditions.time, Game.reversed(), Game.mirrored(), finished, race.racers.size(), total_resets, total_stalls, race.time])
 	get_tree().quit()
