@@ -84,6 +84,9 @@ var start := Transform3D.IDENTITY
 var piece_starts: Array[Transform3D] = []
 ## Whether the last piece comes back around to meet the first.
 var closes := false
+var mirrored := false
+var reversed := false
+var _layout_applied := false
 
 var points := PackedVector3Array()
 var forwards := PackedVector3Array()
@@ -195,6 +198,43 @@ func to_dict() -> Dictionary:
 	return out
 
 
+## Applies the optional race layout once, then rebuilds the sampled path.
+func apply_layout(mirrored_: bool, reversed_: bool) -> void:
+	if _layout_applied or (not mirrored_ and not reversed_):
+		return
+	_layout_applied = true
+	mirrored = mirrored_
+	reversed = reversed_
+	if mirrored:
+		_mirror_layout()
+	if reversed:
+		pieces.reverse()
+		for piece in pieces:
+			piece.invert()
+		start.basis = start.basis * heading_basis(HEADINGS / 2)
+	build()
+
+
+func _mirror_layout() -> void:
+	for piece in pieces:
+		piece.mirror()
+	for mark in landmarks:
+		var at: Array = mark.get("at", [0.0, 0.0])
+		if at.size() < 2:
+			continue
+		var world := Vector3(float(at[0]), start.origin.y, float(at[1]))
+		var local := start.basis.inverse() * (world - start.origin)
+		local.x = -local.x
+		world = start.origin + start.basis * local
+		mark.at = [world.x, world.z]
+		var facing := int(mark.get("facing", 0))
+		var direction := Basis(Vector3.UP, facing * PI * 0.5) * Vector3.FORWARD
+		var local_direction := start.basis.inverse() * direction
+		local_direction.x = -local_direction.x
+		direction = start.basis * local_direction
+		mark.facing = posmod(roundi(-atan2(direction.x, direction.z) / (PI * 0.5)), 4)
+
+
 ## How high the hills are here, in metres above (or below) the start. The
 ## hills are smooth and long, so the road never climbs or drops more steeply
 ## than about STEEPEST, however high they are. They're the same every time for
@@ -210,7 +250,12 @@ func ground_height(x: float, z: float) -> float:
 		# How far apart the hilltops are, so the slopes stay gentle.
 		var half := hills * 0.9
 		_noise.frequency = minf(STEEPEST / (half * 4.4), 1.0 / 150.0)
-	return (_noise.get_noise_2d(x, z) - _noise.get_noise_2d(start.origin.x, start.origin.z)) * hills * 0.9
+	var sample := Vector3(x, start.origin.y, z)
+	if mirrored:
+		var local := start.basis.inverse() * (sample - start.origin)
+		local.x = -local.x
+		sample = start.origin + start.basis * local
+	return (_noise.get_noise_2d(sample.x, sample.z) - _noise.get_noise_2d(start.origin.x, start.origin.z)) * hills * 0.9
 
 
 ## How much bigger a course file's tiles are now than when it was made.
@@ -231,6 +276,8 @@ static func grown_landmarks(marks: Array, grow: float) -> Array:
 
 ## Clicks the pieces together and samples the line down the middle.
 func build() -> void:
+	_turns_over = -1
+	_corkscrew = -1
 	points.clear()
 	forwards.clear()
 	ups.clear()

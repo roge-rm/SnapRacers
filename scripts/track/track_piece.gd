@@ -63,6 +63,9 @@ var sticky := false
 ## A straight tile with a railway across its middle, where a train crosses
 ## the road (see LevelCrossing). Its spec says "crossing" for the type.
 var crossing := false
+## The same piece driven from its exit back to its start.
+var inverted := false
+var jump_reversed := false
 
 # The loop has a run in, the loop itself and a run out. It tightens gradually
 # on the way in and eases off on the way out, and steps one tile across as it
@@ -277,6 +280,17 @@ func run_length() -> float:
 
 ## The point on the middle of the road, `t` of the way through the piece.
 func point(t: float) -> Vector3:
+	if inverted:
+		if type == "jump" and jump_reversed:
+			var run := run_length()
+			return Vector3(0.0, _jump_height(run * t), -run * t)
+		var finish := _forward_exit()
+		var turn_back := Basis(Vector3.UP, PI) * finish.basis.inverse()
+		return turn_back * (_forward_point(1.0 - t) - finish.origin)
+	return _forward_point(t)
+
+
+func _forward_point(t: float) -> Vector3:
 	var run := run_length()
 	match type:
 		"adjustable_offset":
@@ -456,6 +470,13 @@ func _corkscrew_point(t: float) -> Vector3:
 ## space. It's straight up everywhere except on a loop or a corkscrew, where
 ## it points in toward the middle.
 func up(t: float) -> Vector3:
+	if inverted:
+		var finish := _forward_exit()
+		return Basis(Vector3.UP, PI) * finish.basis.inverse() * _forward_up(1.0 - t)
+	return _forward_up(t)
+
+
+func _forward_up(t: float) -> Vector3:
 	if type == "corkscrew":
 		var along := t * path_length() - CORKSCREW_RUN
 		var roll := (_cork_points.size() - 1) * _cork_step
@@ -494,7 +515,8 @@ func bank_at(t: float) -> float:
 	# Eases in and out, so the road never starts rolling (or climbing, since
 	# banked road leans up from its low edge) all at once, which would throw
 	# karts into the air.
-	return bank * pow(sin(PI * t), 2.0) * turn
+	var lean := bank * pow(sin(PI * t), 2.0) * turn
+	return -lean if inverted else lean
 
 
 ## Whether there's road here. Only the jump has a gap.
@@ -507,6 +529,11 @@ func solid(t: float) -> bool:
 
 ## How much the exit turns, in signed Godot yaw steps of 15 degrees.
 func heading_delta() -> int:
+	var delta := _forward_heading_delta()
+	return -delta if inverted else delta
+
+
+func _forward_heading_delta() -> int:
 	if type == "connector":
 		return connector_heading
 	if type == "curve":
@@ -518,7 +545,16 @@ func heading_delta() -> int:
 
 ## Where the next piece starts, in this piece's space.
 func exit() -> Transform3D:
-	var end := point(1.0)
+	if inverted:
+		var finish := _forward_exit()
+		var basis := Basis(Vector3.UP, -heading_delta() * PI / 12.0)
+		var turn_back := Basis(Vector3.UP, PI) * finish.basis.inverse()
+		return Transform3D(basis, turn_back * -finish.origin)
+	return _forward_exit()
+
+
+func _forward_exit() -> Transform3D:
+	var end := _forward_point(1.0)
 	if type == "connector":
 		return Transform3D(Basis(Vector3.UP, connector_heading * PI / 12.0), end)
 	if type == "loop":
@@ -530,6 +566,37 @@ func exit() -> Transform3D:
 	if type == "arc":
 		return Transform3D(Basis(Vector3.UP, -turn * deg_to_rad(angle)), end)
 	return Transform3D(Basis.IDENTITY, end)
+
+
+## Reflects the piece through its local YZ plane.
+func mirror() -> void:
+	turn = -turn
+	side = -side
+	across = -across
+	shift = -shift
+	bank = -bank
+	connector_end.x = -connector_end.x
+	connector_heading = -connector_heading
+	_swap_sides()
+
+
+## Makes the piece run from its old exit back to its old start.
+func invert() -> void:
+	if inverted:
+		return
+	inverted = true
+	jump_reversed = type == "jump"
+	_swap_sides()
+
+
+func _swap_sides() -> void:
+	var old_left := wall_left
+	wall_left = wall_right
+	wall_right = old_left
+	if edges == "left_open":
+		edges = "right_open"
+	elif edges == "right_open":
+		edges = "left_open"
 
 
 func _connector_forward() -> Vector3:
