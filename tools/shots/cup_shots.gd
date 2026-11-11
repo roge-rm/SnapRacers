@@ -27,6 +27,16 @@ func _ready() -> void:
 	add_child(host)
 	Game.start(host, false)
 	Records.use_file("user://screenshot_records.cfg")
+	# Light some reverse / mirrored / both pips so the README shot shows them.
+	var n := 0
+	for cup in GrandPrix.cups():
+		Records.add_cup_place(cup.id, 1 + n % 3, Difficulty.DEFAULT, false)
+		Records.add_cup_place(cup.id, 1, Difficulty.DEFAULT, false, "reverse")
+		if n % 2 == 0:
+			Records.add_cup_place(cup.id, 2, Difficulty.DEFAULT, false, "mirrored")
+		if n % 3 == 0:
+			Records.add_cup_place(cup.id, 1, Difficulty.DEFAULT, false, "reverse mirrored")
+		n += 1
 	if more > 0:
 		# Made-up cups for the shot only, borrowing the real ones' courses.
 		var cups: Array = GrandPrix.cups().duplicate()
