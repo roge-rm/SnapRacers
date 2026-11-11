@@ -1,0 +1,13 @@
+{
+	"name": "Cut bend oval",
+	"theme": "orchard",
+	"grid": 32,
+	"pieces": [
+		{"type": "straight", "length": 2},
+		{"type": "curve", "turn": "right", "size": 2, "cut": true},
+		{"type": "curve", "turn": "right", "size": 2},
+		{"type": "straight", "length": 2},
+		{"type": "curve", "turn": "right", "size": 2},
+		{"type": "curve", "turn": "right", "size": 2}
+	]
+}

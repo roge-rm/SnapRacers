@@ -175,7 +175,7 @@ func _ready() -> void:
 	for i in track.pieces.size():
 		var piece := track.pieces[i]
 		if piece.type == "curve" and piece.cut:
-			dressing.keep_clear.append([track.piece_starts[i] * Vector3(piece.turn * piece.radius, 0.0, 0.0), piece.radius])
+			dressing.keep_clear.append([_cut_centre(i, piece), piece.radius])
 	# And the railways.
 	for crossing in crossings:
 		dressing.keep_off.append_array(crossing.clear_lines())
@@ -480,12 +480,18 @@ func _cap(tool: SurfaceTool, k: int, facing: float) -> void:
 		tool.add_vertex(points[i])
 
 
+## The bend's centre stays on the driven inside when its direction is reversed.
+func _cut_centre(index: int, piece: TrackPiece) -> Vector3:
+	var driven_turn := -piece.turn if piece.inverted else piece.turn
+	return track.piece_starts[index] * Vector3(driven_turn * piece.radius, 0.0, 0.0)
+
+
 ## The dirt patch inside a cut bend. It's a quarter circle from the corner of
 ## the bend out to the inside curb.
 func _add_cut(index: int, piece: TrackPiece) -> void:
 	var start := track.piece_starts[index]
 	var reach := piece.radius - track.width * 0.5 - TrackPath.KERB
-	var centre := start * Vector3(piece.turn * piece.radius, 0.0, 0.0)
+	var driven_turn := -piece.turn if piece.inverted else piece.turn
 	var tool := SurfaceTool.new()
 	tool.begin(Mesh.PRIMITIVE_TRIANGLES)
 	tool.set_color(COLOURS["dirt"])
@@ -497,14 +503,14 @@ func _add_cut(index: int, piece: TrackPiece) -> void:
 	var spot := func(ring: int, step: int) -> Vector3:
 		var a := float(step) / steps * PI * 0.5
 		var r := reach * float(ring) / rings
-		var v: Vector3 = start * Vector3(piece.turn * (piece.radius - r * cos(a)), 0.0, -r * sin(a))
+		var v: Vector3 = start * Vector3(driven_turn * (piece.radius - r * cos(a)), 0.0, -r * sin(a))
 		v.y = ground_at(v.x, v.z) + lift if terrain != null else v.y + lift
 		return v
 	for ring in rings:
 		for i in steps:
 			var quad := [spot.call(ring, i), spot.call(ring + 1, i), spot.call(ring + 1, i + 1), spot.call(ring, i + 1)]
 			var tris := [quad[0], quad[1], quad[2], quad[0], quad[2], quad[3]]
-			if piece.turn < 0:
+			if driven_turn < 0:
 				tris = [quad[0], quad[2], quad[1], quad[0], quad[3], quad[2]]
 			for v in tris:
 				tool.add_vertex(v)
