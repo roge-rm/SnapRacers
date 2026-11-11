@@ -99,6 +99,7 @@ func _load_config() -> void:
 		"tls_cert": "", "tls_key": "",
 		"mode": NetSession.SINGLE, "course": "peach_pit", "cup": "baseplate", "laps": 3,
 		"ai": true, "difficulty": Difficulty.DEFAULT, "weather": Conditions.RANDOM, "time": Conditions.RANDOM,
+		"reversed": false, "mirrored": false,
 		"start_after": 10, "standings_for": 15,
 	}
 	var data = JSON.parse_string(FileAccess.get_file_as_string(config_path)) if FileAccess.file_exists(config_path) else null
@@ -169,7 +170,16 @@ func _settings_from_config() -> Dictionary:
 		"difficulty": config.difficulty,
 		"weather": config.weather,
 		"time": config.time,
+		"reversed": _flag(config.reversed),
+		"mirrored": _flag(config.mirrored),
 	}
+
+
+## on/off from the admin, or a boolean already in the config.
+func _flag(value: Variant) -> bool:
+	if typeof(value) == TYPE_BOOL:
+		return bool(value)
+	return str(value).to_lower() == "on"
 
 
 func say(line: String) -> void:
@@ -287,6 +297,9 @@ func _check_setting(key: String, value: Variant) -> String:
 		"time":
 			if not str(value) in [Conditions.RANDOM] + Conditions.TIMES:
 				return "The time of day is one of random, %s" % ", ".join(Conditions.TIMES)
+		"reversed", "mirrored":
+			if typeof(value) != TYPE_BOOL and not str(value).to_lower() in ["on", "off"]:
+				return "%s is on or off" % ("Reversed" if key == "reversed" else "Mirrored")
 		"ai":
 			if typeof(value) != TYPE_BOOL:
 				return "AI drivers are true or false"
@@ -343,6 +356,8 @@ func command(words: PackedStringArray) -> Dictionary:
 				return {"ok": false, "error": wrong}
 			if typeof(config[words[1]]) == TYPE_STRING:
 				value = words[2]
+			if words[1] in ["reversed", "mirrored"]:
+				value = _flag(value)
 			if config[words[1]] == value:
 				return {"ok": true, "restart": false}
 			config[words[1]] = value

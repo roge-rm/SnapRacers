@@ -87,7 +87,7 @@ func _run() -> void:
 	var before := course.to_dict()
 	check(course.close_up().is_empty() and course.to_dict() == before and ClosureCursor.advance(ClosureCursor.start(0), TrackPiece.from_spec(specs[0])).is_empty(), "fixed-part closer refuses non-lattice pieces without moving or rounding the course")
 	var net := NetSession.new()
-	check(NetSession.VERSION == 18 and net._check({"version": 17}).contains("different version") and net._check({"version": 18, "players": []}) == "Nobody to race.", "current online peers accept the new engine tuning and reject older physics")
+	check(NetSession.VERSION == 19 and net._check({"version": 18}).contains("different version") and net._check({"version": 19, "players": []}) == "Nobody to race.", "current online peers accept engine tuning and reverse or mirrored layouts and reject protocol 18")
 	check(not TrackPiece.from_spec({"type": "connector", "end": [0, -32], "heading": 0, "handles": [512, 512]}).safe_connector(13.0), "analytic control-polygon guard rejects collinear reversal hidden between curvature samples")
 	var dense_specs := []
 	for i in 400:

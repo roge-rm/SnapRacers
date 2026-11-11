@@ -65,7 +65,7 @@ Use the x86_64 AppImage. In Desktop Mode, download it, right-click it and turn o
 
 ## Racing
 
-Grand Prix has 14 cups of four races, with points and trophies. From the second race on, the leader starts at the back. Finish in the top three for a gold, silver or bronze trophy, kept separately for each difficulty. You can also make cups of 2 to 8 races from any courses.
+Grand Prix has 14 cups of four races, with points and trophies. From the second race on, the leader starts at the back. Finish in the top three for a gold, silver or bronze trophy, kept separately for each difficulty. Reverse, mirrored and both have three extra marks on each difficulty medal. You can also make cups of 2 to 8 races from any courses.
 
 Single race is one race against the AI, time trial keeps your best times and practice lets you drive on your own for as long as you like.
 
@@ -234,6 +234,8 @@ In the driver screen or garage, use Share in the file menu. To import one, open 
 ## Weather and time of day
 
 Pick the weather and time beside the difficulty, or leave them to chance. A course can have its own set in the editor.
+
+Reverse and Mirrored are toggles beside weather and time. Each is independent, the whole cup uses them, and time trial records are kept separately. Jumps still have a kicker.
 
 - Morning, day, evening, dusk and night change the sun, sky and shadows. At night the moon casts fainter shadows.
 - Rain makes the road shiny and slippery. Puddles slow you and grip less again. Puddles and drifts grow over the race, and the AI goes round big ones when there's room.

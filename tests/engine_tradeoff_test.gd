@@ -89,7 +89,7 @@ func _ready() -> void:
 	check(one.top_speed() > 25.0 and one.pull() > 0.7, "one micro still powers a driveable kart")
 	check(two.mass > one.mass and two.top_speed() > one.top_speed() and two.pull() > one.pull(), "a second micro still adds performance and weight")
 	var net := NetSession.new()
-	check(NetSession.VERSION == 18 and net._check({"version": 17}).contains("different version") and net._check({"version": 18, "players": []}) == "Nobody to race.", "online peers cannot mix the old and new engine physics")
+	check(NetSession.VERSION == 19 and net._check({"version": 18}).contains("different version") and net._check({"version": 19, "players": []}) == "Nobody to race.", "online peers cannot mix engine physics or reverse and mirrored layouts")
 	net.free()
 	var floor := ground()
 	var one_launch: Dictionary = await launch(single)
