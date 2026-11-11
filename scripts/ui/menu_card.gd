@@ -10,6 +10,12 @@ extends ScrollButton
 ## stripe.
 const LEFT := 28
 const EDGE := 14
+## Medal pill, wide enough for the three letters on the left and three pips.
+const PILL := Vector2(76, 20)
+const PIP := Vector2(9, 12)
+const PIP_ON := Color("#fffdf2")
+const PIP_HOLE := Color(0, 0, 0, 0.38)
+const PIP_HOLE_GREY := Color(1, 1, 1, 0.1)
 
 var content: VBoxContainer
 ## The number in the top right, like "01", or none.
@@ -18,7 +24,7 @@ var number := "":
 		number = value
 		queue_redraw()
 ## The medal markers, one slot per level: a medal's colour where it's won,
-## clear where it isn't. None are drawn if none are won.
+## clear where it isn't. Drawn if any medal is won or any layout pip is on.
 var medals: Array[Color] = []:
 	set(value):
 		medals = value
@@ -28,6 +34,13 @@ var medals: Array[Color] = []:
 var medal_names: Array[String] = []:
 	set(value):
 		medal_names = value
+		queue_redraw()
+
+## Four rows of three pips, reverse then mirrored then both, same order as
+## medals. A pip is on when that layout is finished in the top three.
+var medal_pips: Array = []:
+	set(value):
+		medal_pips = value
 		queue_redraw()
 
 var _stripe := Color.TRANSPARENT
@@ -119,17 +132,18 @@ func _draw() -> void:
 		var wide := font.get_string_size(number, HORIZONTAL_ALIGNMENT_LEFT, -1, high).x
 		var tint := Color(_stripe.lightened(0.25), 0.6) if _stripe.a > 0.0 else UiKit.FADED
 		draw_string(font, Vector2(size.x - EDGE - 8.0 - wide, 10.0 + font.get_ascent(high)), number, HORIZONTAL_ALIGNMENT_LEFT, -1, high, tint)
-	if medals.any(func(c: Color) -> bool: return c.a > 0.0):
-		# One under the other down the left, clear of the picture. Each has the
-		# first three letters of its level on it.
+	if _shows_medals():
+		# One under the other down the left, clear of the picture. Letters sit
+		# left, three layout pips sit right. Height stays in _draw.
 		var y := 12.0
 		var body := UiKit.font("body")
 		var lift := (body.get_ascent(UiKit.SMALL) - body.get_descent(UiKit.SMALL)) * 0.5
 		var tilt := _tilt()
-		for i in medals.size():
-			var colour := medals[i]
+		var rows := maxi(medals.size(), medal_pips.size())
+		for i in rows:
+			var colour := medals[i] if i < medals.size() else Color.TRANSPARENT
 			# Leans with the card and sits against the stripe.
-			var at := Rect2(_stripe_end(y + 20.0, tilt), y, 46.0, 20.0)
+			var at := Rect2(_stripe_end(y + PILL.y, tilt), y, PILL.x, PILL.y)
 			if colour.a > 0.0:
 				UiKit.draw_slant(self, Rect2(at.position + Vector2(2, 2), at.size), UiKit.SHADOW_COLOUR, tilt)
 				UiKit.draw_slant(self, at, colour, tilt)
@@ -137,9 +151,38 @@ func _draw() -> void:
 				UiKit.draw_slant(self, at, UiKit.EDGE, tilt)
 			if i < medal_names.size():
 				var word := medal_names[i].substr(0, 3).to_upper()
-				var wide := body.get_string_size(word, HORIZONTAL_ALIGNMENT_LEFT, -1, UiKit.SMALL).x
-				draw_string(body, Vector2(at.get_center().x - wide * 0.5, at.get_center().y + lift), word, HORIZONTAL_ALIGNMENT_LEFT, -1, UiKit.SMALL, UiKit.INK if colour.a > 0.0 else UiKit.FADED)
+				draw_string(body, Vector2(at.position.x + 6.0, at.get_center().y + lift), word, HORIZONTAL_ALIGNMENT_LEFT, -1, UiKit.SMALL, UiKit.INK if colour.a > 0.0 else UiKit.FADED)
+			_draw_pips(at, colour, medal_pips[i] if i < medal_pips.size() else [], tilt)
 			y += 24.0
+
+
+## True if any ordinary medal is won or any reverse/mirrored pip is on, so a
+## grey HAR pill still shows when only reverse Hard is finished.
+func _shows_medals() -> bool:
+	for colour in medals:
+		if colour.a > 0.0:
+			return true
+	for row in medal_pips:
+		if row is Array:
+			for pip in row:
+				if pip:
+					return true
+	return false
+
+
+## Three parallelograms on the right of a pill, same lean as the card.
+func _draw_pips(pill: Rect2, medal: Color, pips: Array, tilt: float) -> void:
+	var gap := 3.0
+	var y := pill.position.y + (pill.size.y - PIP.y) * 0.5
+	var x := pill.end.x - 5.0 - 3.0 * PIP.x - 2.0 * gap
+	for i in 3:
+		var on := i < pips.size() and bool(pips[i])
+		var pip := Rect2(x + i * (PIP.x + gap), y, PIP.x, PIP.y)
+		if on:
+			UiKit.draw_slant(self, pip, UiKit.INK, tilt)
+			UiKit.draw_slant(self, Rect2(pip.position + Vector2(1, 1), pip.size - Vector2(2, 2)), PIP_ON, tilt)
+		else:
+			UiKit.draw_slant(self, pip, PIP_HOLE if medal.a > 0.0 else PIP_HOLE_GREY, tilt)
 
 
 ## How far the card's box leans for each pixel of height, as SlantBox works it

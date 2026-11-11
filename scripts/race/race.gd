@@ -765,7 +765,7 @@ func _loop_coming(offset: float) -> bool:
 func _player_finished(racer: Racer) -> void:
 	if mode == Game.MODE_TIME_TRIAL:
 		var best_lap: float = racer.progress.lap_times.min() if not racer.progress.lap_times.is_empty() else 0.0
-		new_records = Records.add_time(track_id, racer.progress.finish_time, best_lap, conditions)
+		new_records = Records.add_time(track_id, racer.progress.finish_time, best_lap, conditions, Records.layout_key(track.reversed, track.mirrored))
 	if racer.hud != null:
 		racer.hud.show_results()
 	if racer.camera != null:

@@ -1,7 +1,7 @@
 extends Node
 
 ## Reverse and mirrored as race settings: they persist, a cup copies them,
-## and apply_layout follows those flags.
+## apply_layout follows those flags, and cup-card pips follow layout records.
 ##
 ##   tools/godot/Godot_v4.7.2-stable_linux.x86_64 --headless --fixed-fps 60 --path . res://tests/layout_settings_test.tscn
 
@@ -51,5 +51,38 @@ func _ready() -> void:
 	Game.settings.set_value("race", "kart", saved_kart)
 	Game.set_reversed(saved_reversed)
 	Game.set_mirrored(saved_mirrored)
+	_pips()
 	print("%d layout settings checks passed." % checks if failures == 0 else "%d of %d layout settings checks failed." % [failures, checks])
 	get_tree().quit(1 if failures > 0 else 0)
+
+
+func _pips() -> void:
+	print("-- Cup pips")
+	const RECORDS := "user://layout_settings_records.cfg"
+	DirAccess.remove_absolute(ProjectSettings.globalize_path(RECORDS))
+	Records.use_file(RECORDS)
+	check(Records.layout_key(false, false) == "" and Records.layout_key(true, false) == "reverse" and Records.layout_key(false, true) == "mirrored" and Records.layout_key(true, true) == "reverse mirrored", "layout_key names reverse, mirrored and both")
+	Records.add_cup_place("baseplate", 1)
+	Records.add_cup_place("baseplate", 2, Difficulty.DEFAULT, false, "reverse")
+	Records.add_cup_place("baseplate", 1, "hard", false, "reverse")
+	Records.add_cup_place("baseplate", 3, "easy", false, "reverse mirrored")
+	Records.add_cup_place("baseplate", 1, "hard", true, "mirrored")
+	var card := MenuCard.new()
+	var medals: Array[Color] = []
+	var names: Array[String] = []
+	for level in Difficulty.LEVELS:
+		names.append(Difficulty.name_of(level))
+		var place := Records.best_cup_place("baseplate", level)
+		medals.append(UiKit.MEDALS[place] if place > 0 and place <= 3 else Color.TRANSPARENT)
+	card.medals = medals
+	card.medal_names = names
+	card.medal_pips = CupGrid.pips_for("baseplate")
+	check(card.medals[1].is_equal_approx(UiKit.MEDALS[1]) and card.medal_pips[1] == [true, false, false], "ordinary gold plus reverse pip, mirrored empty, both empty")
+	check(card.medal_pips[0] == [false, false, true], "reverse+mirrored pip only lights the third")
+	check(card.medals[2].a == 0.0 and card.medal_pips[2] == [true, false, false] and card._shows_medals(), "grey HAR with reverse pip on")
+	check(is_equal_approx(MenuCard.PILL.x, 76.0) and is_equal_approx(MenuCard.PILL.y, 20.0), "pills stay 20 high and widen for the pips")
+	check(CupGrid.pips_for("baseplate", true)[2] == [false, true, false] and not card.medal_pips[2][1], "cups for two keep their own pips")
+	check(CupGrid.best_place("baseplate") == 1, "the trophy stays ordinary")
+	Records.use_file(Records.FILE)
+	DirAccess.remove_absolute(ProjectSettings.globalize_path(RECORDS))
+	card.free()

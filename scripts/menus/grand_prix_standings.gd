@@ -120,7 +120,7 @@ func _build() -> void:
 		column.add_child(banner)
 		if not Game.net.is_online() and not _recorded:
 			_recorded = true
-			Records.add_cup_place(grand_prix.cup.id, place, grand_prix.difficulty, grand_prix.two)
+			Records.add_cup_place(grand_prix.cup.id, place, grand_prix.difficulty, grand_prix.two, Records.layout_key(grand_prix.reversed, grand_prix.mirrored))
 	var table := GridContainer.new()
 	table.columns = 3
 	table.add_theme_constant_override("h_separation", 40)

@@ -371,6 +371,16 @@ func _difficulty() -> void:
 	check(check_ranks == range(7) and quickest.size() > 2, "the pecking order is shuffled every time (%d different drivers were quickest in 30 draws)" % quickest.size())
 	Records.add_cup_place("axle", 2, "hard")
 	check(Records.best_cup_place("axle", "hard") == 2 and Records.best_cup_place("axle") == 0, "a cup's trophies are kept for each level")
+	Records.add_cup_place("axle", 1, "easy", false, "reverse")
+	check(Records.best_cup_place("axle") == 0 and Records.best_cup_place("axle", "easy") == 0, "a reverse cup place does not fill ordinary")
+	check(Records.best_cup_place("axle", "easy", false, "reverse") == 1, "and is kept as reverse Easy")
+	Records.add_cup_place("axle", 2, "expert", false, "reverse mirrored")
+	check(Records.best_cup_place("axle", "expert", false, "reverse") == 0 and Records.best_cup_place("axle", "expert", false, "mirrored") == 0, "reverse and mirrored stay empty when only both is finished")
+	check(Records.best_cup_place("axle", "expert", false, "reverse mirrored") == 2, "and reverse mirrored is its own place")
+	var saved := ConfigFile.new()
+	saved.load(ProjectSettings.globalize_path(RECORDS))
+	check(saved.get_value("cup", "axle reverse easy", 0) == 1 and saved.get_value("cup", "axle reverse mirrored expert", 0) == 2, "layout keys sit between the cup and the level")
+	check(saved.get_value("cup", "axle hard", 0) == 2 and saved.get_value("cup", "axle", 0) == 0, "ordinary keys stay as they were")
 
 	Game.settings.set_value("race", "difficulty", "expert")
 	Game.start_race(Tracks.path_of("peach_pit"))
@@ -418,6 +428,9 @@ func _time_trial() -> void:
 	check(Records.add_time("indoor_test", 90.0, 20.0, indoor) == [true, true], "indoor courses always allow records")
 	Records.use_file(RECORDS)
 	check(is_equal_approx(Records.best_time("peach_pit"), 120.75), "eligible records survive a reload")
+	check(Records.add_time("peach_pit", 90.0, 20.0, null, "reverse") == [true, true], "a reverse time is a record of its own")
+	check(is_equal_approx(Records.best_time("peach_pit"), 120.75) and is_equal_approx(Records.best_lap("peach_pit"), 38.0), "and does not replace ordinary peach_pit")
+	check(is_equal_approx(Records.best_time("peach_pit", "reverse"), 90.0) and is_equal_approx(Records.best_lap("peach_pit", "reverse"), 20.0), "the reverse time and lap are kept")
 
 
 func _practice() -> void:

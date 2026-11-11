@@ -3,7 +3,8 @@ extends Control
 
 ## Every cup on one screen, each with its trophy and its courses' layouts. The
 ## trophy's light grey until you finish the cup in the top three, then it's
-## gold, silver or bronze for your best place, with the levels you did it on.
+## gold, silver or bronze for your best ordinary place, with reverse and
+## mirrored as pips on the difficulty medals.
 ##
 ## In a Grand Prix you pick a cup to race. For a single race, a time trial,
 ## practice or a race for two you pick a cup and then one of its courses (see
@@ -151,7 +152,7 @@ func _fit_height(rows: int) -> void:
 
 
 ## Your best place in a cup at any level, for its trophy, or 0. With `two`
-## it's the cup for two on one phone.
+## it's the cup for two on one phone. Ordinary layout only.
 static func best_place(id: String, two := false) -> int:
 	var best := 0
 	for level in Difficulty.LEVELS:
@@ -159,6 +160,19 @@ static func best_place(id: String, two := false) -> int:
 		if place > 0 and (best == 0 or place < best):
 			best = place
 	return best
+
+
+## Three pips per difficulty: reverse, mirrored, both. On if that layout is
+## finished in the top three.
+static func pips_for(id: String, two := false) -> Array:
+	var pips: Array = []
+	for level in Difficulty.LEVELS:
+		var row: Array = []
+		for layout in ["reverse", "mirrored", "reverse mirrored"]:
+			var place := Records.best_cup_place(id, level, two, layout)
+			row.append(place > 0 and place <= 3)
+		pips.append(row)
+	return pips
 
 
 ## Whether these are the Grand Prix cups for two, with their own trophies.
@@ -178,13 +192,15 @@ func _pick(id: String) -> void:
 func _cup_card(id: String, cup_name: String, spec: Dictionary, colour: Color, paths: Array) -> MenuCard:
 	var card := MenuCard.new(colour)
 	card.set_meta("cup", id)
-	# A medal marker for each level, in order, coloured by your best place.
+	# A medal marker for each level, in order, coloured by your best ordinary
+	# place. Reverse, mirrored and both are pips on that pill.
 	var medals: Array[Color] = []
 	var won := []
 	var names: Array[String] = []
+	var two := _for_two()
 	for level in Difficulty.LEVELS:
 		names.append(Difficulty.name_of(level))
-		var place := Records.best_cup_place(id, level, _for_two())
+		var place := Records.best_cup_place(id, level, two)
 		if place > 0 and place <= 3:
 			medals.append(MEDALS[place])
 			won.append("%s %s" % [Difficulty.name_of(level), ["", "gold", "silver", "bronze"][place]])
@@ -192,8 +208,9 @@ func _cup_card(id: String, cup_name: String, spec: Dictionary, colour: Color, pa
 			medals.append(Color.TRANSPARENT)
 	card.medals = medals
 	card.medal_names = names
+	card.medal_pips = pips_for(id, two)
 	card.tooltip_text = ", ".join(won)
-	var finish := TrophyModel.finish_for(best_place(id, _for_two()))
+	var finish := TrophyModel.finish_for(best_place(id, two))
 	var key := TrophyThumbnails.key_of(spec, colour, finish)
 	var trophy := card.picture(TrophyThumbnails.picture(key), TROPHY)
 	_pictures.append(trophy)
