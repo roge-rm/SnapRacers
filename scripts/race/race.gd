@@ -148,6 +148,19 @@ func _ready() -> void:
 		split = Game.race_split()
 	var people := 1 if split == Game.SOLO else 2
 	track = TrackPath.load_file(Game.track_path)
+	var gp := mode == Game.MODE_GRAND_PRIX and Game.grand_prix != null
+	var mirrored := false
+	var reversed := false
+	if Game.net.is_online() and not Game.net.setup.is_empty():
+		mirrored = bool(Game.net.setup.get("mirrored", false))
+		reversed = bool(Game.net.setup.get("reversed", false))
+	elif gp:
+		mirrored = Game.grand_prix.mirrored
+		reversed = Game.grand_prix.reversed
+	else:
+		mirrored = Game.mirrored()
+		reversed = Game.reversed()
+	track.apply_layout(mirrored, reversed)
 	track_id = Tracks.id_of(Game.track_path)
 	laps = 1000000 if mode == Game.MODE_PRACTICE else track.laps
 	difficulty = Game.grand_prix.difficulty if mode == Game.MODE_GRAND_PRIX and Game.grand_prix != null else Game.difficulty()

@@ -155,6 +155,8 @@ func start(host: Node, splash := true) -> void:
 	if not splash:
 		settings.set_value("race", "weather", "clear")
 		settings.set_value("race", "time", "day")
+		settings.set_value("race", "reversed", false)
+		settings.set_value("race", "mirrored", false)
 		settings.set_value("display", "graphics", Graphics.DEFAULT)
 	set_graphics(graphics())
 	if splash:
@@ -363,6 +365,8 @@ func start_grand_prix(which: Variant, two := false) -> void:
 	grand_prix.difficulty = difficulty()
 	grand_prix.weather = weather()
 	grand_prix.time = time_of_day()
+	grand_prix.reversed = reversed()
+	grand_prix.mirrored = mirrored()
 	show_race(grand_prix.track_path())
 
 
@@ -664,6 +668,23 @@ func time_of_day() -> String:
 
 func set_time_of_day(pick: String) -> void:
 	set_setting("race", "time", pick)
+
+
+## Reverse and mirrored, for races and the whole cup.
+func reversed() -> bool:
+	return bool(settings.get_value("race", "reversed", false))
+
+
+func set_reversed(on: bool) -> void:
+	set_setting("race", "reversed", on)
+
+
+func mirrored() -> bool:
+	return bool(settings.get_value("race", "mirrored", false))
+
+
+func set_mirrored(on: bool) -> void:
+	set_setting("race", "mirrored", on)
 
 
 ## How much the game draws, "low", "medium" or "high" (see Graphics).

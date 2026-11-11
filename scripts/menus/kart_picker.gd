@@ -31,6 +31,8 @@ var _levels := {}
 var _level_about: Label
 var _weather: Button
 var _time: Button
+var _reversed: Button
+var _mirrored: Button
 var _conditions_about: Label
 ## Which of two players on this phone is picking, 1 or 2, or 0 when it's one.
 var player := 0
@@ -92,6 +94,9 @@ func _ready() -> void:
 		_show_level(Game.difficulty())
 	if player != 2:
 		outer.add_child(_conditions_row())
+		outer.move_child(outer.get_child(outer.get_child_count() - 1), at)
+		at += 1
+		outer.add_child(_layout_row())
 		outer.move_child(outer.get_child(outer.get_child_count() - 1), at)
 		_show_conditions()
 
@@ -181,9 +186,28 @@ func _conditions_row() -> HBoxContainer:
 	return row
 
 
+## Reverse and mirrored, each a toggle, independent of the weather.
+func _layout_row() -> HBoxContainer:
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 10)
+	_reversed = MenuStyle.button("", func() -> void:
+		Game.set_reversed(not Game.reversed())
+		_show_conditions())
+	_reversed.custom_minimum_size = Vector2(300, 48)
+	row.add_child(_reversed)
+	_mirrored = MenuStyle.button("", func() -> void:
+		Game.set_mirrored(not Game.mirrored())
+		_show_conditions())
+	_mirrored.custom_minimum_size = Vector2(300, 48)
+	row.add_child(_mirrored)
+	return row
+
+
 func _show_conditions() -> void:
 	_weather.text = "Weather: %s" % Conditions.WEATHER_NAMES[Game.weather()]
 	_time.text = "Time: %s" % Conditions.TIME_NAMES[Game.time_of_day()]
+	_reversed.text = "Reverse: %s" % ("On" if Game.reversed() else "Off")
+	_mirrored.text = "Mirrored: %s" % ("On" if Game.mirrored() else "Off")
 	var random := Game.weather() == Conditions.RANDOM or Game.time_of_day() == Conditions.RANDOM
 	if not random:
 		_conditions_about.text = ""

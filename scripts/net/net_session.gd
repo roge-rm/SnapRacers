@@ -43,7 +43,7 @@ var role := Role.NONE
 ## "driver", "kart" } ], "ready" }. A server has no players of its own.
 var members := {}
 ## What's being raced: { "mode", "course" (a course), "cup" ({ "name",
-## "courses" }), "laps", "ai", "difficulty" }.
+## "courses" }), "laps", "ai", "difficulty", "reversed", "mirrored" }.
 var settings := {}
 ## The race going on, as the host set it up (see _setup()).
 var setup := {}
@@ -139,6 +139,8 @@ static func default_settings() -> Dictionary:
 		"difficulty": Difficulty.DEFAULT,
 		"weather": Conditions.RANDOM,
 		"time": Conditions.RANDOM,
+		"reversed": false,
+		"mirrored": false,
 	}
 
 
@@ -309,6 +311,8 @@ func _setup() -> Dictionary:
 		"difficulty": settings.difficulty, "entries": entries, "round": cup_round,
 		"rounds": settings.cup.get("courses", []).size() if settings.mode == CUP else 1,
 		"cup_name": settings.cup.get("name", ""), "points": cup_points,
+		"reversed": bool(settings.get("reversed", false)),
+		"mirrored": bool(settings.get("mirrored", false)),
 	}
 
 

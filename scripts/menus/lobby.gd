@@ -169,6 +169,17 @@ func _show_settings(host: bool) -> void:
 		var time_button := MenuStyle.button("Time: %s" % Conditions.TIME_NAMES.get(time, "Random"), func() -> void: Game.net.set_settings({"time": Conditions.next_pick(time, Conditions.TIMES)}))
 		time_button.size_flags_horizontal = SIZE_EXPAND_FILL
 		conditions.add_child(time_button)
+		var layout := HBoxContainer.new()
+		layout.add_theme_constant_override("separation", 10)
+		_settings.add_child(layout)
+		var reversed := bool(s.get("reversed", false))
+		var mirrored := bool(s.get("mirrored", false))
+		var reverse_button := MenuStyle.button("Reverse: %s" % ("On" if reversed else "Off"), func() -> void: Game.net.set_settings({"reversed": not reversed}))
+		reverse_button.size_flags_horizontal = SIZE_EXPAND_FILL
+		layout.add_child(reverse_button)
+		var mirror_button := MenuStyle.button("Mirrored: %s" % ("On" if mirrored else "Off"), func() -> void: Game.net.set_settings({"mirrored": not mirrored}))
+		mirror_button.size_flags_horizontal = SIZE_EXPAND_FILL
+		layout.add_child(mirror_button)
 		if s.ai:
 			var levels := HBoxContainer.new()
 			levels.add_theme_constant_override("separation", 8)
@@ -180,7 +191,16 @@ func _show_settings(host: bool) -> void:
 				levels.add_child(button)
 	else:
 		var label := Label.new()
-		label.text = "%s\n%s\n%s" % [what, ("AI drivers in the empty places, %s" % Difficulty.name_of(s.difficulty).to_lower()) if s.ai else "No AI drivers", Conditions.pick_name(s.get("weather", Conditions.RANDOM), s.get("time", Conditions.RANDOM))]
+		var about := Conditions.pick_name(s.get("weather", Conditions.RANDOM), s.get("time", Conditions.RANDOM))
+		var reversed := bool(s.get("reversed", false))
+		var mirrored := bool(s.get("mirrored", false))
+		if reversed and mirrored:
+			about += "\nReversed and mirrored"
+		elif reversed:
+			about += "\nReversed"
+		elif mirrored:
+			about += "\nMirrored"
+		label.text = "%s\n%s\n%s" % [what, ("AI drivers in the empty places, %s" % Difficulty.name_of(s.difficulty).to_lower()) if s.ai else "No AI drivers", about]
 		_settings.add_child(label)
 		_offer_to_keep(s, cup)
 

@@ -152,6 +152,7 @@ func _build() -> void:
 			Game.show_cups(two)))
 	else:
 		var next := TrackPath.load_file(grand_prix.track_path())
+		next.apply_layout(grand_prix.mirrored, grand_prix.reversed)
 		var button := MenuStyle.button("Next race", Game.next_grand_prix_race, next.name)
 		button.theme_type_variation = "MainButton"
 		button.custom_minimum_size.y = 84.0

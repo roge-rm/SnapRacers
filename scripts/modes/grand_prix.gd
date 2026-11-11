@@ -42,6 +42,9 @@ var difficulty := Difficulty.DEFAULT
 ## gets its own (see Conditions).
 var weather := Conditions.RANDOM
 var time := Conditions.RANDOM
+## Reverse and mirrored, for every race of the cup.
+var reversed := false
+var mirrored := false
 
 static var _cups: Array = []
 
