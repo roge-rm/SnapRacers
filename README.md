@@ -131,6 +131,8 @@ There are 302 parts.
 
 Brackets and side studs hold panels sideways or below a deck. Jumpers offset a part by half a stud, and compact hole bricks hold pins and axles. The brick with a race number is in Bricks.
 
+You can use more than one engine. Micro engines fit small gaps, larger petrol engines put more power in one part and electric motors pull hardest at low speed. Extra engines add weight as well as power.
+
 Slick tires grip the road best, knobbly tires handle dirt and grass, studded tires help on ice and balloon tires handle sand and curbs. Skinny wheels roll further.
 
 The kart's shape decides its drag. Flat faces catch the wind, slopes and nose cones let it past, and fairings help around open wheels. A windscreen shelters the driver. Lying down keeps the driver out of the wind too, but slows their steering. Put the steering close to the seat, the further they reach the slower their hands move.
