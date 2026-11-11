@@ -13,7 +13,7 @@ class SettingsFormTest(unittest.TestCase):
 
         class Control:
             def __init__(self):
-                self.values = {"reversed": False, "mirrored": True}
+                self.values = {"reversed": False, "mirrored": True, "ai": False}
                 self.changed = []
 
             def status(self):
