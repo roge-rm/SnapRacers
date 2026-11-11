@@ -11,14 +11,23 @@ const OUT := "res://art/ui/menu_races"
 const SIZE := Vector2i(1280, 720)
 const QUALITY := 0.85
 
+var _karts: Array[String] = []
+
 
 func frames(n: int) -> void:
 	for i in n:
 		await get_tree().process_frame
 
 
+func next_kart() -> String:
+	if _karts.is_empty():
+		_karts = Game.stock_keys()
+		_karts.shuffle()
+	return _karts.pop_back()
+
+
 func _ready() -> void:
-	var args := OS.get_cmdline_user_args()
+	var args: Array = Array(OS.get_cmdline_user_args())
 	var force := args.has("force")
 	args = args.filter(func(a): return a != "force")
 	var ids: Array = Tracks.all() if args.is_empty() else args
@@ -34,6 +43,8 @@ func _ready() -> void:
 	Game.start(host, false)
 	Sounds.hushed = true
 	Game.settings.set_value("race", "split", Game.SOLO)
+	Game.set_weather("clear")
+	Game.set_time_of_day("day")
 	Game.racing_alone = true
 	var done := 0
 	for id in ids:
@@ -49,20 +60,20 @@ func _ready() -> void:
 
 
 func shoot(id: String, dest: String) -> void:
+	var kart := next_kart()
+	Game.set_kart_choice(kart)
 	seed(id.hash())
-	Game.show_race(Tracks.path_of(id))
-	var race: Race = null
-	var waited := 0
-	while race == null and waited < 600:
-		await get_tree().process_frame
-		waited += 1
-		if Game._screen is Race:
-			race = Game._screen
-	if race == null:
+	print("shoot ", id, " in ", kart)
+	await Game.show_race(Tracks.path_of(id))
+	var race := Game._screen as Race
+	if race == null or not is_instance_valid(race):
 		push_error("no race for %s" % id)
 		return
-	while not race.started:
+	while is_instance_valid(race) and not race.started:
 		await frames(5)
+	if not is_instance_valid(race):
+		push_error("race freed for %s" % id)
+		return
 	var driver := AIDriver.new()
 	driver.kart = race.player.kart
 	driver.track = race.track
@@ -74,6 +85,9 @@ func shoot(id: String, dest: String) -> void:
 	race.player.kart.controls = driver.controls
 	var wait := 360 + absi(id.hash()) % 360
 	await frames(wait)
+	if not is_instance_valid(race):
+		push_error("race freed for %s" % id)
+		return
 	for layer in race.find_children("*", "CanvasLayer", true, false):
 		layer.visible = false
 	await frames(3)
@@ -82,4 +96,4 @@ func shoot(id: String, dest: String) -> void:
 	if picture.get_size() != SIZE:
 		picture.resize(SIZE.x, SIZE.y, Image.INTERPOLATE_LANCZOS)
 	picture.save_jpg(ProjectSettings.globalize_path(dest), QUALITY)
-	print("saved ", dest, " ", picture.get_size(), " after ", wait, " frames")
+	print("saved ", dest, " ", picture.get_size(), " after ", wait, " frames in ", kart)
