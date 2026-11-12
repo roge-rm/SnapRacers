@@ -157,29 +157,21 @@ func _show_settings(host: bool) -> void:
 		toggle.button_pressed = s.ai
 		toggle.toggled.connect(func(on: bool) -> void: Game.net.set_settings({"ai": on}))
 		ai_row.add_child(toggle)
-		# The weather and time of day, each a button that goes through them.
+		# Weather, time, reverse and mirrored on one row.
 		var conditions := HBoxContainer.new()
 		conditions.add_theme_constant_override("separation", 10)
 		_settings.add_child(conditions)
 		var weather: String = s.get("weather", Conditions.RANDOM)
 		var time: String = s.get("time", Conditions.RANDOM)
-		var weather_button := MenuStyle.button("Weather: %s" % Conditions.WEATHER_NAMES.get(weather, "Random"), func() -> void: Game.net.set_settings({"weather": Conditions.next_pick(weather, Conditions.WEATHERS)}))
-		weather_button.size_flags_horizontal = SIZE_EXPAND_FILL
-		conditions.add_child(weather_button)
-		var time_button := MenuStyle.button("Time: %s" % Conditions.TIME_NAMES.get(time, "Random"), func() -> void: Game.net.set_settings({"time": Conditions.next_pick(time, Conditions.TIMES)}))
-		time_button.size_flags_horizontal = SIZE_EXPAND_FILL
-		conditions.add_child(time_button)
-		var layout := HBoxContainer.new()
-		layout.add_theme_constant_override("separation", 10)
-		_settings.add_child(layout)
 		var reversed := bool(s.get("reversed", false))
 		var mirrored := bool(s.get("mirrored", false))
+		var weather_button := MenuStyle.button("Weather: %s" % Conditions.WEATHER_NAMES.get(weather, "Random"), func() -> void: Game.net.set_settings({"weather": Conditions.next_pick(weather, Conditions.WEATHERS)}))
+		var time_button := MenuStyle.button("Time: %s" % Conditions.TIME_NAMES.get(time, "Random"), func() -> void: Game.net.set_settings({"time": Conditions.next_pick(time, Conditions.TIMES)}))
 		var reverse_button := MenuStyle.button("Reverse: %s" % ("On" if reversed else "Off"), func() -> void: Game.net.set_settings({"reversed": not reversed}))
-		reverse_button.size_flags_horizontal = SIZE_EXPAND_FILL
-		layout.add_child(reverse_button)
 		var mirror_button := MenuStyle.button("Mirrored: %s" % ("On" if mirrored else "Off"), func() -> void: Game.net.set_settings({"mirrored": not mirrored}))
-		mirror_button.size_flags_horizontal = SIZE_EXPAND_FILL
-		layout.add_child(mirror_button)
+		for button in [weather_button, time_button, reverse_button, mirror_button]:
+			button.size_flags_horizontal = SIZE_EXPAND_FILL
+			conditions.add_child(button)
 		if s.ai:
 			var levels := HBoxContainer.new()
 			levels.add_theme_constant_override("separation", 8)

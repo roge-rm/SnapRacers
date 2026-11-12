@@ -9,6 +9,10 @@ func _ready() -> void:
 	var window := Vector2i(1280, 720)
 	var more := 0
 	var out := "cups"
+	var reversed := false
+	var mirrored := false
+	var weather := ""
+	var time := ""
 	for arg in OS.get_cmdline_user_args():
 		var pair := arg.split("=")
 		if pair.size() != 2:
@@ -21,13 +25,27 @@ func _ready() -> void:
 				more = int(pair[1])
 			"out":
 				out = pair[1]
+			"reverse":
+				reversed = pair[1] == "on"
+			"mirrored":
+				mirrored = pair[1] == "on"
+			"weather":
+				weather = pair[1]
+			"time":
+				time = pair[1]
 	DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_WINDOWED)
 	DisplayServer.window_set_size(window)
 	var host := Node.new()
 	add_child(host)
 	Game.start(host, false)
+	Game.set_reversed(reversed)
+	Game.set_mirrored(mirrored)
+	if weather != "":
+		Game.set_weather(weather)
+	if time != "":
+		Game.set_time_of_day(time)
 	Records.use_file("user://screenshot_records.cfg")
-	# Light some reverse / mirrored / both pips so the README shot shows them.
+	# Seed ordinary, reverse, mirrored and both so the filter has something to show.
 	var n := 0
 	for cup in GrandPrix.cups():
 		Records.add_cup_place(cup.id, 1 + n % 3, Difficulty.DEFAULT, false)

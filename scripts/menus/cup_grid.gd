@@ -3,8 +3,9 @@ extends Control
 
 ## Every cup on one screen, each with its trophy and its courses' layouts. The
 ## trophy's light grey until you finish the cup in the top three, then it's
-## gold, silver or bronze for your best ordinary place, with reverse and
-## mirrored as pips on the difficulty medals.
+## gold, silver or bronze for your best place in the layout Reverse and
+## Mirrored currently pick. Weather, Time, Reverse and Mirrored sit between
+## the title and Back.
 ##
 ## In a Grand Prix you pick a cup to race. For a single race, a time trial,
 ## practice or a race for two you pick a cup and then one of its courses (see
@@ -32,6 +33,11 @@ var yours := false
 
 var _grid: GridContainer
 var _column: VBoxContainer
+var _conditions_row: HBoxContainer
+var _weather: Button
+var _time: Button
+var _reversed: Button
+var _mirrored: Button
 var _trophies := {}
 ## Each card's trophy picture.
 var _pictures: Array[TextureRect] = []
@@ -56,6 +62,8 @@ func _ready() -> void:
 	if yours:
 		_column.get_parent().size_flags_vertical = Control.SIZE_FILL
 	var column := _column
+	_conditions_row = _make_conditions_row()
+	_put_in_header(_conditions_row)
 	_grid = GridContainer.new()
 	_grid.add_theme_constant_override("h_separation", GAP)
 	_grid.add_theme_constant_override("v_separation", GAP)
@@ -152,27 +160,24 @@ func _fit_height(rows: int) -> void:
 
 
 ## Your best place in a cup at any level, for its trophy, or 0. With `two`
-## it's the cup for two on one phone. Ordinary layout only.
-static func best_place(id: String, two := false) -> int:
+## it's the cup for two on one phone. `layout` is reverse, mirrored, or both;
+## empty is ordinary.
+static func best_place(id: String, two := false, layout := "") -> int:
 	var best := 0
 	for level in Difficulty.LEVELS:
-		var place := Records.best_cup_place(id, level, two)
+		var place := Records.best_cup_place(id, level, two, layout)
 		if place > 0 and (best == 0 or place < best):
 			best = place
 	return best
 
 
-## Three pips per difficulty: reverse, mirrored, both. On if that layout is
-## finished in the top three.
-static func pips_for(id: String, two := false) -> Array:
-	var pips: Array = []
+## Gold, silver, bronze or clear for each difficulty, in the picked layout.
+static func medals_for(id: String, two := false, layout := "") -> Array[Color]:
+	var medals: Array[Color] = []
 	for level in Difficulty.LEVELS:
-		var row: Array = []
-		for layout in ["reverse", "mirrored", "reverse mirrored"]:
-			var place := Records.best_cup_place(id, level, two, layout)
-			row.append(place > 0 and place <= 3)
-		pips.append(row)
-	return pips
+		var place := Records.best_cup_place(id, level, two, layout)
+		medals.append(MEDALS[place] if place > 0 and place <= 3 else Color.TRANSPARENT)
+	return medals
 
 
 ## Whether these are the Grand Prix cups for two, with their own trophies.
@@ -192,30 +197,16 @@ func _pick(id: String) -> void:
 func _cup_card(id: String, cup_name: String, spec: Dictionary, colour: Color, paths: Array) -> MenuCard:
 	var card := MenuCard.new(colour)
 	card.set_meta("cup", id)
-	# A medal marker for each level, in order, coloured by your best ordinary
-	# place. Reverse, mirrored and both are pips on that pill.
-	var medals: Array[Color] = []
-	var won := []
+	card.set_meta("trophy_spec", spec)
+	card.set_meta("trophy_colour", colour)
 	var names: Array[String] = []
-	var two := _for_two()
 	for level in Difficulty.LEVELS:
 		names.append(Difficulty.name_of(level))
-		var place := Records.best_cup_place(id, level, two)
-		if place > 0 and place <= 3:
-			medals.append(MEDALS[place])
-			won.append("%s %s" % [Difficulty.name_of(level), ["", "gold", "silver", "bronze"][place]])
-		else:
-			medals.append(Color.TRANSPARENT)
-	card.medals = medals
 	card.medal_names = names
-	card.medal_pips = pips_for(id, two)
-	card.tooltip_text = ", ".join(won)
-	var finish := TrophyModel.finish_for(best_place(id, two))
-	var key := TrophyThumbnails.key_of(spec, colour, finish)
-	var trophy := card.picture(TrophyThumbnails.picture(key), TROPHY)
+	var trophy := card.picture(null, TROPHY)
 	_pictures.append(trophy)
-	_trophies[key] = _trophies.get(key, []) + [trophy]
-	Game.trophy_pictures().take(spec, colour, finish)
+	card.set_meta("trophy", trophy)
+	_paint_card(card)
 	card.line(cup_name)
 	var layouts := HBoxContainer.new()
 	layouts.add_theme_constant_override("separation", 4)
@@ -271,6 +262,88 @@ func _card_with_words(text: String, more: String, action: Callable) -> MenuCard:
 ## race then, and it's made here because this screen is gone by then.
 static func _starter(mine: CupDesign, id: String, two: bool) -> Callable:
 	return func() -> void: Game.start_grand_prix(mine.to_cup(id), two)
+
+
+## Weather, time, reverse and mirrored, in the header between the title and Back.
+func _make_conditions_row() -> HBoxContainer:
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 10)
+	_weather = MenuStyle.button("", func() -> void:
+		Game.set_weather(Conditions.next_pick(Game.weather(), Conditions.WEATHERS))
+		_show_conditions())
+	_time = MenuStyle.button("", func() -> void:
+		Game.set_time_of_day(Conditions.next_pick(Game.time_of_day(), Conditions.TIMES))
+		_show_conditions())
+	_reversed = MenuStyle.button("", func() -> void:
+		Game.set_reversed(not Game.reversed())
+		_show_conditions())
+	_mirrored = MenuStyle.button("", func() -> void:
+		Game.set_mirrored(not Game.mirrored())
+		_show_conditions())
+	for button in [_weather, _time, _reversed, _mirrored]:
+		button.size_flags_horizontal = SIZE_EXPAND_FILL
+		button.size_flags_vertical = SIZE_SHRINK_CENTER
+		row.add_child(button)
+	_show_conditions()
+	return row
+
+
+## Puts the conditions in the title row, in the space the red bars used.
+func _put_in_header(row: HBoxContainer) -> void:
+	var outer: VBoxContainer = _column.get_parent().get_parent().get_parent()
+	var top: HBoxContainer = outer.get_child(0)
+	var back: Control = top.get_child(top.get_child_count() - 1)
+	for child in top.get_children():
+		if child is MenuStyle.Bars:
+			child.visible = false
+			child.custom_minimum_size = Vector2.ZERO
+			child.size_flags_horizontal = SIZE_SHRINK_BEGIN
+	row.size_flags_horizontal = SIZE_EXPAND_FILL
+	row.size_flags_vertical = SIZE_SHRINK_CENTER
+	back.size_flags_horizontal = SIZE_SHRINK_END
+	top.add_child(row)
+	top.move_child(row, 1)
+
+
+func _show_conditions() -> void:
+	_weather.text = Conditions.WEATHER_NAMES[Game.weather()]
+	_time.text = Conditions.TIME_NAMES[Game.time_of_day()]
+	_reversed.text = "Reverse"
+	_mirrored.text = "Mirrored"
+	MenuStyle.mark(_reversed, Game.reversed())
+	MenuStyle.mark(_mirrored, Game.mirrored())
+	if _grid != null:
+		_paint_all()
+
+
+func _paint_all() -> void:
+	for card in _grid.get_children():
+		if card.has_meta("cup"):
+			_paint_card(card)
+
+
+func _paint_card(card: MenuCard) -> void:
+	var id: String = card.get_meta("cup")
+	var two := _for_two()
+	var layout := Records.layout_key(Game.reversed(), Game.mirrored())
+	var medals := medals_for(id, two, layout)
+	card.medals = medals
+	var won: PackedStringArray = []
+	for i in medals.size():
+		if medals[i].a > 0.0:
+			var place := Records.best_cup_place(id, Difficulty.LEVELS[i], two, layout)
+			won.append("%s %s" % [Difficulty.name_of(Difficulty.LEVELS[i]), ["", "gold", "silver", "bronze"][place]])
+	card.tooltip_text = ", ".join(won)
+	var spec: Dictionary = card.get_meta("trophy_spec")
+	var colour: Color = card.get_meta("trophy_colour")
+	var finish := TrophyModel.finish_for(best_place(id, two, layout))
+	var key := TrophyThumbnails.key_of(spec, colour, finish)
+	var trophy: TextureRect = card.get_meta("trophy")
+	for list in _trophies.values():
+		list.erase(trophy)
+	trophy.texture = TrophyThumbnails.picture(key)
+	_trophies[key] = _trophies.get(key, []) + [trophy]
+	Game.trophy_pictures().take(spec, colour, finish)
 
 
 func _on_picture(key: String, picture: Texture2D) -> void:

@@ -2,9 +2,10 @@ class_name KartPicker
 extends Control
 
 ## Pick a kart before a race, either the one you built in the garage or one of
-## the stock karts. In a race against the AI you pick how good they are here
-## too. Each card has a picture of the kart, a line about it and bars for how
-## it compares with the rest. It remembers what you picked last time.
+## the stock karts. In a race against the AI, Easy, Normal, Hard and Expert sit
+## in the header between the title and Back. Each card has a picture of the
+## kart, a line about it and bars for how it compares with the rest. It
+## remembers what you picked last time.
 ##
 ## Two on one phone each pick in turn on this screen, player 1 first, with
 ## a big tag in their own colour saying whose turn it is, and their name,
@@ -28,12 +29,7 @@ var _race: Button
 var _pictures: KartThumbnails
 var _ai := false
 var _levels := {}
-var _level_about: Label
-var _weather: Button
-var _time: Button
-var _reversed: Button
-var _mirrored: Button
-var _conditions_about: Label
+var _difficulty_row: HBoxContainer
 ## Which of two players on this phone is picking, 1 or 2, or 0 when it's one.
 var player := 0
 var _name: LineEdit
@@ -65,6 +61,10 @@ func _ready() -> void:
 	var outer: VBoxContainer = column.get_parent().get_parent().get_parent()
 	outer.add_child(top)
 	outer.move_child(top, 1)
+	if _ai and player != 2:
+		_difficulty_row = _make_difficulty_row()
+		_put_in_header(_difficulty_row, outer)
+		_show_level(Game.difficulty())
 	if player > 0:
 		top.add_child(_player_tag())
 	if player > 0:
@@ -86,19 +86,6 @@ func _ready() -> void:
 	_race.custom_minimum_size.x = 220.0
 	_race.theme_type_variation = "MainButton"
 	top.add_child(_race)
-	var at := 2
-	if _ai and player != 2:
-		outer.add_child(_difficulty_row())
-		outer.move_child(outer.get_child(outer.get_child_count() - 1), at)
-		at += 1
-		_show_level(Game.difficulty())
-	if player != 2:
-		outer.add_child(_conditions_row())
-		outer.move_child(outer.get_child(outer.get_child_count() - 1), at)
-		at += 1
-		outer.add_child(_layout_row())
-		outer.move_child(outer.get_child(outer.get_child_count() - 1), at)
-		_show_conditions()
 
 	var grid := GridContainer.new()
 	grid.columns = COLUMNS
@@ -143,85 +130,40 @@ func _player_tag() -> PanelContainer:
 	return tag
 
 
-## A button for each difficulty, and a line about the one that's picked.
-func _difficulty_row() -> HBoxContainer:
+## Easy, Normal, Hard and Expert, in the header between the title and Back.
+func _make_difficulty_row() -> HBoxContainer:
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 10)
-	var label := Label.new()
-	label.text = "AI drivers"
-	row.add_child(label)
 	for level in Difficulty.LEVELS:
 		var button := MenuStyle.button(Difficulty.name_of(level), _show_level.bind(level))
-		button.custom_minimum_size = Vector2(130, 48)
+		button.size_flags_horizontal = SIZE_EXPAND_FILL
+		button.size_flags_vertical = SIZE_SHRINK_CENTER
 		button.set_meta("level", level)
 		row.add_child(button)
 		_levels[level] = button
-	_level_about = Label.new()
-	_level_about.theme_type_variation = "NoteLabel"
-	_level_about.size_flags_horizontal = SIZE_EXPAND_FILL
-	_level_about.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	row.add_child(_level_about)
 	return row
 
 
-## The weather and time of day, each a button that goes through the choices.
-func _conditions_row() -> HBoxContainer:
-	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 10)
-	_weather = MenuStyle.button("", func() -> void:
-		Game.set_weather(Conditions.next_pick(Game.weather(), Conditions.WEATHERS))
-		_show_conditions())
-	_weather.custom_minimum_size = Vector2(300, 48)
-	row.add_child(_weather)
-	_time = MenuStyle.button("", func() -> void:
-		Game.set_time_of_day(Conditions.next_pick(Game.time_of_day(), Conditions.TIMES))
-		_show_conditions())
-	_time.custom_minimum_size = Vector2(260, 48)
-	row.add_child(_time)
-	_conditions_about = Label.new()
-	_conditions_about.theme_type_variation = "NoteLabel"
-	_conditions_about.size_flags_horizontal = SIZE_EXPAND_FILL
-	_conditions_about.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	row.add_child(_conditions_about)
-	return row
-
-
-## Reverse and mirrored, each a toggle, independent of the weather.
-func _layout_row() -> HBoxContainer:
-	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 10)
-	_reversed = MenuStyle.button("", func() -> void:
-		Game.set_reversed(not Game.reversed())
-		_show_conditions())
-	_reversed.custom_minimum_size = Vector2(300, 48)
-	row.add_child(_reversed)
-	_mirrored = MenuStyle.button("", func() -> void:
-		Game.set_mirrored(not Game.mirrored())
-		_show_conditions())
-	_mirrored.custom_minimum_size = Vector2(300, 48)
-	row.add_child(_mirrored)
-	return row
-
-
-func _show_conditions() -> void:
-	_weather.text = "Weather: %s" % Conditions.WEATHER_NAMES[Game.weather()]
-	_time.text = "Time: %s" % Conditions.TIME_NAMES[Game.time_of_day()]
-	_reversed.text = "Reverse: %s" % ("On" if Game.reversed() else "Off")
-	_mirrored.text = "Mirrored: %s" % ("On" if Game.mirrored() else "Off")
-	var random := Game.weather() == Conditions.RANDOM or Game.time_of_day() == Conditions.RANDOM
-	if not random:
-		_conditions_about.text = ""
-	elif Game.mode == Game.MODE_TIME_TRIAL:
-		_conditions_about.text = "Random is a clear day in a time trial."
-	else:
-		_conditions_about.text = "Random suits the course."
+## Puts the difficulty picks in the title row, in the space the red bars used.
+func _put_in_header(row: HBoxContainer, outer: VBoxContainer) -> void:
+	var header: HBoxContainer = outer.get_child(0)
+	var back: Control = header.get_child(header.get_child_count() - 1)
+	for child in header.get_children():
+		if child is MenuStyle.Bars:
+			child.visible = false
+			child.custom_minimum_size = Vector2.ZERO
+			child.size_flags_horizontal = SIZE_SHRINK_BEGIN
+	row.size_flags_horizontal = SIZE_EXPAND_FILL
+	row.size_flags_vertical = SIZE_SHRINK_CENTER
+	back.size_flags_horizontal = SIZE_SHRINK_END
+	header.add_child(row)
+	header.move_child(row, 1)
 
 
 func _show_level(level: String) -> void:
 	Game.set_difficulty(level)
 	for other in _levels:
 		MenuStyle.mark(_levels[other], other == level)
-	_level_about.text = Difficulty.about(level)
 
 
 func _choose(key: String) -> void:
