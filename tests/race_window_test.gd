@@ -76,6 +76,45 @@ func _ready() -> void:
 	live.free()
 	RaceWindow._bag.clear()
 	RaceWindow._last_id = ""
+	_layout()
 
 	print("All race window checks passed." if failures == 0 else "%d race window checks failed." % failures)
 	get_tree().quit(1 if failures > 0 else 0)
+
+
+func _layout() -> void:
+	print("-- Menu cluster")
+	var window := RaceWindow.new()
+	window.course_name = "WINDSURF WAY"
+	window.size = Vector2(700, 490)
+	var box := Rect2(Vector2.ZERO, Vector2(700, 474))
+	var ribbon: Rect2 = window._ribbon(box)
+	check(is_equal_approx(ribbon.get_center().x, box.size.x * 0.5), "the course name sits in the middle of the view (%.0f)" % ribbon.get_center().x)
+	var part: Rect2 = window._cover(16.0 / 9.0, RaceWindow.SHAPE)
+	check(part.has_point(RaceWindow.FOCUS), "the still crop keeps the kart in the middle")
+	check(absf(part.get_center().x - RaceWindow.FOCUS.x) < 0.02, "and lines the crop up with the kart")
+	window.free()
+	var sixteen := _cluster_on(Vector2(1280, 720))
+	var pic: Control = sixteen.get_child(1)
+	check(is_equal_approx(pic.size.x / pic.size.y, RaceWindow.SHAPE), "on 16:9 the preview keeps its shape")
+	sixteen.free()
+	var wide := _cluster_on(Vector2(1600, 720))
+	pic = wide.get_child(1)
+	var col: Control = wide.get_child(0)
+	var left_pad := col.position.x
+	var right_pad := 1600.0 - (pic.position.x + pic.size.x)
+	check(is_equal_approx(pic.size.x / pic.size.y, RaceWindow.SHAPE), "on 20:9 it keeps that shape")
+	check(left_pad > 80.0 and absf(left_pad - right_pad) < 40.0, "and the group sits in the middle (pads %.0f, %.0f)" % [left_pad, right_pad])
+	wide.free()
+
+
+func _cluster_on(area: Vector2) -> MenuStyle.MenuCluster:
+	var cluster := MenuStyle.MenuCluster.new()
+	cluster.size = area
+	add_child(cluster)
+	var col := Control.new()
+	col.custom_minimum_size = Vector2(500, 400)
+	cluster.add_child(col)
+	cluster.add_child(RaceWindow.new())
+	cluster._sort()
+	return cluster

@@ -51,19 +51,18 @@ static func screen(root: Control) -> VBoxContainer:
 	return column
 
 
-## A menu like the main menu: the logo top left, under it a column of big
-## buttons that steps right with the lean, and the race picture beside them.
-## Put the buttons in the column this returns (see big_button()).
+## A menu like the main menu: the logo, a column of big buttons that steps
+## right with the lean, and the race picture beside them, as one group in the
+## middle of the screen. Put the buttons in the column this returns (see
+## big_button()).
 static func menu_screen(root: Control, tagline := "") -> Container:
 	root.theme = theme()
 	root.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	var back := backdrop()
 	root.add_child(back)
 	back.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	var picture := RaceWindow.new()
-	root.add_child(picture)
 	var margin := MarginContainer.new()
-	margin.add_theme_constant_override("margin_left", 70)
+	margin.add_theme_constant_override("margin_left", 40)
 	margin.add_theme_constant_override("margin_right", 40)
 	margin.add_theme_constant_override("margin_top", 24)
 	margin.add_theme_constant_override("margin_bottom", 16)
@@ -73,16 +72,44 @@ static func menu_screen(root: Control, tagline := "") -> Container:
 	var safe := SafeArea.new()
 	root.add_child(safe)
 	safe.pad(margin)
+	var cluster := MenuCluster.new()
+	margin.add_child(cluster)
 	var column := VBoxContainer.new()
 	column.add_theme_constant_override("separation", UiKit.GAP_L)
 	column.alignment = BoxContainer.ALIGNMENT_CENTER
-	column.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
-	margin.add_child(column)
+	cluster.add_child(column)
 	column.add_child(title("SnapRacers", tagline))
 	var steps := Steps.new()
 	column.add_child(steps)
-	picture.beside = steps
+	cluster.add_child(RaceWindow.new())
 	return steps
+
+
+## The logo, buttons and race picture as one group, centred in the screen.
+class MenuCluster extends Container:
+	const GAP := 36.0
+
+	func _notification(what: int) -> void:
+		if what == NOTIFICATION_SORT_CHILDREN:
+			_sort()
+
+	func _sort() -> void:
+		if get_child_count() < 2:
+			return
+		var col := get_child(0) as Control
+		var pic := get_child(1) as Control
+		var col_min := col.get_combined_minimum_size()
+		var high := minf(RaceWindow.HIGH, size.y)
+		var wide := high * RaceWindow.SHAPE
+		var total := col_min.x + GAP + wide
+		if total > size.x + RaceWindow.OFF_EDGE:
+			wide = maxf(size.x + RaceWindow.OFF_EDGE - col_min.x - GAP, 160.0)
+			high = wide / RaceWindow.SHAPE
+			total = col_min.x + GAP + wide
+		var hang := RaceWindow.OFF_EDGE if total > size.x else 0.0
+		var x := maxf(0.0, (size.x + hang - total) * 0.5)
+		fit_child_in_rect(col, Rect2(x, (size.y - col_min.y) * 0.5, col_min.x, col_min.y))
+		fit_child_in_rect(pic, Rect2(x + col_min.x + GAP, (size.y - high) * 0.5, wide, high))
 
 
 ## A column whose children step right with the lean, one under the other.

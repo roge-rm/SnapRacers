@@ -3,18 +3,20 @@ extends Control
 
 ## The slanted window beside the main menu's buttons, with a still of a race
 ## on that course and its name on a red ribbon. Each visit picks a course at
-## random from the ones that come with the game. It sits on the right of the
-## screen and keeps clear of `beside`.
+## random from the ones that come with the game. MenuCluster sizes it.
 
 const STILLS := "res://art/ui/menu_races"
 ## Screenshot tools can set this so the menu always shows the same course.
 static var forced_id := ""
 
-## How far it runs off the right edge.
+## How far it can run off the right edge when the cluster is a tight fit.
 const OFF_EDGE := 60.0
-
-## What it keeps to the right of, like the column of buttons.
-var beside: Control
+## How wide it stays against its height.
+const SHAPE := 1.43
+## How tall it is on a 720-high screen.
+const HIGH := 490.0
+## Where the kart sits in a still, as a fraction of the picture.
+const FOCUS := Vector2(0.5, 0.62)
 
 var course_id := ""
 var course_name := ""
@@ -27,11 +29,6 @@ static var _rng: RandomNumberGenerator
 
 func _init() -> void:
 	mouse_filter = MOUSE_FILTER_IGNORE
-	anchor_left = 0.5
-	anchor_right = 1.0
-	anchor_top = 0.2
-	anchor_bottom = 0.88
-	offset_right = OFF_EDGE
 
 
 func _ready() -> void:
@@ -96,16 +93,6 @@ func _notification(what: int) -> void:
 		queue_redraw()
 
 
-func _process(_delta: float) -> void:
-	# Clear of the buttons, wherever a camera hole has pushed them.
-	var left := 0.0
-	if beside != null and is_instance_valid(beside):
-		var row := beside.get_global_rect()
-		left = maxf(0.0, row.end.x + 30.0 - get_parent_area_size().x * anchor_left)
-	if not is_equal_approx(offset_left, left):
-		offset_left = left
-
-
 func _draw() -> void:
 	var window := Rect2(Vector2.ZERO, Vector2(size.x, size.y - 16.0))
 	if window.size.x < 100.0 or window.size.y < 100.0:
@@ -115,16 +102,9 @@ func _draw() -> void:
 	for at in corners:
 		shadow.append(at + Vector2(10, 10))
 	draw_colored_polygon(shadow, UiKit.SHADOW_COLOUR)
+	var ribbon := _ribbon(window)
 	if _picture != null:
-		var shape := window.size.x / window.size.y
-		var picture := Vector2(_picture.get_size()).aspect()
-		var part := Rect2(0, 0, 1, 1)
-		if shape > picture:
-			part.size.y = picture / shape
-			part.position.y = (1.0 - part.size.y) * 0.6
-		else:
-			part.size.x = shape / picture
-			part.position.x = (1.0 - part.size.x) * 0.5
+		var part := _cover(Vector2(_picture.get_size()).aspect(), window.size.x / window.size.y)
 		var uvs := PackedVector2Array()
 		for at in corners:
 			uvs.append(part.position + part.size * (at / window.size))
@@ -134,11 +114,34 @@ func _draw() -> void:
 	var edge := corners.duplicate()
 	edge.append(corners[0])
 	draw_polyline(edge, UiKit.YELLOW, 5.0, true)
-	if course_name != "":
+	if ribbon.size.x > 0.0:
 		var font := UiKit.font("heading")
-		var wide := font.get_string_size(course_name, HORIZONTAL_ALIGNMENT_LEFT, -1, 26).x + 60.0
-		var ribbon := Rect2(window.size.y * UiKit.LEAN * 0.25 + 30.0, size.y - 46.0, wide, 46.0)
 		UiKit.draw_slant(self, Rect2(ribbon.position + UiKit.SHADOW, ribbon.size), UiKit.SHADOW_COLOUR)
 		UiKit.draw_slant(self, ribbon, UiKit.RED)
 		var base := ribbon.get_center().y + (font.get_ascent(26) - font.get_descent(26)) * 0.5
 		draw_string(font, Vector2(ribbon.position.x + 28.0, base), course_name, HORIZONTAL_ALIGNMENT_LEFT, -1, 26, UiKit.WHITE)
+
+
+## The largest slice of the still that fills the window, with the kart in the
+## middle.
+func _cover(picture: float, shape: float) -> Rect2:
+	var high := minf(1.0, minf(2.0 * FOCUS.y, 2.0 * (1.0 - FOCUS.y)))
+	var wide := high * shape / picture
+	if wide > 1.0:
+		wide = 1.0
+		high = wide * picture / shape
+	return Rect2(
+		clampf(FOCUS.x - wide * 0.5, 0.0, 1.0 - wide),
+		clampf(FOCUS.y - high * 0.5, 0.0, 1.0 - high),
+		wide,
+		high)
+
+
+## The course name, centred in the view at the bottom of the box.
+func _ribbon(window: Rect2) -> Rect2:
+	if course_name == "":
+		return Rect2()
+	var font := UiKit.font("heading")
+	var wide := font.get_string_size(course_name, HORIZONTAL_ALIGNMENT_LEFT, -1, 26).x + 60.0
+	var left := clampf(window.size.x * 0.5 - wide * 0.5, 0.0, maxf(window.size.x - wide, 0.0))
+	return Rect2(left, size.y - 46.0, wide, 46.0)
