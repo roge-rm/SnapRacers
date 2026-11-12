@@ -276,9 +276,18 @@ func _ready() -> void:
 	check(layouts.size() == 2, "with side by side and face to face")
 	layouts[1].pressed.emit()
 	check(Game.split() == Game.FACE_TO_FACE, "picking face to face remembers it")
-	screen().find_children("*", "Button", true, false).filter(func(b): return b.text == "Pick a course")[0].pressed.emit()
+	check(screen()._window.split == Game.FACE_TO_FACE, "and draws it in the window")
+	var chips := screen().find_children("*", "Button", true, false).filter(func(b): return b.has_meta("player"))
+	check(chips.size() == 2, "with a controller chip for each player")
+	chips[1].pressed.emit()
+	check(screen()._waiting == 1, "tapping a chip waits for a button on player 2's controller")
+	chips[1].pressed.emit()
+	check(screen()._waiting == -1, "and tapping it again stops waiting")
+	var backs := screen().find_children("*", "Button", true, false).filter(func(b): return b.text == "Back")
+	check(backs.size() == 1, "with one Back")
+	screen().find_children("*", "Button", true, false).filter(func(b): return b.text.begins_with("Single race"))[0].pressed.emit()
 	await frames(2)
-	check(screen() is CupGrid and screen().mode == Game.MODE_RACE and not screen().alone, "pick a course opens the cups for a race")
+	check(screen() is CupGrid and screen().mode == Game.MODE_RACE and not screen().alone, "single race opens the cups for a race")
 	# Each player picks a kart in turn, player 1 first.
 	screen().find_children("*", "Button", true, false).filter(func(b): return b.get_meta("cup", "") == "baseplate")[0].pressed.emit()
 	await frames(2)
@@ -321,7 +330,7 @@ func _ready() -> void:
 	Game.set_setting("player", "name_two", was_two_name)
 	Game.show_multiplayer()
 	await frames(2)
-	screen().find_children("*", "Button", true, false).filter(func(b): return b.text == "Pick a course")[0].pressed.emit()
+	screen().find_children("*", "Button", true, false).filter(func(b): return b.text.begins_with("Single race"))[0].pressed.emit()
 	await frames(2)
 	Game._go_back()
 	await frames(2)
@@ -329,6 +338,32 @@ func _ready() -> void:
 	Game._go_back()
 	await frames(2)
 	check(screen() is MainMenu, "and back again to the menu")
+
+	var was_two := Game.online_two
+	Game.online_two = false
+	Game.show_online()
+	await frames(2)
+	check(screen() is OnlineMenu, "online opens")
+	var two_pill: Button = screen()._two
+	two_pill.pressed.emit()
+	check(Game.online_two and two_pill.icon == OnlineMenu._switch(true), "the two of us pill switches on")
+	two_pill.pressed.emit()
+	check(not Game.online_two and two_pill.icon == OnlineMenu._switch(false), "and off")
+	var host_card := screen().find_children("*", "Button", true, false).filter(func(b): return b.text.begins_with("Host a game"))
+	check(host_card.size() == 1, "with a Host a game card")
+	screen()._finder.found["10.0.0.9"] = {"name": "Tab", "players": 1, "port": NetSession.PORT, "heard": screen()._finder._clock + 600.0}
+	screen()._finder.found["10.0.0.7"] = {"name": "Dan's phone", "players": 2, "port": NetSession.PORT, "heard": screen()._finder._clock + 600.0}
+	screen()._show_found()
+	await frames(2)
+	var games := screen().find_children("*", "Button", true, false).filter(func(b): return b.has_meta("address"))
+	check(games.size() == 2, "and a card for each game found")
+	check(screen().find_children("*", "Button", true, false).filter(func(b): return b.text == "Back").size() == 1, "with one Back")
+	Game.online_two = was_two
+	Game._go_back()
+	await frames(2)
+	check(screen() is MultiplayerMenu, "back from online goes to multiplayer")
+	Game._go_back()
+	await frames(2)
 
 	await _driver_extras()
 
@@ -395,7 +430,8 @@ func _driver_extras() -> void:
 	Game.show_lobby()
 	await frames(3)
 	var lobby: Lobby = screen()
-	check(lobby.driver_cards[0].visible and not lobby.driver_cards[1].visible, "the lobby has a driver card for you")
+	check(lobby.driver_cards.size() == 1 and lobby.driver_cards[0] == lobby._places[0] and lobby.driver_cards[0].focus_mode == Control.FOCUS_ALL, "the lobby has a card for you, first")
+	check(lobby._places.slice(1).all(func(c): return c.focus_mode == Control.FOCUS_NONE and c.words().begins_with("AI")), "and AI drivers in the other places")
 	var window := lobby.open_drivers(0)
 	await frames(2)
 	check(not window.grid.cards.is_empty() and window.grid.find_children("*", "Button", true, false).all(func(b): return b.get_meta("driver", "") != "new"), "its drivers have no New driver card")
@@ -403,11 +439,52 @@ func _driver_extras() -> void:
 	await frames(2)
 	var wren := CharacterDesign.for_key("stock:wren").name
 	check(Game.driver_choice() == "stock:wren" and Game.net.members[1].players[0].driver.name == wren, "picking one there changes who you race as in the lobby")
-	check(lobby._people.get_children().any(func(l): return l is Label and l.text.contains("%s in the" % wren)), "and the list says so")
+	check(lobby.driver_cards[0].words().contains(wren), "and your card says so")
 	Game.net.setup = {"locked": true}
 	lobby.pick_driver("stock:nova")
 	check(Game.net.members[1].players[0].driver.name == wren, "a race under way locks it")
 	Game.net.setup = {}
+	Game.net.set_settings({"ai": false})
+	await frames(2)
+	check(lobby._places.slice(1).all(func(c): return c.words().begins_with("Open")), "with no AI drivers the other places are open")
+	check(not lobby._difficulty.visible, "and there's no difficulty to pick")
+	lobby._ai.tapped.emit()
+	await frames(2)
+	check(Game.net.settings.ai and lobby._difficulty.visible, "the AI switch turns them back on")
+	lobby._difficulty.tapped.emit()
+	check(Game.net.settings.difficulty == Difficulty.LEVELS[(Difficulty.LEVELS.find(Difficulty.DEFAULT) + 1) % Difficulty.LEVELS.size()], "the difficulty pill goes to the next level")
+	Game.net.set_settings({"weather": Conditions.RANDOM, "time": Conditions.RANDOM, "difficulty": Difficulty.DEFAULT})
+	await frames(3)
+	check(not lobby.folded and not lobby._options.visible and lobby._weather.is_visible_in_tree(), "the race's options fit in the header at 1280 wide")
+	var safe: SafeArea = lobby.find_children("*", "SafeArea", false, false)[0]
+	# Partway down the left, wherever the middle is.
+	SafeArea.pretend.assign([Rect2(0, get_viewport().get_visible_rect().size.y * 0.5 - 60.0, 120, 120)])
+	safe.refit()
+	for i in 120:
+		await frames(1)
+		if lobby.folded:
+			break
+	check(lobby.folded and lobby._options.is_visible_in_tree() and lobby._options_list.get_child_count() == 5, "beside a camera hole they fold into Options")
+	var top_end := lobby._leave.get_global_rect().end.x
+	check(top_end <= get_viewport().get_visible_rect().size.x, "and Leave still fits (%d)" % top_end)
+	lobby._options.tapped.emit()
+	await frames(2)
+	check(lobby.options_open(), "Options opens its window")
+	Game.notification(NOTIFICATION_WM_GO_BACK_REQUEST)
+	await frames(2)
+	check(not lobby.options_open() and screen() == lobby and Game.net.role == NetSession.Role.HOST, "the phone's Back closes Options and stays in the lobby")
+	window = lobby.open_drivers(0)
+	await frames(2)
+	Game.notification(NOTIFICATION_WM_GO_BACK_REQUEST)
+	await frames(2)
+	check(not is_instance_valid(window) and screen() == lobby, "and closes the driver window the same way")
+	SafeArea.pretend.assign([])
+	safe.refit()
+	for i in 120:
+		await frames(1)
+		if not lobby.folded:
+			break
+	check(not lobby.folded and lobby._options_list.get_child_count() == 0, "and they go back in the header without the hole")
 	Game.net.leave()
 	Game.show_menu()
 	await frames(2)

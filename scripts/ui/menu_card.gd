@@ -39,21 +39,16 @@ var _title: Label
 static var _boxes := {}
 
 
+var _margin: MarginContainer
+
+
 func _init(stripe := Color.TRANSPARENT) -> void:
 	super()
-	_stripe = stripe
 	focus_mode = FOCUS_ALL
 	size_flags_horizontal = SIZE_EXPAND_FILL
-	var key := stripe.to_html()
-	if not _boxes.has(key):
-		var set := {}
-		for state in UiKit.STATES:
-			set[state] = UiKit.card(state, stripe)
-		_boxes[key] = set
-	for state in UiKit.STATES:
-		add_theme_stylebox_override(state, _boxes[key][state])
 	var margin := MarginContainer.new()
-	margin.add_theme_constant_override("margin_left", LEFT if stripe.a > 0.0 else EDGE + 6)
+	_margin = margin
+	set_stripe(stripe)
 	margin.add_theme_constant_override("margin_right", EDGE)
 	margin.add_theme_constant_override("margin_top", 10)
 	margin.add_theme_constant_override("margin_bottom", 10)
@@ -68,6 +63,22 @@ func _init(stripe := Color.TRANSPARENT) -> void:
 	margin.minimum_size_changed.connect(func() -> void: custom_minimum_size.y = margin.get_combined_minimum_size().y)
 	focus_entered.connect(_light.bind(true))
 	focus_exited.connect(_light.bind(false))
+
+
+## Gives the card a stripe of this colour down its left side, or none if
+## it's clear.
+func set_stripe(stripe: Color) -> void:
+	_stripe = stripe
+	var key := stripe.to_html()
+	if not _boxes.has(key):
+		var set := {}
+		for state in UiKit.STATES:
+			set[state] = UiKit.card(state, stripe)
+		_boxes[key] = set
+	for state in UiKit.STATES:
+		add_theme_stylebox_override(state, _boxes[key][state])
+	_margin.add_theme_constant_override("margin_left", LEFT if stripe.a > 0.0 else EDGE + 6)
+	queue_redraw()
 
 
 func _light(on: bool) -> void:

@@ -56,6 +56,14 @@ static func screen(root: Control) -> VBoxContainer:
 ## middle of the screen. Put the buttons in the column this returns (see
 ## big_button()).
 static func menu_screen(root: Control, tagline := "") -> Container:
+	return menu_parts(root, tagline).steps
+
+
+## The parts of a menu_screen(): "steps" for the big buttons, "top" for a row
+## in the top right (Back and the like) and "right" for what's beside them.
+## `right` replaces the race picture: a box with a RaceWindow that fills out
+## its height, and anything under that.
+static func menu_parts(root: Control, tagline := "", right: Control = null) -> Dictionary:
 	root.theme = theme()
 	root.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	var back := backdrop()
@@ -72,8 +80,13 @@ static func menu_screen(root: Control, tagline := "") -> Container:
 	var safe := SafeArea.new()
 	root.add_child(safe)
 	safe.pad(margin)
+	var stack := Control.new()
+	stack.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	margin.add_child(stack)
 	var cluster := MenuCluster.new()
-	margin.add_child(cluster)
+	cluster.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	stack.add_child(cluster)
+	cluster.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	var column := VBoxContainer.new()
 	column.add_theme_constant_override("separation", UiKit.GAP_L)
 	column.alignment = BoxContainer.ALIGNMENT_CENTER
@@ -81,13 +94,25 @@ static func menu_screen(root: Control, tagline := "") -> Container:
 	column.add_child(title("SnapRacers", tagline))
 	var steps := Steps.new()
 	column.add_child(steps)
-	cluster.add_child(RaceWindow.new())
-	return steps
+	cluster.add_child(right if right != null else RaceWindow.new())
+	var top := HBoxContainer.new()
+	top.add_theme_constant_override("separation", UiKit.GAP_M)
+	stack.add_child(top)
+	top.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)
+	top.grow_horizontal = Control.GROW_DIRECTION_BEGIN
+	top.minimum_size_changed.connect(cluster.queue_sort)
+	cluster.top = top
+	return {"steps": steps, "top": top, "right": cluster.get_child(1)}
 
 
 ## The logo, buttons and race picture as one group, centred in the screen.
+## The picture can be a box with a RaceWindow and more under it, which keeps
+## inside the screen.
 class MenuCluster extends Container:
 	const GAP := 36.0
+	## The row in the top right. The picture keeps below it when it has
+	## anything in it.
+	var top: Control
 
 	func _notification(what: int) -> void:
 		if what == NOTIFICATION_SORT_CHILDREN:
@@ -99,17 +124,31 @@ class MenuCluster extends Container:
 		var col := get_child(0) as Control
 		var pic := get_child(1) as Control
 		var col_min := col.get_combined_minimum_size()
-		var high := minf(RaceWindow.HIGH, size.y)
+		var under := 0.0
+		var least := 0.0
+		var hang_room := RaceWindow.OFF_EDGE
+		if not pic is RaceWindow:
+			var want := pic.get_combined_minimum_size()
+			under = want.y
+			least = want.x
+			hang_room = 0.0
+		var above := 0.0
+		if top != null and top.get_child_count() > 0:
+			above = top.get_combined_minimum_size().y + UiKit.GAP_M
+		var high := minf(RaceWindow.HIGH, size.y - above - under)
 		var wide := high * RaceWindow.SHAPE
 		var total := col_min.x + GAP + wide
-		if total > size.x + RaceWindow.OFF_EDGE:
-			wide = maxf(size.x + RaceWindow.OFF_EDGE - col_min.x - GAP, 160.0)
+		if total > size.x + hang_room:
+			wide = maxf(size.x + hang_room - col_min.x - GAP, 160.0)
 			high = wide / RaceWindow.SHAPE
-			total = col_min.x + GAP + wide
-		var hang := RaceWindow.OFF_EDGE if total > size.x else 0.0
+		if wide < least:
+			wide = least
+		total = col_min.x + GAP + wide
+		var hang := hang_room if total > size.x else 0.0
 		var x := maxf(0.0, (size.x + hang - total) * 0.5)
+		var room := size.y - above
 		fit_child_in_rect(col, Rect2(x, (size.y - col_min.y) * 0.5, col_min.x, col_min.y))
-		fit_child_in_rect(pic, Rect2(x + col_min.x + GAP, (size.y - high) * 0.5, wide, high))
+		fit_child_in_rect(pic, Rect2(x + col_min.x + GAP, above + (room - high - under) * 0.5, wide, high + under))
 
 
 ## A column whose children step right with the lean, one under the other.
@@ -214,6 +253,50 @@ static func mark_tab(b: Button, on: bool) -> void:
 			b.add_theme_color_override(state, ACCENT)
 		else:
 			b.remove_theme_color_override(state)
+
+
+static var _snug_boxes := {}
+
+
+## A pill `high` tall with less room round its words, so several fit in a
+## header. `on` gives it the yellow edge and words of a picked one, faded
+## while it's disabled.
+static func snug(b: Button, on: bool, high := 48.0) -> void:
+	for state in UiKit.STATES:
+		var key := "%s %s %d" % [state, on, high]
+		if not _snug_boxes.has(key):
+			var box := UiKit.pill(state, UiKit.LEAN, high) as SlantBox
+			if on and (state == "normal" or state == "hover"):
+				box.edge = ACCENT
+				box.edge_width = 3
+			elif on and state == "disabled":
+				box.edge = Color(ACCENT, 0.45)
+				box.edge_width = 2
+			_snug_boxes[key] = UiKit.pad(box, 8 if high < 50.0 else 24, 6, UiKit.LEAN, high)
+		b.add_theme_stylebox_override(state, _snug_boxes[key])
+	for state in ["font_color", "font_hover_color", "font_focus_color", "font_pressed_color"]:
+		if on:
+			b.add_theme_color_override(state, ACCENT)
+		else:
+			b.remove_theme_color_override(state)
+	if on:
+		b.add_theme_color_override("font_disabled_color", Color(ACCENT, 0.6))
+	else:
+		b.remove_theme_color_override("font_disabled_color")
+
+
+## A small slanted tag in a player's colour, like "P1".
+static func tag(text: String, colour: Color, font_size := 22) -> PanelContainer:
+	var box := PanelContainer.new()
+	box.add_theme_stylebox_override("panel", UiKit.pad(UiKit.slant(colour, UiKit.LEAN, Color.TRANSPARENT, 0, false), 10, 1, UiKit.LEAN, 34.0))
+	box.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	box.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var label := Label.new()
+	label.text = text
+	label.theme_type_variation = "TagLabel"
+	label.add_theme_font_size_override("font_size", font_size)
+	box.add_child(label)
+	return box
 
 
 ## Back (or Quit) under a menu's buttons.

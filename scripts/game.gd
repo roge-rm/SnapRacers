@@ -1021,10 +1021,30 @@ func _set_portrait(on: bool) -> void:
 
 
 func _go_back() -> void:
+	# With a window open over the screen, Back only closes that window.
+	if close_popup():
+		return
 	if _screen != null and _screen.has_method("go_back"):
 		_screen.go_back()
 	else:
 		show_menu()
+
+
+## Closes the topmost popup or dialog open over the screen, as Cancel would,
+## and says whether there was one.
+func close_popup() -> bool:
+	if _screen == null:
+		return false
+	var top: Window = null
+	for window in _screen.find_children("*", "Window", true, false):
+		if window.visible and (window is Popup or window is AcceptDialog):
+			top = window
+	if top == null:
+		return false
+	top.hide()
+	if top is AcceptDialog:
+		top.canceled.emit()
+	return true
 
 
 func _notification(what: int) -> void:

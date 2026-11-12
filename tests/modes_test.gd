@@ -230,7 +230,7 @@ func _grand_prix_for_two() -> void:
 	Game.settings.set_value("race", "player_two_driver", "stock:nova")
 	Game.show_multiplayer()
 	await frames(2)
-	var cup_button := screen().find_children("*", "Button", true, false).filter(func(b): return b.text == "Grand Prix")
+	var cup_button := screen().find_children("*", "Button", true, false).filter(func(b): return b.text.begins_with("Grand Prix"))
 	check(cup_button.size() == 1, "the Multiplayer menu has a Grand Prix")
 	cup_button[0].pressed.emit()
 	await frames(2)
