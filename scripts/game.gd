@@ -409,6 +409,7 @@ func start_grand_prix(which: Variant, two := false) -> void:
 	# Everyone keeps the same kart for the whole cup.
 	var leave_out := [grand_prix.player_kart, grand_prix.player_two_kart] if two else []
 	var field := ai_field(2 if two else 1)
+	grand_prix.drivers = field
 	grand_prix.karts = draw_karts(field, leave_out)
 	grand_prix.ranks = draw_ranks(field)
 	grand_prix.difficulty = difficulty()
@@ -630,9 +631,10 @@ func race_driver(player: int) -> CharacterDesign:
 	return CharacterDesign.for_key(race_driver_key(player))
 
 
-## The AI drivers for a race with `people` players, by roster key. Nobody's
-## a stock driver a player picked, and the Racer fills in for them unless a
-## player looks just like the Racer.
+## The AI drivers for a race with `people` players, by roster key, drawn at
+## random to fill the rest of the grid. Nobody's a stock driver a player
+## picked or looks just like, and the Racer can be drawn in their place
+## unless a player looks just like the Racer.
 func ai_field(people: int) -> Array[String]:
 	var taken: Array[String] = []
 	var looks := []
@@ -641,13 +643,15 @@ func ai_field(people: int) -> Array[String]:
 		if key.begins_with(CharacterDesign.STOCK_KEY):
 			taken.append(key.trim_prefix(CharacterDesign.STOCK_KEY))
 		looks.append(race_driver(player).to_dict())
-	var field: Array[String] = []
+	var pool: Array[String] = []
 	for key in ai_driver_keys():
-		if not taken.has(key):
-			field.append(key)
-	if field.size() < ai_driver_keys().size() and not taken.has("racer") and not looks.has(roster_driver("racer").to_dict()):
-		field.append("racer")
-	return field
+		if not taken.has(key) and not looks.has(roster_driver(key).to_dict()):
+			pool.append(key)
+	if pool.size() < ai_driver_keys().size() and not taken.has("racer") and not looks.has(roster_driver("racer").to_dict()):
+		pool.append("racer")
+	pool.shuffle()
+	pool.resize(mini(pool.size(), maxi(Race.KARTS - people, 0)))
+	return pool
 
 
 func player_name() -> String:

@@ -494,7 +494,7 @@ class Runner:
 				var who := CharacterDesign.load_file("res://data/characters/roster/" + file)
 				names.append(who.name)
 				classes[who.weight_class()] = true
-		check(names.size() == 8, "eight drivers on the roster %s" % [names])
+		check(names.size() == 15, "fifteen drivers on the roster %s" % [names])
 		check(classes.size() == 3, "light, medium and heavy are all there %s" % [classes.keys()])
 
 		var racer := CharacterDesign.load_file("res://data/characters/roster/racer.json")

@@ -152,7 +152,8 @@ func _grand_prix() -> void:
 	var me := Game.player_name()
 	var karts := {}
 	var skill_order := {}
-	# Finish every race with you coming second, behind Brickley.
+	var cup_field := []
+	# Finish every race with you coming second, behind whoever starts at the front.
 	for round in 4:
 		var race: Race = await wait_for(Race)
 		check(race != null and race.mode == Game.MODE_GRAND_PRIX, "race %d of the cup starts" % (round + 1))
@@ -171,6 +172,12 @@ func _grand_prix() -> void:
 			skill_order = skills
 		else:
 			check(skills == skill_order, "and the same pecking order")
+		var ai_names: Array = race.racers.filter(func(r): return not r.player).map(func(r): return r.name)
+		ai_names.sort()
+		if round == 0:
+			cup_field = ai_names
+		else:
+			check(ai_names == cup_field, "the same AI drivers as the first race %s" % [ai_names])
 		if round == 0:
 			karts = now
 			var ai: Array = race.racers.filter(func(r): return not r.player)
@@ -189,10 +196,7 @@ func _grand_prix() -> void:
 		for r in race.racers:
 			if not order.has(r.name):
 				order.append(r.name)
-		if round == 0:
-			order = ["Brickley", me] + order.filter(func(n): return n != "Brickley" and n != me)
-		else:
-			order = [order[0], me] + order.slice(2)
+		order = [order[0], me] + order.slice(2)
 		Game.finish_grand_prix_race(order)
 		await _past_podium(race)
 		await frames(2)
@@ -369,13 +373,37 @@ func _difficulty() -> void:
 	# A different driver's the quickest from race to race.
 	var quickest := {}
 	for i in 30:
-		var ranks := Game.draw_ranks(Game.ai_driver_keys())
+		var ranks := Game.draw_ranks(Game.ai_field(1))
 		check_ranks = ranks.values()
 		for driver in ranks:
 			if ranks[driver] == 0:
 				quickest[driver] = true
 	check_ranks.sort()
 	check(check_ranks == range(7) and quickest.size() > 2, "the pecking order is shuffled every time (%d different drivers were quickest in 30 draws)" % quickest.size())
+	# Each race draws its AI drivers from the roster, never one a player took.
+	var picked := Game.driver_choice()
+	var picked_two := Game.driver_choice(true)
+	var was_mode := Game.mode
+	Game.mode = Game.MODE_RACE
+	Game.set_driver_choice(CharacterDesign.STOCK_KEY + "fizz")
+	Game.set_driver_choice(CharacterDesign.STOCK_KEY + "maple", true)
+	var fields := {}
+	var clean := true
+	var sizes := true
+	for i in 30:
+		var one := Game.ai_field(1)
+		var two := Game.ai_field(2)
+		clean = clean and not one.has("fizz") and not two.has("fizz") and not two.has("maple")
+		sizes = sizes and one.size() == Race.KARTS - 1 and two.size() == Race.KARTS - 2
+		var sorted := one.duplicate()
+		sorted.sort()
+		fields[str(sorted)] = true
+	check(sizes, "the AI fill the grid, 7 with one player and 6 with two")
+	check(clean, "and no AI driver is a stock driver a player picked")
+	check(fields.size() > 1, "different races draw different AI drivers (%d fields in 30 draws)" % fields.size())
+	Game.set_driver_choice(picked)
+	Game.set_driver_choice(picked_two, true)
+	Game.mode = was_mode
 	Records.add_cup_place("axle", 2, "hard")
 	check(Records.best_cup_place("axle", "hard") == 2 and Records.best_cup_place("axle") == 0, "a cup's trophies are kept for each level")
 	Records.add_cup_place("axle", 1, "easy", false, "reverse")

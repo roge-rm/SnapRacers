@@ -1,0 +1,11 @@
+{
+	"name": "Stomp",
+	"_comment": "A little kid in a dinosaur suit who never takes it off.",
+	"head": { "style": "big_eyes", "color": "#f2cd37" },
+	"hair": { "style": "none", "color": "#6b4430" },
+	"headgear": { "style": "dino_hood", "color": "#4fb35f" },
+	"torso": { "style": "dino_belly", "color": "#4fb35f" },
+	"back": { "style": "dino_tail", "color": "#4fb35f" },
+	"arms": { "style": "scaly", "color": "#4fb35f" },
+	"legs": { "style": "dino_feet", "color": "#4fb35f" }
+}

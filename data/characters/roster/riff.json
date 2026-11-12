@@ -1,0 +1,12 @@
+{
+	"name": "Riff",
+	"_comment": "A rocker who brings the guitar along, just in case.",
+	"head": { "style": "tongue", "color": "#f5c8a8" },
+	"hair": { "style": "mohawk", "color": "#d86cb0" },
+	"headgear": { "style": "none", "color": "#1b1b1b" },
+	"neck": { "style": "spiked_collar", "color": "#9aa0a6" },
+	"torso": { "style": "vest", "color": "#1b1b1b" },
+	"back": { "style": "guitar", "color": "#c4281c" },
+	"arms": { "style": "tattoo", "color": "#1b1b1b" },
+	"legs": { "style": "jeans", "color": "#0d69ab" }
+}

@@ -1,0 +1,13 @@
+{
+	"name": "Gusto",
+	"_comment": "An old flying ace who swapped his plane for a kart. Heavy and steady.",
+	"head": { "style": "excited", "color": "#a86f4c" },
+	"hair": { "style": "none", "color": "#f2f2f2" },
+	"facial_hair": { "style": "walrus", "color": "#f2f2f2" },
+	"headgear": { "style": "aviator", "color": "#8a5a2b" },
+	"neck": { "style": "long_scarf", "color": "#f2f2f2" },
+	"torso": { "style": "leather", "color": "#8a5a2b" },
+	"back": { "style": "jet_pack", "color": "#9aa0a6" },
+	"arms": { "style": "gloves", "color": "#3c3f44" },
+	"legs": { "style": "boots", "color": "#3c3f44" }
+}

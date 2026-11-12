@@ -72,10 +72,13 @@ func _race_after(before: Node) -> Race:
 
 func _offline(two: bool) -> void:
 	Game.settings.set_value("race", "split", Game.SIDE_BY_SIDE if two else Game.SOLO)
-	Game.settings.set_value("player", "name", "Brickley")
 	Game.settings.set_value("player", "name_two", "Rusty")
 	var before := Game._screen
 	Game.start_grand_prix("baseplate", two)
+	# The AI field is drawn at random, so take the name of one drawn before
+	# the race is built.
+	var same := Game.roster_driver(Game.grand_prix.drivers[0]).name
+	Game.settings.set_value("player", "name", same)
 	var race := await _race_after(before)
 	check(race != null, "the cup starts with matching player and AI names%s" % (" for two" if two else ""))
 	if race == null:
@@ -83,8 +86,8 @@ func _offline(two: bool) -> void:
 	var gp := Game.grand_prix
 	var labels := race.racers.map(func(r): return r.name)
 	check(labels.all(func(n): return labels.count(n) == 1), "every entrant has a separate race label")
-	check(race.player.name == "Brickley" and (not two or race.humans[1].name == "Rusty"), "players retain their chosen names")
-	var matching: Race.Racer = race.racers.filter(func(r): return r.cpu and r.kart.driver.name == "Brickley")[0]
+	check(race.player.name == same and (not two or race.humans[1].name == "Rusty"), "players retain their chosen names")
+	var matching: Race.Racer = race.racers.filter(func(r): return r.cpu and r.kart.driver.name == same)[0]
 	check(matching.name != race.player.name, "the matching AI gets a separate label")
 	var ai_label := matching.name
 	var ai_kart := matching.kart.design.name
@@ -92,10 +95,10 @@ func _offline(two: bool) -> void:
 	var order: Array = [race.player.name, matching.name] + labels.filter(func(n): return n != race.player.name and n != matching.name)
 	Game.finish_grand_prix_race(order)
 	await frames(3)
-	check(gp.points.size() == Race.KARTS and gp.points.Brickley == 15 and gp.points[ai_label] == 12, "matching names score independent first and second place points")
+	check(gp.points.size() == Race.KARTS and gp.points[same] == 15 and gp.points[ai_label] == 12, "matching names score independent first and second place points")
 	check(gp.best_place() == 1 and gp.people == people, "the player's cup placing refers only to their own row")
 	var cells := Game._screen.find_children("*", "Label", true, false)
-	check(cells.any(func(c): return c.text == "Brickley" and c.theme_type_variation == "LeadAccentLabel") if not two else cells.any(func(c): return c.text == "Brickley" and c.has_theme_color_override("font_color")), "the player has their own highlighted standings row")
+	check(cells.any(func(c): return c.text == same and c.theme_type_variation == "LeadAccentLabel") if not two else cells.any(func(c): return c.text == same and c.has_theme_color_override("font_color")), "the player has their own highlighted standings row")
 	var grid := gp.grid_order()
 	before = Game._screen
 	Game.next_grand_prix_race()
@@ -108,7 +111,7 @@ func _offline(two: bool) -> void:
 	Game.finish_grand_prix_race(order)
 	await frames(3)
 	var podium := race.podium
-	check(podium != null and podium.order[0][0] == "Brickley" and podium.order[0][1].name == "The player's kart", "the winning player keeps their own kart on the podium")
+	check(podium != null and podium.order[0][0] == same and podium.order[0][1].name == "The player's kart", "the winning player keeps their own kart on the podium")
 	check(podium != null and podium.order[1][0] == ai_label and podium.order[1][1].name == ai_kart, "the matching AI also keeps its own podium kart")
 	Game.grand_prix = null
 	Game.show_menu()

@@ -185,7 +185,8 @@ func _ready() -> void:
 		var karts := Game.draw_karts(drivers, [Game.player_two_kart()] if people > 1 else [])
 		# And a pecking order, so a different driver's the quickest each time.
 		var ranks := Game.draw_ranks(drivers)
-		if mode == Game.MODE_GRAND_PRIX and Game.grand_prix != null and not Game.grand_prix.karts.is_empty():
+		if mode == Game.MODE_GRAND_PRIX and Game.grand_prix != null and not Game.grand_prix.drivers.is_empty():
+			drivers = Game.grand_prix.drivers.duplicate()
 			karts = Game.grand_prix.karts
 			ranks = Game.grand_prix.ranks
 		drivers.resize(mini(drivers.size(), KARTS - people))
@@ -212,6 +213,7 @@ func _ready() -> void:
 			var ib := order.find(b.name)
 			return (ia if ia >= 0 else 99) < (ib if ib >= 0 else 99))
 
+	var ai_count := entries.filter(func(entry: Dictionary) -> bool: return not entry.has("human")).size()
 	for slot in entries.size():
 		var entry: Dictionary = entries[slot]
 		var racer := _add_racer(entry.name, entry.design, slot, entry.who)
@@ -225,7 +227,7 @@ func _ready() -> void:
 		racer.ai = AIDriver.new()
 		racer.ai.kart = racer.kart
 		racer.ai.track = track
-		Difficulty.apply(racer.ai, difficulty, entry.rank, Game.ai_driver_keys().size())
+		Difficulty.apply(racer.ai, difficulty, entry.rank, ai_count)
 		racer.ai.line = entry.line
 		racer.kart.controls = racer.ai.controls
 		add_child(racer.ai)
@@ -330,6 +332,7 @@ func _ready_online() -> void:
 	var me := Game.net.my_id()
 	var mine: Array[Racer] = []
 	var entries: Array = setup.entries
+	var ai_count := entries.filter(func(entry: Dictionary) -> bool: return entry.get("ai", false)).size()
 	for slot in entries.size():
 		var entry: Dictionary = entries[slot]
 		var racer := _add_racer(entry.name, KartDesign.from_dict(entry.kart), slot, CharacterDesign.from_dict(entry.driver))
@@ -344,7 +347,7 @@ func _ready_online() -> void:
 			racer.ai = AIDriver.new()
 			racer.ai.kart = racer.kart
 			racer.ai.track = track
-			Difficulty.apply(racer.ai, difficulty, int(entry.rank), Game.ai_driver_keys().size())
+			Difficulty.apply(racer.ai, difficulty, int(entry.rank), ai_count)
 			racer.ai.line = float(entry.line)
 			racer.kart.controls = racer.ai.controls
 			add_child(racer.ai)

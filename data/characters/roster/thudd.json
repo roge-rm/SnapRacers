@@ -1,0 +1,12 @@
+{
+	"name": "Thudd",
+	"_comment": "A big jolly warrior who laughs the whole way round.",
+	"head": { "style": "laughing", "color": "#f5c8a8" },
+	"hair": { "style": "curly", "color": "#c4281c" },
+	"facial_hair": { "style": "braided", "color": "#c4281c" },
+	"headgear": { "style": "none", "color": "#9aa0a6" },
+	"torso": { "style": "leather", "color": "#237841" },
+	"back": { "style": "shield", "color": "#c4281c" },
+	"arms": { "style": "armoured", "color": "#9aa0a6" },
+	"legs": { "style": "boots", "color": "#8a5a2b" }
+}

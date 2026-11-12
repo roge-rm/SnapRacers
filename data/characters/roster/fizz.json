@@ -1,0 +1,11 @@
+{
+	"name": "Fizz",
+	"_comment": "An inventor who tunes her kart between every lap.",
+	"head": { "style": "glasses", "color": "#d9a37e" },
+	"hair": { "style": "braids", "color": "#1b1b1b" },
+	"headgear": { "style": "none", "color": "#f2f2f2" },
+	"neck": { "style": "pass", "color": "#f2cd37" },
+	"torso": { "style": "lab_coat", "color": "#f2f2f2" },
+	"arms": { "style": "watch", "color": "#f2f2f2" },
+	"legs": { "style": "sneakers", "color": "#6c3fb5" }
+}

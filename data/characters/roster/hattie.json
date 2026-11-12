@@ -1,0 +1,11 @@
+{
+	"name": "Hattie",
+	"_comment": "A ranch hand who drives her kart like she's rounding up cattle.",
+	"head": { "style": "lashes", "color": "#a86f4c" },
+	"hair": { "style": "pigtails", "color": "#c47a3a" },
+	"headgear": { "style": "bandana", "color": "#0d69ab" },
+	"neck": { "style": "neckerchief", "color": "#f2cd37" },
+	"torso": { "style": "plaid", "color": "#c4281c" },
+	"arms": { "style": "rolled", "color": "#c4281c" },
+	"legs": { "style": "cowboy", "color": "#8a5a2b" }
+}

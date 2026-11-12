@@ -256,12 +256,15 @@ func start() -> void:
 	if settings.mode == CUP:
 		cup_points = {}
 		cup_round = 0
+		cup_drivers = []
 	_begin_round()
 
 
 ## Where a cup's got to, which only the host keeps.
 var cup_points := {}
 var cup_round := 0
+## The AI drivers in the cup, by roster key, drawn for its first race.
+var cup_drivers: Array = []
 var _race_names := RaceNames.new()
 
 
@@ -283,10 +286,19 @@ func _setup() -> Dictionary:
 	if settings.ai:
 		# No AI driver is the same as a stock driver someone's racing as.
 		var people := entries.map(func(entry: Dictionary) -> Variant: return entry.driver)
-		var drivers := Game.ai_driver_keys().filter(func(key: String) -> bool: return not people.has(Game.roster_driver(key).to_dict()))
+		var drivers: Array = Game.ai_driver_keys().filter(func(key: String) -> bool: return not people.has(Game.roster_driver(key).to_dict()))
+		drivers.shuffle()
+		# A cup keeps the drivers it started with while they're still free.
+		if settings.mode == CUP:
+			var kept := cup_drivers.filter(func(key: String) -> bool: return drivers.has(key))
+			drivers = kept + drivers.filter(func(key: String) -> bool: return not kept.has(key))
+		# The whole order is kept, so a driver left out while the grid is full comes back first.
+		if settings.mode == CUP:
+			cup_drivers = drivers.duplicate()
+		var fill := mini(drivers.size(), maxi(MOST_KARTS - entries.size(), 0))
+		drivers.resize(fill)
 		var karts := Game.draw_karts(drivers)
 		var ranks := Game.draw_ranks(drivers)
-		var fill := mini(drivers.size(), MOST_KARTS - entries.size())
 		for i in fill:
 			var who := Game.roster_driver(drivers[i])
 			entries.push_front({"identity": "ai:" + drivers[i], "owner": 1, "ai": true, "name": who.name, "driver": who.to_dict(), "kart": Game.stock_kart(karts.get(drivers[i], Game.DEFAULT_STOCK)).to_dict(), "rank": ranks.get(drivers[i], i), "line": (i % 3 - 1) * 1.5})
