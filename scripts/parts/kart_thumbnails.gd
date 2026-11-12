@@ -25,9 +25,13 @@ static func picture(key: String) -> Texture2D:
 	return _pictures.get(key)
 
 
-## Forgets a picture, like when your own kart has changed since.
+## Forgets a picture, like when your own kart has changed since, and any
+## kept under this key with a driver's look after an "@".
 static func forget(key: String) -> void:
 	_pictures.erase(key)
+	for other in _pictures.keys():
+		if other.begins_with(key + "@"):
+			_pictures.erase(other)
 
 
 ## Takes a picture of this kart, if there isn't one already, and says when

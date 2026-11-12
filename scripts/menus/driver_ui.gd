@@ -267,11 +267,11 @@ func _open_load() -> void:
 	_load_list.add_child(MenuStyle.button("Add a driver...", func() -> void:
 		_load_popup.hide()
 		import_pressed.emit()))
-	var saved := CharacterDesign.saved_paths()
+	var saved := CharacterDesign.saved_drivers()
 	if not saved.is_empty():
 		_load_list.add_child(MenuStyle.heading("Your drivers"))
-		for path in saved:
-			_load_list.add_child(_load_button(CharacterDesign.load_file(path).name, path))
+		for entry in saved:
+			_load_list.add_child(_load_button(entry.name, entry.path))
 	_load_list.add_child(MenuStyle.heading("Stock drivers"))
 	for key in Game.stock_driver_keys():
 		var path := "%s/%s.json" % [Game.ROSTER, key]

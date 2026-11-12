@@ -29,6 +29,10 @@ var player_kart := ""
 ## For two on this phone in split screen, and the kart player 2 started in.
 var two := false
 var player_two_kart := ""
+## Who each player drives as for the whole cup, as pick keys (see
+## CharacterDesign.for_key()).
+var player_driver := ""
+var player_two_driver := ""
 ## The names of the people racing, player 1 first, as the races know them.
 var people: Array = []
 ## Online, the kart and driver each racer last raced in, as

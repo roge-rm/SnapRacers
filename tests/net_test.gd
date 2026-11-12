@@ -69,6 +69,7 @@ func _ready() -> void:
 		net.set_settings({"course": course, "laps": 1, "ai": true, "difficulty": "expert", "weather": "rain", "time": "dusk"})
 		Game.show_lobby()
 		check(await until(func(): return net.members.size() == 2, 30.0), "the other player joins")
+		check(await until(func(): return net.members.values().any(func(m): return m.players[0].driver.name == "Nova"), 30.0), "and their change of driver to Nova reaches the host")
 		check(await until(func(): return net.can_start(), 30.0), "and says they're ready")
 		net.start()
 	else:
@@ -76,11 +77,14 @@ func _ready() -> void:
 		Game.show_lobby()
 		check(await until(func(): return net.members.size() == 2, 30.0), "the lobby shows both of us")
 		check(net.settings.course.name == "Peach Pit" and int(net.settings.laps) == 1, "with the host's course and laps")
+		(screen() as Lobby).pick_driver("stock:nova")
+		check(await until(func(): return net.members[net.my_id()].players[0].driver.name == "Nova", 30.0), "picking Nova on the lobby's driver card comes back from the host")
 		net.set_ready(true)
 
 	check(await until(func(): return screen() is Race, 30.0), "the race starts")
 	var race: Race = screen()
 	check(race.racers.size() == 8, "with both of us and six AI karts (%d)" % race.racers.size())
+	check(race.racers.filter(func(r): return r.kart.driver.name == "Nova").size() == 1, "and only the joiner is Nova, no AI twin")
 	if same_name:
 		var names := race.racers.map(func(r): return r.name)
 		check(names.all(func(n): return names.count(n) == 1), "matching online human and AI names have distinct race labels")

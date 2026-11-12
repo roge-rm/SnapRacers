@@ -181,23 +181,21 @@ func _ready() -> void:
 	if not solo:
 		# Each AI driver has a stock kart, drawn at random for this race, or
 		# for the whole cup in a Grand Prix.
-		var drivers := Game.ai_driver_keys()
+		var drivers := Game.ai_field(people)
 		var karts := Game.draw_karts(drivers, [Game.player_two_kart()] if people > 1 else [])
 		# And a pecking order, so a different driver's the quickest each time.
 		var ranks := Game.draw_ranks(drivers)
 		if mode == Game.MODE_GRAND_PRIX and Game.grand_prix != null and not Game.grand_prix.karts.is_empty():
 			karts = Game.grand_prix.karts
 			ranks = Game.grand_prix.ranks
-		# Player 2 takes the last driver's place, in the kart they picked.
-		var two_driver: String = drivers.pop_back() if people > 1 else ""
 		drivers.resize(mini(drivers.size(), KARTS - people))
 		for i in drivers.size():
 			var who := Game.roster_driver(drivers[i])
 			var design := Game.stock_kart(karts.get(drivers[i], Game.DEFAULT_STOCK))
 			entries.append({ "identity": "ai:" + drivers[i], "name": who.name, "design": design, "who": who, "rank": ranks.get(drivers[i], i), "line": (i % 3 - 1) * 1.5 })
 		if people > 1:
-			entries.append({ "identity": "player:1", "name": Game.player_two_name(), "design": Game.player_two_design(), "who": Game.roster_driver(two_driver), "human": 1 })
-	entries.append({ "identity": "player:0", "name": Game.player_one_name() if people > 1 else Game.player_name(), "design": Game.chosen_design(), "who": Game.character, "human": 0 })
+			entries.append({ "identity": "player:1", "name": Game.player_two_name(), "design": Game.player_two_design(), "who": Game.race_driver(1), "human": 1 })
+	entries.append({ "identity": "player:0", "name": Game.player_one_name() if people > 1 else Game.player_name(), "design": Game.chosen_design(), "who": Game.race_driver(0), "human": 0 })
 	var names := Game.grand_prix.race_names if mode == Game.MODE_GRAND_PRIX and Game.grand_prix != null else RaceNames.new()
 	names.assign(entries)
 	if mode == Game.MODE_GRAND_PRIX and Game.grand_prix != null:

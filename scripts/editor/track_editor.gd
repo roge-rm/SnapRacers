@@ -538,7 +538,7 @@ func race() -> void:
 	var saved := save()
 	if saved != "":
 		Game.mode = Game.MODE_RACE
-		Game.show_kart_picker(Game.start_course.bind(Game.MODE_RACE, saved, true), Game.show_track_editor, true)
+		Game.show_race_setup(Game.start_course.bind(Game.MODE_RACE, saved, true), Game.show_track_editor, true, false, true)
 
 
 # Landmarks.

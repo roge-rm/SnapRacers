@@ -189,7 +189,7 @@ func _pick(id: String) -> void:
 	if mode == Game.MODE_GRAND_PRIX:
 		var two := Game.cups_for_two
 		Game.mode = Game.MODE_GRAND_PRIX
-		Game.show_kart_picker(Game.start_grand_prix.bind(id, two), Game.show_cups.bind(two), true, two)
+		Game.show_race_setup(Game.start_grand_prix.bind(id, two), Game.show_cups.bind(two), true, two)
 	else:
 		Game.show_course_grid(mode, alone, id)
 
@@ -228,7 +228,7 @@ func _your_cup(mine: CupDesign, path: String) -> void:
 	var card := _cup_card(id, mine.name, TrophyModel.spec_for(mine.name), TrophyModel.colour_for(mine.name), paths)
 	card.tapped.connect(func() -> void:
 		Game.mode = Game.MODE_GRAND_PRIX
-		Game.show_kart_picker(_starter(mine, id, Game.cups_for_two), Game.show_your_cups, true, Game.cups_for_two))
+		Game.show_race_setup(_starter(mine, id, Game.cups_for_two), Game.show_your_cups, true, Game.cups_for_two))
 	var inset := MarginContainer.new()
 	inset.add_theme_constant_override("margin_right", MenuCard.EDGE)
 	inset.mouse_filter = MOUSE_FILTER_IGNORE

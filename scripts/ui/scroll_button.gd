@@ -69,11 +69,20 @@ class Drag:
 	var _pointer := false
 	var _list: ScrollContainer
 	var _scroll_at := Vector2.ZERO
+	## The frame the button last took the focus, to tell the list's jump to
+	## show it from a real scroll.
+	var _focus_frame := -1
 
 	func _init(button: Control) -> void:
 		_button = button
+		button.focus_entered.connect(func() -> void: _focus_frame = Engine.get_process_frames())
 
-	## Finds the list the button is in and starts noting when it scrolls.
+	func _note_scroll() -> void:
+		_scroll_at = Vector2(_list.scroll_horizontal, _list.scroll_vertical)
+
+	## Finds the list the button is in and starts noting when it scrolls:
+	## scrolled_at is the last time in milliseconds, scrolled_frame its frame
+	## and scrolled_before the last time from an earlier frame.
 	func find_list() -> void:
 		var up := _button.get_parent()
 		while up != null and not up is ScrollContainer:
@@ -81,8 +90,15 @@ class Drag:
 		_list = up
 		if _list != null and not _list.has_meta("scrolled_at"):
 			_list.set_meta("scrolled_at", 0)
+			_list.set_meta("scrolled_before", 0)
+			_list.set_meta("scrolled_frame", -1)
 			var list := _list
-			var mark := func(_value: float) -> void: list.set_meta("scrolled_at", Time.get_ticks_msec())
+			var mark := func(_value: float) -> void:
+				var frame := Engine.get_process_frames()
+				if int(list.get_meta("scrolled_frame")) != frame:
+					list.set_meta("scrolled_before", list.get_meta("scrolled_at"))
+					list.set_meta("scrolled_frame", frame)
+				list.set_meta("scrolled_at", Time.get_ticks_msec())
 			_list.get_v_scroll_bar().value_changed.connect(mark)
 			_list.get_h_scroll_bar().value_changed.connect(mark)
 
@@ -106,11 +122,27 @@ class Drag:
 			_moved = false
 			_pointer = true
 			if _list != null:
-				_scroll_at = Vector2(_list.scroll_horizontal, _list.scroll_vertical)
-				if Time.get_ticks_msec() - int(_list.get_meta("scrolled_at", 0)) < STILL_FOR:
-					_moved = true
+				_pressed_list()
 		elif event is InputEventScreenDrag and event.position.distance_to(_press) > DRAG:
 			_moved = true
 		elif event is InputEventMouseMotion and event.button_mask & MOUSE_BUTTON_MASK_LEFT \
 				and event.position.distance_to(_press) > DRAG:
 			_moved = true
+
+	## A press that gave the button the focus made the list jump to show it,
+	## in this frame and maybe once more at the end of it. That jump isn't the
+	## list moving, so the press is taken from after it, and only a scroll
+	## from an earlier frame counts as the list still coasting.
+	func _pressed_list() -> void:
+		_note_scroll()
+		var frame := Engine.get_process_frames()
+		var last := int(_list.get_meta("scrolled_at", 0))
+		var own := _focus_frame == frame
+		if own and int(_list.get_meta("scrolled_frame", -1)) == frame:
+			last = int(_list.get_meta("scrolled_before", 0))
+		if Time.get_ticks_msec() - last < STILL_FOR:
+			_moved = true
+		if own:
+			await _button.get_tree().process_frame
+			if _pointer and not _moved:
+				_note_scroll()

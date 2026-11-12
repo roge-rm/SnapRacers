@@ -220,12 +220,14 @@ func _grand_prix() -> void:
 func _grand_prix_for_two() -> void:
 	print("-- Grand Prix for two")
 	var was := {}
-	for key in ["split", "kart", "player_two"]:
+	for key in ["split", "kart", "player_two", "driver", "player_two_driver"]:
 		was[key] = Game.settings.get_value("race", key) if Game.settings.has_section_key("race", key) else null
 	var stock := Game.stock_keys()
 	Game.settings.set_value("race", "split", Game.SIDE_BY_SIDE)
 	Game.settings.set_value("race", "kart", stock[0])
 	Game.settings.set_value("race", "player_two", stock[1])
+	Game.settings.set_value("race", "driver", "stock:brickley")
+	Game.settings.set_value("race", "player_two_driver", "stock:nova")
 	Game.show_multiplayer()
 	await frames(2)
 	var cup_button := screen().find_children("*", "Button", true, false).filter(func(b): return b.text == "Grand Prix")
@@ -235,7 +237,7 @@ func _grand_prix_for_two() -> void:
 	check(screen() is CupGrid and screen().mode == Game.MODE_GRAND_PRIX and Game.cups_for_two, "which opens the cups for two")
 	screen().find_children("*", "Button", true, false).filter(func(b): return b.get_meta("cup", "") == "gearbox")[0].pressed.emit()
 	await frames(2)
-	check(screen() is KartPicker and screen().player == 1, "and picking a cup asks player 1 for a kart, then player 2")
+	check(screen() is DriverPicker and screen().player == 1, "and picking a cup asks player 1 who drives first")
 	Game._go_back()
 	await frames(2)
 	check(screen() is CupGrid and Game.cups_for_two, "back from the picker goes to the cups for two")
@@ -264,6 +266,11 @@ func _grand_prix_for_two() -> void:
 		check(race.racers.size() == Race.KARTS, "and the same number of karts as on your own (%d)" % race.racers.size())
 		var ai: Array = race.racers.filter(func(r): return not r.player)
 		check(ai.all(func(r): return not mine.has(r.kart.design.name)), "no AI driver's in either player's kart")
+		check(race.humans.map(func(h): return h.kart.driver.name) == ["Brickley", "Nova"], "each player races as who they picked")
+		check(ai.all(func(r): return not ["Brickley", "Nova"].has(r.kart.driver.name)), "and no AI driver is either of them")
+		if round == 0:
+			# Picking again mid-cup changes nothing until the next cup.
+			Game.settings.set_value("race", "driver", "stock:wren")
 		if round == 1:
 			# Player 2 won the first race, so starts last; player 1 came third.
 			check(race.racers.find(race.humans[1]) == Race.KARTS - 1, "the grid goes by points for player 2")

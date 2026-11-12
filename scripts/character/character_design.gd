@@ -25,6 +25,10 @@ const HAIR_THAT_WAS_HEADGEAR := { "spiky_hair": "spiky", "ponytail": "ponytail" 
 const LIGHT_BELOW := 36.0
 const HEAVY_FROM := 44.0
 const SAVE_DIR := "user://drivers"
+## How a pick of driver for a race is written (see for_key()).
+const OWN_KEY := "own"
+const SAVED_KEY := "saved:"
+const STOCK_KEY := "stock:"
 
 static var _pieces: Dictionary = {}
 
@@ -87,6 +91,24 @@ static func from_dict(data: Dictionary) -> CharacterDesign:
 		design.pieces["hair"] = { "style": HAIR_THAT_WAS_HEADGEAR[old_gear], "color": Color(str(data.headgear.get("color", "#6b4430"))) }
 		design.pieces["headgear"] = { "style": "none", "color": design.color_of("headgear") }
 	return design
+
+
+## Whether `data` has the shape from_dict reads: each piece a dictionary
+## with a text style and a colour code. For drivers sent over the network.
+static func well_formed(data: Dictionary) -> bool:
+	if data.has("name") and not data.name is String:
+		return false
+	for slot in SLOTS:
+		if not data.has(slot):
+			continue
+		var entry = data[slot]
+		if not entry is Dictionary:
+			return false
+		if entry.has("style") and not entry.style is String:
+			return false
+		if entry.has("color") and not (entry.color is String and Color.html_is_valid(entry.color)):
+			return false
+	return true
 
 
 static func load_file(path: String) -> CharacterDesign:
@@ -158,9 +180,11 @@ func weight_class() -> String:
 
 ## Saves into the player's own drivers folder, named after the driver. Returns
 ## the path it was saved to, or an empty string if it couldn't be written.
-func save() -> String:
+## Saves to the file named after the driver, or to `path` if one is given.
+func save(path := "") -> String:
 	DirAccess.make_dir_recursive_absolute(SAVE_DIR)
-	var path := "%s/%s.json" % [SAVE_DIR, file_name_for(name)]
+	if path == "":
+		path = "%s/%s.json" % [SAVE_DIR, file_name_for(name)]
 	var file := FileAccess.open(path, FileAccess.WRITE)
 	if file == null:
 		push_error("I couldn't save the driver to %s" % path)
@@ -185,6 +209,49 @@ static func saved_paths() -> Array[String]:
 			out.append("%s/%s" % [SAVE_DIR, file])
 	out.sort()
 	return out
+
+
+## Every driver the player has saved, in file order, as { key, name, path }.
+## The key is "saved:" and the file's name without .json.
+static func saved_drivers() -> Array[Dictionary]:
+	var out: Array[Dictionary] = []
+	for path in saved_paths():
+		out.append({ "key": SAVED_KEY + path.get_file().get_basename(), "name": load_file(path).name, "path": path })
+	return out
+
+
+## The pick keys for every driver you can race as: your own (the one on the
+## driver screen), then the saved ones, then the stock ones.
+static func pick_keys() -> Array[String]:
+	var keys: Array[String] = [OWN_KEY]
+	for entry in saved_drivers():
+		keys.append(entry.key)
+	for key in _game().stock_driver_keys():
+		keys.append(STOCK_KEY + key)
+	return keys
+
+
+## The driver for a pick key: "own" is the one on the driver screen,
+## "saved:<file>" one in the drivers folder and "stock:<file>" one from the
+## roster. A saved or stock driver that's gone gives your own instead. It's
+## always a copy, so changing it changes nothing else.
+static func for_key(key: String) -> CharacterDesign:
+	var game := _game()
+	if key.begins_with(SAVED_KEY):
+		var path := "%s/%s.json" % [SAVE_DIR, key.trim_prefix(SAVED_KEY)]
+		if FileAccess.file_exists(path):
+			return load_file(path)
+	elif key.begins_with(STOCK_KEY):
+		var path := "%s/%s.json" % [game.ROSTER, key.trim_prefix(STOCK_KEY)]
+		if FileAccess.file_exists(path):
+			return load_file(path)
+	return (game.character as CharacterDesign).duplicate_design()
+
+
+## The Game autoload, looked up when it's needed so this script still
+## compiles in the -s tests, which have no autoloads.
+static func _game() -> Node:
+	return (Engine.get_main_loop() as SceneTree).root.get_node("Game")
 
 
 ## A new driver made of random pieces and colours.

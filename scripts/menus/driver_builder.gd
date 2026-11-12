@@ -13,6 +13,16 @@ const SPIN := 0.35 # radians a second when nobody's touching it
 var initial_path := ""
 var saved_path := ""
 var back := Callable()
+## Where Done goes when it's opened from a race's driver picker. Unlike
+## `back`, saving works as it does from the Editors menu.
+var done := Callable()
+## A driver to start from instead of your own, for making a new one.
+var start: CharacterDesign
+## With a new driver, Done calls this with it instead of making it your own,
+## and nothing changes your own driver meanwhile.
+var made := Callable()
+## The file Save wrote the new driver to, so Done and later saves go there.
+var made_path := ""
 var _opening := false
 
 var design: CharacterDesign
@@ -38,7 +48,10 @@ func _init(from := "", leave := Callable()) -> void:
 
 func _ready() -> void:
 	_opening = initial_path != ""
-	design = CharacterDesign.load_file(initial_path) if initial_path != "" else Game.character.duplicate_design()
+	if start != null:
+		design = start.duplicate_design()
+	else:
+		design = CharacterDesign.load_file(initial_path) if initial_path != "" else Game.character.duplicate_design()
 	SkyAndSun.add_to(self, 20.0, BuilderStyle.BACKGROUND)
 	# Lit like a toy on a shelf, softly with light shadows, a cool light from
 	# the other side and a warm one from behind that picks out the edges of the
@@ -196,6 +209,15 @@ func _save() -> void:
 			return
 		path = result.path
 		saved_path = path
+	elif made.is_valid():
+		if made_path == "":
+			var wanted := Game.unique_driver_name(design.name)
+			if wanted != design.name:
+				design.name = wanted
+				_show()
+		path = design.save(made_path)
+		if path != "":
+			made_path = path
 	else:
 		path = design.save()
 	ui.toast("Saved %s" % design.name if path != "" else "I couldn't save it.")
@@ -250,7 +272,7 @@ func _rebuild() -> void:
 func _show() -> void:
 	ui.show_design(design)
 	ui.set_history(not _undo.is_empty(), not _redo.is_empty())
-	if not _opening:
+	if not _opening and not made.is_valid():
 		Game.keep_character(design)
 
 
@@ -286,8 +308,13 @@ func next_tab(by: int) -> void:
 
 
 func go_back() -> void:
+	if made.is_valid():
+		made.call(design)
+		return
 	Game.keep_character(design)
 	if back.is_valid():
 		back.call()
+	elif done.is_valid():
+		done.call()
 	else:
 		Game.show_editors()

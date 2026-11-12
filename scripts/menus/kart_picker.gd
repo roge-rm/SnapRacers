@@ -5,7 +5,8 @@ extends Control
 ## the stock karts. In a race against the AI, Easy, Normal, Hard and Expert sit
 ## in the header between the title and Back. Each card has a picture of the
 ## kart, a line about it and bars for how it compares with the rest. It
-## remembers what you picked last time.
+## remembers what you picked last time. A card at the top shows who's
+## driving, and tapping it opens the driver cards to change them.
 ##
 ## Two on one phone each pick in turn on this screen, player 1 first, with
 ## a big tag in their own colour saying whose turn it is, and their name,
@@ -24,9 +25,19 @@ var _go: Callable
 var _back: Callable
 var _cards := {}
 var _chosen := ""
-var _chosen_label: Label
 var _race: Button
 var _pictures: KartThumbnails
+## Who drives the karts in the pictures, the driver this player picked.
+var _driver: CharacterDesign
+## Added to each kart's key for its picture, since it's kept per driver.
+var _look := ""
+## Each card's kart, as key -> KartDesign, to take its picture again.
+var _designs := {}
+## The card at the top with who's driving, which opens the driver cards.
+var driver_card: DriverCard
+## This same screen again, for coming back from making a new driver. With
+## none it's a new kart picker like this one.
+var here := Callable()
 var _ai := false
 var _levels := {}
 var _difficulty_row: HBoxContainer
@@ -48,8 +59,11 @@ func focus_key() -> String:
 
 
 func _ready() -> void:
-	var title := "Pick a kart" if player == 0 else "Player %d, pick your kart" % player
+	# With two, the PLAYER tag under it says whose turn it is.
+	var title := "Pick a kart" if player == 0 else "Pick your kart"
 	var column := MenuStyle.page(self, title, go_back, CARD.x * COLUMNS + 24.0 * (COLUMNS - 1))
+	_driver = CharacterDesign.for_key(Game.driver_choice(player == 2))
+	_look = "@" + DriverPortraits.key_of(_driver)
 	_pictures = KartThumbnails.new()
 	_pictures.ready_for.connect(_show_picture)
 	add_child(_pictures)
@@ -75,13 +89,18 @@ func _ready() -> void:
 		_name.placeholder_text = "Player %d's name" % player
 		_name.max_length = 16
 		_name.text = Game.player_one_name() if player == 1 else Game.player_two_name()
-		_name.custom_minimum_size = Vector2(260.0, 48.0)
+		_name.custom_minimum_size = Vector2(200.0, 48.0)
 		_name.text_changed.connect(func(text: String) -> void: Game.set_setting("player", key, text.strip_edges()))
 		top.add_child(_name)
-	_chosen_label = Label.new()
-	_chosen_label.size_flags_horizontal = SIZE_EXPAND_FILL
-	_chosen_label.theme_type_variation = "LeadLabel"
-	top.add_child(_chosen_label)
+	driver_card = DriverCard.new()
+	driver_card.tapped.connect(open_drivers)
+	top.add_child(driver_card)
+	driver_card.show_driver(_driver)
+	# Race sits at the right end.
+	var gap := Control.new()
+	gap.size_flags_horizontal = SIZE_EXPAND_FILL
+	gap.mouse_filter = MOUSE_FILTER_IGNORE
+	top.add_child(gap)
 	_race = MenuStyle.button("Next" if player == 1 else "Race", func() -> void: _go.call())
 	_race.custom_minimum_size.x = 220.0
 	_race.theme_type_variation = "MainButton"
@@ -158,6 +177,16 @@ func _put_in_header(row: HBoxContainer, outer: VBoxContainer) -> void:
 	back.size_flags_horizontal = SIZE_SHRINK_END
 	header.add_child(row)
 	header.move_child(row, 1)
+	# The title is cut short with dots so the picks and Back always fit.
+	var title_box: PanelContainer = header.get_child(0)
+	var title := (title_box.get_child(0) as Label).text
+	var margin := MenuStyle.page_margin(outer)
+	var fit := func() -> void:
+		var room := MenuStyle.page_room(outer) - row.get_combined_minimum_size().x - back.get_combined_minimum_size().x - header.get_theme_constant("separation") * 3
+		MenuStyle.fit_ribbon(title_box, title, room)
+	margin.resized.connect(fit)
+	margin.theme_changed.connect(fit)
+	fit.call_deferred()
 
 
 func _show_level(level: String) -> void:
@@ -174,9 +203,6 @@ func _choose(key: String) -> void:
 		Game.set_kart_choice(key)
 	for other in _cards:
 		MenuStyle.mark(_cards[other], other == key)
-	var design: KartDesign = Game.design if key == Game.OWN_KART else Game.stock_kart(key)
-	var kart := "the garage kart, %s" % design.name if player == 2 else "your own kart, %s" % design.name
-	_chosen_label.text = "Racing in %s" % (kart if key == Game.OWN_KART else "the %s" % design.name)
 
 
 ## How a kart measures up on each bar, before it's compared with the others.
@@ -222,7 +248,7 @@ func _card(key: String, design: KartDesign, ranges: Dictionary) -> Button:
 	picture.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	picture.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	picture.mouse_filter = MOUSE_FILTER_IGNORE
-	picture.texture = KartThumbnails.picture(key)
+	picture.texture = KartThumbnails.picture(key + _look)
 	box.add_child(picture)
 	var own := key == Game.OWN_KART
 	var title := Label.new()
@@ -271,13 +297,44 @@ func _card(key: String, design: KartDesign, ranges: Dictionary) -> Button:
 	# A kart that can't be driven can be looked at but not picked.
 	card.disabled = not problems.is_empty()
 	card.tapped.connect(_choose.bind(key))
-	_pictures.take(key, design, Game.character)
+	_designs[key] = design
+	_pictures.take(key + _look, design, _driver)
 	return card
 
 
-func _show_picture(key: String, picture: Texture2D) -> void:
-	if _cards.has(key):
+func _show_picture(look_key: String, picture: Texture2D) -> void:
+	var key := look_key.trim_suffix(_look)
+	if look_key.ends_with(_look) and _cards.has(key):
 		_cards[key].get_node("Box/Picture").texture = picture
+
+
+## Opens the driver cards in a window over this screen.
+func open_drivers() -> DriverWindow:
+	var taken := Game.driver_choice() if player == 2 else ""
+	var window := DriverWindow.open(self, Game.driver_choice(player == 2), taken, player)
+	window.picked.connect(pick_driver)
+	window.new_driver.connect(func() -> void:
+		var back := here
+		if not back.is_valid():
+			back = func() -> void:
+				var again := KartPicker.new(_go, _back, _ai, player)
+				Game._swap(again)
+		Game.show_new_driver(player == 2, back))
+	return window
+
+
+## Races this player as the driver with this pick key, and takes the kart
+## pictures again with them in.
+func pick_driver(key: String) -> void:
+	Game.set_driver_choice(key, player == 2)
+	_driver = CharacterDesign.for_key(key)
+	_look = "@" + DriverPortraits.key_of(_driver)
+	driver_card.show_driver(_driver)
+	for kart in _cards:
+		var picture := KartThumbnails.picture(kart + _look)
+		if picture != null:
+			_cards[kart].get_node("Box/Picture").texture = picture
+		_pictures.take(kart + _look, _designs[kart], _driver)
 
 
 ## A short bar showing how a kart compares, filled from the left.

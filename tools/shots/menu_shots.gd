@@ -96,7 +96,7 @@ func ready_pictures() -> void:
 		await RenderingServer.frame_post_draw
 		var busy := false
 		for node in get_tree().root.find_children("*", "", true, false):
-			if node is PartThumbnails or node is KartThumbnails or node is DriverThumbnails:
+			if node is PartThumbnails or node is KartThumbnails or node is DriverThumbnails or node is DriverPortraits:
 				busy = busy or node.is_processing()
 		if i >= 4 and not busy:
 			return
@@ -178,6 +178,8 @@ func _screens(only: Array) -> void:
 		["cup_builder", Game.show_cup_builder.bind("")],
 		["kart_picker", Game.show_kart_picker.bind(Game.show_menu, Game.show_menu, true)],
 		["kart_picker_long", _long_name_picker],
+		["driver_picker", func() -> void: Game._swap(DriverPicker.new(func(_k): pass, Game.show_menu))],
+		["driver_picker_two", func() -> void: Game._swap(DriverPicker.new(func(_k): pass, Game.show_menu, "stock:nova", "stock:brickley", 2))],
 	]
 	for pair in screens:
 		if not want.call(pair[0]):

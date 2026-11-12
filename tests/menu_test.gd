@@ -34,6 +34,7 @@ func _ready() -> void:
 	var saved_name = Game.settings.get_value("player", "name", "")
 	var saved_split = Game.settings.get_value("race", "split", Game.SOLO)
 	var saved_second = Game.settings.get_value("race", "player_two", "brickley")
+	var saved_drivers := [Game.settings.get_value("race", "driver", ""), Game.settings.get_value("race", "player_two_driver", "")]
 	Game.start(host)
 	check(screen() is SplashScreen, "the game opens on the splash")
 	await frames(3)
@@ -145,6 +146,14 @@ func _ready() -> void:
 
 	await _driver()
 
+	# The track editor's test race skips the drivers.
+	Game.show_race_setup(Game.show_menu, Game.show_editors, true, false, true)
+	await frames(2)
+	check(screen() is KartPicker and screen().player == 0, "skipping the drivers goes straight to the karts")
+	Game._go_back()
+	await frames(2)
+	check(screen() is EditorsMenu, "and back from there goes back where it came from")
+
 	Game.show_single_player()
 	await frames(2)
 	check(screen() is SinglePlayerMenu, "single player opens")
@@ -163,7 +172,47 @@ func _ready() -> void:
 	check(tracks.size() == 4, "all four of them (%d)" % tracks.size())
 	tracks.filter(func(b): return b.get_meta("track") == Tracks.path_of("launchpad_loop"))[0].pressed.emit()
 	await frames(2)
-	check(screen() is KartPicker, "picking one asks which kart to race in")
+	check(screen() is DriverPicker and screen().player == 0, "picking one asks who drives")
+	var driver_cards := screen().find_children("*", "Button", true, false).filter(func(b): return b.has_meta("driver"))
+	check(driver_cards.size() == CharacterDesign.pick_keys().size() + 1, "your own, saved and stock drivers and a new one (%d)" % driver_cards.size())
+	var yours: Array = screen().grid._yours.get_children().map(func(c): return c.get_meta("driver"))
+	check(yours.front() == CharacterDesign.OWN_KEY and yours.back() == "new" and not yours.any(func(k): return k.begins_with(CharacterDesign.STOCK_KEY)), "your drivers first, your own then New driver %s" % [yours])
+	check(screen().grid._stock.get_children().all(func(c): return c.get_meta("driver").begins_with(CharacterDesign.STOCK_KEY)), "then the stock drivers")
+	var own_before: Dictionary = Game.character.to_dict()
+	driver_cards.filter(func(b): return b.get_meta("driver") == "new")[0].pressed.emit()
+	await frames(2)
+	check(screen() is DriverBuilder and screen().design.name.begins_with("Driver "), "New driver opens the driver screen on a new driver (%s)" % screen().design.name)
+	screen().randomise()
+	await frames(2)
+	Game._go_back()
+	await frames(2)
+	check(screen() is DriverPicker, "and coming back from it goes back to picking")
+	var made_key := Game.driver_choice()
+	check(made_key.begins_with(CharacterDesign.SAVED_KEY) and screen().grid.marked_card() != null and screen().grid.marked_card().get_meta("driver") == made_key, "with the new driver saved and picked (%s)" % made_key)
+	check(Game.character.to_dict() == own_before, "and your own driver left as it was")
+	DirAccess.remove_absolute("%s/%s.json" % [CharacterDesign.SAVE_DIR, made_key.trim_prefix(CharacterDesign.SAVED_KEY)])
+	screen().find_children("*", "Button", true, false).filter(func(b): return b.get_meta("driver", "") == "stock:nova")[0].pressed.emit()
+	await frames(2)
+	check(Game.driver_choice() == "stock:nova", "tapping a driver picks them")
+	check(screen() is KartPicker, "then it asks which kart to race in")
+	Game._go_back()
+	await frames(2)
+	check(screen() is DriverPicker and screen().grid.marked_card().get_meta("driver") == "stock:nova", "back from the karts goes back to the drivers, with the pick marked")
+	screen().grid.marked_card().pressed.emit()
+	await frames(2)
+	var karts_screen: KartPicker = screen()
+	check((karts_screen.driver_card.find_child("Name", true, false) as Label).text == "Nova", "the kart picker shows who's driving")
+	karts_screen.driver_card.pressed.emit()
+	await frames(2)
+	var windows := karts_screen.find_children("*", "DriverWindow", true, false)
+	check(windows.size() == 1 and windows[0].visible and windows[0].grid.marked_card().get_meta("driver") == "stock:nova", "tapping it opens the drivers with theirs marked")
+	if not windows.is_empty():
+		windows[0].grid.cards["stock:wren"].pressed.emit()
+	await frames(2)
+	var wren := CharacterDesign.for_key("stock:wren").name
+	check(Game.driver_choice() == "stock:wren" and (karts_screen.driver_card.find_child("Name", true, false) as Label).text == wren, "picking one there changes who drives (%s)" % Game.driver_choice())
+	check(karts_screen.find_children("*", "DriverWindow", true, false).is_empty(), "and closes the drivers")
+	karts_screen.pick_driver("stock:nova")
 	var cards := screen().find_children("*", "Button", true, false).filter(func(b): return b.has_meta("kart"))
 	check(cards.size() == Game.stock_keys().size() + 1, "your own and all the stock karts (%d)" % cards.size())
 	var was_choice := Game.kart_choice()
@@ -180,6 +229,7 @@ func _ready() -> void:
 	check(screen() is Race, "Race starts a practice session")
 	var race: Race = screen()
 	check(race.player.kart.design.name == "Quarter Mile", "in the kart you picked (%s)" % race.player.kart.design.name)
+	check(race.player.kart.driver.name == "Nova", "driven by who you picked (%s)" % race.player.kart.driver.name)
 	Game.set_kart_choice(was_choice)
 	check(race.mode == Game.MODE_PRACTICE and race.racers.size() == 1, "on your own (%d karts)" % race.racers.size())
 	check(race.track.name == "Launchpad Loop", "on that course (%s)" % race.track.name)
@@ -206,18 +256,18 @@ func _ready() -> void:
 	var was_level := Game.difficulty()
 	cups[0].pressed.emit()
 	await frames(2)
+	check(screen() is DriverPicker, "a cup asks who drives first")
+	screen().grid.marked_card().pressed.emit()
+	await frames(2)
 	var levels := screen().find_children("*", "Button", true, false).filter(func(b): return b.has_meta("level"))
 	check(screen() is KartPicker and levels.size() == 4, "a cup asks for a kart and how good the AI should be")
 	levels.filter(func(b): return b.get_meta("level") == "hard")[0].pressed.emit()
 	check(Game.difficulty() == "hard", "tapping a level picks it")
 	Game.set_difficulty(was_level)
-	Game._go_back()
-	await frames(2)
-	Game._go_back()
-	await frames(2)
-	Game._go_back()
-	await frames(2)
-	check(screen() is MainMenu, "back twice goes to the menu")
+	for i in 4:
+		Game._go_back()
+		await frames(2)
+	check(screen() is MainMenu, "back through the drivers and cups goes to the menu")
 
 	Game.show_multiplayer()
 	await frames(2)
@@ -234,8 +284,11 @@ func _ready() -> void:
 	await frames(2)
 	screen().find_children("*", "Button", true, false).filter(func(b): return b.has_meta("track"))[0].pressed.emit()
 	await frames(2)
+	check(screen() is DriverPicker and screen().player == 1, "picking a course asks player 1 who drives first")
+	screen().find_children("*", "Button", true, false).filter(func(b): return b.get_meta("driver", "") == "stock:brickley")[0].pressed.emit()
+	await frames(2)
 	var picker := screen() as KartPicker
-	check(picker != null and picker.player == 1, "picking a course asks player 1 for a kart first")
+	check(picker != null and picker.player == 1, "then player 1 for a kart")
 	var tagged := picker.find_children("*", "Label", true, false).any(func(l): return l.text == "PLAYER 1")
 	check(tagged, "with a tag saying it's player 1")
 	check(picker._name != null and picker._name.text == Game.player_one_name(), "and player 1's name, filled in (%s)" % (picker._name.text if picker._name != null else "none"))
@@ -243,8 +296,14 @@ func _ready() -> void:
 	picker.find_children("*", "Button", true, false).filter(func(b): return b.get_meta("kart", "") == "quarter_mile")[0].pressed.emit()
 	picker.find_children("*", "Button", true, false).filter(func(b): return b.text == "Next")[0].pressed.emit()
 	await frames(2)
+	check(screen() is DriverPicker and screen().player == 2, "then player 2 who drives")
+	var p1_card: Control = screen().grid.cards.get("stock:brickley")
+	check(p1_card != null and p1_card.find_children("*", "Label", true, false).any(func(l): return l.text == "P1"), "with player 1's driver tagged P1")
+	screen().find_children("*", "Button", true, false).filter(func(b): return b.get_meta("driver", "") == "stock:wren")[0].pressed.emit()
+	await frames(2)
+	check(Game.driver_choice() == "stock:brickley" and Game.driver_choice(true) == "stock:wren", "and each keeps their own driver")
 	picker = screen() as KartPicker
-	check(picker != null and picker.player == 2, "then player 2")
+	check(picker != null and picker.player == 2, "then player 2 for a kart")
 	check(picker.find_children("*", "Label", true, false).any(func(l): return l.text == "PLAYER 2"), "with a tag saying it's player 2")
 	picker.find_children("*", "Button", true, false).filter(func(b): return b.get_meta("kart", "") == "scrambler")[0].pressed.emit()
 	check(Game.player_two_kart() == "scrambler" and Game.kart_choice() == "quarter_mile", "and each keeps their own kart (%s and %s)" % [Game.kart_choice(), Game.player_two_kart()])
@@ -254,7 +313,10 @@ func _ready() -> void:
 	check(Game.player_two_name() == "Gina", "player 2 can give their name")
 	Game._go_back()
 	await frames(2)
-	check(screen() is KartPicker and screen().player == 1, "back from player 2 goes to player 1")
+	check(screen() is DriverPicker and screen().player == 2, "back from player 2's kart goes to their driver")
+	Game._go_back()
+	await frames(2)
+	check(screen() is KartPicker and screen().player == 1, "and back again to player 1's kart")
 	Game.set_kart_choice(was_one)
 	Game.set_setting("player", "name_two", was_two_name)
 	Game.show_multiplayer()
@@ -268,12 +330,87 @@ func _ready() -> void:
 	await frames(2)
 	check(screen() is MainMenu, "and back again to the menu")
 
+	await _driver_extras()
+
 	Game.set_setting("player", "name", saved_name)
 	Game.set_setting("race", "split", saved_split)
 	Game.set_setting("race", "player_two", saved_second)
+	Game.set_setting("race", "driver", saved_drivers[0])
+	Game.set_setting("race", "player_two_driver", saved_drivers[1])
 	_check_picture_cache()
 	print("All menu checks passed." if failures == 0 else "%d menu checks failed." % failures)
 	get_tree().quit(1 if failures > 0 else 0)
+
+
+## A new driver named like a saved one gets a name of its own, the two
+## player kart picker's header fits, and the lobby's driver card changes who
+## you race as for everyone.
+func _driver_extras() -> void:
+	var nova := CharacterDesign.for_key("stock:nova")
+	nova.name = "Twin"
+	var first := nova.save()
+	Game.show_new_driver(false, Game.show_menu)
+	await frames(2)
+	screen().randomise()
+	screen().design.name = "Twin"
+	Game._go_back()
+	await frames(2)
+	var made := Game.driver_choice()
+	check(made == CharacterDesign.SAVED_KEY + "twin_2" and CharacterDesign.for_key(made).name == "Twin 2", "a new driver named like a saved one is saved as Twin 2 (%s)" % made)
+	check(CharacterDesign.load_file(first).to_dict() == nova.to_dict(), "and the saved one is left as it was")
+	DirAccess.remove_absolute(first)
+	DirAccess.remove_absolute("%s/%s.json" % [CharacterDesign.SAVE_DIR, made.trim_prefix(CharacterDesign.SAVED_KEY)])
+
+	# Save then Done keeps one file and picks it, changed since or not.
+	for change in [true, false]:
+		var before := CharacterDesign.saved_paths().size()
+		Game.show_new_driver(false, Game.show_menu)
+		await frames(2)
+		screen()._save()
+		var saved: String = screen().made_path
+		if change:
+			screen().randomise()
+		Game._go_back()
+		await frames(2)
+		var picked := Game.driver_choice()
+		check(saved != "" and picked == CharacterDesign.SAVED_KEY + saved.get_file().get_basename() and CharacterDesign.saved_paths().size() == before + 1,
+				"a new driver saved then done is one file, picked (%s, %s)" % [picked, "changed" if change else "unchanged"])
+		DirAccess.remove_absolute(saved)
+
+	# Player 1 of two against the AI has the longest header.
+	for holes in [[], [Rect2(0, 320, 70, 80)]]:
+		SafeArea.pretend.assign(holes)
+		Game._swap(KartPicker.new(Game.show_menu, Game.show_menu, true, 1))
+		await frames(4)
+		var wide := get_viewport().get_visible_rect().size.x
+		var back: Control = screen().find_children("*", "Button", true, false).filter(func(b): return b.text == "Back")[0]
+		check(back.get_global_rect().end.x <= wide and screen()._race.get_global_rect().end.x <= wide, "Back and Next fit on player 1's kart picker against the AI, %d holes (%d, %d of %d)" % [holes.size(), back.get_global_rect().end.x, screen()._race.get_global_rect().end.x, wide])
+	SafeArea.pretend.assign([])
+
+	var peer := ENetMultiplayerPeer.new()
+	if peer.create_server(27295, NetSession.MOST_KARTS) != OK:
+		check(false, "the lobby test can host")
+		return
+	Game.net.host(peer)
+	Game.show_lobby()
+	await frames(3)
+	var lobby: Lobby = screen()
+	check(lobby.driver_cards[0].visible and not lobby.driver_cards[1].visible, "the lobby has a driver card for you")
+	var window := lobby.open_drivers(0)
+	await frames(2)
+	check(not window.grid.cards.is_empty() and window.grid.find_children("*", "Button", true, false).all(func(b): return b.get_meta("driver", "") != "new"), "its drivers have no New driver card")
+	window.grid.cards["stock:wren"].pressed.emit()
+	await frames(2)
+	var wren := CharacterDesign.for_key("stock:wren").name
+	check(Game.driver_choice() == "stock:wren" and Game.net.members[1].players[0].driver.name == wren, "picking one there changes who you race as in the lobby")
+	check(lobby._people.get_children().any(func(l): return l is Label and l.text.contains("%s in the" % wren)), "and the list says so")
+	Game.net.setup = {"locked": true}
+	lobby.pick_driver("stock:nova")
+	check(Game.net.members[1].players[0].driver.name == wren, "a race under way locks it")
+	Game.net.setup = {}
+	Game.net.leave()
+	Game.show_menu()
+	await frames(2)
 
 
 ## The touch controls are no bigger than a big phone's on a tablet, the

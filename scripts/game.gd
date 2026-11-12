@@ -330,6 +330,52 @@ func show_course_grid(for_mode: String, alone: bool, cup: String) -> void:
 	_swap(CourseGrid.new(for_mode, alone, cup))
 
 
+## Pick a driver, then a kart, then `go` starts the race. Back goes to
+## `back`. With `ai` and `two` it's as show_kart_picker(). With `two`, it's
+## player 1's driver and kart, then player 2's, and back goes back one step
+## each time. With `skip_driver` it goes straight to the karts with the
+## drivers picked last time, which the kart picker's driver card changes.
+func show_race_setup(go: Callable, back: Callable, ai := false, two := false, skip_driver := false) -> void:
+	_setup_step(1 if skip_driver else 0, go, back, ai, two, skip_driver)
+
+
+## One step of show_race_setup(): 0 is player 1's driver, 1 their kart, 2
+## player 2's driver and 3 their kart. With `skip` the driver steps are left
+## out both ways.
+func _setup_step(step: int, go: Callable, back: Callable, ai: bool, two: bool, skip := false) -> void:
+	var to := func(n: int) -> Callable:
+		return func() -> void: _setup_step(n, go, back, ai, two, skip)
+	match step:
+		0, 2:
+			var second := step == 2
+			var next: Callable = to.call(step + 1)
+			var pick := func(key: String) -> void:
+				set_driver_choice(key, second)
+				next.call()
+			show_driver_picker(pick, back if step == 0 else to.call(step - 1), 2 if second else (1 if two else 0), to.call(step))
+		1:
+			var after: Callable = (to.call(3) if skip else to.call(2)) if two else go
+			var picker := KartPicker.new(after, back if skip else to.call(0), ai, 1 if two else 0)
+			picker.here = to.call(1)
+			_swap(picker)
+		_:
+			var picker := KartPicker.new(go, to.call(1) if skip else to.call(2), false, 2)
+			picker.here = to.call(3)
+			_swap(picker)
+
+
+## Pick a driver: `go` is called with the pick key, Back goes to `back`.
+## `for_player` is 1 or 2 when two are picking, or 0. "New driver" makes one
+## (see show_new_driver()) and comes back to `here`.
+func show_driver_picker(go: Callable, back: Callable, for_player := 0, here := Callable()) -> void:
+	var second := for_player == 2
+	var taken := driver_choice() if second else ""
+	var make_new := Callable()
+	if here.is_valid():
+		make_new = func() -> void: show_new_driver(second, here)
+	_swap(DriverPicker.new(go, back, driver_choice(second), taken, for_player, make_new))
+
+
 ## Pick a kart, then `go` starts the race. Back goes to `back`. With `ai`,
 ## it's a race against the AI and you pick how good they are too. With `two`,
 ## it's two on this phone: player 1 picks, then player 2 does, and back from
@@ -354,14 +400,17 @@ func start_grand_prix(which: Variant, two := false) -> void:
 	grand_prix = GrandPrix.new(which)
 	grand_prix.two = two
 	grand_prix.player_kart = kart_choice()
+	grand_prix.player_driver = driver_choice()
 	grand_prix.people = [player_name()]
 	if two:
 		grand_prix.player_two_kart = player_two_kart()
+		grand_prix.player_two_driver = driver_choice(true)
 		grand_prix.people = [player_one_name(), player_two_name()]
 	# Everyone keeps the same kart for the whole cup.
 	var leave_out := [grand_prix.player_kart, grand_prix.player_two_kart] if two else []
-	grand_prix.karts = draw_karts(ai_driver_keys(), leave_out)
-	grand_prix.ranks = draw_ranks(ai_driver_keys())
+	var field := ai_field(2 if two else 1)
+	grand_prix.karts = draw_karts(field, leave_out)
+	grand_prix.ranks = draw_ranks(field)
 	grand_prix.difficulty = difficulty()
 	grand_prix.weather = weather()
 	grand_prix.time = time_of_day()
@@ -427,8 +476,57 @@ func show_track_editor() -> void:
 	_swap(TrackEditor.new("", _creation_back))
 
 
-func show_driver() -> void:
-	_swap(DriverBuilder.new())
+## The driver screen. Done goes to `done`, or the Editors menu.
+func show_driver(done := Callable()) -> void:
+	var builder := DriverBuilder.new()
+	builder.done = done
+	_swap(builder)
+
+
+## Makes a new driver on the driver screen, starting from the Racer with a
+## name of its own, for player 1 or player 2 with `second`. Your own driver
+## is left as it is. Done saves the new one with your drivers, picks it for
+## that player and goes to `done`, under a name of its own if a saved one
+## has its name. If Save was used, Done saves over that file and picks it.
+## Done with nothing changed and nothing saved saves nothing.
+func show_new_driver(second: bool, done: Callable) -> void:
+	var fresh := roster_driver("racer")
+	fresh.name = new_driver_name()
+	var untouched := fresh.to_dict()
+	var builder := DriverBuilder.new()
+	builder.start = fresh
+	builder.made = func(made: CharacterDesign) -> void:
+		var path := ""
+		if builder.made_path != "":
+			path = made.save(builder.made_path)
+		elif made.to_dict() != untouched:
+			made.name = unique_driver_name(made.name)
+			path = made.save()
+		if path != "":
+			set_driver_choice(CharacterDesign.SAVED_KEY + path.get_file().get_basename(), second)
+		done.call()
+	_swap(builder)
+
+
+## "Driver 2", "Driver 3" and so on, the first with no saved driver's file.
+func new_driver_name() -> String:
+	return unique_driver_name("Driver", 2)
+
+
+## `wanted` if no saved driver has its file, or else "<wanted> 2", "<wanted>
+## 3" and so on, counting from `from`.
+func unique_driver_name(wanted: String, from := 0) -> String:
+	wanted = wanted.strip_edges()
+	if wanted == "":
+		wanted = "Driver"
+	var taken := func(driver_name: String) -> bool:
+		return FileAccess.file_exists("%s/%s.json" % [CharacterDesign.SAVE_DIR, CharacterDesign.file_name_for(driver_name)])
+	if from == 0 and not taken.call(wanted):
+		return wanted
+	var n := maxi(from, 2)
+	while taken.call("%s %d" % [wanted, n]):
+		n += 1
+	return "%s %d" % [wanted, n]
 
 
 func show_settings() -> void:
@@ -484,6 +582,72 @@ func stock_driver_keys() -> Array[String]:
 	var keys: Array[String] = ["racer"]
 	keys.append_array(ai_driver_keys())
 	return keys
+
+
+## Who player 1 races as, or player 2 with `second`, as a pick key (see
+## CharacterDesign.for_key()). Player 1 starts as your own driver, player 2
+## as the first stock driver player 1 hasn't got.
+func driver_choice(second := false) -> String:
+	var key := str(settings.get_value("race", "player_two_driver" if second else "driver", ""))
+	if _driver_there(key):
+		return key
+	if not second:
+		return CharacterDesign.OWN_KEY
+	var first := driver_choice()
+	for stock in stock_driver_keys():
+		if CharacterDesign.STOCK_KEY + stock != first:
+			return CharacterDesign.STOCK_KEY + stock
+	return CharacterDesign.OWN_KEY
+
+
+func set_driver_choice(key: String, second := false) -> void:
+	set_setting("race", "player_two_driver" if second else "driver", key)
+
+
+## Whether a pick key is for a driver that's still there.
+func _driver_there(key: String) -> bool:
+	if key == CharacterDesign.OWN_KEY:
+		return true
+	if key.begins_with(CharacterDesign.SAVED_KEY):
+		return FileAccess.file_exists("%s/%s.json" % [CharacterDesign.SAVE_DIR, key.trim_prefix(CharacterDesign.SAVED_KEY)])
+	if key.begins_with(CharacterDesign.STOCK_KEY):
+		return stock_driver_keys().has(key.trim_prefix(CharacterDesign.STOCK_KEY))
+	return false
+
+
+## The pick key player 1 (0) or player 2 (1) races as. In a Grand Prix it's
+## the one they started the cup with.
+func race_driver_key(player: int) -> String:
+	if mode == MODE_GRAND_PRIX and grand_prix != null:
+		var kept := grand_prix.player_two_driver if player == 1 else grand_prix.player_driver
+		if kept != "":
+			return kept
+	return driver_choice(player == 1)
+
+
+## The driver player 1 (0) or player 2 (1) races as, a copy to race with.
+func race_driver(player: int) -> CharacterDesign:
+	return CharacterDesign.for_key(race_driver_key(player))
+
+
+## The AI drivers for a race with `people` players, by roster key. Nobody's
+## a stock driver a player picked, and the Racer fills in for them unless a
+## player looks just like the Racer.
+func ai_field(people: int) -> Array[String]:
+	var taken: Array[String] = []
+	var looks := []
+	for player in people:
+		var key := race_driver_key(player)
+		if key.begins_with(CharacterDesign.STOCK_KEY):
+			taken.append(key.trim_prefix(CharacterDesign.STOCK_KEY))
+		looks.append(race_driver(player).to_dict())
+	var field: Array[String] = []
+	for key in ai_driver_keys():
+		if not taken.has(key):
+			field.append(key)
+	if field.size() < ai_driver_keys().size() and not taken.has("racer") and not looks.has(roster_driver("racer").to_dict()):
+		field.append("racer")
+	return field
 
 
 func player_name() -> String:

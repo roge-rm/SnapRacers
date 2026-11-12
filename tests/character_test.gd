@@ -500,6 +500,9 @@ class Runner:
 		var racer := CharacterDesign.load_file("res://data/characters/roster/racer.json")
 		var again := CharacterDesign.from_dict(racer.to_dict())
 		check(again.to_dict() == racer.to_dict(), "a driver saves and loads the same")
+		check(CharacterDesign.well_formed(racer.to_dict()), "a saved driver is well formed for the network")
+		var odd := [{ "hair": "spiky" }, { "hair": { "style": 3 } }, { "torso": { "color": "not a colour" } }, { "name": [] }]
+		check(odd.all(func(bad: Dictionary) -> bool: return not CharacterDesign.well_formed(bad)), "a driver with odd pieces from the network is turned away")
 		var tread := CharacterDesign.load_file("res://data/characters/roster/tread.json")
 		var pip := CharacterDesign.load_file("res://data/characters/roster/pip.json")
 		check(tread.weight_class() == "Heavy" and pip.weight_class() == "Light", "Tread is heavy (%.0f kg) and Pip is light (%.0f kg)" % [tread.mass(), pip.mass()])

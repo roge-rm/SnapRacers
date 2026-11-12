@@ -26,7 +26,7 @@ signal race_begun
 signal race_over(order: Array)
 
 ## Racing uses its own number, so it can't be confused with an older game.
-const VERSION := 19
+const VERSION := 20
 const PORT := 27280
 const MOST_KARTS := 8
 ## What a host can put on.
@@ -148,7 +148,7 @@ static func default_settings() -> Dictionary:
 func _me() -> Dictionary:
 	var players := [{
 		"name": Game.online_name(),
-		"driver": Game.character.to_dict(),
+		"driver": CharacterDesign.for_key(Game.driver_choice()).to_dict(),
 		"kart": Game.chosen_design().to_dict(),
 	}]
 	# Two on one phone take two places.
@@ -156,7 +156,7 @@ func _me() -> Dictionary:
 		var two := Game.player_two_name()
 		players.append({
 			"name": two if two != "Player 2" else "%s 2" % Game.online_name(),
-			"driver": Game.roster_driver(Game.ai_driver_keys()[0]).to_dict(),
+			"driver": CharacterDesign.for_key(Game.driver_choice(true)).to_dict(),
 			"kart": Game.player_two_design().to_dict(),
 		})
 	return {"name": Game.online_name(), "players": players, "ready": false}
@@ -281,7 +281,9 @@ func _setup() -> Dictionary:
 		for i in players.size():
 			entries.append({"identity": "player:%d:%d" % [peer, i], "owner": peer, "local": i, "human": true, "name": players[i].name, "driver": players[i].driver, "kart": players[i].kart})
 	if settings.ai:
-		var drivers := Game.ai_driver_keys()
+		# No AI driver is the same as a stock driver someone's racing as.
+		var people := entries.map(func(entry: Dictionary) -> Variant: return entry.driver)
+		var drivers := Game.ai_driver_keys().filter(func(key: String) -> bool: return not people.has(Game.roster_driver(key).to_dict()))
 		var karts := Game.draw_karts(drivers)
 		var ranks := Game.draw_ranks(drivers)
 		var fill := mini(drivers.size(), MOST_KARTS - entries.size())
@@ -378,6 +380,40 @@ func _set_ready(ready: bool) -> void:
 	if is_host() and members.has(peer):
 		members[peer].ready = ready
 		_share()
+
+
+## Changes who one of my players (0, or 1 for a second on this phone) races
+## as, in the lobby. The host checks it and tells everyone.
+func set_driver(index: int, driver: Dictionary) -> void:
+	if role == Role.CLIENT:
+		_set_driver.rpc_id(1, index, driver)
+	elif role == Role.HOST:
+		_change_driver(1, index, driver)
+
+
+## A player in the lobby changed driver. It's named so it sorts after
+## _hello and _refused, which keeps their RPC numbers the same as older
+## versions, so an older copy is still told it's on a different version.
+@rpc("any_peer", "reliable")
+func _set_driver(index: int, driver: Dictionary) -> void:
+	if is_host():
+		_change_driver(multiplayer.get_remote_sender_id(), index, driver)
+
+
+## Takes a new driver for a peer's player, only in the lobby, rebuilt from
+## its pieces so nothing odd gets passed on.
+func _change_driver(peer: int, index: int, driver: Dictionary) -> void:
+	if not setup.is_empty() or not members.has(peer):
+		return
+	var players: Array = members[peer].players
+	if index < 0 or index >= players.size():
+		return
+	if not CharacterDesign.well_formed(driver):
+		return
+	var design := CharacterDesign.from_dict(driver)
+	design.name = design.name.left(32)
+	players[index].driver = design.to_dict()
+	_share()
 
 
 func _on_connected() -> void:

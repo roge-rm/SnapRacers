@@ -2,12 +2,14 @@ class_name Lobby
 extends Control
 
 ## An online game before and between races. Everyone in it is listed with their
-## kart. The host picks one race or a cup, which course or cup (the game's or
+## driver and kart, and you can change your driver on its card. The host picks one race or a cup, which course or cup (the game's or
 ## their own, sent to everyone), how many laps and whether AI drivers fill the
 ## empty places. Everyone says they're ready and the host starts it.
 
 var _status: Label
 var _people: VBoxContainer
+## My players' driver cards, the second for a second player on this phone.
+var driver_cards: Array[DriverCard] = []
 var _settings: VBoxContainer
 var _ready_button: Button
 var _start: Button
@@ -25,6 +27,15 @@ func _ready() -> void:
 	_status.theme_type_variation = "DataLabel"
 	column.add_child(_status)
 	column.add_child(MenuStyle.heading("Who's racing"))
+	var mine := HBoxContainer.new()
+	mine.add_theme_constant_override("separation", 20)
+	column.add_child(mine)
+	for i in 2:
+		var card := DriverCard.new()
+		card.tapped.connect(open_drivers.bind(i))
+		card.visible = false
+		mine.add_child(card)
+		driver_cards.append(card)
 	_people = VBoxContainer.new()
 	_people.add_theme_constant_override("separation", 6)
 	column.add_child(_people)
@@ -104,7 +115,8 @@ func _show() -> void:
 		for player in member.players:
 			var line := Label.new()
 			var kart := str(player.get("kart", {}).get("name", "a kart"))
-			line.text = "%s   %s, in the %s" % ["✓" if member.ready else "·", player.name, kart]
+			var driver := str(player.get("driver", {}).get("name", "Driver"))
+			line.text = "%s   %s, %s in the %s" % ["✓" if member.ready else "·", player.name, driver, kart]
 			if peer == net.my_id():
 				line.theme_type_variation = "AccentLabel"
 			_people.add_child(line)
@@ -114,12 +126,53 @@ func _show() -> void:
 		fill.theme_type_variation = "NoteLabel"
 		_people.add_child(fill)
 
+	_show_drivers()
 	_show_settings(host)
 	var me: Dictionary = net.members.get(net.my_id(), {})
 	_ready_button.visible = net.role == NetSession.Role.CLIENT
 	_ready_button.text = "Not ready after all" if me.get("ready", false) else "I'm ready"
 	_start.visible = host
 	_start.disabled = not net.can_start()
+
+
+## My players' driver cards, as the host has them. They can't be changed
+## once a race is set up.
+func _show_drivers() -> void:
+	var me: Dictionary = Game.net.members.get(Game.net.my_id(), {})
+	var players: Array = me.get("players", [])
+	for i in driver_cards.size():
+		var card := driver_cards[i]
+		card.visible = i < players.size()
+		if not card.visible:
+			continue
+		card.set_caption(str(players[i].name) if players.size() > 1 else "Driver")
+		var shown := CharacterDesign.from_dict(players[i].get("driver", {}))
+		if card.design == null or card.design.to_dict() != shown.to_dict():
+			card.show_driver(shown)
+		card.disabled = not Game.net.setup.is_empty()
+
+
+## Opens the driver cards for my player `index` (1 is a second player on
+## this phone). There's no New driver card, since the driver screen would
+## leave the lobby.
+func open_drivers(index: int) -> DriverWindow:
+	var two := driver_cards[1].visible
+	var second := index == 1
+	var taken := Game.driver_choice() if second else ""
+	var window := DriverWindow.open(self, Game.driver_choice(second), taken, (index + 1) if two else 0, false)
+	window.picked.connect(pick_driver.bind(index))
+	return window
+
+
+## Races my player `index` as the driver with this pick key, and tells the
+## host.
+func pick_driver(key: String, index := 0) -> void:
+	if not Game.net.setup.is_empty():
+		return
+	Game.set_driver_choice(key, index == 1)
+	var design := CharacterDesign.for_key(key)
+	driver_cards[index].show_driver(design)
+	Game.net.set_driver(index, design.to_dict())
 
 
 func _show_settings(host: bool) -> void:
