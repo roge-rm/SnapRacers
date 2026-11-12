@@ -32,10 +32,9 @@ ADB="${ANDROID_HOME:-$HOME/Android/Sdk}/platform-tools/adb"
 # Godot export ever starts or stops the shared one on 5037 that other
 # projects' emulators and phones hang off.
 export ANDROID_ADB_SERVER_PORT=5042
-# The export starts that server if it isn't running, and it would outlive the
-# build, holding on to the build slot (see `heavy`), so it's stopped when the
-# build ends, however it ends.
-trap '"$ADB" kill-server > /dev/null 2>&1 || true' EXIT
+# Leave 5042 running. Start it detached so Godot doesn't spawn it as a child
+# of this build, which would hold the heavy slot.
+setsid "$ADB" start-server >/dev/null 2>&1 || true
 
 if [ ! -x "$GODOT" ] || [ ! -f "$TEMPLATES/android_source.zip" ]; then
 	echo "Godot $VERSION or its export templates aren't in tools/godot. See README.md." >&2
