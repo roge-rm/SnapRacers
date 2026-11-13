@@ -185,8 +185,11 @@ func _follow() -> bool:
 	if kart == null or not is_instance_valid(kart):
 		queue_free()
 		return false
-	global_position = kart.global_position
-	global_basis = Basis.IDENTITY
+	# The sparks, glow and disc tilt with the kart, on a corkscrew say. The
+	# bolt and its column come straight down from the sky.
+	global_transform = Transform3D(kart.global_basis.orthonormalized(), kart.global_position)
+	_bolt.global_transform = Transform3D(Basis.IDENTITY, global_position)
+	_column.global_transform = Transform3D(Basis.IDENTITY, global_position + Vector3.UP * 8.0)
 	return true
 
 

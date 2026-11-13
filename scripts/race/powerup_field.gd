@@ -53,10 +53,10 @@ func _ready() -> void:
 		# Never on a loop or a corkscrew, or where the road's open, like a
 		# jump's gap.
 		var at := d
-		while (not track.solid_at(at) or TrackPiece.turns_over(track.piece_type_at(at))) and at < d + EVERY * 0.5:
+		while not _row_fits(at) and at < d + EVERY * 0.5:
 			at += 8.0
-		if track.solid_at(at) and not TrackPiece.turns_over(track.piece_type_at(at)):
-			for across in ACROSS:
+		if _row_fits(at):
+			for across in _row_at(at):
 				var frame := track.frame_at(at)
 				frame.origin += frame.basis.y * HEIGHT + frame.basis.x * across
 				spots.append(frame)
@@ -74,6 +74,29 @@ func _ready() -> void:
 			draw.layers = 1 << (layer_of(v) - 1)
 		add_child(draw)
 		_multis.append(multi)
+
+
+## Whether a row can go here: never on a loop or a corkscrew, over a gap,
+## or on a jump split's kicker or landing.
+func _row_fits(at: float) -> bool:
+	if not track.solid_at(at) or TrackPiece.turns_over(track.piece_type_at(at)):
+		return false
+	var k := track._index_before(at)
+	return not track.has_splits or (track.branch_flat(k, 0) and track.branch_flat(k, 1))
+
+
+## Where across the road a row's boxes go here: ACROSS, or where a split
+## has parted, three on each branch.
+func _row_at(at: float) -> Array:
+	var lanes := track.lanes_at(at)
+	if lanes.size() < 2:
+		return ACROSS
+	var out := []
+	for lane in lanes:
+		var middle := (lane.x + lane.y) * 0.5
+		var step := minf((lane.y - lane.x) * 0.3, absf(ACROSS[0]))
+		out.append_array([middle - step, middle, middle + step])
+	return out
 
 
 ## The render layer (counting from 1) that this viewer's boxes are drawn on.

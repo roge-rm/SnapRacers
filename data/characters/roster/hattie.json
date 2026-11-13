@@ -1,6 +1,7 @@
 {
 	"name": "Hattie",
 	"_comment": "A ranch hand who drives her kart like she's rounding up cattle.",
+	"traits": { "aggression": 0.6, "patience": -0.2, "consistency": -0.3, "late_braking": 0.2 },
 	"head": { "style": "lashes", "color": "#a86f4c" },
 	"hair": { "style": "pigtails", "color": "#c47a3a" },
 	"headgear": { "style": "bandana", "color": "#0d69ab" },

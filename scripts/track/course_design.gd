@@ -167,6 +167,8 @@ func problems() -> Array[String]:
 		out.append("The road runs into itself.")
 	if _below_ground(path):
 		out.append("The road goes below the ground.")
+	if _raised_split(path):
+		out.append("Road splits have to be on the ground.")
 	var crossing := LevelCrossing.problem(path)
 	if crossing != "":
 		out.append(crossing)
@@ -182,6 +184,18 @@ func _below_ground(path: TrackPath) -> bool:
 	for k in path.points.size():
 		var ground := path.grounds[k] if k < path.grounds.size() else 0.0
 		if path.points[k].y < ground - 0.1:
+			return true
+	return false
+
+
+## Whether any split piece sits above the ground. Its branches and island
+## have no walls, so it only works on the ground.
+func _raised_split(path: TrackPath) -> bool:
+	if not path.has_splits:
+		return false
+	for k in path.points.size():
+		var ground := path.grounds[k] if k < path.grounds.size() else 0.0
+		if path.pieces[path.piece_of[k]].is_split() and path.points[k].y > ground + 0.1:
 			return true
 	return false
 

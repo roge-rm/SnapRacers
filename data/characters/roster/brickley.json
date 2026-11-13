@@ -1,6 +1,7 @@
 {
 	"name": "Brickley",
 	"_comment": "An all-rounder who never stops smiling under that helmet.",
+	"traits": { "aggression": 0.0, "patience": 0.2, "consistency": 0.3, "late_braking": 0.0 },
 	"head": { "style": "smile", "color": "#f5c8a8" },
 	"hair": { "style": "short", "color": "#3b2a1e" },
 	"headgear": { "style": "racing_helmet", "color": "#e36a1a" },

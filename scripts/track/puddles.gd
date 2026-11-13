@@ -46,7 +46,7 @@ const AROUND := 48
 ## straight shore.
 const EDGE := 0.3
 const EDGE_STEEP := 3.0
-## Never where the road climbs, rolls or leaves the ground.
+## Never where the road climbs, rolls or leaves the ground, nor on a split.
 const NOT_ON := ["ramp", "jump", "loop", "corkscrew", "wallride", "bank"]
 ## For looking them up quickly, a grid of squares this big.
 const CELL := 4.0
@@ -367,7 +367,8 @@ static func _dip(track: TrackPath, offset: float) -> float:
 
 ## Whether the road here is flat and plain enough to have one on it.
 static func _flat_road(track: TrackPath, offset: float) -> bool:
-	return not NOT_ON.has(track.piece_type_at(offset)) and track.up_at(offset).y >= 0.97 and not track.pieces[track.piece_of[track._index_before(offset)]].sticky
+	var piece := track.pieces[track.piece_of[track._index_before(offset)]]
+	return not NOT_ON.has(piece.type) and track.up_at(offset).y >= 0.97 and not piece.sticky and not piece.is_split()
 
 
 ## Whether the road's flat and plain for `half` either way of here.

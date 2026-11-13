@@ -1,6 +1,7 @@
 {
 	"name": "Gusto",
 	"_comment": "An old flying ace who swapped his plane for a kart. Heavy and steady.",
+	"traits": { "aggression": -0.1, "patience": 0.6, "consistency": 0.7, "late_braking": -0.3 },
 	"head": { "style": "excited", "color": "#a86f4c" },
 	"hair": { "style": "none", "color": "#f2f2f2" },
 	"facial_hair": { "style": "walrus", "color": "#f2f2f2" },

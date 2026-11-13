@@ -161,6 +161,9 @@ func _ready() -> void:
 		mirrored = Game.mirrored()
 		reversed = Game.reversed()
 	track.apply_layout(mirrored, reversed)
+	# The AI's racing line, worked out now with the loading so the race
+	# doesn't stall when it first drives.
+	track.racing_line()
 	track_id = Tracks.id_of(Game.track_path)
 	laps = 1000000 if mode == Game.MODE_PRACTICE else track.laps
 	difficulty = Game.grand_prix.difficulty if mode == Game.MODE_GRAND_PRIX and Game.grand_prix != null else Game.difficulty()
@@ -186,6 +189,7 @@ func _ready() -> void:
 		# And a pecking order, so a different driver's the quickest each time.
 		var ranks := Game.draw_ranks(drivers)
 		if mode == Game.MODE_GRAND_PRIX and Game.grand_prix != null and not Game.grand_prix.drivers.is_empty():
+			Game.refresh_grand_prix_field()
 			drivers = Game.grand_prix.drivers.duplicate()
 			karts = Game.grand_prix.karts
 			ranks = Game.grand_prix.ranks
@@ -193,7 +197,7 @@ func _ready() -> void:
 		for i in drivers.size():
 			var who := Game.roster_driver(drivers[i])
 			var design := Game.stock_kart(karts.get(drivers[i], Game.DEFAULT_STOCK))
-			entries.append({ "identity": "ai:" + drivers[i], "name": who.name, "design": design, "who": who, "rank": ranks.get(drivers[i], i), "line": (i % 3 - 1) * 1.5 })
+			entries.append({ "identity": "ai:" + drivers[i], "name": who.name, "design": design, "who": who, "rank": ranks.get(drivers[i], i) })
 		if people > 1:
 			entries.append({ "identity": "player:1", "name": Game.player_two_name(), "design": Game.player_two_design(), "who": Game.race_driver(1), "human": 1 })
 	entries.append({ "identity": "player:0", "name": Game.player_one_name() if people > 1 else Game.player_name(), "design": Game.chosen_design(), "who": Game.race_driver(0), "human": 0 })
@@ -227,8 +231,9 @@ func _ready() -> void:
 		racer.ai = AIDriver.new()
 		racer.ai.kart = racer.kart
 		racer.ai.track = track
-		Difficulty.apply(racer.ai, difficulty, entry.rank, ai_count)
-		racer.ai.line = entry.line
+		# Stock drivers by their roster key, your own ones by their name.
+		Difficulty.apply(racer.ai, difficulty, entry.rank, ai_count, DriverTraits.for_driver(entry.identity.trim_prefix("ai:"), entry.who.name))
+		racer.ai.seed_line(_driver_seed(entry.identity))
 		racer.kart.controls = racer.ai.controls
 		add_child(racer.ai)
 	humans.append(player)
@@ -347,8 +352,10 @@ func _ready_online() -> void:
 			racer.ai = AIDriver.new()
 			racer.ai.kart = racer.kart
 			racer.ai.track = track
-			Difficulty.apply(racer.ai, difficulty, int(entry.rank), ai_count)
-			racer.ai.line = float(entry.line)
+			# Only the host drives the AI, by the name on the driver it was sent.
+			var who_name := str(entry.driver.get("name", entry.name)) if entry.driver is Dictionary else str(entry.name)
+			Difficulty.apply(racer.ai, difficulty, int(entry.rank), ai_count, DriverTraits.for_driver("", who_name))
+			racer.ai.seed_line(_driver_seed(str(entry.get("identity", entry.name))))
 			racer.kart.controls = racer.ai.controls
 			add_child(racer.ai)
 		net.add(slot, racer, owner)
@@ -360,6 +367,12 @@ func _ready_online() -> void:
 	split = Game.split() if humans.size() >= 2 else Game.SOLO
 	add_child(net)
 	_finish_setting_up(maxi(humans.size(), 1))
+
+
+## Each AI driver's own seed for this race (see AIDriver.seed_line()), from
+## who they are and the race's conditions, which online come from the host.
+func _driver_seed(identity: String) -> int:
+	return hash("%s/%d" % [identity, conditions.seed])
 
 
 ## One person's camera, HUD and controls. The camera goes under `world_parent`
@@ -623,6 +636,9 @@ func _physics_process(delta: float) -> void:
 					racer.kart.react("happy", 3.0)
 				if racer.player:
 					_player_finished(racer)
+		# For which time round each split it's on (see AIDriver.pick_branch()).
+		if racer.ai != null:
+			racer.ai.lap = racer.progress.laps
 
 		# If it's fallen off or wandered far away, put it back.
 		var middle := track.point_at(racer.offset)
@@ -670,7 +686,9 @@ func race_share() -> float:
 ## first, then a little further back.
 func _clear_spot(racer: Racer) -> Transform3D:
 	var room := 3.5
-	var across := [0.0, -3.0, 3.0, -4.5, 4.5]
+	# How far right of the middle line it is, so on a split it goes back on
+	# the branch it was on (see TrackPath.reset_spots()).
+	var across_now := (racer.kart.global_position - track.point_at(racer.offset)).dot(track.right_at(racer.offset))
 	# A kart is never put back on a loop or a wall ride. It goes back to where
 	# the road lies flat before it, then RUN_UP further, so it has the speed
 	# for another go.
@@ -705,7 +723,7 @@ func _clear_spot(racer: Racer) -> Transform3D:
 			backs = [0.0, 5.0, 10.0, 15.0, 20.0]
 	racer.kart.run_up_reset = backed
 	for back in backs:
-		for side in across:
+		for side in track.reset_spots(start - back, across_now):
 			var spot := track.place_at(start - back)
 			spot.origin += spot.basis.x * side
 			var clear := not _by_a_wall(spot.origin)
@@ -719,7 +737,9 @@ func _clear_spot(racer: Racer) -> Transform3D:
 				racer.offset = fposmod(start - back, track.length)
 				return spot
 	racer.offset = fposmod(start, track.length)
-	return track.place_at(start)
+	var fallback := track.place_at(start)
+	fallback.origin += fallback.basis.x * track.reset_spots(start, across_now)[0]
+	return fallback
 
 
 ## Whether this kart is on a course up in the sky, below the road at `at`,

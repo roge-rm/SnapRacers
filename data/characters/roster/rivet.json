@@ -1,6 +1,7 @@
 {
 	"name": "Rivet",
 	"_comment": "A mechanic who built her own kart and knows exactly how to fix it.",
+	"traits": { "aggression": -0.2, "patience": 0.5, "consistency": 0.6, "late_braking": -0.2 },
 	"head": { "style": "cheeky", "color": "#d9a37e" },
 	"hair": { "style": "messy", "color": "#6b4430" },
 	"facial_hair": { "style": "stubble", "color": "#6b4430" },

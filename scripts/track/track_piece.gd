@@ -17,9 +17,47 @@ const TILE := 32.0
 const OLD_TILE := 16.0
 const LEVEL := 3.0
 const ARC_ANGLES := [30, 45, 60, 90]
-const ADJUSTABLE_TYPES := ["adjustable_straight", "adjustable_offset", "connector"]
+const ADJUSTABLE_TYPES := ["adjustable_straight", "adjustable_offset", "connector", "adjustable_split"]
 const MAX_METRES := 512.0
 const MAX_SHIFT := 256.0
+## Pieces where the road parts round an island and joins up again.
+const SPLIT_TYPES := ["split", "adjustable_split", "split_bend", "rough_split", "jump_split"]
+## Splits whose branches aren't mirror images of each other. Their spec's
+## "side" (or a split bend's "turn") says which way they go.
+const UNEVEN_SPLITS := ["split_bend", "rough_split", "jump_split"]
+## A split's branches at their narrowest, the island at its widest, and how
+## far along the branches take to part, in metres. The ramp is for branches
+## that move SPLIT_OUT out from the middle; further out takes longer.
+const SPLIT_BRANCH := 10.0
+const SPLIT_ISLAND := 12.0
+const SPLIT_RAMP := 26.0
+const SPLIT_OUT := (SPLIT_ISLAND + SPLIT_BRANCH) * 0.5
+## Islands this wide or wider have branches as wide as the road.
+const SPLIT_FULL_ISLAND := 24.0
+## How long an adjustable split can be and how wide its island, in metres.
+const SPLIT_LEAST_METRES := 64.0
+const SPLIT_MOST_METRES := 256.0
+const SPLIT_LEAST_ISLAND := 8.0
+const SPLIT_MOST_ISLAND := 64.0
+## The most of a split's length each ramp can take, so there's some straight
+## between them.
+const SPLIT_RAMP_SHARE := 0.45
+## A split bend's outside branch, how far out from the middle line it runs,
+## by size.
+const BEND_SPLIT_OUT := {3: 6.0, 4: 6.0}
+## How far the inside branch cuts toward that straight line, by size, so
+## both branches take about as long.
+const BEND_SPLIT_CUT := {3: 0.6, 4: 0.75}
+## How far along a split bend's inside branch takes to part from the
+## middle line, as a share of the bend's radius. The outside one takes
+## longer still.
+const BEND_SPLIT_RAMP := 0.7
+## The rough split: its dirt branch, how wide it is, and the island between
+## it and the tarmac branch that swings out.
+const ROUGH_DIRT := 10.0
+const ROUGH_ISLAND := 4.0
+const ROUGH_TILES := 3
+const JUMP_SPLIT_TILES := 4
 
 var type := "straight"
 ## How many tiles long a straight, ramp, crest, jump or slant is.
@@ -66,6 +104,8 @@ var crossing := false
 ## The same piece driven from its exit back to its start.
 var inverted := false
 var jump_reversed := false
+## How wide a split's island gets in its middle, in metres.
+var island := SPLIT_ISLAND
 
 # The loop has a run in, the loop itself and a run out. It tightens gradually
 # on the way in and eases off on the way out, and steps one tile across as it
@@ -121,6 +161,9 @@ static func from_spec(spec: Dictionary) -> TrackPiece:
 		"adjustable_straight", "adjustable_offset":
 			piece.metres = float(spec.get("metres", 32.0))
 			piece.shift = float(spec.get("shift", 0.0))
+		"adjustable_split":
+			piece.metres = float(spec.get("metres", SPLIT_LEAST_METRES))
+			piece.island = float(spec.get("island", SPLIT_ISLAND))
 		"connector":
 			var end: Array = spec.get("end", [0.0, -32.0])
 			piece.connector_end = Vector3(float(end[0]), 0.0, float(end[1]))
@@ -166,6 +209,19 @@ static func from_spec(spec: Dictionary) -> TrackPiece:
 			piece.type = "straight"
 			piece.tiles = 1
 			piece.crossing = true
+		"split":
+			piece.tiles = maxi(int(spec.get("length", 2)), 2)
+			piece.island = float(spec.get("island", SPLIT_ISLAND))
+		"split_bend":
+			piece.turn = -1 if str(spec.get("turn", "right")) == "left" else 1
+			var bend_size := clampi(int(spec.get("size", 3)), 3, 4)
+			piece.radius = (bend_size - 0.5) * TILE
+		"rough_split":
+			piece.tiles = ROUGH_TILES
+			piece.side = -1 if str(spec.get("side", "right")) == "left" else 1
+		"jump_split":
+			piece.tiles = JUMP_SPLIT_TILES
+			piece.side = -1 if str(spec.get("side", "right")) == "left" else 1
 		_:
 			piece.type = "straight"
 			piece.tiles = int(spec.get("length", 1))
@@ -191,6 +247,11 @@ static func from_spec(spec: Dictionary) -> TrackPiece:
 			piece.wall_right = false
 		else:
 			piece.wall_left = false
+	# A split lies on the ground and runs out onto grass both sides.
+	if piece.is_split():
+		piece.edges = "auto"
+		piece.wall_left = false
+		piece.wall_right = false
 	return piece
 
 
@@ -201,6 +262,9 @@ func to_spec() -> Dictionary:
 			spec.metres = metres
 			if type == "adjustable_offset":
 				spec.shift = shift
+		"adjustable_split":
+			spec.metres = metres
+			spec.island = island
 		"connector":
 			spec.end = [connector_end.x, connector_end.z]
 			spec.heading = connector_heading
@@ -235,6 +299,15 @@ func to_spec() -> Dictionary:
 			spec["across"] = absi(across)
 			if rise != 0.0:
 				spec["rise"] = int(round(rise / LEVEL))
+		"split":
+			spec["length"] = tiles
+			if island != SPLIT_ISLAND:
+				spec["island"] = island
+		"split_bend":
+			spec["turn"] = "left" if turn < 0 else "right"
+			spec["size"] = int(radius / TILE + 0.5)
+		"rough_split", "jump_split":
+			spec["side"] = "left" if side < 0 else "right"
 	if surface != "asphalt":
 		spec["surface"] = surface
 	if edges != "auto" and not (cut and edges in ["left_open", "right_open"]):
@@ -247,6 +320,116 @@ func forced_walls() -> bool:
 	return edges == "walls"
 
 
+func is_split() -> bool:
+	return type in SPLIT_TYPES
+
+
+## The road's branches `t` of the way through the piece, left then right, each
+## as Vector2(how far right of the middle line its middle is, how wide it is),
+## in metres, for a course whose road is `road` wide. Most pieces have one
+## branch down the middle, given twice. A split's branches overlap at its ends
+## and part round the island in between.
+func branches(t: float, road: float) -> PackedVector2Array:
+	if not is_split():
+		return PackedVector2Array([Vector2(0.0, road), Vector2(0.0, road)])
+	var run := path_length()
+	var two := _forward_branches(run * (1.0 - t if inverted else t), run, road)
+	# Driven the other way, the left branch is on the right.
+	if inverted:
+		return PackedVector2Array([Vector2(-two[1].x, two[1].y), Vector2(-two[0].x, two[0].y)])
+	return two
+
+
+## branches() as the piece was made, `x` metres along it.
+func _forward_branches(x: float, run: float, road: float) -> PackedVector2Array:
+	match type:
+		"split_bend":
+			var out: float = BEND_SPLIT_OUT.get(int(radius / TILE + 0.5), 8.0)
+			var ramp := radius * BEND_SPLIT_RAMP
+			var apart := minf(smoothstep(0.0, ramp * 1.6, x), smoothstep(0.0, ramp * 1.6, run - x))
+			# The inside branch cuts toward the straight line between the
+			# bend's ends, eased in so it doesn't kink where it leaves.
+			var half := deg_to_rad(45.0)
+			var cut: float = BEND_SPLIT_CUT.get(int(radius / TILE + 0.5), 1.0)
+			var chord := (radius - radius * cos(half) / cos(x / radius - half)) * cut
+			var ease := minf(smoothstep(0.0, ramp, x), smoothstep(0.0, ramp, run - x))
+			var inside := Vector2(turn * chord * ease, lerpf(road, SPLIT_BRANCH, ease))
+			var outside := Vector2(-turn * out * apart, lerpf(road, SPLIT_BRANCH, apart))
+			return PackedVector2Array([inside, outside] if turn < 0 else [outside, inside])
+		"rough_split":
+			var dirt_at := road * 0.5 - ROUGH_DIRT * 0.5
+			var tarmac_at := dirt_at - ROUGH_DIRT * 0.5 - ROUGH_ISLAND - SPLIT_BRANCH * 0.5
+			var ramp := minf(SPLIT_RAMP * sqrt(absf(tarmac_at) / SPLIT_OUT), run * SPLIT_RAMP_SHARE)
+			var apart := minf(smoothstep(0.0, ramp, x), smoothstep(0.0, ramp, run - x))
+			# The dirt branch is on the other side from the way the tarmac goes.
+			var dirt := Vector2(-side * dirt_at * apart, lerpf(road, ROUGH_DIRT, apart))
+			var tarmac := Vector2(side * absf(tarmac_at) * apart, lerpf(road, SPLIT_BRANCH, apart))
+			return PackedVector2Array([tarmac, dirt] if side < 0 else [dirt, tarmac])
+	var branch := split_branch(road)
+	var ramp := minf(split_ramp(road), run * SPLIT_RAMP_SHARE)
+	var apart := minf(smoothstep(0.0, ramp, x), smoothstep(0.0, ramp, run - x))
+	var wide := lerpf(road, branch, apart)
+	var out := (island + branch) * 0.5 * apart
+	return PackedVector2Array([Vector2(-out, wide), Vector2(out, wide)])
+
+
+## Which branch, 0 left or 1 right as driven, is the odd one out: a rough
+## split's dirt branch or a jump split's jump. -1 on other pieces.
+func odd_branch() -> int:
+	var forward := -1
+	if type == "rough_split":
+		forward = 1 if side < 0 else 0
+	elif type == "jump_split":
+		forward = 0 if side < 0 else 1
+	if forward < 0:
+		return -1
+	return 1 - forward if inverted else forward
+
+
+## The surface of one branch (0 left, 1 right): a rough split's dirt branch
+## is dirt, and the rest is the piece's own.
+func branch_surface(branch: int) -> String:
+	return "dirt" if type == "rough_split" and branch == odd_branch() else surface
+
+
+## How far along a jump split's jump branch its kicker starts, in metres.
+## The jump sits in the middle, and is always driven kicker first.
+func _split_jump_start() -> float:
+	return (run_length() - LANDING_END) * 0.5
+
+
+## How high a branch's road is above the middle line `t` of the way through
+## the piece: a jump split's kicker and landing.
+func branch_lift(t: float, branch: int) -> float:
+	if type != "jump_split" or branch != odd_branch():
+		return 0.0
+	var x := run_length() * t - _split_jump_start()
+	return _jump_height(x) if x > 0.0 and x < LANDING_END else 0.0
+
+
+## Whether a branch has road here. Only a jump split's jump has a gap.
+func branch_solid(t: float, branch: int) -> bool:
+	if type != "jump_split" or branch != odd_branch():
+		return true
+	var x := run_length() * t - _split_jump_start()
+	return x <= KICKER_END or x >= LANDING_START
+
+
+## How wide a split's branches are where they're apart, for a course whose
+## road is `road` wide: SPLIT_BRANCH round a small island, widening to the
+## road's width round a big one.
+func split_branch(road: float) -> float:
+	var full := maxf(road, SPLIT_BRANCH)
+	return lerpf(SPLIT_BRANCH, full, clampf((island - SPLIT_ISLAND) / (SPLIT_FULL_ISLAND - SPLIT_ISLAND), 0.0, 1.0))
+
+
+## How far along a split's branches take to part, in metres, so the S they
+## make is no tighter than the one round a SPLIT_ISLAND island.
+func split_ramp(road: float) -> float:
+	var out := (island + split_branch(road)) * 0.5
+	return SPLIT_RAMP * sqrt(maxf(out, SPLIT_OUT) / SPLIT_OUT)
+
+
 ## About how far it is along the middle of the piece, in metres.
 func path_length() -> float:
 	if type == "curve":
@@ -255,6 +438,8 @@ func path_length() -> float:
 	if type == "arc":
 		var arc := radius * deg_to_rad(angle)
 		return sqrt(arc * arc + rise * rise)
+	if type == "split_bend":
+		return radius * PI * 0.5
 	if type == "loop":
 		return LOOP_IN + LOOP_ARC + _loop_out()
 	if type == "corkscrew":
@@ -271,7 +456,7 @@ func path_length() -> float:
 
 ## The forward run of a straight piece, in metres.
 func run_length() -> float:
-	if type in ["adjustable_straight", "adjustable_offset"]:
+	if type in ["adjustable_straight", "adjustable_offset", "adjustable_split"]:
 		return metres
 	if type == "quarter_straight":
 		return TILE * 0.25
@@ -302,7 +487,7 @@ func _forward_point(t: float) -> Vector3:
 			var b := connector_end - _connector_forward() * handles.y
 			var u := 1.0 - t
 			return 3.0 * u * u * t * a + 3.0 * u * t * t * b + t * t * t * connector_end
-		"curve":
+		"curve", "split_bend":
 			var angle := t * PI * 0.5
 			return Vector3(turn * (radius - radius * cos(angle)), rise * smoothstep(0.0, 1.0, t), -radius * sin(angle))
 		"arc":
@@ -536,7 +721,7 @@ func heading_delta() -> int:
 func _forward_heading_delta() -> int:
 	if type == "connector":
 		return connector_heading
-	if type == "curve":
+	if type == "curve" or type == "split_bend":
 		return -turn * 6
 	if type == "arc":
 		return -turn * (angle / 15)
@@ -561,7 +746,7 @@ func _forward_exit() -> Transform3D:
 		return Transform3D(Basis.IDENTITY, Vector3(side * LOOP_STEP, 0.0, -3.0 * TILE))
 	if type == "slant" or type == "corkscrew":
 		return Transform3D(Basis.IDENTITY, Vector3(across * TILE, rise, -tiles * TILE))
-	if type == "curve":
+	if type == "curve" or type == "split_bend":
 		return Transform3D(Basis(Vector3.UP, -turn * PI * 0.5), end)
 	if type == "arc":
 		return Transform3D(Basis(Vector3.UP, -turn * deg_to_rad(angle)), end)
@@ -610,6 +795,8 @@ static func adjustable_spec(spec: Dictionary) -> Dictionary:
 		out = {"type": "adjustable_straight", "metres": piece.run_length()}
 	elif piece.type in ["slant", "adjustable_offset"] and piece.rise == 0.0:
 		out = {"type": "adjustable_offset", "metres": piece.run_length(), "shift": piece.shift if piece.type == "adjustable_offset" else piece.across * TILE}
+	elif piece.type in ["split", "adjustable_split"]:
+		out = {"type": "adjustable_split", "metres": piece.run_length(), "island": piece.island}
 	else:
 		return {}
 	for key in ["surface", "edges"]:
@@ -677,6 +864,13 @@ func safe_dimensions(width: float) -> bool:
 		return true
 	if type == "connector":
 		return safe_connector(width)
+	if type in UNEVEN_SPLITS:
+		return true
+	if is_split():
+		var run := run_length()
+		return run >= SPLIT_LEAST_METRES - 0.001 and run <= SPLIT_MOST_METRES + 0.001 \
+			and island >= SPLIT_LEAST_ISLAND - 0.001 and island <= SPLIT_MOST_ISLAND + 0.001 \
+			and split_ramp(width) <= run * SPLIT_RAMP_SHARE + 0.001
 	if type != "adjustable_offset":
 		return false
 	for k in 97:

@@ -7,17 +7,20 @@ extends RefCounted
 ## runs and saved too, under what's in the course's file. Then it only gets
 ## worked out again when the course changes.
 ##
-## An outline is { name, summary, line, heights, start, across, loops, box }:
-## the course's name and a line about it (see describe()), the middle of the
-## road as (x, z) points that come back round to the first, how high the road
-## is at each, where the start line is and which way is across it there, where
-## any loops and corkscrews are, and the box around it all.
+## An outline is { name, summary, line, heights, start, across, loops, splits,
+## box }: the course's name and a line about it (see describe()), the middle
+## of the road as (x, z) points that come back round to the first, how high
+## the road is at each, where the start line is and which way is across it
+## there, where any loops and corkscrews are, each split's branches (see
+## _splits_of()), and the box around it all.
 
 const SAVED := "user://pictures/outlines"
 ## Every how many of the course's samples (a metre apart) go in the line.
 const EVERY := 4
 ## Goes up when outlines are worked out differently, so the saved ones go.
-const LOOK := 3
+const LOOK := 4
+## The island's colour, drawn between a split's branches.
+const ISLAND := Color("#4b9f4a")
 
 static var _kept := {}
 static var _tidied := false
@@ -82,9 +85,80 @@ static func of_track(track: TrackPath) -> Dictionary:
 	var across := Vector2(track.start.basis.x.x, track.start.basis.x.z)
 	return {
 		"name": track.name, "summary": describe(track), "map_rotation": track.map_rotation,
-		"line": line, "heights": heights, "loops": loops, "box": box,
+		"line": line, "heights": heights, "loops": loops, "splits": _splits_of(track), "box": box,
 		"start": line[0], "across": across.normalized() if across.length() > 0.01 else Vector2.RIGHT,
 	}
+
+
+## Each split as { middle, across, left, right }: points down its middle line
+## as (x, z), which way is right there, and how far right of the middle each
+## branch's middle is, in metres.
+static func _splits_of(track: TrackPath) -> Array:
+	var out := []
+	if not track.has_splits:
+		return out
+	var count := track.points.size()
+	# From a sample off any split, so one across the start isn't cut in two.
+	var first := 0 if not track.closes else -1
+	for k in count:
+		if first < 0 and not track.split_sample(k):
+			first = k
+	if first < 0:
+		return out
+	var split := {}
+	for n in count + (1 if track.closes else 0):
+		var k := (first + n) % count
+		var on := track.split_sample(k)
+		if not on and split.is_empty():
+			continue
+		if split.is_empty():
+			split = {"middle": PackedVector2Array(), "across": PackedVector2Array(), "left": PackedFloat32Array(), "right": PackedFloat32Array()}
+		# Every EVERY samples, and the one just past the end, where the
+		# branches have met up again.
+		if not on or split.middle.is_empty() or n % EVERY == 0:
+			split.middle.append(Vector2(track.points[k].x, track.points[k].z))
+			split.across.append(Vector2(track.rights[k].x, track.rights[k].z).normalized())
+			split.left.append(track.branch_lefts[k].x)
+			split.right.append(track.branch_rights[k].x)
+		if not on:
+			out.append(split)
+			split = {}
+	if not split.is_empty():
+		out.append(split)
+	return out
+
+
+## Draws the splits of an outline over its road, already drawn with `to_view`:
+## the two branches `width` thick with `edge` round them and the island
+## between them. On a small map the branches are spread out to at least a
+## few lines apart, so the island shows.
+static func draw_splits(item: CanvasItem, outline: Dictionary, to_view: Transform2D, width: float, edge_width: float, road: Color, edge: Color) -> void:
+	var scale := to_view.basis_xform(Vector2.RIGHT).length()
+	var least := width * 1.3
+	for split: Dictionary in outline.get("splits", []):
+		var widest := 0.001
+		for n in split.middle.size():
+			widest = maxf(widest, maxf(-split.left[n], split.right[n]))
+		var sides := [PackedVector2Array(), PackedVector2Array()]
+		for n in split.middle.size():
+			var at: Vector2 = to_view * (split.middle[n] as Vector2)
+			var right: Vector2 = to_view.basis_xform(split.across[n]).normalized()
+			for side in 2:
+				var metres: float = split.left[n] if side == 0 else split.right[n]
+				var pixels := signf(metres) * maxf(absf(metres) * scale, least * absf(metres) / widest)
+				sides[side].append(at + right * pixels)
+		if sides[0].size() < 2:
+			continue
+		var island: PackedVector2Array = sides[0].duplicate()
+		var back: PackedVector2Array = sides[1].duplicate()
+		back.reverse()
+		island.append_array(back)
+		for side in sides:
+			item.draw_polyline(side, edge, edge_width, true)
+		# The road's own line runs down the middle, so the island covers it.
+		item.draw_colored_polygon(island, ISLAND)
+		for side in sides:
+			item.draw_polyline(side, road, width, true)
 
 
 ## The game's own courses never change while it runs, but yours can.
@@ -108,13 +182,23 @@ static func _read(saved: String) -> Dictionary:
 		loops.append(Vector2(data.loops[i], data.loops[i + 1]))
 	if line.size() < 2:
 		return {}
+	var splits := []
+	for split in data.get("splits", []):
+		if not split is Dictionary:
+			continue
+		var middle := PackedVector2Array()
+		var across := PackedVector2Array()
+		for i in range(0, split.get("middle", []).size() - 1, 2):
+			middle.append(Vector2(split.middle[i], split.middle[i + 1]))
+			across.append(Vector2(split.across[i], split.across[i + 1]))
+		splits.append({"middle": middle, "across": across, "left": PackedFloat32Array(split.get("left", [])), "right": PackedFloat32Array(split.get("right", []))})
 	var rotation := deg_to_rad(float(data.get("map_rotation", 0.0)))
 	var box := Rect2(line[0].rotated(rotation), Vector2.ZERO)
 	for p in line:
 		box = box.expand(p.rotated(rotation))
 	return {
 		"name": str(data.get("name", "")), "summary": str(data.summary), "map_rotation": float(data.get("map_rotation", 0.0)),
-		"line": line, "heights": PackedFloat32Array(data.heights), "loops": loops, "box": box,
+		"line": line, "heights": PackedFloat32Array(data.heights), "loops": loops, "splits": splits, "box": box,
 		"start": line[0], "across": Vector2(data.across[0], data.across[1]),
 	}
 
@@ -129,6 +213,14 @@ static func _write(saved: String, outline: Dictionary) -> void:
 	var heights := []
 	for h in outline.heights:
 		heights.append(snappedf(h, 0.1))
+	var splits := []
+	for split in outline.get("splits", []):
+		var across := []
+		for p in split.across:
+			across.append(snappedf(p.x, 0.001))
+			across.append(snappedf(p.y, 0.001))
+		splits.append({"middle": flat.call(Array(split.middle)), "across": across,
+			"left": Array(split.left).map(func(n): return snappedf(n, 0.1)), "right": Array(split.right).map(func(n): return snappedf(n, 0.1))})
 	DirAccess.make_dir_recursive_absolute(SAVED)
 	_tidy()
 	var file := FileAccess.open(saved, FileAccess.WRITE)
@@ -136,7 +228,7 @@ static func _write(saved: String, outline: Dictionary) -> void:
 		return
 	file.store_string(JSON.stringify({
 		"name": outline.name, "summary": outline.summary, "map_rotation": outline.get("map_rotation", 0.0),
-		"line": flat.call(Array(outline.line)), "heights": heights, "loops": flat.call(outline.loops),
+		"line": flat.call(Array(outline.line)), "heights": heights, "loops": flat.call(outline.loops), "splits": splits,
 		"across": [outline.across.x, outline.across.y],
 	}))
 
@@ -174,6 +266,8 @@ static func describe(track: TrackPath) -> String:
 		things.append("a shortcut")
 	if has.call(func(p): return p.crossing):
 		things.append("a level crossing")
+	if has.call(func(p): return p.is_split()):
+		things.append("a split")
 	var text := "%d m, %d laps" % [roundi(track.length), track.laps]
 	if not things.is_empty():
 		var last: String = things.pop_back()

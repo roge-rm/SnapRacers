@@ -1,6 +1,7 @@
 {
 	"name": "Clutch",
 	"_comment": "An old showman who drives like it's the last race of his life.",
+	"traits": { "aggression": 0.7, "patience": -0.6, "consistency": -0.5, "late_braking": 0.8 },
 	"head": { "style": "grin", "color": "#6b4430" },
 	"hair": { "style": "side_part", "color": "#1b1b1b" },
 	"facial_hair": { "style": "handlebar", "color": "#1b1b1b" },

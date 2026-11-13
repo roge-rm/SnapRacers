@@ -141,6 +141,8 @@ var _status: Label
 var _status_panel: PanelContainer
 var _drive: Button
 var _race: Button
+## Done instead of Race, see for_new_kart().
+var _new_kart := false
 var _toast_left := 0.0
 var _hint := ""
 
@@ -294,7 +296,7 @@ func show_stats(stats: KartStats, problems: Array[String]) -> void:
 	_stats_chip.text = "%s%d km/h  ·  %.2f g  ·  %d kg" % ["!  " if problems.size() > 0 else "", roundi(stats.top_speed() * 3.6), stats.pull(), roundi(stats.mass)]
 	_stats_chip.add_theme_color_override("font_color", DANGER if problems.size() > 0 else DATA)
 	_drive.disabled = not problems.is_empty()
-	_race.disabled = not problems.is_empty()
+	_race.disabled = not problems.is_empty() and not _new_kart
 	_show_status()
 
 
@@ -804,6 +806,14 @@ func _build_bottom() -> void:
 	_race = BuilderStyle.main_pill("Race", func() -> void: race_pressed.emit())
 	_race.custom_minimum_size.x = 220.0
 	row.add_child(_race)
+
+
+## Making a new kart from the kart picker: no test drive, and Done goes back.
+func for_new_kart() -> void:
+	_new_kart = true
+	_drive.visible = false
+	_race.text = "Done"
+	_race.disabled = false
 
 
 func _build_dialogs() -> void:

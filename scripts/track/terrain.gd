@@ -130,7 +130,9 @@ func _work_out_heights() -> void:
 			# edge, which is the road's height unless it's starting to lean.
 			var k := nearest[i]
 			if k >= 0:
-				h = lerpf(_low_edge(k, edge), h, smoothstep(edge, edge + BLEND, gap[i]))
+				# A split's road reaches further out than the road's width.
+				var reach := edge if not track.has_splits else track.outer_half(k) + TrackPath.KERB
+				h = lerpf(_low_edge(k, reach), h, smoothstep(reach, reach + BLEND, gap[i]))
 			# Under and beside road that leans, the ground stays below its low
 			# edge.
 			k = tilted[i]

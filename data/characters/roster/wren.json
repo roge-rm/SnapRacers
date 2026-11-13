@@ -1,6 +1,7 @@
 {
 	"name": "Wren",
 	"_comment": "Light on her feet and always first off the line.",
+	"traits": { "aggression": 0.2, "patience": -0.4, "consistency": 0.0, "late_braking": 0.3 },
 	"head": { "style": "smile", "color": "#f5c8a8" },
 	"hair": { "style": "ponytail", "color": "#e8c170" },
 	"headgear": { "style": "none", "color": "#e36a1a" },

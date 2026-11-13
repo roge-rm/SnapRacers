@@ -64,6 +64,8 @@ func _initialize() -> void:
 	var unbuildable: Array = Tracks.all().filter(func(id): return not Sharing.buildable(CourseDesign.from_dict(JSON.parse_string(FileAccess.get_file_as_string(Tracks.path_of(id))))))
 	check(unbuildable.is_empty(), "every one of the game's courses passes the check a host's course gets online %s" % str(unbuildable))
 
+	_splits()
+
 	print("-- Adding")
 	var first := Sharing.add(back)
 	made.append(first.path)
@@ -121,6 +123,48 @@ func _initialize() -> void:
 			DirAccess.remove_absolute(path)
 	print("All %d sharing checks passed." % checks if failures == 0 else "%d of %d sharing checks failed." % [failures, checks])
 	quit(1 if failures > 0 else 0)
+
+
+## Courses with splits go through codes and files, and broken splits don't.
+func _splits() -> void:
+	print("-- Splits")
+	var data: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://tests/data/split_course.json"))
+	data.name = "Sharing split " + tag
+	var course := CourseDesign.from_dict(data).to_dict()
+	var back := Sharing.read(Sharing.code_for(course))
+	check(back.get("kind") == Sharing.COURSE and same(back.data, course) and same(back.data.pieces[1], {"type": "split", "length": 2}), "a course with a split goes through a code")
+	check(same(Sharing.read(Sharing.file_for(course)).get("data"), course), "and through a file")
+	var adjustable := course.duplicate(true)
+	adjustable.pieces[1] = {"type": "adjustable_split", "metres": 64.0, "island": 14.5}
+	back = Sharing.read(Sharing.code_for(adjustable))
+	check(back.get("kind") == Sharing.COURSE and same(back.data, adjustable), "and so does one with an adjustable split")
+	var island := course.duplicate(true)
+	island.pieces[1] = {"type": "split", "length": 3, "island": 8.0}
+	check(same(Sharing.read(Sharing.code_for(island)).get("data"), island), "a split's own island width comes through")
+	var more_ok := true
+	for spec in [{"type": "split_bend", "turn": "left", "size": 3}, {"type": "split_bend", "turn": "right", "size": 4, "surface": "dirt"}, {"type": "rough_split", "side": "right"}, {"type": "jump_split", "side": "left", "edges": "open"}]:
+		var other := course.duplicate(true)
+		other.pieces[1] = spec
+		more_ok = more_ok and same(Sharing.read(Sharing.code_for(other)).get("data"), other)
+	check(more_ok, "split bends, rough splits and jump splits come through")
+	var bad := {
+		"a split bend too small": {"type": "split_bend", "turn": "left", "size": 2},
+		"a jump split to the middle": {"type": "jump_split", "side": "middle"},
+		"a jump split with a length": {"type": "jump_split", "side": "left", "length": 2},
+		"an island too narrow": {"type": "split", "length": 2, "island": 6.0},
+		"an island too wide": {"type": "adjustable_split", "metres": 256.0, "island": 80.0},
+		"an island too wide for its length": {"type": "adjustable_split", "metres": 64.0, "island": 40.0},
+		"a split too short": {"type": "split", "length": 1},
+		"an adjustable split too short": {"type": "adjustable_split", "metres": 32.0, "island": 12.0},
+		"an adjustable split too long": {"type": "adjustable_split", "metres": 300.0, "island": 12.0},
+		"an adjustable split with no island": {"type": "adjustable_split", "metres": 64.0},
+		"an island that isn't a number": {"type": "split", "length": 2, "island": "wide"},
+		"a split with something it can't have": {"type": "split", "length": 2, "rise": 1},
+	}
+	for what in bad:
+		var broken := course.duplicate(true)
+		broken.pieces[1] = bad[what]
+		check(Sharing.read(Sharing.code_for(broken)).has("why"), "a course with %s is turned away" % what)
 
 
 func _keep(found: Dictionary) -> Dictionary:

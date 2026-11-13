@@ -48,6 +48,8 @@ const BARRIER_STEP := 4.0
 const INDOOR_RUNOFF := 3.0
 const HALL_MARGIN := 40.0
 const HALL_HEIGHT := 12.0
+## Split islands at least this wide, in metres, get a few trees or such.
+const ISLAND_PROPS := 20.0
 ## Up in the sky, how many islands go around the road at most, and clouds
 ## below it.
 const SKY_ISLANDS := 40
@@ -558,7 +560,14 @@ func _map_distances() -> void:
 	_dist.resize(_cols * _rows)
 	_dist.fill(INF)
 	_near.resize(_cols * _rows)
-	for p in track.points:
+	# A split's branches count as road too, each as narrow as the road or less.
+	var road := track.points.duplicate()
+	if track.has_splits:
+		for k in track.points.size():
+			if track.split_sample(k):
+				road.append(track.points[k] + track.rights[k] * track.branch_lefts[k].x)
+				road.append(track.points[k] + track.rights[k] * track.branch_rights[k].x)
+	for p in road:
 		var flat := Vector2(p.x, p.z)
 		var c := _cell_of(flat)
 		for dx in range(-1, 2):
@@ -623,15 +632,18 @@ func _hash_track() -> void:
 ## its own corner but not on the next bit of road over).
 func _near_other_road(at: Vector3, radius: float, own: int, skip: float) -> bool:
 	var key := Vector2i(floori(at.x / 16.0), floori(at.z / 16.0))
-	for dx in range(-1, 2):
-		for dy in range(-1, 2):
+	var cells := 1 if not track.has_splits else 2
+	for dx in range(-cells, cells + 1):
+		for dy in range(-cells, cells + 1):
 			for k in _hash.get(key + Vector2i(dx, dy), []):
 				var along := absf(track.distances[k] - track.distances[own])
 				along = minf(along, track.length - along)
 				if along < skip:
 					continue
 				var p := track.points[k]
-				if Vector2(p.x - at.x, p.z - at.z).length() < radius:
+				# A split's branches reach further out than the road.
+				var wider := radius if not track.has_splits else radius + track.outer_half(k) - track.width * 0.5
+				if Vector2(p.x - at.x, p.z - at.z).length() < wider:
 					return true
 	return false
 
@@ -716,6 +728,8 @@ func _add(prop: String, at: Vector3, facing := -1) -> void:
 # Along the road.
 
 func _trackside() -> void:
+	_split_noses()
+	_island_props()
 	# Up in the sky there's nothing to cut across on, so no tire stacks.
 	if not _floating:
 		_tire_lines()
@@ -769,6 +783,79 @@ func _trackside() -> void:
 					_kit.done()
 					_placed.append([spot, 3.2])
 				board_side = -board_side
+
+
+## A few tire stacks on the nose of each split's island, where the branches
+## part and where they meet again.
+func _split_noses() -> void:
+	if not track.has_splits:
+		return
+	var colours := [Color(theme.curbs[0]), Props.WHITE]
+	var count := track.points.size()
+	for k in count:
+		var next := (k + 1) % count
+		if not (track.split_sample(k) or track.split_sample(next)):
+			continue
+		var here := track.lanes_of(k).size()
+		var there := track.lanes_of(next).size()
+		if here == there:
+			continue
+		# Into the island from its tip, where it's wide enough for a stack.
+		var inward := 1.0 if there > here else -1.0
+		var spot := float(track.distances[next if there > here else k])
+		var placed := 0
+		var ahead := 0.0
+		while placed < 3 and ahead < 30.0:
+			var d := spot + inward * ahead
+			var lanes := track.lanes_at(d)
+			ahead += 0.4
+			if lanes.size() < 2:
+				continue
+			var middle := (lanes[0].y + lanes[1].x) * 0.5
+			if lanes[1].x - lanes[0].y < 1.6 + 0.8 * placed:
+				continue
+			var at := track.point_at(d) + track.right_at(d) * middle
+			_kit.begin("tires", false, true)
+			Props.barrier_stack(_kit, _grounded(at), colours[placed % 2])
+			_kit.done()
+			_placed.append([at, 1.0])
+			placed += 1
+			ahead += 0.6
+
+
+## A few of the theme's smaller fillers down the middle of each big split
+## island, like the wide split's.
+func _island_props() -> void:
+	if not track.has_splits:
+		return
+	# Small fillers, as often as the theme has them, without fences.
+	var choices: Array = []
+	var fillers: Dictionary = theme.get("fillers", {})
+	for prop: String in fillers:
+		if Props.ROOM.get(prop, 3.0) <= 2.8 and prop != "fence":
+			for n in int(fillers[prop]):
+				choices.append(prop)
+	if choices.is_empty():
+		choices = ["bush"]
+	var next := -INF
+	var flip := 1.0
+	for k in track.points.size():
+		var d := track.distances[k]
+		var lanes := track.lanes_of(k)
+		if lanes.size() < 2 or lanes[1].x - lanes[0].y < ISLAND_PROPS or d < next:
+			continue
+		var gap := lanes[1].x - lanes[0].y
+		var middle := (lanes[0].y + lanes[1].x) * 0.5 + flip * gap * 0.15
+		var at := track.points[k] + track.rights[k] * middle
+		next = d + 18.0
+		flip = -flip
+		# The island's own middle is on the middle line, so only what's
+		# already been put down counts.
+		var clear := true
+		for spot in _placed:
+			clear = clear and Vector2(spot[0].x - at.x, spot[0].z - at.z).length() >= spot[1] + 3.0
+		if clear:
+			_add(choices[_rng.randi() % choices.size()], at)
 
 
 ## Lamp posts along the road, just past the runoff, taking turns on each side,
@@ -1024,6 +1111,9 @@ func _build_hall() -> void:
 ## road out to one side (-1 left, 1 right), or INF if there's none close.
 func _between(k: int, side: float, edge: float) -> Vector3:
 	var p := track.points[k]
+	# A split's branches reach further out than the road.
+	var wider := 0.0 if not track.has_splits else track.outer_half(k) - track.width * 0.5
+	edge += wider
 	if not track.solids[k] or track.stickies[k] or p.y > TrackBuilder.RAISED or track.ups[k].y < 0.985:
 		return Vector3.INF
 	var fwd := Vector3(track.forwards[k].x, 0.0, track.forwards[k].z).normalized()
@@ -1058,10 +1148,11 @@ func _between(k: int, side: float, edge: float) -> Vector3:
 	var there: TrackPiece = track.pieces[track.piece_of[partner]]
 	if here.forced_walls() and not here.cut and there.forced_walls() and not there.cut:
 		return Vector3.INF
-	var at := p + right * nearest * 0.5
+	var there_wider := 0.0 if not track.has_splits else track.outer_half(partner) - track.width * 0.5
+	var at := p + right * (nearest + wider - there_wider) * 0.5
 	at = _grounded(at)
 	# Not on any road (a crossing, say), or on a cut bend's dirt.
-	if _near_other_road(at, edge + 1.0, k, 0.0):
+	if _near_other_road(at, edge - wider + 1.0, k, 0.0):
 		return Vector3.INF
 	for spot in keep_clear:
 		if Vector2(spot[0].x - at.x, spot[0].z - at.z).length() < spot[1]:

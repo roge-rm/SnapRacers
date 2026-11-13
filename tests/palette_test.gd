@@ -56,7 +56,7 @@ func _shapes() -> void:
 	var paired := true
 	for category in TrackEditorUI.CATEGORIES:
 		for row in category[2]:
-			paired = paired and (row.size() == 2 or (category[0] == "Straights" and row.size() == 1))
+			paired = paired and (row.size() == 2 or (category[0] in ["Straights", "Splits"] and row.size() == 1))
 			var left: Dictionary = row[0][1]
 			var right: Dictionary = row[-1][1]
 			var side := "turn" if left.has("turn") else "side"
@@ -67,7 +67,7 @@ func _shapes() -> void:
 			for entry in row:
 				all.append(entry[1])
 	check(paired, "each mirrored pair has a complete left/right row")
-	check(all.size() == 98, "98 useful parts are offered (%d)" % all.size())
+	check(all.size() == 109, "109 useful parts are offered (%d)" % all.size())
 	var unique: Array = []
 	var finite := true
 	var round_trip := true
@@ -122,8 +122,8 @@ func _shapes() -> void:
 	check(specials.has({"type": "loop", "side": "left"}) and specials.has({"type": "corkscrew", "side": "left"}), "loops and corkscrews have their left mirrors")
 	check(TrackEditorUI.SURFACES.has(["Concrete", "concrete"]), "concrete is offered as a surface")
 	check(specials.size() == 8 and specials.has({"type": "curve", "turn": "right", "size": 2, "cut": true}), "shortcuts sit with the eight Specials")
-	check(TrackCatalogue.CATEGORIES.map(func(c): return c[0]) == ["Straights", "Bends", "Offsets", "Hills", "Banked", "Specials"], "six road tabs keep the agreed family order")
-	check(TrackCatalogue.CATEGORIES.map(func(c): return _specs(_category(c[0])).size()) == [6, 32, 16, 28, 8, 8], "every family has its complete directly pickable parts")
+	check(TrackCatalogue.CATEGORIES.map(func(c): return c[0]) == ["Straights", "Bends", "Offsets", "Hills", "Banked", "Specials", "Splits"], "seven road tabs keep the agreed family order")
+	check(TrackCatalogue.CATEGORIES.map(func(c): return _specs(_category(c[0])).size()) == [6, 32, 16, 28, 8, 8, 11], "every family has its complete directly pickable parts")
 	var straight_lengths := _specs(_category("Straights")).map(func(spec): return TrackPiece.from_spec(spec).run_length())
 	check(straight_lengths == [8.0, 16.0, 32.0, 64.0, 96.0, 128.0], "straights run from the quarter tile through four tiles")
 	var ramp_order := hills.filter(func(spec): return spec.type == "ramp").map(func(spec): return [spec.length, spec.rise])
@@ -135,6 +135,18 @@ func _shapes() -> void:
 	var profile := PieceIcon.new({"type": "ramp"})
 	check(profile.profile_height(PackedFloat32Array([0, 1.5])) == 6 and profile.profile_height(PackedFloat32Array([0, 3])) == 6 and profile.profile_height(PackedFloat32Array([0, -6])) == 6, "ordinary humps and both ramp heights share the 6 m side-view scale")
 	profile.free()
+	var splits := _specs(_category("Splits"))
+	var split_types := splits.map(func(spec): return spec.type)
+	check(splits.size() == 11 and splits[0] == {"type": "split", "length": 2} and TrackCatalogue.piece_name(splits[0]) == "Split straight · 64 × 32 m" and TrackCatalogue.dimensions(splits[0]) == "64 m long · island 12 m" and split_types.count("split_bend") == 4 and split_types.count("rough_split") == 2 and split_types.count("jump_split") == 2, "Splits offers the straights, wide split, bends, rough and jump splits (%d)" % splits.size())
+	var named := true
+	for spec in splits:
+		named = named and TrackCatalogue.specs().has(spec) and not TrackCatalogue.piece_name(spec).is_empty() and not TrackCatalogue.dimensions(spec).is_empty()
+	check(named, "every split is in the catalogue with a name and dimensions")
+	check(TrackCatalogue.specs().has(splits[0]) and not TrackCatalogue.closer_choices().any(func(spec): return spec.type in TrackPiece.SPLIT_TYPES), "the split is in the catalogue but never a closer choice")
+	var split_icon := PieceIcon.new(splits[0])
+	var branches := split_icon._branches(TrackPiece.from_spec(splits[0]), 48)
+	split_icon.free()
+	check(branches.size() == 4 and branches[0][24].x < -8.0 and branches[1][24].x > 8.0 and branches[0][0].is_equal_approx(branches[1][0]), "the split's icon draws two branches that part round the island and meet at the ends")
 	profile = PieceIcon.new({"type": "loop"})
 	check(profile.profile_height(PackedFloat32Array([0, 29])) >= 29, "a tall stunt has enough side-view scale for its captioned height")
 	profile.free()

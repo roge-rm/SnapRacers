@@ -1,6 +1,7 @@
 {
 	"name": "Riff",
 	"_comment": "A rocker who brings the guitar along, just in case.",
+	"traits": { "aggression": 0.5, "patience": -0.5, "consistency": -0.6, "late_braking": 0.3 },
 	"head": { "style": "tongue", "color": "#f5c8a8" },
 	"hair": { "style": "mohawk", "color": "#d86cb0" },
 	"headgear": { "style": "none", "color": "#1b1b1b" },

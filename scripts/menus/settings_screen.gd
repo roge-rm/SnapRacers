@@ -69,6 +69,26 @@ func _player_page() -> Control:
 	name_edit.text = Game.settings.get_value("player", "name", "")
 	name_edit.text_changed.connect(func(text: String) -> void: Game.set_setting("player", "name", text.strip_edges()))
 	page.add_child(name_edit)
+	var row := HBoxContainer.new()
+	page.add_child(row)
+	var heading := MenuStyle.heading("Driver picker before karts")
+	heading.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	row.add_child(heading)
+	var toggle := CheckButton.new()
+	toggle.focus_mode = Control.FOCUS_ALL
+	toggle.button_pressed = Game.driver_picker_step()
+	toggle.toggled.connect(func(on: bool) -> void: Game.set_setting("race", "driver_picker", on))
+	row.add_child(toggle)
+	var own_row := HBoxContainer.new()
+	page.add_child(own_row)
+	var own_heading := MenuStyle.heading("AI can use your drivers")
+	own_heading.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	own_row.add_child(own_heading)
+	var own_toggle := CheckButton.new()
+	own_toggle.focus_mode = Control.FOCUS_ALL
+	own_toggle.button_pressed = Game.ai_own_drivers()
+	own_toggle.toggled.connect(func(on: bool) -> void: Game.set_setting("race", "ai_own_drivers", on))
+	own_row.add_child(own_toggle)
 	return page
 
 

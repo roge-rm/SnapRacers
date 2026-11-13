@@ -64,6 +64,17 @@ const CATEGORIES := [
 		[["Corkscrew L\n18.5 m high", {"type": "corkscrew", "side": "left"}], ["Corkscrew R\n18.5 m high", {"type": "corkscrew", "side": "right"}]],
 		[["Shortcut left\n90° normal", {"type": "curve", "turn": "left", "size": 2, "cut": true}], ["Shortcut right\n90° normal", {"type": "curve", "turn": "right", "size": 2, "cut": true}]],
 	]],
+	# Each piece here also needs its key at the end of _SPEC_ORDER.
+	["Splits", "splits", [
+		# Rough and jump splits are named by where the dirt or the jump is;
+		# a rough split's side is the way its tarmac swings out.
+		[["Split straight\n64 × 32 m", {"type": "split", "length": 2}], ["Split straight\n96 × 32 m", {"type": "split", "length": 3}]],
+		[["Wide split\n128 × 64 m", {"type": "split", "length": 4, "island": 38.0}]],
+		[["Left split\n90° wide", {"type": "split_bend", "turn": "left", "size": 3}], ["Right split\n90° wide", {"type": "split_bend", "turn": "right", "size": 3}]],
+		[["Left split\n90° extra wide", {"type": "split_bend", "turn": "left", "size": 4}], ["Right split\n90° extra wide", {"type": "split_bend", "turn": "right", "size": 4}]],
+		[["Dirt right\n96 × 32 m", {"type": "rough_split", "side": "left"}], ["Dirt left\n96 × 32 m", {"type": "rough_split", "side": "right"}]],
+		[["Jump left\n128 × 32 m", {"type": "jump_split", "side": "left"}], ["Jump right\n128 × 32 m", {"type": "jump_split", "side": "right"}]],
+	]],
 ]
 
 ## Stable preset order used by the closing solvers.
@@ -166,6 +177,17 @@ const _SPEC_ORDER := [
 	"type=arc|angle=45|turn=left|size=3|rise=-1",
 	"type=arc|angle=45|turn=right|size=3|rise=-1",
 	"type=quarter_straight",
+	"type=split|length=2",
+	"type=split|length=3",
+	"type=split|length=4|island=38",
+	"type=split_bend|turn=left|size=3",
+	"type=split_bend|turn=right|size=3",
+	"type=split_bend|turn=left|size=4",
+	"type=split_bend|turn=right|size=4",
+	"type=rough_split|side=left",
+	"type=rough_split|side=right",
+	"type=jump_split|side=left",
+	"type=jump_split|side=right",
 ]
 
 const BEND_ANGLES := [30, 45, 60, 90]
@@ -196,7 +218,7 @@ static func specs() -> Array:
 
 static func _spec_key(spec: Dictionary) -> String:
 	var parts := PackedStringArray()
-	for key in ["type", "length", "angle", "turn", "size", "across", "rise", "height", "bank", "cut", "side", "metres", "shift", "end", "heading", "handles"]:
+	for key in ["type", "length", "angle", "turn", "size", "across", "rise", "height", "bank", "cut", "side", "island", "metres", "shift", "end", "heading", "handles"]:
 		if spec.has(key):
 			var value := _number(spec[key]) if spec[key] is float else str(spec[key]).to_lower()
 			parts.append("%s=%s" % [key, value])
@@ -208,6 +230,9 @@ static func closer_choices() -> Array:
 	var out := []
 	for spec in specs():
 		var kind: String = spec.type
+		# Splits are never picked: a closing road is plain road.
+		if TrackPiece.SPLIT_TYPES.has(kind):
+			continue
 		if kind in ["straight", "half_straight", "quarter_straight"] or (kind in ["curve", "arc", "slant"] and not spec.has("rise") and not spec.has("bank") and not spec.has("cut")) or (kind == "ramp" and spec.rise < 0):
 			out.append(spec)
 	return out
@@ -231,6 +256,16 @@ static func piece_name(spec: Dictionary) -> String:
 			return "Adjustable straight"
 		"adjustable_offset":
 			return "Adjustable offset"
+		"adjustable_split":
+			return "Adjustable split"
+		"split":
+			return "Split straight"
+		"split_bend":
+			return "%s split" % turn.capitalize()
+		"rough_split":
+			return "Dirt left" if spec.get("side", "right") == "right" else "Dirt right"
+		"jump_split":
+			return "Jump %s" % spec.get("side", "right")
 		"connector":
 			return "Join"
 		"curve", "arc":
@@ -272,6 +307,14 @@ static func dimensions(spec: Dictionary) -> String:
 			parts.append("%s m long" % _metres(piece.metres))
 		"adjustable_offset":
 			parts.append("%s m along · %s m sideways" % [_metres(piece.metres), _metres(piece.shift)])
+		"split", "adjustable_split":
+			parts.append("%s m long · island %s m" % [_metres(piece.run_length()), _metres(piece.island)])
+		"split_bend":
+			parts.append("90° · radius %s m" % _metres(piece.radius))
+		"rough_split":
+			parts.append("96 m long · one branch on dirt")
+		"jump_split":
+			parts.append("128 m long · jump on one branch")
 		"connector":
 			parts.append("%s m long" % _metres(piece.path_length()))
 		"curve", "arc":

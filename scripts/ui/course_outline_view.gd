@@ -358,6 +358,7 @@ static func _paint(item: CanvasItem, outline: Dictionary, area: Vector2, scale: 
 			item.draw_polyline(stretch, EDGE, width * 2.2, true)
 		for stretch in levels[level]:
 			item.draw_polyline(stretch, ROAD, width, true)
+	CourseOutline.draw_splits(item, outline, to_view, width, width * 2.2, ROAD, EDGE)
 	for at in outline.loops:
 		item.draw_arc(to_view * at, width * 2.4, 0.0, TAU, 20, tint, width * 0.8, true)
 	var start: Vector2 = to_view * (outline.start as Vector2)

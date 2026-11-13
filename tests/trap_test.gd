@@ -133,6 +133,39 @@ class Runner:
 			suspended.queue_free()
 			await frames(2)
 
+			# A kart in the air a little above the road: the patch falls to it.
+			var low_ground := surface(Vector3(480, 0, 0), Vector3(30, 0.5, 30))
+			var hopping := make_kart("starter", Vector3(480, 3.0, 0))
+			hopping.freeze = true
+			await frames(2)
+			trap = BrickTrap.drop_behind(hopping, kind)
+			add_child(trap)
+			check(trap.position.y > 2.0 and trap._falling, "%s dropped from a low jump start in the air (%.2f)" % [kind, trap.position.y])
+			await frames(60)
+			check(absf(trap.position.y - 0.01) < 0.05 and trap.collision_layer == Kart.LAYER_WORLD, "%s then land on the road (%.2f)" % [kind, trap.position.y])
+			trap.queue_free()
+			hopping.queue_free()
+			low_ground.queue_free()
+			await frames(2)
+
+			# A kart on a raised road with its tail by the side edge: the patch
+			# hangs half off, so it slides off and falls to the ground below.
+			var below := surface(Vector3(520, 0, 0), Vector3(40, 0.5, 40))
+			var deck := surface(Vector3(520, 4, 0), Vector3(8, 0.5, 40))
+			var edge_kart := make_kart("starter", Vector3(523.2, 4.4, 0))
+			edge_kart.freeze = true
+			await frames(2)
+			trap = BrickTrap.drop_behind(edge_kart, kind)
+			add_child(trap)
+			check(trap.position.y > 3.5 and trap._moving and trap._slide.x > 0.0, "%s dropped half over an edge start sliding off it" % kind)
+			await frames(150)
+			check(absf(trap.position.y - 0.01) < 0.05 and trap.position.x > 524.0, "%s fall off the edge to the ground below (%s)" % [kind, trap.position])
+			trap.queue_free()
+			edge_kart.queue_free()
+			deck.queue_free()
+			below.queue_free()
+			await frames(2)
+
 	func _ready() -> void:
 		var ground := StaticBody3D.new()
 		ground.collision_layer = Kart.LAYER_WORLD
@@ -170,8 +203,32 @@ class Runner:
 				control.queue_free()
 				await frames(2)
 		await _shoved_ground()
+		_split_drops()
 		print("All trap checks passed." if failures == 0 else "%d trap checks failed." % failures)
 		get_tree().quit(1 if failures > 0 else 0)
+
+	## Walls and patches dropped on a split's branch leave a kart room past
+	## them, lying toward or onto the island if they have to.
+	func _split_drops() -> void:
+		var track := TrackPath.from_dict(JSON.parse_string(FileAccess.get_file_as_string("res://tests/data/split_course.json")))
+		var middle := TrackPiece.TILE * 5.0
+		var right := track.right_at(middle)
+		var at := track.point_at(middle)
+		var lanes := track.lanes_at(middle)
+		var room := true
+		var toward_island := true
+		for half in [BrickWall.HALF, BrickTrap.KINDS.marbles.across, BrickTrap.KINDS.spikes.across]:
+			for side in 2:
+				var lane: Vector2 = lanes[side]
+				for across in [lane.x + 1.0, (lane.x + lane.y) * 0.5, lane.y - 1.0]:
+					var moved := (BrickTrap.clear_of_island(track, at + right * across, half) - at).dot(right)
+					room = room and (moved - half - lane.x >= BrickTrap.ROOM - 0.01 or lane.y - moved - half >= BrickTrap.ROOM - 0.01)
+					toward_island = toward_island and (moved >= across - 0.01 if side == 0 else moved <= across + 0.01)
+		check(lanes.size() == 2 and room, "anything dropped on a split's branch leaves room to get by")
+		check(toward_island, "and moves toward the island, never out off the road")
+		var plain := track.point_at(10.0) + track.right_at(10.0) * 2.0
+		check(BrickTrap.clear_of_island(track, plain, BrickWall.HALF) == plain, "off the split it stays where it was dropped")
+
 
 func _initialize() -> void:
 	root.add_child(Runner.new())

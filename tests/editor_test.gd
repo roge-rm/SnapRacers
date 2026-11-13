@@ -140,10 +140,43 @@ func _ready() -> void:
 	check(editor.course.name == "Peach Pit" and editor.path == "", "loading one of the game's courses gives you a copy")
 	check(editor.track.closes and editor.course.problems().is_empty(), "which is finished already")
 
+	await _splits()
+
 	DirAccess.remove_absolute(path)
 	DirAccess.remove_absolute(TrackEditor.CURRENT)
 	print("All editor checks passed." if failures == 0 else "%d editor checks failed." % failures)
 	get_tree().quit(1 if failures > 0 else 0)
+
+
+## The Splits tab, a split on the course and its outline on the map.
+func _splits() -> void:
+	var tab := -1
+	for i in TrackEditorUI.CATEGORIES.size():
+		if TrackEditorUI.CATEGORIES[i][0] == "Splits":
+			tab = i
+	editor.load_course("res://tests/data/split_course.json")
+	check(editor.track.closes and editor.track.has_splits and editor.course.problems().is_empty(), "a course with a split loads finished")
+	editor.ui._show_category(tab)
+	await frames(1)
+	var tiles := editor.ui._tiles.get_children()
+	check(tab >= 0 and tiles.size() == 11 and tiles[0].get_meta("spec") == {"type": "split", "length": 2}, "the Splits tab has the split straight first of its 11 splits (%d)" % tiles.size())
+	editor.insert_after = 0
+	tiles[0].pressed.emit()
+	check(int(editor.course.pieces[1].get("length", 0)) == 2 and editor.course.pieces[1].type == "split" and editor.course.pieces[2].type == "split", "tapping it puts a split in after the picked piece")
+	editor.undo()
+	editor.insert_after = -1
+	editor._select(-1)
+	var outline := CourseOutline.of_track(editor.track)
+	var split: Dictionary = outline.splits[0] if outline.splits.size() == 1 else {}
+	check(not split.is_empty() and Array(split.left).min() < -10.0 and Array(split.right).max() > 10.0 and absf(split.left[0]) < 0.01 and absf(split.left[-1]) < 0.01, "the course's outline has both branches, meeting at each end")
+	check(outline.summary.contains("a split"), "and its summary mentions the split (%s)" % outline.summary)
+	var saved := "user://editor_test_outline.json"
+	CourseOutline._write(saved, outline)
+	var back := CourseOutline._read(saved)
+	DirAccess.remove_absolute(saved)
+	check(back.get("splits", []).size() == 1 and back.splits[0].middle.size() == split.middle.size() and is_equal_approx(back.splits[0].right[10], snappedf(split.right[10], 0.1)), "a saved outline keeps its split")
+	var preview := editor.ui._map_preview
+	check(preview != null, "the editor has a map of the course")
 
 
 ## The editor with a controller (see TrackEditorPad).

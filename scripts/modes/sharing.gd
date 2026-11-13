@@ -23,7 +23,7 @@ const MOST_CONNECTORS := 4096
 const MOST_CONNECTOR_PAIRS := 50000
 const MOST_NAME := 120
 const MOST_ABOUT := 2000
-const PIECE_TYPES := ["straight", "half_straight", "quarter_straight", "adjustable_straight", "adjustable_offset", "connector", "curve", "arc", "slant", "crest", "ramp", "jump", "loop", "corkscrew", "crossing"]
+const PIECE_TYPES := ["straight", "half_straight", "quarter_straight", "adjustable_straight", "adjustable_offset", "connector", "curve", "arc", "slant", "crest", "ramp", "jump", "loop", "corkscrew", "crossing", "split", "adjustable_split", "split_bend", "rough_split", "jump_split"]
 const LIMITS := {"length": 12.0, "size": 4.0, "rise": 8.0, "across": 6.0, "height": 10.0, "bank": 90.0}
 
 static var _game_courses := {}
@@ -284,6 +284,12 @@ static func _piece(spec: Variant) -> bool:
 			var span := Vector2(spec.end[0], spec.end[1]).length()
 			if span < 0.25 or span > TrackPiece.MAX_METRES:
 				return false
+		elif kind == "adjustable_split":
+			allowed.append_array(["metres", "island"])
+			if not _number(spec.get("metres")) or spec.metres < TrackPiece.SPLIT_LEAST_METRES or spec.metres > TrackPiece.SPLIT_MOST_METRES:
+				return false
+			if not _island(spec.get("island")):
+				return false
 		else:
 			allowed.append("metres")
 			var least := 2.0 if kind == "adjustable_offset" else 0.25
@@ -296,6 +302,24 @@ static func _piece(spec: Variant) -> bool:
 		for key in spec:
 			if key not in allowed:
 				return false
+	if spec.get("type") == "split":
+		for key in spec:
+			if key not in ["type", "length", "island", "surface", "edges"]:
+				return false
+		if not _integer(spec.get("length", 2), 2, 8) or (spec.has("island") and not _island(spec.island)):
+			return false
+	if spec.get("type") == "split_bend":
+		for key in spec:
+			if key not in ["type", "turn", "size", "surface", "edges"]:
+				return false
+		if not _integer(spec.get("size", 3), 3, 4) or not spec.get("turn", "right") in ["left", "right"]:
+			return false
+	if spec.get("type") in ["rough_split", "jump_split"]:
+		for key in spec:
+			if key not in ["type", "side", "surface", "edges"]:
+				return false
+		if not spec.get("side", "right") in ["left", "right"]:
+			return false
 	if spec.get("type") in ["half_straight", "quarter_straight"]:
 		for key in spec:
 			if key not in ["type", "surface", "edges"]:
@@ -315,6 +339,10 @@ static func _piece(spec: Variant) -> bool:
 		if not _integer(spec.get("size", 2), 1, 4) or spec.get("cut", false):
 			return false
 	return true
+
+
+static func _island(value: Variant) -> bool:
+	return _number(value) and value >= TrackPiece.SPLIT_LEAST_ISLAND and value <= TrackPiece.SPLIT_MOST_ISLAND
 
 
 static func _text(value: Variant, most: int) -> bool:
@@ -361,7 +389,7 @@ static func buildable(course: CourseDesign, saved := false) -> bool:
 	for spec in course.pieces:
 		if not _piece(spec):
 			return false
-		if spec.get("type") in TrackPiece.ADJUSTABLE_TYPES and not TrackPiece.from_spec(spec).safe_dimensions(course.width):
+		if (spec.get("type") in TrackPiece.ADJUSTABLE_TYPES or spec.get("type") in TrackPiece.SPLIT_TYPES) and not TrackPiece.from_spec(spec).safe_dimensions(course.width):
 			return false
 	if not saved and course.pieces.any(func(spec): return str(spec.get("type", "")) == "crossing"):
 		if LevelCrossing.problem(course.track()) != "":

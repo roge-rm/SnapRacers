@@ -193,3 +193,22 @@ func _cup() -> void:
 	check(imported._any_added and saved != null and saved.races.size() == 2 and saved.races[1].course.name == course.name, "Add a cup imports the complete snapshot after its source course is removed")
 	imported.hide()
 	await frames()
+	# A cup with a split in one of its courses comes in the same way.
+	var split := CourseDesign.load_file("res://tests/data/split_course.json")
+	split.name = "Shared split course " + tag
+	var split_cup := CupDesign.new()
+	split_cup.name = "Shared split cup " + tag
+	split_cup.add(Tracks.path_of("lemon_lake"))
+	split_cup.races.append({"from": "", "course": split.to_dict()})
+	Game.show_your_cups()
+	await frames()
+	grid = host.get_child(host.get_child_count() - 1)
+	add = grid.find_children("*", "Button", true, false).filter(func(b): return b.has_meta("add"))[0]
+	add.tapped.emit()
+	await frames()
+	imported = window_under(grid, "AddWindow")
+	imported._add(Sharing.code_for(split_cup.to_dict()))
+	var split_saved := CupDesign.load_file(CupDesign.path_for(split_cup.name))
+	check(imported._any_added and split_saved != null and split_saved.races[1].course.pieces[1].get("type") == "split", "Add a cup brings a course with a split in it")
+	imported.hide()
+	await frames()

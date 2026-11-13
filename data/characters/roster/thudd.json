@@ -1,6 +1,7 @@
 {
 	"name": "Thudd",
 	"_comment": "A big jolly warrior who laughs the whole way round.",
+	"traits": { "aggression": 0.6, "patience": -0.3, "consistency": -0.2, "late_braking": 0.2 },
 	"head": { "style": "laughing", "color": "#f5c8a8" },
 	"hair": { "style": "curly", "color": "#c4281c" },
 	"facial_hair": { "style": "braided", "color": "#c4281c" },

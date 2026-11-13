@@ -26,7 +26,8 @@ static func score(ai: AIDriver, kind: String, speed: float) -> float:
 			var closing := BrickShot.HOMING_SPEED - target.linear_velocity.dot(gap.normalized())
 			if closing <= 2.0 or turn_time + gap.length() / closing > BrickShot.HOMING_LIFETIME * 0.8:
 				return 0.0
-			return 2.0
+			# A kart it holds a grudge against comes first.
+			return 2.6 if target == ai.grudge else 2.0
 		"lightning":
 			var race := kart.get_parent()
 			if not race.has_method("standings"):
@@ -133,14 +134,17 @@ static func _road_safe(ai: AIDriver, speed: float, duration: float, bend: float,
 		return false
 	if forward.dot(ai.track.forward_at(ai.offset)) < 0.97 or kart.linear_velocity.dot(forward) < -0.5:
 		return false
-	var room := ai.track.width * 0.5 - kart.width() * 0.5 - 0.5
-	if absf((kart.global_position - ai.track.point_at(ai.offset)).dot(ai.track.right_at(ai.offset))) > room:
+	var across := (kart.global_position - ai.track.point_at(ai.offset)).dot(ai.track.right_at(ai.offset))
+	if not ai.track.on_road_across(ai.offset, across, kart.width() * 0.5 + 0.5):
 		return false
 	var reach := maxf(30.0, speed * duration + 15.0)
 	var ahead := -4.0
 	while ahead <= reach:
 		var at := ai.offset + ahead
-		if ai.track.bend_at(at) > bend or ai.track.piece_type_at(at) in ["jump", "loop", "corkscrew", "crossing"] or ai.track.up_at(at).dot(kart.global_basis.y) < 0.97:
+		if ai.track.bend_at(at) > bend or ai.track.piece_type_at(at) in ["jump", "jump_split", "loop", "corkscrew", "crossing"] or ai.track.up_at(at).dot(kart.global_basis.y) < 0.97:
+			return false
+		# Straight on into a split's island isn't safe.
+		if ai.track.has_splits and ahead > 0.0 and not ai.track.on_road_across(at, across, kart.width() * 0.5):
 			return false
 		ahead += 4.0
 	for other in ai.others:
@@ -204,7 +208,7 @@ static func _cannon(ai: AIDriver) -> float:
 			if not _clear(kart, previous + shift, point + shift, best):
 				return 0.0
 		previous = point
-	return 2.2
+	return 2.8 if best == ai.grudge else 2.2
 
 
 static func _rear(ai: AIDriver, kind: String) -> float:

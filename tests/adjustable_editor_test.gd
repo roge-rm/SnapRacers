@@ -15,6 +15,45 @@ func _ready() -> void:
 	call_deferred("_run")
 
 
+## A split's Length and Island, as an adjustable split.
+func _split(editor: TrackEditor) -> void:
+	var was := editor.course
+	var split_course := CourseDesign.new()
+	split_course.name = "Adjustable split"
+	split_course.pieces = [{"type": "straight", "length": 1}, {"type": "split", "length": 2}, {"type": "straight", "length": 1}]
+	editor.course = split_course
+	editor._select(-1)
+	editor._refresh()
+	editor._select(1)
+	check(editor.ui._dimension_rows.visible and editor.ui._island_row.visible and not editor.ui._sideways_row.visible and editor.ui._length.value == 64.0 and editor.ui._island.value == 12.0, "a split offers Length and Island in metres")
+	check(editor.ui._length.min_value == 64.0 and editor.ui._length.max_value == 256.0 and editor.ui._island.min_value == 8.0 and editor.ui._island.max_value == 64.0, "a split's Length runs 64 to 256 m and Island 8 to 64 m")
+	var third := editor.track.piece_starts[2]
+	editor.ui._island.value = 14.0
+	check(editor.course.pieces[1] == {"type": "adjustable_split", "metres": 64.0, "island": 14.0}, "a new island width makes it an adjustable split (%s)" % editor.course.pieces[1])
+	var narrow: Dictionary = editor.course.pieces[1].duplicate()
+	editor.set_dimension("island", 40.0)
+	check(editor.course.pieces[1] == narrow, "an island too wide for its length is refused")
+	editor.ui._length.value = 160.0
+	check(editor.track.piece_starts[2].origin.distance_to(third.origin + Vector3(0, 0, -96)) < 0.001, "stretching it to 160 m moves the road after it on")
+	editor.set_dimension("island", 40.0)
+	check(editor.course.pieces[1].island == 40.0 and editor.track.has_splits, "and then a 40 m island fits")
+	var lanes := editor.track.lanes_of(editor.track.piece_of.find(1) + 80)
+	check(lanes.size() == 2 and lanes[1].x - lanes[0].y > 39.0 and lanes[0].y - lanes[0].x > 12.9, "its branches go round a 40 m island at the road's full width (%s)" % lanes)
+	var wide: Dictionary = editor.course.pieces[1].duplicate()
+	editor.set_dimension("metres", 300.0)
+	editor.set_dimension("metres", 63.0)
+	editor.set_dimension("island", 70.0)
+	editor.set_dimension("island", 6.0)
+	check(editor.course.pieces[1] == wide, "lengths and islands out of range leave it alone")
+	editor.undo()
+	check(editor.course.pieces[1].metres == 160.0 and editor.course.pieces[1].island == 14.0, "undo takes the island back")
+	editor._select(0)
+	check(not editor.ui._island_row.visible, "a straight has no Island")
+	editor.course = was
+	editor._select(-1)
+	editor._refresh()
+
+
 func _run() -> void:
 	var course := CourseDesign.new()
 	course.name = "Adjustable editor test"
@@ -53,6 +92,7 @@ func _run() -> void:
 	check(editor.course.to_dict() == safe, "nonfinite and out-of-range dimensions leave the course unchanged")
 	editor._select(1)
 	check(not editor.ui._dimension_rows.visible, "bends do not offer unsupported dimension editing")
+	await _split(editor)
 	var join_course := CourseDesign.new()
 	join_course.name = "Join preview"
 	for n in 4:

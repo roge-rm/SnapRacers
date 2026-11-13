@@ -1,6 +1,7 @@
 {
 	"name": "Racer",
 	"_comment": "The driver you start with. Steady, sensible and medium weight.",
+	"traits": { "aggression": 0.0, "patience": 0.3, "consistency": 0.5, "late_braking": 0.0 },
 	"head": { "style": "smile", "color": "#f2cd37" },
 	"hair": { "style": "short", "color": "#6b4430" },
 	"headgear": { "style": "racing_helmet", "color": "#f2f2f2" },

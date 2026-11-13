@@ -101,6 +101,15 @@ var _over := PackedByteArray()
 var solids: Array[bool] = []
 var stickies: Array[bool] = []
 var piece_of := PackedInt32Array()
+## The road's two branches at each sample, as TrackPiece.branches() gives
+## them: Vector2(middle right of the line, width). Off a split both are the
+## whole road.
+var branch_lefts := PackedVector2Array()
+var branch_rights := PackedVector2Array()
+## How far through its piece each sample is, from 0 to 1.
+var piece_ts := PackedFloat32Array()
+## Whether any piece is a split.
+var has_splits := false
 ## Whether it has a loop or a corkscrew: -1 until has_turns_over() looks.
 var _turns_over := -1
 var _corkscrew := -1
@@ -108,6 +117,8 @@ var _corkscrew := -1
 var grounds := PackedFloat32Array()
 var length := 0.0
 var _noise: FastNoiseLite
+## See racing_line(). Made when first asked for, dropped by build().
+var _line: RacingLine
 
 
 static func load_file(path: String) -> TrackPath:
@@ -278,6 +289,7 @@ static func grown_landmarks(marks: Array, grow: float) -> Array:
 func build() -> void:
 	_turns_over = -1
 	_corkscrew = -1
+	_line = null
 	points.clear()
 	forwards.clear()
 	ups.clear()
@@ -286,6 +298,10 @@ func build() -> void:
 	solids.clear()
 	stickies.clear()
 	piece_of.clear()
+	branch_lefts.clear()
+	branch_rights.clear()
+	piece_ts.clear()
+	has_splits = false
 	piece_starts.clear()
 	grounds.clear()
 	var end := start
@@ -339,6 +355,11 @@ func build() -> void:
 			solids.append(piece.solid(t))
 			stickies.append(piece.sticky)
 			piece_of.append(i)
+			var two := piece.branches(t, width)
+			branch_lefts.append(two[0])
+			branch_rights.append(two[1])
+			piece_ts.append(t)
+			has_splits = has_splits or piece.is_split()
 		pose = advance_pose(pose, piece)
 
 	var total := 0.0
@@ -378,7 +399,7 @@ func _rise(lean: float) -> float:
 func _hill(pose: Transform3D, piece: TrackPiece, t: float) -> float:
 	if hills <= 0.0:
 		return 0.0
-	if TrackPiece.turns_over(piece.type) or piece.type == "jump":
+	if TrackPiece.turns_over(piece.type) or piece.type in ["jump", "jump_split"]:
 		var from := pose.origin
 		var to := (pose * piece.exit()).origin
 		return lerpf(ground_height(from.x, from.z), ground_height(to.x, to.z), t)
@@ -516,7 +537,7 @@ func offset_near(position: Vector3, hint: float, near: float, far: float) -> flo
 		if d < best_distance:
 			best_distance = d
 			best = n
-	var edge := width * 0.5 + KERB
+	var edge := outer_half((first + best) % count) + KERB
 	if best == 0 or best == steps - 1 or best_distance > edge * edge:
 		return offset_of(position, hint, far)
 	return _slide_along(position, (first + best) % count)
@@ -588,6 +609,64 @@ func corner_bends(offset: float, step: float, reach: float, out: PackedFloat64Ar
 	return n
 
 
+## The racing line, worked out the first time it's asked for (see
+## RacingLine). Ask after apply_layout(), since that builds the road again.
+func racing_line() -> RacingLine:
+	if _line == null:
+		_line = RacingLine.new(self)
+	return _line
+
+
+## How far right of the middle the racing line is here, in metres. Left is
+## negative. `branches` picks a branch for each split, 0 left and 1 right,
+## in the order they come round the lap (see RacingLine.split_mids); a split
+## with no pick takes the quicker one.
+func line_offset_at(offset: float, branches := PackedInt32Array()) -> float:
+	var line := racing_line()
+	var i := _index_before(offset)
+	var j := (i + 1) % points.size()
+	return lerpf(line.side_offsets[line.side_of(i, branches)][i], line.side_offsets[line.side_of(j, branches)][j], _blend(offset, i, j))
+
+
+## The racing line here, on the road.
+func line_point_at(offset: float, branches := PackedInt32Array()) -> Vector3:
+	return point_at(offset) + right_at(offset) * line_offset_at(offset, branches)
+
+
+## How sharply the racing line turns here, as one over its radius, like
+## bend_at() is for the middle of the road.
+func line_bend_at(offset: float, branches := PackedInt32Array()) -> float:
+	var line := racing_line()
+	var i := _index_before(offset)
+	var j := (i + 1) % points.size()
+	return lerpf(line.side_bends[line.side_of(i, branches)][i], line.side_bends[line.side_of(j, branches)][j], _blend(offset, i, j))
+
+
+## corner_bends() for the racing line: its bend every `step` metres from
+## `offset + step` out to `offset + reach`, 0 on loops and corkscrews.
+func line_corner_bends(offset: float, step: float, reach: float, out: PackedFloat64Array, branches := PackedInt32Array()) -> int:
+	var line := racing_line()
+	var count := points.size()
+	var n := 0
+	var ahead := step
+	while ahead <= reach:
+		if n >= out.size():
+			out.resize(n + 8)
+		var d := fposmod(offset + ahead, length)
+		var i := _metre_index[int(d)] if int(d) < _metre_index.size() else 0
+		while i + 1 < count and distances[i + 1] <= d:
+			i += 1
+		if _over[i] == 1:
+			out[n] = 0.0
+		else:
+			var j := (i + 1) % count
+			var gap := (distances[j] if j != 0 else length) - distances[i]
+			out[n] = lerpf(line.side_bends[line.side_of(i, branches)][i], line.side_bends[line.side_of(j, branches)][j], clampf((d - distances[i]) / maxf(gap, 0.0001), 0.0, 1.0))
+		n += 1
+		ahead += step
+	return n
+
+
 func _bend_between(offset: float, span := BEND_SPAN) -> float:
 	var a := forward_at(offset - span * 0.5)
 	var b := forward_at(offset + span * 0.5)
@@ -599,8 +678,137 @@ func _bend_between(offset: float, span := BEND_SPAN) -> float:
 	return absf(a.signed_angle_to(b, up)) / span
 
 
-## The road here, lifted a little, facing along the track. Resets put karts
-## here.
+## The road across at sample k, as [from, to] in metres right of the middle
+## line: one stretch on ordinary road, two where a split has parted round its
+## island.
+func lanes_of(k: int) -> PackedVector2Array:
+	return _lanes(branch_lefts[k], branch_rights[k])
+
+
+## lanes_of() between samples, anywhere around the lap.
+func lanes_at(offset: float) -> PackedVector2Array:
+	if not has_splits:
+		return PackedVector2Array([Vector2(-width * 0.5, width * 0.5)])
+	var i := _index_before(offset)
+	var j := (i + 1) % points.size()
+	var f := _blend(offset, i, j)
+	return _lanes(branch_lefts[i].lerp(branch_lefts[j], f), branch_rights[i].lerp(branch_rights[j], f))
+
+
+static func _lanes(left: Vector2, right: Vector2) -> PackedVector2Array:
+	var a := Vector2(left.x - left.y * 0.5, left.x + left.y * 0.5)
+	var b := Vector2(right.x - right.y * 0.5, right.x + right.y * 0.5)
+	if a.y >= b.x:
+		return PackedVector2Array([Vector2(minf(a.x, b.x), maxf(a.y, b.y))])
+	return PackedVector2Array([a, b])
+
+
+## How far out the road's furthest edge is from the middle line at sample k,
+## on either side. It's half the road's width except on a split.
+func outer_half(k: int) -> float:
+	if not has_splits:
+		return width * 0.5
+	var left := branch_lefts[k]
+	var right := branch_rights[k]
+	return maxf(-(left.x - left.y * 0.5), right.x + right.y * 0.5)
+
+
+## How far right of the middle line a split's branch runs here, 0 for the
+## left and 1 for the right: the middle of the road off a split.
+func branch_centre_at(offset: float, side: int) -> float:
+	if not has_splits:
+		return 0.0
+	var i := _index_before(offset)
+	var j := (i + 1) % points.size()
+	var ends := branch_lefts if side == 0 else branch_rights
+	return lerpf(ends[i].x, ends[j].x, _blend(offset, i, j))
+
+
+## Which branch `across` metres right of the middle line is nearer here, 0
+## the left and 1 the right.
+func branch_of(offset: float, across: float) -> int:
+	return 1 if absf(across - branch_centre_at(offset, 1)) < absf(across - branch_centre_at(offset, 0)) else 0
+
+
+## Whether this sample is on a split piece.
+func split_sample(k: int) -> bool:
+	return has_splits and pieces[piece_of[k]].is_split()
+
+
+## How high branch `side` (0 left, 1 right) is above the middle line at
+## sample k: up on a jump split's kicker or landing, and 0 everywhere else.
+func branch_lift(k: int, side: int) -> float:
+	return pieces[piece_of[k]].branch_lift(piece_ts[k], side) if has_splits else 0.0
+
+
+## Whether branch `side` has road at sample k, which only a jump split's
+## jump doesn't over its gap.
+func branch_solid(k: int, side: int) -> bool:
+	return pieces[piece_of[k]].branch_solid(piece_ts[k], side) if has_splits else solids[k]
+
+
+## The surface of branch `side` at sample k.
+func branch_surface(k: int, side: int) -> String:
+	return pieces[piece_of[k]].branch_surface(side)
+
+
+## Whether branch `side` lies flat on the ground at sample k, with no
+## kicker, landing or gap.
+func branch_flat(k: int, side: int) -> bool:
+	return branch_lift(k, side) < 0.01 and branch_solid(k, side)
+
+
+## Whether `across` metres right of the middle line is on the road here, at
+## least `margin` in from its edges.
+func on_road_across(offset: float, across: float, margin := 0.0) -> bool:
+	for lane in lanes_at(offset):
+		if across >= lane.x + margin and across <= lane.y - margin:
+			return true
+	return false
+
+
+## The nearest spot to `across` that's on the road here, at least `margin` in
+## from its edges, in metres right of the middle line. It never lands on a
+## split's island.
+func nearest_road_across(offset: float, across: float, margin := 0.0) -> float:
+	var best := across
+	var best_gap := INF
+	for lane in lanes_at(offset):
+		var lo := minf(lane.x + margin, (lane.x + lane.y) * 0.5)
+		var hi := maxf(lane.y - margin, (lane.x + lane.y) * 0.5)
+		var at := clampf(across, lo, hi)
+		if absf(at - across) < best_gap:
+			best_gap = absf(at - across)
+			best = at
+	return best
+
+
+## Where across the road to try putting a kart back, in metres right of the
+## middle line, best first. On a split it's the branch nearer `across`, then
+## the other one.
+func reset_spots(offset: float, across: float) -> Array[float]:
+	var out: Array[float] = [0.0, -3.0, 3.0, -4.5, 4.5]
+	var lanes := lanes_at(offset)
+	if not has_splits or (lanes.size() < 2 and not split_sample(_index_before(offset))):
+		return out
+	var i := _index_before(offset)
+	var j := (i + 1) % points.size()
+	var centres := [branch_lefts[i].x, branch_rights[i].x]
+	# Never back onto a jump's kicker, landing or gap: the other branch.
+	var flat := [branch_flat(i, 0) and branch_flat(j, 0), branch_flat(i, 1) and branch_flat(j, 1)]
+	if not flat[0] and flat[1]:
+		centres = [centres[1]]
+	elif not flat[1] and flat[0]:
+		centres = [centres[0]]
+	elif absf(across - centres[1]) < absf(across - centres[0]):
+		centres.reverse()
+	out.clear()
+	for centre: float in centres:
+		for side: float in [0.0, -2.5, 2.5]:
+			out.append(nearest_road_across(offset, centre + side, 1.6))
+	return out
+
+
 ## Where along the lap each level crossing's railway goes over the road, in
 ## metres, in the order they come around the lap.
 func crossing_offsets() -> Array[float]:
@@ -616,6 +824,8 @@ func crossing_offsets() -> Array[float]:
 	return out
 
 
+## The road here, lifted a little, facing along the track. Resets put karts
+## here.
 func place_at(offset: float, lift := 0.6) -> Transform3D:
 	var frame := frame_at(offset)
 	frame.origin += frame.basis.y * lift
@@ -638,6 +848,18 @@ func grip_and_drag(surface: String) -> Array:
 ## Grip and drag off the road, for the ground beside it.
 func offroad_grip_and_drag(surface: String) -> Array:
 	return OFFROAD.get(surface, OFFROAD["grass"])
+
+
+## How far apart the nearest edges of the road at samples i and j are, flat,
+## going by each split branch's own middle and width.
+func _branch_gap(i: int, j: int) -> float:
+	var best := INF
+	for here: Vector2 in [branch_lefts[i], branch_rights[i]]:
+		var p := points[i] + rights[i] * here.x
+		for there: Vector2 in [branch_lefts[j], branch_rights[j]]:
+			var q := points[j] + rights[j] * there.x
+			best = minf(best, Vector2(p.x - q.x, p.z - q.z).length() - (here.y + there.y) * 0.5)
+	return best
 
 
 ## Places where two bits of road that aren't next to each other along the
@@ -676,6 +898,9 @@ func clashes(clearance := 5.0, allow_ground_crossings := false) -> Array:
 			var a := points[i]
 			var b := points[j]
 			var flat := Vector2(a.x - b.x, a.z - b.z).length()
+			# A split's branches are measured from where each branch runs.
+			if has_splits and (split_sample(i) or split_sample(j)):
+				flat = _branch_gap(i, j) + width
 			if flat < reach and absf(a.y - b.y) < clearance + spread[i] + spread[j]:
 				out.append([distances[i], distances[j]])
 	return out

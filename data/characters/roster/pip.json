@@ -1,6 +1,7 @@
 {
 	"name": "Pip",
 	"_comment": "Small, quick and fearless. Light as anything.",
+	"traits": { "aggression": 0.4, "patience": -0.7, "consistency": -0.4, "late_braking": 0.6 },
 	"head": { "style": "freckles", "color": "#f5c8a8" },
 	"hair": { "style": "short", "color": "#c47a3a" },
 	"headgear": { "style": "beanie", "color": "#4fb35f" },

@@ -52,6 +52,8 @@ const COLOURS := {
 	"ice": Color("#cfe8f2"),
 }
 const DECK_COLOUR := Color("#7a7f87")
+## The low edge down a rough split's dirt branch, like timber.
+const DIRT_EDGE := ["#8a6a45", "#c2a272"]
 
 const PILLAR_COLOUR := Color("#a3a2a4")
 ## Roller coaster supports: how thick each leg is and how far apart the
@@ -155,6 +157,7 @@ func _ready() -> void:
 	for i in track.pieces.size():
 		_add_piece(i)
 	_add_kerbs()
+	_add_islands()
 	_add_pillars()
 	_add_gantry()
 	var offsets := track.crossing_offsets()
@@ -301,16 +304,15 @@ func _walls(piece: TrackPiece, a: int, b: int) -> Array:
 
 func _add_piece(index: int) -> void:
 	var piece := track.pieces[index]
-	var mesh := _piece_mesh(index)
-	if mesh == null:
+	# A rough split's dirt branch is a body of its own, so it grips like dirt.
+	if piece.type == "rough_split":
+		var dirt := piece.odd_branch()
+		_road_body(index, _piece_mesh(index, [1 - dirt]), piece.surface)
+		_road_body(index, _piece_mesh(index, [dirt]), "dirt")
 		return
-	var body := StaticBody3D.new()
-	body.collision_layer = Kart.LAYER_WORLD
-	var feel: Array = track.grip_and_drag(piece.surface)
-	body.set_meta("grip", feel[0])
-	body.set_meta("drag", feel[1])
-	body.set_meta("surface", piece.surface)
-	body.set_meta("sticky", piece.sticky)
+	var body := _road_body(index, _piece_mesh(index), piece.surface)
+	if body == null:
+		return
 	# A corkscrew holds karts to its line like a roller coaster's rails, so
 	# its road knows where its middle runs.
 	if piece.type == "corkscrew":
@@ -323,6 +325,22 @@ func _add_piece(index: int) -> void:
 				ahead.append(track.forwards[k])
 				across.append(track.rights[k])
 		body.set_meta("rail", [line, ahead, across])
+	if piece.type == "curve" and piece.cut:
+		_add_cut(index, piece)
+
+
+## A static body for a piece's road on this surface, or null with no mesh.
+func _road_body(index: int, mesh: ArrayMesh, surface: String) -> StaticBody3D:
+	if mesh == null:
+		return null
+	var piece := track.pieces[index]
+	var body := StaticBody3D.new()
+	body.collision_layer = Kart.LAYER_WORLD
+	var feel: Array = track.grip_and_drag(surface)
+	body.set_meta("grip", feel[0])
+	body.set_meta("drag", feel[1])
+	body.set_meta("surface", surface)
+	body.set_meta("sticky", piece.sticky)
 	# Which piece it is, so the track editor can tell which one was tapped.
 	body.set_meta("piece", index)
 	var look := MeshInstance3D.new()
@@ -333,14 +351,12 @@ func _add_piece(index: int) -> void:
 	shape.shape = mesh.create_trimesh_shape()
 	body.add_child(shape)
 	add_child(body)
-
-	if piece.type == "curve" and piece.cut:
-		_add_cut(index, piece)
+	return body
 
 
 ## The road, curbs, deck and walls of one piece, swept along the line down
-## its middle.
-func _piece_mesh(index: int) -> ArrayMesh:
+## its middle. On a split, `sides` says which branches (0 left, 1 right).
+func _piece_mesh(index: int, sides := [0, 1]) -> ArrayMesh:
 	var piece := track.pieces[index]
 	var samples: Array[int] = []
 	for k in track.points.size():
@@ -359,6 +375,13 @@ func _piece_mesh(index: int) -> ArrayMesh:
 	var surface_colour: Color = COLOURS.get(piece.surface, COLOURS["asphalt"])
 	# Mud has its own look in the shader, with no tile seams.
 	var road_kind: float = KIND["mud"] if piece.surface == "mud" else KIND["road"]
+	if piece.is_split():
+		var count := track.points.size()
+		for n in samples.size() - 1:
+			var before := samples[n - 1] if n > 0 else (samples[0] - 1 + count) % count
+			var after := samples[n + 2] if n + 2 < samples.size() else (samples[-1] + 1) % count
+			_split_segment(tool, [before, samples[n], samples[n + 1], after], piece, sides)
+		return tool.commit()
 	var had := [false, false]
 	for n in samples.size() - 1:
 		var a := samples[n]
@@ -415,34 +438,149 @@ func _sweep(tool: SurfaceTool, a: int, b: int, from: Vector2, to: Vector2, colou
 
 
 func _sweep_strip(tool: SurfaceTool, a: int, b: int, from: Vector2, to: Vector2, out: Vector2, colour: Color, kind: float) -> void:
+	_sweep_quad(tool, a, b, [from, to, from, to], out, colour, kind)
+
+
+## _sweep() for an edge that moves across from sample a to sample b, as
+## [from at a, to at a, from at b, to at b]. A split's branches are made of
+## these.
+func _sweep_moving(tool: SurfaceTool, a: int, b: int, ends: Array, colour: Color, kind: float) -> void:
+	var af := _at(a, ends[0])
+	var bf := _at(b, ends[2])
+	var plane := (_at(a, ends[1]) - af).cross(bf - af)
+	var twist := 0.0
+	if plane.length_squared() > 0.0:
+		twist = absf((_at(b, ends[3]) - af).dot(plane.normalized())) / maxf(af.distance_to(bf), 0.01)
+	var pieces := clampi(ceili(twist / TWIST_STEP), 1, 24)
+	var from_a: Vector2 = ends[0]
+	var to_a: Vector2 = ends[1]
+	var out := Vector2(-(to_a.y - from_a.y), to_a.x - from_a.x).normalized()
+	if out == Vector2.ZERO:
+		var to_b: Vector2 = ends[3]
+		var from_b: Vector2 = ends[2]
+		out = Vector2(-(to_b.y - from_b.y), to_b.x - from_b.x).normalized()
+	for i in pieces:
+		var u := float(i) / pieces
+		var v := float(i + 1) / pieces
+		_sweep_quad(tool, a, b, [from_a.lerp(to_a, u), from_a.lerp(to_a, v), (ends[2] as Vector2).lerp(ends[3], u), (ends[2] as Vector2).lerp(ends[3], v)], out, colour, kind)
+
+
+## One strip between samples a and b, with its corners across the road as
+## [from at a, to at a, from at b, to at b].
+func _sweep_quad(tool: SurfaceTool, a: int, b: int, ends: Array, out: Vector2, colour: Color, kind: float) -> void:
+	var from: Vector2 = ends[0]
+	var to: Vector2 = ends[1]
+	var from_b: Vector2 = ends[2]
+	var to_b: Vector2 = ends[3]
 	var normal_a := track.rights[a] * out.x + track.ups[a] * out.y
 	var normal_b := track.rights[b] * out.x + track.ups[b] * out.y
 	var af := _at(a, from)
 	var at := _at(a, to)
-	var bf := _at(b, from)
-	var bt := _at(b, to)
+	var bf := _at(b, from_b)
+	var bt := _at(b, to_b)
 	# The shader needs how far along the track this is, and how far across (on
 	# flat edges) or up (on upright ones), in metres. The far end of the last
 	# stretch is the full length of the lap, not back to 0.
 	var along_a := track.distances[a]
 	var along_b := track.distances[b] if b > a else track.length
-	var upright := absf(to.y - from.y) > absf(to.x - from.x)
+	var upright := absf(out.x) > absf(out.y)
 	var uv_from := from.y if upright else from.x
 	var uv_to := to.y if upright else to.x
+	var uv_from_b := from_b.y if upright else from_b.x
+	var uv_to_b := to_b.y if upright else to_b.x
 	tool.set_color(colour)
 	tool.set_uv2(Vector2(kind, 0.0))
 	var corners := [
 		[af, normal_a, Vector2(along_a, uv_from)],
-		[bt, normal_b, Vector2(along_b, uv_to)],
+		[bt, normal_b, Vector2(along_b, uv_to_b)],
 		[at, normal_a, Vector2(along_a, uv_to)],
 		[af, normal_a, Vector2(along_a, uv_from)],
-		[bf, normal_b, Vector2(along_b, uv_from)],
-		[bt, normal_b, Vector2(along_b, uv_to)],
+		[bf, normal_b, Vector2(along_b, uv_from_b)],
+		[bt, normal_b, Vector2(along_b, uv_to_b)],
 	]
 	for v in corners:
 		tool.set_normal(v[1])
 		tool.set_uv(v[2])
 		tool.add_vertex(v[0])
+
+
+## A split's two strips of road across sample k, each as Vector2(from, to)
+## in metres right of the middle line, and how far apart they are. Where the
+## branches overlap they meet halfway, so the road has no seam or overlap.
+func _split_strips(k: int) -> Array:
+	var left := track.branch_lefts[k]
+	var right := track.branch_rights[k]
+	var left_inner := left.x + left.y * 0.5
+	var right_inner := right.x - right.y * 0.5
+	var divide := (left_inner + right_inner) * 0.5
+	return [
+		Vector2(left.x - left.y * 0.5, minf(left_inner, divide)),
+		Vector2(maxf(right_inner, divide), right.x + right.y * 0.5),
+		right_inner - left_inner,
+	]
+
+
+## The road and deck of a split between samples a and b, given as
+## [before a, a, b, after b], for the branches in `sides`: a strip for each
+## branch, with white lines down the outside and, once they've parted, down
+## the island's side too. A jump split's jump branch is lifted over its
+## kicker and landing, with a gap between.
+func _split_segment(tool: SurfaceTool, around: Array, piece: TrackPiece, sides: Array) -> void:
+	var a: int = around[1]
+	var b: int = around[2]
+	var at_a := _split_strips(a)
+	var at_b := _split_strips(b)
+	var apart := maxf(at_a[2], at_b[2]) > 0.0
+	for side: int in sides:
+		if not track.branch_solid(a, side) or not track.branch_solid(b, side):
+			continue
+		var surface := piece.branch_surface(side)
+		var colour: Color = COLOURS.get(surface, COLOURS["asphalt"])
+		# Mud has its own look in the shader, with no tile seams.
+		var road_kind: float = KIND["mud"] if surface == "mud" else KIND["road"]
+		var ya := track.branch_lift(a, side)
+		var yb := track.branch_lift(b, side)
+		var sa: Vector2 = at_a[side]
+		var sb: Vector2 = at_b[side]
+		# The island's line fades in as the branches part.
+		var inner_a := LINE * clampf(at_a[2], 0.0, 1.0)
+		var inner_b := LINE * clampf(at_b[2], 0.0, 1.0)
+		var line_a := Vector2(LINE, inner_a) if side == 0 else Vector2(inner_a, LINE)
+		var line_b := Vector2(LINE, inner_b) if side == 0 else Vector2(inner_b, LINE)
+		var strips := [
+			[sa.x, sa.x + line_a.x, sb.x, sb.x + line_b.x, LINE_COLOUR, KIND["line"]],
+			[sa.x + line_a.x, sa.y - line_a.y, sb.x + line_b.x, sb.y - line_b.y, colour, road_kind],
+			[sa.y - line_a.y, sa.y, sb.y - line_b.y, sb.y, LINE_COLOUR, KIND["line"]],
+		]
+		for strip in strips:
+			if strip[1] - strip[0] <= 0.0 and strip[3] - strip[2] <= 0.0:
+				continue
+			_sweep_moving(tool, a, b, [Vector2(strip[0], ya), Vector2(strip[1], ya), Vector2(strip[2], yb), Vector2(strip[3], yb)], strip[4], strip[5])
+		_sweep_moving(tool, a, b, [Vector2(sa.y, -DECK), Vector2(sa.x, -DECK), Vector2(sb.y, -DECK), Vector2(sb.x, -DECK)], DECK_COLOUR, KIND["deck"])
+		# The sides of the deck, outside, and by the island once they've parted.
+		if side == 0 or apart:
+			_sweep_moving(tool, a, b, [Vector2(sa.x, -DECK), Vector2(sa.x, ya), Vector2(sb.x, -DECK), Vector2(sb.x, yb)], DECK_COLOUR, KIND["deck"])
+		if side == 1 or apart:
+			_sweep_moving(tool, a, b, [Vector2(sa.y, ya), Vector2(sa.y, -DECK), Vector2(sb.y, yb), Vector2(sb.y, -DECK)], DECK_COLOUR, KIND["deck"])
+		# Close off the road where it stops for the jump's gap.
+		if not track.branch_solid(around[0], side):
+			_branch_cap(tool, a, sa, ya, -1.0)
+		if not track.branch_solid(around[3], side):
+			_branch_cap(tool, b, sb, yb, 1.0)
+
+
+## A flat end across one branch, from `strip.x` to `strip.y` right of the
+## middle line and up to `top`, facing along the track (1) or back (-1).
+func _branch_cap(tool: SurfaceTool, k: int, strip: Vector2, top: float, facing: float) -> void:
+	var corners := [Vector2(strip.x, top), Vector2(strip.y, top), Vector2(strip.y, -DECK), Vector2(strip.x, -DECK)]
+	var points := corners.map(func(c): return _at(k, c))
+	tool.set_color(DECK_COLOUR)
+	tool.set_normal(track.forwards[k] * facing)
+	tool.set_uv2(Vector2(KIND["deck"], 0.0))
+	var order := [0, 1, 2, 0, 2, 3] if facing > 0.0 else [0, 2, 1, 0, 3, 2]
+	for i in order:
+		tool.set_uv(corners[i])
+		tool.add_vertex(points[i])
 
 
 ## The end of a wall where it starts or stops, facing along the track (1)
@@ -594,7 +732,7 @@ func _kerb_run(samples: Array, side: int) -> void:
 	for k in samples:
 		var piece := track.pieces[track.piece_of[k]]
 		var blocked: bool = not track.solids[k] or _raised(k) or piece.forced_walls() \
-			or (piece.cut and side == piece.turn) or _kerb_crosses_road(k, side)
+			or (piece.cut and side == piece.turn) or piece.is_split() or _kerb_crosses_road(k, side)
 		if not blocked:
 			usable.append(k)
 	# Split where it's blocked, and drop bits too short to bother with.
@@ -622,14 +760,17 @@ func _kerb_crosses_road(k: int, side: int) -> bool:
 			_kerb_road_hash[cell].append(j)
 	var at := track.points[k] + track.rights[k] * (track.width + TrackPath.KERB) * 0.5 * side
 	var key := Vector2i(floori(at.x / reach), floori(at.z / reach))
-	for dx in range(-1, 2):
-		for dz in range(-1, 2):
+	var cells := 1 if not track.has_splits else 3
+	for dx in range(-cells, cells + 1):
+		for dz in range(-cells, cells + 1):
 			for j in _kerb_road_hash.get(key + Vector2i(dx, dz), []):
 				var along := absf(track.distances[j] - track.distances[k])
 				if minf(along, track.length - along) < reach * 2.0:
 					continue
 				var delta: Vector3 = at - track.points[j]
-				if absf(delta.dot(track.ups[j])) < 0.2 and Vector2(delta.x, delta.z).length_squared() < reach * reach:
+				# A split's branches reach further out than the road.
+				var wider := reach + track.outer_half(j) - track.width * 0.5
+				if absf(delta.dot(track.ups[j])) < 0.2 and Vector2(delta.x, delta.z).length_squared() < wider * wider:
 					return true
 	return false
 
@@ -672,6 +813,151 @@ func _add_kerb(run: Array, side: int) -> void:
 	shape.shape = mesh.create_trimesh_shape()
 	body.add_child(shape)
 	add_child(body)
+
+
+## The islands in the middle of splits, as grass you can drive over but
+## slowly, with curbs down the outside of each split and along both sides of
+## its island.
+func _add_islands() -> void:
+	var runs: Array = []
+	for index in track.pieces.size():
+		if not track.pieces[index].is_split():
+			continue
+		var samples: Array[int] = []
+		for k in track.points.size():
+			if track.piece_of[k] == index:
+				samples.append(k)
+		if samples.is_empty():
+			continue
+		if index < track.pieces.size() - 1 or track.closes:
+			samples.append((samples[-1] + 1) % track.points.size())
+		runs.append(samples)
+	if runs.is_empty():
+		return
+	var floor: String = _theme.get("floor", "grass")
+	var feel: Array = track.offroad_grip_and_drag(floor)
+	var tool := SurfaceTool.new()
+	tool.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var green := Color(_theme.get("ground", "#4b9f4a"))
+	for samples: Array[int] in runs:
+		for n in samples.size() - 1:
+			var a := samples[n]
+			var b := samples[n + 1]
+			var at_a := _split_strips(a)
+			var at_b := _split_strips(b)
+			if at_a[2] <= 0.0 and at_b[2] <= 0.0:
+				continue
+			# Just under the road, so the road wins where they meet.
+			var y := -LIFT * 0.5
+			_sweep_moving(tool, a, b, [Vector2(at_a[0].y, y), Vector2(at_a[1].x, y), Vector2(at_b[0].y, y), Vector2(at_b[1].x, y)], green, 0.0)
+		for side in [-1, 1]:
+			_split_kerb(samples, side, false)
+			_split_kerb(samples, side, true)
+	var body := StaticBody3D.new()
+	body.collision_layer = Kart.LAYER_WORLD
+	body.set_meta("offroad", true)
+	body.set_meta("surface", floor)
+	body.set_meta("grip", feel[0])
+	body.set_meta("drag", feel[1])
+	var mesh := tool.commit()
+	var look := MeshInstance3D.new()
+	look.mesh = mesh
+	look.material_override = ground_material(_theme)
+	body.add_child(look)
+	var shape := CollisionShape3D.new()
+	shape.shape = mesh.create_trimesh_shape()
+	body.add_child(shape)
+	add_child(body)
+
+
+## A curb down one side of a split (1 right, -1 left), on the outside edge or
+## on the island's edge. The island's curbs narrow to nothing at its noses so
+## the two never overlap, and the outside ones rise from nothing at the
+## split's ends so a kart running wide there rides up them instead of
+## tripping on the end.
+##
+## A rough split's dirt branch gets a low brown edge instead, and a jump
+## split's jump branch has none along its kicker, gap and landing.
+func _split_kerb(samples: Array[int], side: int, island: bool) -> void:
+	var tool := SurfaceTool.new()
+	tool.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var made := false
+	var branch := 0 if side < 0 else 1
+	var piece := track.pieces[track.piece_of[samples[0]]]
+	var dirt := piece.branch_surface(branch) == "dirt" and piece.surface != "dirt"
+	var colours: Array = DIRT_EDGE if dirt else _theme.curbs
+	var block := KERB_BLOCK * (2.0 if dirt else 1.0)
+	for n in samples.size() - 1:
+		var a: int = samples[n]
+		var b: int = samples[n + 1]
+		if not track.branch_flat(a, branch) or not track.branch_flat(b, branch):
+			continue
+		var fade_a := 0.0 if not island and n == 0 else 1.0
+		var fade_b := 0.0 if not island and n == samples.size() - 2 else 1.0
+		var ends := [_split_kerb_across(a, side, island, false, fade_a), _split_kerb_across(b, side, island, false, fade_b)]
+		if ends[0].is_empty() and ends[1].is_empty():
+			continue
+		for e in 2:
+			if ends[e].is_empty():
+				ends[e] = _split_kerb_across(a if e == 0 else b, side, island, true, fade_a if e == 0 else fade_b)
+		var red := int(track.distances[a] / block) % 2 == 0
+		var colour := Color(colours[0] if red else colours[1])
+		for i in 3:
+			_sweep_moving(tool, a, b, [ends[0][i][0], ends[0][i][1], ends[1][i][0], ends[1][i][1]], colour, KIND["kerb"])
+		made = true
+	if not made:
+		return
+	var body := StaticBody3D.new()
+	body.collision_layer = Kart.LAYER_WORLD
+	body.set_meta("grip", KERB_GRIP)
+	body.set_meta("drag", 1.0)
+	body.set_meta("kerb", true)
+	var mesh := tool.commit()
+	var look := MeshInstance3D.new()
+	look.mesh = mesh
+	look.material_override = _material
+	body.add_child(look)
+	var shape := CollisionShape3D.new()
+	shape.shape = mesh.create_trimesh_shape()
+	body.add_child(shape)
+	add_child(body)
+
+
+## Across a split's curb at sample k, as three edges like _add_kerb()'s, or
+## empty where there's no room for it. With `flat` a curb with no room comes
+## out as a sliver, to close off one that ends between samples. `fade` scales
+## its size, and at 0 it's a sliver.
+func _split_kerb_across(k: int, side: int, island: bool, flat := false, fade := 1.0) -> Array:
+	var strips := _split_strips(k)
+	var edge: float
+	var out := side
+	var wide := TrackPath.KERB
+	if island:
+		# The left branch's island edge faces right, and the other way round.
+		edge = strips[0].y if side < 0 else strips[1].x
+		out = -side
+		wide = minf(TrackPath.KERB, strips[2] * 0.5)
+	else:
+		edge = strips[0].x if side < 0 else strips[1].y
+	if fade <= 0.0:
+		flat = true
+	wide *= fade
+	if wide < 0.2:
+		if not flat:
+			return []
+		wide = 0.0
+	var scale := wide / TrackPath.KERB
+	var height := KERB_HEIGHT * scale
+	var ramp := edge + 0.3 * scale * out
+	var top := edge + (TrackPath.KERB - 0.2) * scale * out
+	var across := [
+		[Vector2(edge, 0.0), Vector2(ramp, height)],
+		[Vector2(ramp, height), Vector2(top, height)],
+		[Vector2(top, height), Vector2(edge + wide * out, 0.0)],
+	]
+	if out < 0:
+		across = across.map(func(e): return [e[1], e[0]])
+	return across
 
 
 ## Pillars under raised road, one every so often, but never standing on

@@ -161,6 +161,8 @@ var _dimension_rows: VBoxContainer
 var _length: SpinBox
 var _sideways: SpinBox
 var _sideways_row: HBoxContainer
+var _island: SpinBox
+var _island_row: HBoxContainer
 var _surfaces: Dictionary = {}
 var _edges: Dictionary = {}
 var _landmark_actions: PanelContainer
@@ -302,12 +304,16 @@ func show_selection(index: int, spec: Dictionary) -> void:
 	var adjustable := TrackPiece.adjustable_spec(spec)
 	_dimension_rows.visible = not adjustable.is_empty()
 	if not adjustable.is_empty():
+		var split: bool = adjustable.type == "adjustable_split"
 		_length.set_block_signals(true)
-		_length.min_value = 2.0 if adjustable.type == "adjustable_offset" else 0.25
+		_length.min_value = TrackPiece.SPLIT_LEAST_METRES if split else 2.0 if adjustable.type == "adjustable_offset" else 0.25
+		_length.max_value = TrackPiece.SPLIT_MOST_METRES if split else TrackPiece.MAX_METRES
 		_length.set_value_no_signal(float(adjustable.metres))
 		_length.set_block_signals(false)
 		_sideways_row.visible = adjustable.type == "adjustable_offset"
 		_sideways.set_value_no_signal(float(adjustable.get("shift", 0.0)))
+		_island_row.visible = split
+		_island.set_value_no_signal(float(adjustable.get("island", TrackPiece.SPLIT_ISLAND)))
 	var surface: String = spec.get("surface", "asphalt")
 	for id in _surfaces:
 		MenuStyle.mark(_surfaces[id], id == surface)
@@ -774,6 +780,8 @@ func _build_actions() -> void:
 	_length = _dimension_control(_dimension_rows, "Length", "metres", 0.25, 512.0)
 	_sideways = _dimension_control(_dimension_rows, "Sideways", "shift", -256.0, 256.0)
 	_sideways_row = _sideways.get_parent()
+	_island = _dimension_control(_dimension_rows, "Island", "island", TrackPiece.SPLIT_LEAST_ISLAND, TrackPiece.SPLIT_MOST_ISLAND)
+	_island_row = _island.get_parent()
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 16)
 	box.add_child(row)

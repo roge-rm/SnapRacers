@@ -3,8 +3,8 @@ extends Node
 
 ## Drives a kart around a track.
 ##
-## It aims at a point on the track a little way ahead (further the faster it's
-## going) and steers toward it. On a straight it eases the stick, so the
+## It aims at a point on its racing line a little way ahead (further the
+## faster it's going) and steers toward it. On a straight it eases the stick, so the
 ## wheels don't wiggle as the lock shrinks at speed. For speed it looks down
 ## the road for bends, works out how fast its own kart can take each one from
 ## how well it grips, and brakes in time to be at that speed when it gets
@@ -15,8 +15,34 @@ extends Node
 
 ## How close to its kart's limit it dares to corner. 1 is right at the limit.
 @export var skill := 0.92
-## How far right of the middle of the road it likes to drive, in metres.
+## How far right of its racing line it likes to drive, in metres.
 @export var line := 0.0
+## How much of the racing line it takes (see TrackPath.racing_line()): 1 is
+## right on it, 0 the middle of the road (see Difficulty).
+var line_follow := 1.0
+## How far it slowly wanders either side of the line, in metres.
+var line_wander := 0.0
+## How late it turns in, in metres: it follows the line from this far
+## behind where it's aiming.
+var line_late := 0.0
+## Where the two waves of its wander start, from seed_line().
+var _wander_phase := Vector2.ZERO
+## How surely it takes the quicker branch round a split when there's time in
+## it, 0 to 1 (see Difficulty), and laps it's done, which the race keeps up
+## to date (see RaceProgress.laps).
+var branch_sense := 0.5
+var lap := 0
+## Its branch round each split for the lap it's on, 0 left and 1 right (see
+## RacingLine.split_mids), worked out by pick_branch() from its seed.
+var branches := PackedInt32Array()
+var _branch_seed := 0
+## Picks already worked out, by [split, time round], and the branch it ended
+## up on instead after a spin or a reset.
+var _picks := {}
+var _kept := {}
+var _seeded := false
+## Where along the track it's aiming this time it drives.
+var _aim := NAN
 ## How hard it pushes its engine, as a fraction (see Difficulty).
 var pace := 1.0
 ## The chance of misjudging a bend, going in too fast or too slow (see
@@ -42,7 +68,39 @@ var traffic_contact_closing := 0.0
 var traffic_contact_side := 0.0
 var traffic_contact_time := 0.0
 var traffic_contact_cooldown := 3.0
+## How much a sideways move to pass costs it and how long it holds the side
+## it picked, as shares of the planner's usual (see AITrafficPlanner).
+var traffic_move_cost := 1.0
+var traffic_hold := 1.0
 var traffic := AITrafficPlanner.new()
+## Racecraft in traffic (see Difficulty and AITrafficPlanner): how much it
+## sets up passes and slipstreams, 0 to 1, how long it follows a kart before
+## trying to pass, in seconds, and whether it defends the inside.
+var racecraft := 0.6
+var pass_wait := 1.5
+var defends := false
+## After contact with another kart: a timid driver is shaken for a moment,
+## leaving more room and going a little slower, and an aggressive one holds
+## a grudge against that kart for a while, in seconds.
+var shaken := 0.0
+var grudge: Kart
+var grudge_left := 0.0
+const SHAKEN_PUSH := 0.94
+## Contact with the same kart again within this long, in seconds, is the
+## same knock.
+const KNOCK_AGAIN := 1.5
+var _knocks := {}
+## Where it's aiming across from its line, sliding toward what the planner
+## picked (see _dodge()).
+var _eased := 0.0
+## How fast it would go here with nobody in the way, in m/s, for the bends
+## and anything else but traffic, from the last time it drove.
+var free_speed := INF
+## How it likes to race (see DriverTraits and Difficulty.personalise()).
+var traits := DriverTraits.new()
+## How much more braking than BRAKING it counts on, as a share, so above 1
+## it brakes later for bends.
+var brake_late := 1.0
 ## Whether it slides round the tightest bends instead of braking for them
 ## (see Kart.sliding). Only Hard and Expert drivers do.
 var slides := false
@@ -68,10 +126,37 @@ var ease_off := 0.0
 var behind := 0.0
 
 const BRAKING := 8.0 # m/s² it counts on when planning to slow down
+## The least share of that it counts on while cornering at its limit.
+const BRAKE_TURNING := 0.4
 ## How much more careful it is in the wet, taken further the slippier it is.
 const WET_CARE := 0.8
 const LOOK_NEAR := 7.0
 const LOOK_FAR := 26.0
+## It steers for the bend of its line this far ahead, in seconds at the
+## speed it's going, but at least NEAR_LEAST metres, and this much of it.
+const NEAR_TIME := 0.3
+const NEAR_LEAST := 3.0
+const BEND_STEER := 1.0
+## A slide goes round the bend of the middle of the road, so whether to
+## slide and how fast to go in go by that. It holds the slide this much of
+## the way from the middle to its line, and only starts one less than
+## SLIDE_INSIDE metres over to the inside.
+const SLIDE_LINE := 0.5
+const SLIDE_INSIDE := 3.0
+## How much further in from the road's edges than the racing line may go it
+## keeps, in metres, since it never drives its line exactly and the verges
+## have kerbs and tire stacks to catch it.
+const KEEP_IN := 1.0
+## How much of the racing line's gentler bends it counts on for its corner
+## speeds. It never drives the line exactly, and steering runs out of lock
+## at speed, so it keeps some of the middle's margin.
+static var LINE_TRUST := 1.0
+## Branches less than BRANCH_EVEN seconds apart count as even, and from
+## BRANCH_CLEAR apart it takes the quicker as surely as it ever does.
+## Consistency moves that this share of the way to always.
+const BRANCH_EVEN := 0.03
+const BRANCH_CLEAR := 0.15
+const BRANCH_CONSISTENCY := 0.2
 const STUCK_AFTER := 2.5
 ## Stuck the right way up for this long, it backs off for BACK_FOR before it
 ## tries again. Only if that doesn't work does it reset.
@@ -106,6 +191,10 @@ const LOOP_RUN_IN := 90.0
 const LOOP_SKILL := 0.95
 ## A jump needs enough speed out of the bend before its short kicker.
 const JUMP_RUN_IN := 40.0
+## Its line keeps to the middle for this far before a jump, and eases over
+## to it over JUMP_EASE before that, in metres.
+const JUMP_MIDDLE := 12.0
+const JUMP_EASE := 24.0
 const SEE_AHEAD := 24.0 # how far ahead it watches for karts in its way
 ## How far to the side another kart has to be to be out of the way, past
 ## touching. Bikes are narrower, so they get by with less.
@@ -124,6 +213,10 @@ const TURN_ROUND_SPEED := 4.0
 const SEE_WALL := 45.0
 ## How much further than touching it keeps from the end of a wall.
 const WALL_GAP := 1.2
+## It looks this far ahead for traps, or two seconds at its speed if that's
+## further, and misses them by TRAP_GAP, in metres.
+const SEE_TRAP := 45.0
+const TRAP_GAP := 0.6
 
 var kart: Kart
 var track: TrackPath
@@ -176,9 +269,18 @@ var _loop_at := INF
 var _loop_looked := -1
 var _has_jump := -1
 var _jump_run_in := false
+## Where the jump it's running in to starts, along the track, or -INF.
+var _jump_at := -INF
 ## The brick walls in the race, fetched once a step for every driver.
 static var _walls: Array = []
 static var _walls_frame := -1
+## The traps in the race, fetched once a step, where each lies along the
+## track, and how far either side of its own line the nearest one ahead
+## reaches, past the kart's own half width (see _dodge_traps()).
+static var _traps: Array = []
+static var _traps_frame := -1
+var _trap_offsets := {}
+var trap_band := Vector2(NAN, NAN)
 ## Last steering, so a straight can ease the stick instead of snapping it.
 var _steer := 0.0
 ## The level crossings on the course, and the race clock their trains run
@@ -247,6 +349,7 @@ var _patch_eased := 0.0
 var _patch_staggered := false
 var _scan_point := PackedVector3Array()
 var _scan_right := PackedVector3Array()
+var _scan_line := PackedFloat32Array()
 var _scan_frame := -1
 var _scan_offset := NAN
 var _scan_from := 0.0
@@ -256,6 +359,12 @@ const HOLD_AT_MOST := 12.0
 ## what it saw, kept from step to step.
 const BEND_EVERY := 4.0
 var _bends := PackedFloat64Array()
+var _line_bends := PackedFloat64Array()
+## Its wander has about one wave every this many metres, and a smaller one
+## every WANDER_SHORT, a whole number of each to a lap so it joins up at the
+## start line.
+const WANDER_LONG := 160.0
+const WANDER_SHORT := 70.0
 ## It drives every this many physics steps (see _physics_process()).
 const DRIVE_EVERY := 2
 var _index := -1
@@ -264,7 +373,150 @@ var _since_drive := 0.0
 
 
 func _ready() -> void:
-	_rng.randomize()
+	if not _seeded:
+		_rng.randomize()
+
+
+## Sets where its wander starts and its chances, so the same seed drives the
+## same race. The race gives each driver its own.
+func seed_line(seed: int) -> void:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = seed
+	_wander_phase = Vector2(rng.randf() * TAU, rng.randf() * TAU)
+	_rng.seed = rng.randi()
+	_branch_seed = seed
+	_picks.clear()
+	_seeded = true
+
+
+## How far right of the middle of the road it means to drive here, in metres:
+## its share of the racing line plus its wander, kept KEEP_IN further in
+## than the line may go, plus `line`.
+func line_at(at: float) -> float:
+	var racing := track.racing_line()
+	if racing.offsets.size() != track.points.size() or track.points.size() < 2:
+		return line
+	var i := track._index_before(at)
+	var j := (i + 1) % track.points.size()
+	var side_i := racing.side_of(i, branches)
+	var side_j := racing.side_of(j, branches)
+	var low := minf(racing.side_lows[side_i][i], racing.side_lows[side_j][j])
+	var high := maxf(racing.side_highs[side_i][i], racing.side_highs[side_j][j])
+	# It keeps to the middle where the line may, or on a split the middle of
+	# its branch.
+	var keep := 0.0 if low <= 0.0 and high >= 0.0 else (low + high) * 0.5
+	var lo := minf(low + KEEP_IN, keep)
+	var hi := maxf(high - KEEP_IN, keep)
+	# Taking only some of the line, it goes by the middle of its branch.
+	var middle := 0.0
+	if track.has_splits:
+		middle = track.branch_centre_at(at, racing.side_of(i, branches))
+	var want := middle + (track.line_offset_at(at - line_late, branches) - middle) * line_follow + _wander_at(at)
+	# Coming up to a jump it eases over to the middle of the road and takes
+	# the last bend before it round the middle, which keeps more speed for
+	# the jump than the line's late tight turn onto it.
+	if at < _jump_at:
+		want *= clampf((_jump_at - at - JUMP_MIDDLE) / JUMP_EASE, 0.0, 1.0)
+	return clampf(want, lo, hi) + line
+
+
+## Its own line here (see line_at()), on the road, `shift` metres to the right.
+func _line_point(at: float, shift := 0.0) -> Vector3:
+	return track.point_at(at) + track.right_at(at) * (line_at(at) + shift)
+
+
+## Which way its own line runs here, flat to `up`.
+func _line_heading(at: float, up: Vector3) -> Vector3:
+	var along := _line_point(at + 1.0) - _line_point(at - 1.0)
+	return along - up * along.dot(up)
+
+
+## Its slow wander either side of the line here, in metres.
+func _wander_at(at: float) -> float:
+	if line_wander <= 0.0 or track.length <= 0.0:
+		return 0.0
+	var turn := TAU * at / track.length
+	var long := maxf(roundf(track.length / WANDER_LONG), 1.0)
+	var short := maxf(roundf(track.length / WANDER_SHORT), 2.0)
+	return line_wander * (0.7 * sin(long * turn + _wander_phase.x) + 0.3 * sin(short * turn + _wander_phase.y))
+
+
+## The road it may use here, as Vector2(from, to) right of the middle line,
+## `margin` in from the edges: on a split, only its own branch.
+func lane_at(at: float, margin := 0.0) -> Vector2:
+	var lanes := track.lanes_at(at)
+	var lane := lanes[0]
+	if track.has_splits:
+		var racing := track.racing_line()
+		var k := track._index_before(at)
+		var side := racing.side_of(k, branches)
+		if lanes.size() > 1:
+			lane = lanes[side]
+		# Coming up to a split or as the branches part, it keeps to its
+		# branch's side, as far as its line may go and a little more.
+		if side == 0 and racing.side_highs[0][k] < 0.0:
+			lane.y = minf(lane.y, racing.side_highs[0][k] + RacingLine.MARGIN + KEEP_IN)
+		elif side == 1 and racing.side_lows[1][k] > 0.0:
+			lane.x = maxf(lane.x, racing.side_lows[1][k] - RacingLine.MARGIN - KEEP_IN)
+	var middle := (lane.x + lane.y) * 0.5
+	return Vector2(minf(lane.x + margin, middle), maxf(lane.y - margin, middle))
+
+
+## Its branch round each split this time round. A split's next time round
+## starts half a lap before it, well clear of where the branches part. On a
+## split, if a spin or a reset has left it on the other branch, it carries
+## on down that one.
+func _pick_branches() -> void:
+	if not track.has_splits:
+		return
+	var racing := track.racing_line()
+	var count := racing.split_mids.size()
+	if branches.size() != count:
+		branches.resize(count)
+	var run := lap * track.length + offset
+	for zone in count:
+		var visit := floori((run - racing.split_mids[zone] + track.length * 0.5) / track.length)
+		var key := Vector2i(zone, visit)
+		if _kept.has(key):
+			branches[zone] = _kept[key]
+			continue
+		if not _picks.has(key):
+			_picks[key] = pick_branch(zone, visit)
+		branches[zone] = _picks[key]
+	var lanes := track.lanes_at(offset)
+	if lanes.size() < 2 or lanes[1].x - lanes[0].y < 3.0:
+		return
+	var zone := racing.zones[track._index_before(offset)]
+	var across := (kart.global_position - track.point_at(offset)).dot(track.right_at(offset))
+	var other := 1 - branches[zone]
+	if across > lanes[other].x and across < lanes[other].y:
+		var visit := floori((run - racing.split_mids[zone] + track.length * 0.5) / track.length)
+		_kept[Vector2i(zone, visit)] = other
+		branches[zone] = other
+
+
+## Which branch it takes round split `zone` on time round `visit`, 0 left
+## and 1 right. Where one branch is quicker it takes that one as surely as
+## its level and consistency go (see branch_sense); with about the same time
+## either way, it's a toss up. It comes from its seed, so every device
+## works out the same.
+func pick_branch(zone: int, visit: int) -> int:
+	var racing := track.racing_line()
+	var rng := RandomNumberGenerator.new()
+	rng.seed = hash([_branch_seed, zone, visit, "branch"])
+	var roll := rng.randf()
+	var sense := clampf(branch_sense + BRANCH_CONSISTENCY * traits.consistency * (1.0 - branch_sense), 0.0, 1.0)
+	var sure := sense * smoothstep(BRANCH_EVEN, BRANCH_CLEAR, racing.gains[zone])
+	var right := 0.5 + 0.5 * sure * (1.0 if racing.quicker[zone] == 1 else -1.0)
+	return 1 if roll < right else 0
+
+
+## How sharply the road it's driving bends here: the racing line's bend for
+## as much of the line as it takes, the middle's for the rest.
+func _bend_here(at: float) -> float:
+	if line_follow <= 0.0:
+		return track.bend_at(at)
+	return lerpf(track.bend_at(at), track.line_bend_at(at, branches), line_follow * LINE_TRUST)
 
 
 func _physics_process(delta: float) -> void:
@@ -272,6 +524,7 @@ func _physics_process(delta: float) -> void:
 		return
 	controls.reset = false
 	controls.gadget = [false, false]
+	_pick_branches()
 	var speed := kart.linear_velocity.length()
 	_use_gadgets(delta, speed)
 	# It steers and works out its speed every other step, holding the
@@ -286,11 +539,48 @@ func _physics_process(delta: float) -> void:
 		_drive(_since_drive, speed)
 		_since_drive = 0.0
 	_stuck_check(delta, speed, kart.global_basis.y)
+	_after_contact(delta)
 	kart.push = pace * Difficulty.push_for(behind, catch_up, ease_off, track.length)
+	if shaken > 0.0:
+		kart.push *= SHAKEN_PUSH
 	# Loops and jumps need full engine power, whatever the level, so it
 	# reaches the top of a loop and clears a jump's landing ramp.
 	if (_on_loop and not _lost_nerve) or _jump_run_in:
 		kart.push = maxf(kart.push, 1.0)
+
+
+## Notices being knocked by another kart, outside a pass it chose to lean
+## on (see AITrafficPlanner.contact): timid drivers are shaken by it,
+## aggressive ones hold a grudge against that kart.
+func _after_contact(delta: float) -> void:
+	shaken = maxf(shaken - delta, 0.0)
+	grudge_left = maxf(grudge_left - delta, 0.0)
+	if grudge_left <= 0.0:
+		grudge = null
+	for key in _knocks.keys():
+		_knocks[key] -= delta
+		if _knocks[key] <= 0.0:
+			_knocks.erase(key)
+	if kart.ghost_left > 0.0 or not kart.contact_monitor:
+		return
+	for body in kart.get_colliding_bodies():
+		if body is Kart and body != traffic.contact and body.ghost_left <= 0.0:
+			knocked_by(body)
+
+
+## Takes a knock from this kart, once until they've been apart KNOCK_AGAIN
+## seconds.
+func knocked_by(other: Kart) -> void:
+	var key: int = other.get_instance_id()
+	var fresh := not _knocks.has(key)
+	_knocks[key] = KNOCK_AGAIN
+	if not fresh:
+		return
+	if traits.aggression < 0.0:
+		shaken = maxf(shaken, 1.0 - traits.aggression * 1.5)
+	elif traits.aggression > 0.2 and racecraft >= 0.5:
+		grudge = other
+		grudge_left = 2.0 + traits.aggression * 4.0
 
 
 ## Whether every wheel is on the ground.
@@ -315,18 +605,33 @@ func _drive(delta: float, speed: float) -> void:
 				look = maxf(to_roll - 2.0, LOOK_NEAR)
 				break
 			to_roll += 2.0
+	_aim = offset + look
 	var dodge := _dodge()
-	var target := track.point_at(offset + look) + track.right_at(offset + look) * (line + dodge)
+	var target := _line_point(_aim, dodge)
 	var up := kart.global_basis.y
 	var to_target := target - kart.global_position
 	to_target -= up * to_target.dot(up)
 	var facing := -kart.global_basis.z
 	var angle := facing.signed_angle_to(to_target, up)
+	# Pointing at a point further round a bend cuts inside it. On its line
+	# the way to go is along the line, which is turned from the way to that
+	# point by half as much as the line turns on the way there, so it takes
+	# that off. Then it steers as much as the line bends just ahead on top,
+	# so it doesn't have to drift wide of it before it turns.
+	var bend_steer := 0.0
+	if piece != "corkscrew" and not TrackPiece.turns_over(piece):
+		# Measured about the road's up, so a ramp or a dip isn't a turn.
+		var road_up := track.up_at(offset)
+		var heading := _line_heading(offset, road_up)
+		angle -= heading.signed_angle_to(_line_heading(_aim, road_up), road_up) * 0.5
+		var near := maxf(speed * NEAR_TIME, NEAR_LEAST)
+		var curve := heading.signed_angle_to(_line_heading(offset + near, road_up), road_up) / near
+		bend_steer = atan(-curve * kart.wheelbase) / maxf(kart.full_lock, 0.001)
 	# On a corkscrew the point ahead is round the roll from here, and the
 	# road takes you round it without steering, so it only edges back toward
 	# its line.
 	if piece == "corkscrew":
-		var off_line := (kart.global_position - track.point_at(offset)).dot(track.right_at(offset)) - line
+		var off_line := (kart.global_position - track.point_at(offset)).dot(track.right_at(offset)) - line_at(offset)
 		angle = atan(off_line / 20.0)
 	var straight := piece != "corkscrew" and not TrackPiece.turns_over(piece) and track.bend_at(offset) < STRAIGHT_BEND and track.bend_at(offset + look * 0.4) < STRAIGHT_BEND
 	# On a straight the kart's lock shrinks with speed, so aiming with that
@@ -335,7 +640,7 @@ func _drive(delta: float, speed: float) -> void:
 		angle += kart.angular_velocity.dot(up) * 0.12
 	var lock := Kart.MAX_STEER if straight else kart.full_lock
 	# A kart with no wheels left has no lock (see Kart._pose_driver()).
-	controls.steer = clampf(-angle / maxf(lock, 0.001) * 1.2, -1.0, 1.0)
+	controls.steer = clampf(-angle / maxf(lock, 0.001) * 1.2 + bend_steer * BEND_STEER, -1.0, 1.0)
 	if straight:
 		controls.steer = move_toward(_steer, controls.steer, STRAIGHT_STEER_RATE * delta)
 
@@ -351,22 +656,40 @@ func _drive(delta: float, speed: float) -> void:
 	# itself a touch more margin besides.
 	var weather := kart.weather_grip * lerpf(1.0, WET_CARE, 1.0 - kart.weather_grip)
 	var grip := kart.stats.cornering() * KartStats.gravity() * daring * minf(1.0, 0.6 + 0.4 * kart.stats.control) * _misjudge * weather
-	var braking := BRAKING * weather
+	# Alongside on the inside into a bend it brakes a little later (see
+	# AITrafficPlanner.brake_bonus).
+	var braking := BRAKING * brake_late * weather * traffic.brake_bonus
 	var allowed := INF
 	# Far enough ahead to stop for any bend from the speed it's doing, and a
 	# little more. A corkscrew swings to the side as it rolls, but it's no
 	# bend to slow down for, any more than a loop is (see
-	# TrackPath.corner_bends()).
+	# TrackPath.corner_bends()). The bends are the racing line's, for as much
+	# of it as it takes.
 	var reach := maxf(64.0, speed * speed / (2.0 * braking) + 24.0)
 	var count := track.corner_bends(offset, BEND_EVERY, reach, _bends)
+	if line_follow > 0.0:
+		track.line_corner_bends(offset, BEND_EVERY, reach, _line_bends, branches)
+	# Already cornering hard, it has less grip left to brake with, so it
+	# counts on less braking for a bend that tightens ahead.
+	var cornering := 0.0 if TrackPiece.turns_over(piece) else speed * speed * _bend_here(offset) / maxf(grip, 0.1)
+	var slowing := braking * maxf(sqrt(maxf(1.0 - cornering * cornering, 0.0)), BRAKE_TURNING)
 	for k in count:
 		var bend := _bends[k]
+		# Running in to a jump its line keeps to the middle, so it goes by
+		# whichever bends more, as it can't come to the jump slow.
+		if line_follow > 0.0:
+			var on_line := lerpf(bend, _line_bends[k], line_follow * LINE_TRUST)
+			bend = maxf(bend, on_line) if _jump_run_in else on_line
+		# A bend it slides round it takes round the middle (see SLIDE_LINE).
+		var slid := slides and _bends[k] > slide_bend
+		if slid:
+			bend = maxf(bend, _bends[k])
 		if bend > 0.002:
-			var corner := sqrt(grip * (slide_plan if slides and bend > slide_bend else 1.0) / bend)
-			allowed = minf(allowed, sqrt(corner * corner + 2.0 * braking * BEND_EVERY * (k + 1)))
+			var corner := sqrt(grip * (slide_plan if slid else 1.0) / bend)
+			allowed = minf(allowed, sqrt(corner * corner + 2.0 * slowing * BEND_EVERY * (k + 1)))
 	# The bend it's in counts too, or it floors it on the way out of a hairpin
 	# while it's still turning and runs wide.
-	var here := 0.0 if TrackPiece.turns_over(piece) else maxf(track.bend_at(offset), track.bend_at(offset + 2.0))
+	var here := 0.0 if TrackPiece.turns_over(piece) else maxf(_bend_here(offset), _bend_here(offset + 2.0))
 	if here > 0.002 and not kart.sliding:
 		allowed = minf(allowed, sqrt(grip / here))
 	# Pointing well away from where it's going, like after a spin or out on
@@ -375,23 +698,29 @@ func _drive(delta: float, speed: float) -> void:
 	if absf(angle) > TURN_ROUND_ANGLE and not kart.sliding:
 		var across := 1.0 if absf(angle) > PI * 0.5 else sin(absf(angle))
 		allowed = minf(allowed, maxf(sqrt(grip * to_target.length() / (2.0 * across)), TURN_ROUND_SPEED))
+	free_speed = allowed
 	# Traffic braking also follows the corridor while a pass moves aside.
 	allowed = minf(allowed, traffic.speed_limit)
 	if not crossings.is_empty():
 		allowed = minf(allowed, _train_limit(speed, braking))
 
 	# The bend coming up next, for sliding into.
-	var tight := maxf(here, track.bend_at(offset + speed * 0.3))
+	var slide_here := 0.0 if TrackPiece.turns_over(piece) else maxf(track.bend_at(offset), track.bend_at(offset + 2.0))
+	var tight := maxf(slide_here, track.bend_at(offset + speed * 0.3))
 	if tight < slide_bend * 0.5 and not kart.sliding:
 		_slid_this_bend = false
 		_slide_way = 0.0
 	if slides and not _slid_this_bend and tight > slide_bend and speed > Kart.SLIDE_SPEED + 3.0 and not _loop_within(LOOP_AHEAD):
 		# Into the tightest bends a top driver kicks the tail out and slides
 		# round on the gas.
+		# Only from the outside half of the road, as a slide carries it in
+		# and from the inside it slides off the road.
 		_slid_this_bend = true
-		_slide_left = slide_time
 		var ahead_of := track.point_at(offset + 15.0) - track.point_at(offset)
-		_slide_way = 1.0 if ahead_of.dot(track.right_at(offset)) > 0.0 else -1.0
+		var way := 1.0 if ahead_of.dot(track.right_at(offset)) > 0.0 else -1.0
+		if (kart.global_position - track.point_at(offset)).dot(track.right_at(offset)) * way < SLIDE_INSIDE:
+			_slide_left = slide_time
+			_slide_way = way
 
 	if _slide_left > 0.0:
 		# The kick: gas and brake together, steering round.
@@ -399,17 +728,17 @@ func _drive(delta: float, speed: float) -> void:
 		controls.throttle = 1.0
 		controls.brake = 1.0
 		controls.steer = _slide_way
-	elif kart.sliding and _slide_way != 0.0 and here > slide_bend * 0.4 and _turn_way(offset + maxf(speed * 0.4, 4.0)) == _slide_way and _slide_on_line():
+	elif kart.sliding and _slide_way != 0.0 and slide_here > slide_bend * 0.4 and _turn_way(offset + maxf(speed * 0.4, 4.0)) == _slide_way and _slide_on_line():
 		# Holding the slide on the gas, steering harder the tighter the bend
 		# and if it's running wide.
 		controls.throttle = 1.0
 		controls.brake = 0.0
 		# Enough to go round the bend at this speed, and more if it's running
 		# wide (see Kart._hold_slide).
-		var wide := -(kart.global_position - track.point_at(offset)).dot(track.right_at(offset)) * _slide_way
+		var wide := -((kart.global_position - track.point_at(offset)).dot(track.right_at(offset)) - _slide_line()) * _slide_way
 		var slide_grip := kart.stats.cornering() * KartStats.gravity() * Kart.slide_corner
-		controls.steer = _slide_way * clampf(speed * speed * maxf(here, track.bend_at(offset + 6.0)) / slide_grip + maxf(wide - 1.5, 0.0) * 0.15 + minf(wide + 1.5, 0.0) * 0.15, 0.25, 1.0)
-	elif kart.sliding and _slide_way != 0.0 and (here <= slide_bend * 0.4 or _turn_way(offset + maxf(speed * 0.4, 4.0)) != _slide_way):
+		controls.steer = _slide_way * clampf(speed * speed * maxf(here, _bend_here(offset + 6.0)) / slide_grip + maxf(wide - 1.5, 0.0) * 0.15 + minf(wide + 1.5, 0.0) * 0.15, 0.25, 1.0)
+	elif kart.sliding and _slide_way != 0.0 and (slide_here <= slide_bend * 0.4 or _turn_way(offset + maxf(speed * 0.4, 4.0)) != _slide_way):
 		# Out of the hairpin, or where the road's about to bend back the
 		# other way, it straightens up, which ends the slide with a little
 		# turbo, and drives on.
@@ -465,11 +794,16 @@ func _drive(delta: float, speed: float) -> void:
 		controls.brake = 0.0
 
 	# Queue braking has to release before the pedal starts reversing.
+	# A little over the following speed it lifts and waits for a gap, and
+	# only brakes when it's closing in.
 	if is_finite(traffic.speed_limit) and not _looping() and _backing <= 0.0 and _leaving <= 0.0 and not kart.sliding:
 		var forward_speed := kart.linear_velocity.dot(-kart.global_basis.z)
-		if speed > traffic.speed_limit + 0.25:
+		if speed > traffic.speed_limit + 0.6 or (speed > traffic.speed_limit + 0.25 and traffic.speed_limit < 6.0):
 			controls.throttle = 0.0
 			controls.brake = 1.0 if forward_speed > 0.6 else 0.0
+		elif speed > traffic.speed_limit:
+			controls.throttle = 0.0
+			controls.brake = 0.0
 		elif traffic.speed_limit < 0.6:
 			controls.throttle = 0.0
 			controls.brake = 1.0 if forward_speed > 0.6 else 0.0
@@ -529,7 +863,7 @@ func _turn_way(at: float) -> float:
 
 
 ## Whether a slide's still following the road: not turned in past it, or
-## cut right across the inside.
+## cut right across the inside of its line.
 func _slide_on_line() -> bool:
 	var road := track.point_at(offset + 6.0) - track.point_at(offset)
 	var flat := kart.linear_velocity - kart.global_basis.y * kart.linear_velocity.dot(kart.global_basis.y)
@@ -538,8 +872,13 @@ func _slide_on_line() -> bool:
 	# Going round to the right, the way it's going turned in past the road is
 	# negative.
 	var turned_in := -road.signed_angle_to(flat, kart.global_basis.y) * _slide_way
-	var inside := (kart.global_position - track.point_at(offset)).dot(track.right_at(offset)) * _slide_way
+	var inside := ((kart.global_position - track.point_at(offset)).dot(track.right_at(offset)) - _slide_line()) * _slide_way
 	return turned_in < deg_to_rad(25.0) and inside < 4.0
+
+
+## How far right of the middle it holds a slide, in metres.
+func _slide_line() -> float:
+	return line_at(offset) * SLIDE_LINE
 
 
 ## Whether it's on the way around a loop, or about to start up one.
@@ -573,16 +912,27 @@ func _jump_within(distance: float) -> bool:
 	if _has_jump < 0:
 		_has_jump = 0
 		for piece in track.pieces:
-			if piece.type == "jump":
+			if piece.type in ["jump", "jump_split"]:
 				_has_jump = 1
 				break
 	if _has_jump == 0:
 		return false
 	var ahead := 0.0
 	while ahead <= distance:
-		if track.piece_type_at(offset + ahead) == "jump":
+		var kind := track.piece_type_at(offset + ahead)
+		if kind == "jump":
+			_jump_at = offset + ahead
 			return true
+		# A jump split's jump only counts down the jump branch, and its line
+		# already keeps to the middle of the branch.
+		if kind == "jump_split":
+			var k := track._index_before(offset + ahead)
+			var side := track.racing_line().side_of(k, branches)
+			if not track.branch_flat(k, side):
+				_jump_at = -INF
+				return true
 		ahead += 4.0
+	_jump_at = -INF
 	return false
 
 
@@ -599,25 +949,52 @@ func _judge_bends() -> void:
 	_bend_coming = coming
 
 
-## How far to move over to get around a kart close ahead, in metres to the
-## right. It picks a side that's still on the road and empty, and holds that
-## until it's past, so it doesn't weave back into them.
+## How far to move over from its own line (see line_at()) to get around a
+## kart close ahead, in metres to the right. It picks a side that's still on
+## the road and empty, and holds that until it's past, so it doesn't weave
+## back into them.
 func _dodge() -> float:
+	trap_band = Vector2(NAN, NAN)
 	if kart.ghost_left > 0.0 or TrackPiece.turns_over(track.piece_type_at(offset)):
 		_patch_dodge = 0.0
 		_patch_eased = 0.0
+		_eased = 0.0
 		traffic.speed_limit = INF
 		traffic.queueing = false
 		return 0.0
 	var wall := _dodge_wall(-kart.global_basis.z)
-	var preferred := line + _dodge_patches() if is_nan(wall) else line + wall
+	var trap := NAN if is_finite(wall) else _dodge_traps(-kart.global_basis.z)
+	var preferred := wall if is_finite(wall) else (trap if is_finite(trap) else _dodge_patches())
 	# Finish pulling past the kart it actually backed off. The planner still
 	# checks the free side against every other kart and the wall.
 	if is_nan(wall) and _tries > 0 and _stuck > 0.0 and is_instance_valid(_recover_from):
-		var edge := maxf(track.width * 0.5 - kart.width() * 0.5 - 0.8, 0.0)
-		preferred = -_away * edge
-	var wall_line := NAN if is_nan(wall) else line + wall
-	return traffic.plan(self, preferred, _since_drive, wall_line) - line
+		var lane := lane_at(_aim_or_here(), kart.width() * 0.5 + 0.8)
+		preferred = (lane.x if _away > 0.0 else lane.y) - line_at(_aim_or_here())
+	var want := traffic.plan(self, preferred, _since_drive, wall)
+	# The aim slides over at a rate to suit the speed instead of jumping.
+	# Getting clear of a kart it's stuck against, it goes at once, and round
+	# a wall or a trap twice as fast.
+	if _tries > 0 or kart.linear_velocity.length() < 2.0:
+		_eased = want
+	else:
+		var rate := clampf(kart.linear_velocity.length() * 0.16, 1.5, 4.0) * (2.0 if is_finite(wall) or is_finite(trap) else 1.0)
+		_eased = move_toward(_eased, want, rate * maxf(_since_drive, 1.0 / 60.0))
+	# Still easing back from a move it made before a split, it doesn't carry
+	# it over onto the island. Where the road widens out ahead it also keeps
+	# inside the road where it is, so it doesn't cut across the kerb.
+	if track.has_splits:
+		var mine := line_at(_aim_or_here())
+		var lane := lane_at(_aim_or_here(), kart.width() * 0.5 + 0.3)
+		var here := lane_at(offset, kart.width() * 0.5 + 0.3)
+		if maxf(lane.x, here.x) < minf(lane.y, here.y):
+			lane = Vector2(maxf(lane.x, here.x), minf(lane.y, here.y))
+		_eased = clampf(_eased, minf(lane.x - mine, 0.0), maxf(lane.y - mine, 0.0))
+	return _eased
+
+
+## Where along the track it's aiming, or where it is before it's driven.
+func _aim_or_here() -> float:
+	return offset if is_nan(_aim) else _aim
 
 
 ## How far to move over to keep out of puddles and drifts ahead. It
@@ -650,38 +1027,39 @@ func _dodge_patches() -> float:
 ## tried cheapest move first, and a line stops being looked along once it
 ## can't beat the best so far.
 func _patch_line() -> float:
-	var own := _line_cost(line)
+	var own := _line_cost(0.0)
 	if own == 0.0 and _patch_dodge == 0.0:
 		return 0.0
-	var edge := track.width * 0.5 - kart.width() * 0.5 - PATCH_EDGE
+	var lane := lane_at(offset, kart.width() * 0.5 + PATCH_EDGE)
+	var mine := line_at(offset)
 	var tries: Array[float] = [0.0, _patch_dodge]
 	for shift: float in PATCH_LINES:
 		if shift != 0.0 and shift != _patch_dodge:
 			tries.append(shift)
 	# And as far over as it can go either way.
-	tries.append_array([-edge - line, edge - line])
+	tries.append_array([lane.x - mine, lane.y - mine])
 	var best := INF
 	var best_shift := _patch_dodge
 	for i in tries.size():
 		var shift := tries[i]
-		if absf(line + shift) > edge + 0.01 or (i > 0 and shift == 0.0):
+		if mine + shift < lane.x - 0.01 or mine + shift > lane.y + 0.01 or (i > 0 and shift == 0.0):
 			continue
 		var swerve := 0.0
 		if shift != 0.0:
 			swerve = (SWERVE_COST + absf(shift) * SWERVE_PER_M) * (SWERVE_HELD if shift == _patch_dodge else 1.0)
 		if swerve >= best:
 			continue
-		var cost := own if shift == 0.0 else _line_cost(line + shift, best - swerve)
+		var cost := own if shift == 0.0 else _line_cost(shift, best - swerve)
 		cost += swerve
-		if cost < best and _karts_clear(line + shift):
+		if cost < best and _karts_clear(shift):
 			best = cost
 			best_shift = shift
 	return best_shift
 
 
-## Whether there's no kart alongside or just ahead on this line across the
-## road, so moving onto it doesn't swerve into one.
-func _karts_clear(across: float) -> bool:
+## Whether there's no kart alongside or just ahead this far right of its own
+## line, so moving onto it doesn't swerve into one.
+func _karts_clear(shift: float) -> bool:
 	var along := track.forward_at(offset)
 	for other in others:
 		if other == kart or not is_instance_valid(other) or other.ghost_left > 0.0:
@@ -690,19 +1068,19 @@ func _karts_clear(across: float) -> bool:
 		if ahead < -PATCH_BESIDE or ahead > PATCH_BESIDE * 3.0:
 			continue
 		var at := offset + ahead
-		var other_across := (other.global_position - track.point_at(at)).dot(track.right_at(at))
-		if absf(other_across - across) < (kart.width() + other.width()) * 0.5 + KART_GAP:
+		var other_across := (other.global_position - track.point_at(at)).dot(track.right_at(at)) - line_at(at)
+		if absf(other_across - shift) < (kart.width() + other.width()) * 0.5 + KART_GAP:
 			return false
 	return true
 
 
-## What driving on this line across the road for the stretch ahead would
+## What driving this far right of its own line for the stretch ahead would
 ## cost in water and snow, in seconds, going by the depth under each side's
 ## wheels. INF once the cost reaches `most`, where it stops looking. Snow
 ## is looked at every half step, as a short drift across the road could fit
 ## between steps. Ploughing only counts ahead of the front wheels, since
 ## they've already ploughed what's behind.
-func _line_cost(across: float, most := INF) -> float:
+func _line_cost(shift: float, most := INF) -> float:
 	_scan_ahead()
 	var wheels := maxf(kart.width() * 0.5 - 0.3, 0.0)
 	var front := kart.wheelbase * 0.5
@@ -712,7 +1090,7 @@ func _line_cost(across: float, most := INF) -> float:
 	var was_right := 0.0
 	for i in _scan_point.size():
 		var right := _scan_right[i]
-		var point := _scan_point[i] + right * across
+		var point := _scan_point[i] + right * (_scan_line[i] + shift)
 		if kart.puddles != null:
 			wet += kart.puddles.factor_at(point - right * wheels) + kart.puddles.factor_at(point + right * wheels)
 		if kart.drifts != null:
@@ -734,7 +1112,8 @@ func _line_cost(across: float, most := INF) -> float:
 	return wet * 0.5 * PATCH_STEP * WATER_COST + snow * 0.5
 
 
-## The middle of the road and its right for _line_cost() to look along,
+## The middle of the road, its right and its own line for _line_cost() to
+## look along,
 ## once a step. From just behind, so it keeps its back wheels clear too,
 ## every PATCH_STEP m.
 func _scan_ahead() -> void:
@@ -745,6 +1124,7 @@ func _scan_ahead() -> void:
 	_scan_offset = offset
 	_scan_point.clear()
 	_scan_right.clear()
+	_scan_line.clear()
 	var see := maxf(SEE_PATCH, kart.linear_velocity.length() * SEE_PATCH_TIME)
 	# On whole steps along the track, so the same spots are looked at as it
 	# moves and the cost doesn't flicker with where the steps fall.
@@ -754,10 +1134,12 @@ func _scan_ahead() -> void:
 		var at := offset + ahead
 		_scan_point.append(track.point_at(at))
 		_scan_right.append(track.right_at(at))
+		_scan_line.append(line_at(at))
 		ahead += PATCH_STEP
 
 
-## How far to move over to get past the end of a brick wall ahead, or NAN
+## How far to move over from its own line to get past the end of a brick
+## wall ahead, or NAN
 ## when there's none in the way. It goes round whichever end has more road
 ## beyond it.
 func _dodge_wall(facing: Vector3) -> float:
@@ -778,12 +1160,64 @@ func _dodge_wall(facing: Vector3) -> float:
 		var at: float = _wall_offsets[key]
 		var across: float = (wall.global_position - track.point_at(at)).dot(track.right_at(at))
 		var room := BrickWall.HALF + kart.width() * 0.5 + WALL_GAP
-		if absf(line - across) >= room:
+		var mine := line_at(at)
+		if absf(mine - across) >= room:
 			continue
-		var edge := track.width * 0.5 - kart.width() * 0.5 - 0.3
-		var want := across + room if across < 0.0 else across - room
-		return clampf(want, -edge, edge) - line
+		var lane := lane_at(at, kart.width() * 0.5 + 0.3)
+		var want := across + room if across < (lane.x + lane.y) * 0.5 else across - room
+		return clampf(want, lane.x, lane.y) - mine
 	return NAN
+
+
+## How far to move over from its own line to miss a trap ahead, or NAN
+## when its line misses them all. Spikes pop its tires and marbles slide it
+## off the road. It also keeps trap_band for the traffic planner, so a
+## line round a kart doesn't take it over the trap.
+func _dodge_traps(facing: Vector3) -> float:
+	trap_band = Vector2(NAN, NAN)
+	if kart.shield_left > 0.0:
+		return NAN
+	var frame := Engine.get_physics_frames()
+	if frame != _traps_frame:
+		_traps_frame = frame
+		_traps = kart.get_tree().get_nodes_in_group("traps")
+	var see := maxf(SEE_TRAP, kart.linear_velocity.length() * 2.0)
+	var nearest := INF
+	var dodge := NAN
+	for trap in _traps:
+		if not is_instance_valid(trap) or not trap is BrickTrap:
+			continue
+		var gap: Vector3 = trap.global_position - kart.global_position
+		var ahead := gap.dot(facing)
+		var reach: float = BrickTrap.KINDS[trap.kind].across
+		# It keeps clear until its back end is past it.
+		if ahead < -reach - 1.0 or ahead > see or ahead >= nearest:
+			continue
+		var key: int = trap.get_instance_id()
+		if not _trap_offsets.has(key):
+			_trap_offsets[key] = track.offset_of(trap.global_position, offset + ahead, 40.0)
+		var at: float = _trap_offsets[key]
+		# One on a road above or below, a bridge or a hairpin, isn't in its way.
+		var local: Vector3 = trap.global_position - track.point_at(at)
+		if absf(local.dot(track.up_at(at))) > 2.0 or absf(_along(at) + ahead) > 15.0:
+			continue
+		var across := local.dot(track.right_at(at))
+		var room := reach + kart.width() * 0.5 + TRAP_GAP
+		var mine := line_at(at)
+		nearest = ahead
+		trap_band = Vector2(across - room - mine, across + room - mine)
+		if absf(mine - across) >= room:
+			dodge = NAN
+			continue
+		# Round whichever side is nearer its line, if there's road there.
+		var lane := lane_at(at, kart.width() * 0.5 + 0.3)
+		var left := across - room
+		var right := across + room
+		var want := right if mine > across else left
+		if want < lane.x or want > lane.y:
+			want = left if want == right else right
+		dodge = clampf(want, lane.x, lane.y) - mine
+	return dodge
 
 
 ## Checks both ready buttons and uses the most useful safe opportunity.
@@ -812,7 +1246,9 @@ func _use_gadgets(delta: float, speed: float) -> void:
 		if score > best_score:
 			best_score = score
 			best = slot
-	if best >= 0 and _rng.randf() <= gadget_sense:
+	# With a grudge it's quicker to use something on that kart.
+	var sense := minf(gadget_sense + 0.3, 1.0) if grudge_left > 0.0 else gadget_sense
+	if best >= 0 and _rng.randf() <= sense:
 		controls.gadget[best] = true
 		_held_for[best] = 0.0
 

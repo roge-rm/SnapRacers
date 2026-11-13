@@ -1,0 +1,18 @@
+{
+	"grid": 32.0,
+	"hills": 4.0,
+	"landmarks": [],
+	"laps": 3,
+	"made_by": "",
+	"name": "Split Test",
+	"theme": "orchard",
+	"pieces": [
+		{"type": "straight", "length": 4},
+		{"type": "split", "length": 2},
+		{"type": "curve", "turn": "right", "size": 2},
+		{"type": "curve", "turn": "right", "size": 2},
+		{"type": "straight", "length": 6},
+		{"type": "curve", "turn": "right", "size": 2},
+		{"type": "curve", "turn": "right", "size": 2}
+	]
+}

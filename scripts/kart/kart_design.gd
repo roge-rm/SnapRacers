@@ -16,6 +16,9 @@ const BUILD_SIZE := Vector3i(20, 30, 24)
 ## plates, so it doesn't scrape when the springs squash.
 const CLEARANCE := 2
 const SAVE_DIR := "user://karts"
+## How a pick key for a saved kart starts, followed by its file name without
+## .json (see Game.kart_choice()).
+const SAVED_KEY := "saved:"
 const SUSPENSION := ["soft", "medium", "hard"]
 ## How much of a wheel's height its two crossed boxes cover, for bumping
 ## into other parts.
@@ -253,6 +256,18 @@ static func saved_paths() -> Array[String]:
 			out.append("%s/%s" % [SAVE_DIR, file])
 	out.sort()
 	return out
+
+
+## The pick key for the saved kart at this path.
+static func key_for(path: String) -> String:
+	return SAVED_KEY + path.get_file().get_basename()
+
+
+## The file a saved kart's pick key is for, or "" if it isn't one.
+static func path_for_key(key: String) -> String:
+	if not key.begins_with(SAVED_KEY):
+		return ""
+	return "%s/%s.json" % [SAVE_DIR, key.trim_prefix(SAVED_KEY)]
 
 
 # Building rules.

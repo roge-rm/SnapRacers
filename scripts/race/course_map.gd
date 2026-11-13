@@ -110,6 +110,7 @@ func _draw() -> void:
 	var thick := maxf(1.0, across / SIZE)
 	draw_polyline(shown, EDGE, 7.0 * thick, true)
 	draw_polyline(shown, LINE, 3.5 * thick, true)
+	CourseOutline.draw_splits(self, _outline, to_map, 3.5 * thick, 7.0 * thick, LINE, EDGE)
 	# The start line, across the road.
 	var start := to_map * _line[0]
 	var tick := (to_map * (_line[0] + Vector2(track.start.basis.x.x, track.start.basis.x.z) * 12.0)) - start

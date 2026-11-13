@@ -1,0 +1,23 @@
+{
+	"grid": 32.0,
+	"hills": 0.0,
+	"landmarks": [],
+	"laps": 3,
+	"made_by": "",
+	"name": "Uneven Split Test",
+	"theme": "orchard",
+	"pieces": [
+		{"type": "straight", "length": 1},
+		{"type": "rough_split", "side": "right"},
+		{"type": "straight", "length": 1},
+		{"type": "jump_split", "side": "left"},
+		{"type": "straight", "length": 1},
+		{"type": "split_bend", "turn": "right", "size": 3},
+		{"type": "straight", "length": 4},
+		{"type": "curve", "turn": "right", "size": 3},
+		{"type": "straight", "length": 10},
+		{"type": "curve", "turn": "right", "size": 3},
+		{"type": "straight", "length": 4},
+		{"type": "curve", "turn": "right", "size": 3}
+	]
+}

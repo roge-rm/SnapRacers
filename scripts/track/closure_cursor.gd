@@ -44,7 +44,7 @@ static func advance(cursor: PackedInt64Array, piece: TrackPiece) -> PackedInt64A
 	var j := posmod(h + piece.heading_delta(), 24)
 	var c := cosine(h)
 	var s := sine(h)
-	if piece.type in ["curve", "arc"]:
+	if piece.type in ["curve", "arc", "split_bend"]:
 		var radius := piece.radius / 16.0
 		if absf(radius - roundf(radius)) > 0.000001:
 			return PackedInt64Array()

@@ -214,6 +214,17 @@ func _draw() -> void:
 		"stunts":
 			draw_arc(c + Vector2(0, -2), 8.0, 0.0, TAU, 20, ink, w, true)
 			draw_line(c + Vector2(-13, 7), c + Vector2(13, 7), ink, w, true)
+		"splits":
+			# Road coming in, parting round an island and joining again.
+			var left := PackedVector2Array()
+			var right := PackedVector2Array()
+			for k in 13:
+				var t := k / 12.0
+				var out := 7.0 * minf(smoothstep(0.0, 0.35, t), smoothstep(1.0, 0.65, t))
+				left.append(c + Vector2(-out, lerpf(13.0, -13.0, t)))
+				right.append(c + Vector2(out, lerpf(13.0, -13.0, t)))
+			draw_polyline(left, ink, 4.0, true)
+			draw_polyline(right, ink, 4.0, true)
 		"landmarks":
 			# A little tower with a pointed roof.
 			draw_rect(Rect2(c + Vector2(-5, -4), Vector2(10, 16)), ink)

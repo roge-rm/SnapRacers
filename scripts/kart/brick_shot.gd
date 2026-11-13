@@ -14,6 +14,8 @@ const LIFETIME := 5.0
 const HOMING_SPEED := 30.0
 const HOMING_LIFETIME := 12.0
 const TURN := 3.0
+## Round a split it heads for its kart's branch this far ahead, in metres.
+const ISLAND_LOOK := 12.0
 ## The warning beeps every BEEP_FAR seconds a long way off, down to BEEP_NEAR
 ## close up, rising in pitch, closest at BEEP_CLOSE metres, at BEEP_LEVEL dB.
 const BEEP_FAR := 0.8
@@ -41,6 +43,8 @@ var _age := 0.0
 var _spent := false
 var _trail_wait := 0.0
 var _flame: Node3D
+## Where along the track it was last step, for following a split's branch.
+var _track_at := -1.0
 
 
 static func fire(from: Kart, homing_ := false) -> BrickShot:
@@ -186,13 +190,47 @@ func _physics_process(delta: float) -> void:
 		_trail(delta)
 	# A homing brick turns toward the kart it's after, a little at a time.
 	if chasing != null and is_instance_valid(chasing):
-		var to := chasing.global_position + chasing.global_basis.y * 0.5 - global_position
+		var to := _homing_on() - global_position
 		var heading := linear_velocity.normalized()
 		var wanted := to.normalized()
 		var turned := heading.slerp(wanted, minf(TURN * delta / maxf(heading.angle_to(wanted), 0.001), 1.0))
 		linear_velocity = turned * HOMING_SPEED
 		if chasing.hears_warnings and not chasing.remote:
 			_warn(delta, to.length())
+
+
+## Where a homing brick heads for: its kart, or with a split's island in
+## the way, down the branch its kart is on, or the nearer one once its kart
+## is past the split.
+func _homing_on() -> Vector3:
+	var at := chasing.global_position + chasing.global_basis.y * 0.5
+	var race := get_parent()
+	var track := (race.get("track") if race != null else null) as TrackPath
+	if track == null or not track.has_splits or at.distance_to(global_position) > ISLAND_LOOK * 4.0:
+		return at
+	var mine := track.offset_of(global_position, _track_at, 40.0)
+	_track_at = mine
+	var theirs := track.offset_of(chasing.global_position, mine, 80.0)
+	var gap := fposmod(theirs - mine, track.length)
+	if gap > ISLAND_LOOK * 4.0:
+		return at
+	# The first spot between here and the kart where the road has parted.
+	var ahead := 0.0
+	var parted := -1.0
+	while ahead < gap:
+		if track.lanes_at(mine + ahead).size() > 1:
+			parted = ahead
+			break
+		ahead += 2.0
+	if parted < 0.0:
+		return at
+	var their_across := (chasing.global_position - track.point_at(theirs)).dot(track.right_at(theirs))
+	var side := track.branch_of(theirs, their_across)
+	if track.lanes_at(theirs).size() < 2:
+		var my_across := (global_position - track.point_at(mine)).dot(track.right_at(mine))
+		side = track.branch_of(mine, my_across)
+	var aim := mine + minf(ISLAND_LOOK, gap)
+	return track.point_at(aim) + track.right_at(aim) * track.branch_centre_at(aim, side) + track.up_at(aim) * 0.9
 
 
 ## A soft beep for the person this brick's after, quicker and higher the

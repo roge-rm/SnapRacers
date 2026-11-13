@@ -12,6 +12,11 @@ const KERB := Color("#d8261c")
 const GRID := Color(1, 1, 1, 0.08)
 const PROFILE := Color("#7fd8ff")
 const HILL_HEIGHT := 6.0
+const ISLAND := Color("#4b9f4a")
+## A jump split's kicker and landing.
+const KICKER := Color("#f2cd37")
+## The road's width the icons are drawn for, in metres.
+const ROAD_WIDTH := 13.0
 
 var spec: Dictionary
 
@@ -35,6 +40,12 @@ func _draw() -> void:
 		heights.append(p.y)
 		lo = lo.min(flat)
 		hi = hi.max(flat)
+	# A split's branches reach out past its middle line.
+	var branches := _branches(piece, steps)
+	for side in branches:
+		for p in side:
+			lo = lo.min(p)
+			hi = hi.max(p)
 	# The tiles it sits on, so a big bend looks big next to a small one.
 	var half := TrackPiece.TILE * 0.5
 	lo = Vector2(floorf((lo.x + half) / TrackPiece.TILE) * TrackPiece.TILE - half, floorf(lo.y / TrackPiece.TILE) * TrackPiece.TILE)
@@ -67,7 +78,9 @@ func _draw() -> void:
 			var a := PI * 0.5 * k / 8.0
 			patch.append(to_icon.call(middle + Vector2(-piece.turn * cos(a), -sin(a)) * piece.radius * 0.7))
 		draw_colored_polygon(patch, Color("#8a6a45"))
-	if piece.type == "jump":
+	if piece.is_split():
+		_draw_split(piece, steps, to_icon, road / ROAD_WIDTH * 1.3)
+	elif piece.type == "jump":
 		# The gap between the kicker and the landing.
 		var gap_from := int(steps * TrackPiece.KICKER_END / (piece.tiles * TrackPiece.TILE))
 		var gap_to := int(steps * TrackPiece.LANDING_START / (piece.tiles * TrackPiece.TILE))
@@ -103,6 +116,91 @@ func _draw() -> void:
 
 	if climbs:
 		_draw_profile(heights, Rect2(Vector2(10, size.y - 20), Vector2(size.x - 20, 14)))
+
+
+## The middles of a split's branches from above, left then right, and
+## their outer edges, as [left middles, right middles, left edges, right edges].
+func _branches(piece: TrackPiece, steps: int) -> Array:
+	if not piece.is_split():
+		return []
+	var out := [PackedVector2Array(), PackedVector2Array(), PackedVector2Array(), PackedVector2Array()]
+	for k in steps + 1:
+		var t := float(k) / steps
+		var p := piece.point(t)
+		var ahead := piece.point(minf(t + 0.01, 1.0)) - piece.point(maxf(t - 0.01, 0.0))
+		var right := Vector2(-ahead.z, ahead.x).normalized()
+		var two := piece.branches(t, ROAD_WIDTH)
+		var flat := Vector2(p.x, p.z)
+		out[0].append(flat + right * two[0].x)
+		out[1].append(flat + right * two[1].x)
+		out[2].append(flat + right * (two[0].x - two[0].y * 0.5))
+		out[3].append(flat + right * (two[1].x + two[1].y * 0.5))
+	return out
+
+
+## Both branches of a split with the grass island between them. `per_metre`
+## is how many pixels a metre of road's width takes.
+func _draw_split(piece: TrackPiece, steps: int, to_icon: Callable, per_metre: float) -> void:
+	var sides := _branches(piece, steps)
+	var island := PackedVector2Array()
+	var back := PackedVector2Array()
+	for k in steps + 1:
+		var t := float(k) / steps
+		var two := piece.branches(t, ROAD_WIDTH)
+		var gap := maxf(two[1].x - two[0].x, 0.001)
+		var from := two[0].y * 0.5 / gap
+		var to := 1.0 - two[1].y * 0.5 / gap
+		if from >= to:
+			continue
+		island.append(to_icon.call(sides[0][k].lerp(sides[1][k], from)))
+		back.append(to_icon.call(sides[0][k].lerp(sides[1][k], to)))
+	back.reverse()
+	if island.size() + back.size() >= 3:
+		draw_colored_polygon(island + back, ISLAND)
+	var lines := []
+	for side in 2:
+		var line := PackedVector2Array()
+		for p in sides[side]:
+			line.append(to_icon.call(p))
+		lines.append(line)
+	var middle := piece.branches(0.5, ROAD_WIDTH)
+	# Both edges first, so neither branch's edge shows across the other.
+	for side in 2:
+		var wide := maxf(middle[side].y * per_metre, 3.0)
+		for run in _branch_runs(piece, side, steps, lines[side]):
+			draw_polyline(run[0], EDGE, wide + 3.0, true)
+	for side in 2:
+		var wide := maxf(middle[side].y * per_metre, 3.0)
+		var colour := _surface() if piece.branch_surface(side) == piece.surface else TrackBuilder.COLOURS["dirt"].lightened(0.15)
+		for run in _branch_runs(piece, side, steps, lines[side]):
+			draw_polyline(run[0], KICKER if run[1] else colour, wide, true)
+
+
+## One branch's line cut into runs with road under them, as [points, up on a
+## jump], so a jump split's kicker and landing stand out and its gap is left
+## out.
+func _branch_runs(piece: TrackPiece, side: int, steps: int, line: PackedVector2Array) -> Array:
+	var runs := []
+	var run := PackedVector2Array()
+	var lifted := false
+	for k in steps + 1:
+		var t := float(k) / steps
+		if not piece.branch_solid(t, side):
+			if run.size() >= 2:
+				runs.append([run, lifted])
+			run = PackedVector2Array()
+			continue
+		var up := piece.branch_lift(t, side) > 0.05
+		if up != lifted and run.size() >= 1:
+			run.append(line[k])
+			if run.size() >= 2:
+				runs.append([run, lifted])
+			run = PackedVector2Array()
+		lifted = up
+		run.append(line[k])
+	if run.size() >= 2:
+		runs.append([run, lifted])
+	return runs
 
 
 func _surface() -> Color:

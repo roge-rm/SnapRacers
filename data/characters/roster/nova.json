@@ -1,6 +1,7 @@
 {
 	"name": "Nova",
 	"_comment": "From somewhere a long way off. Very cool, very fast.",
+	"traits": { "aggression": 0.2, "patience": 0.3, "consistency": 0.8, "late_braking": 0.5 },
 	"head": { "style": "shades", "color": "#8fd3f4" },
 	"hair": { "style": "spiky", "color": "#6c3fb5" },
 	"headgear": { "style": "none", "color": "#6c3fb5" },

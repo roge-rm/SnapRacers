@@ -336,6 +336,7 @@ func show_course_grid(for_mode: String, alone: bool, cup: String) -> void:
 ## each time. With `skip_driver` it goes straight to the karts with the
 ## drivers picked last time, which the kart picker's driver card changes.
 func show_race_setup(go: Callable, back: Callable, ai := false, two := false, skip_driver := false) -> void:
+	skip_driver = skip_driver or not driver_picker_step()
 	_setup_step(1 if skip_driver else 0, go, back, ai, two, skip_driver)
 
 
@@ -572,8 +573,11 @@ func keep_character(who: CharacterDesign) -> void:
 		file.store_string(JSON.stringify(character.to_dict(), "\t"))
 
 
-## The driver for one of the AI karts, by the kart's file name.
+## The driver for one of the AI karts, by roster file name, or by pick key
+## for one of your own drivers ("own" or "saved:<file>").
 func roster_driver(key: String) -> CharacterDesign:
+	if key == CharacterDesign.OWN_KEY or key.begins_with(CharacterDesign.SAVED_KEY):
+		return CharacterDesign.for_key(key)
 	var path := "%s/%s.json" % [ROSTER, key]
 	return CharacterDesign.load_file(path) if FileAccess.file_exists(path) else Kart.default_driver()
 
@@ -631,8 +635,9 @@ func race_driver(player: int) -> CharacterDesign:
 	return CharacterDesign.for_key(race_driver_key(player))
 
 
-## The AI drivers for a race with `people` players, by roster key, drawn at
-## random to fill the rest of the grid. Nobody's a stock driver a player
+## The AI drivers for a race with `people` players, drawn at random to fill
+## the rest of the grid. They're roster keys, plus pick keys for your own
+## drivers when the AI can use them (Settings). Nobody's a driver a player
 ## picked or looks just like, and the Racer can be drawn in their place
 ## unless a player looks just like the Racer.
 func ai_field(people: int) -> Array[String]:
@@ -640,18 +645,73 @@ func ai_field(people: int) -> Array[String]:
 	var looks := []
 	for player in people:
 		var key := race_driver_key(player)
-		if key.begins_with(CharacterDesign.STOCK_KEY):
-			taken.append(key.trim_prefix(CharacterDesign.STOCK_KEY))
+		taken.append(key.trim_prefix(CharacterDesign.STOCK_KEY))
 		looks.append(race_driver(player).to_dict())
-	var pool: Array[String] = []
-	for key in ai_driver_keys():
-		if not taken.has(key) and not looks.has(roster_driver(key).to_dict()):
-			pool.append(key)
-	if pool.size() < ai_driver_keys().size() and not taken.has("racer") and not looks.has(roster_driver("racer").to_dict()):
+	var pool := ai_candidates(taken, looks)
+	var roster := ai_driver_keys()
+	var stock := pool.filter(func(key: String) -> bool: return roster.has(key))
+	if stock.size() < roster.size() and not taken.has("racer") and not looks.has(roster_driver("racer").to_dict()):
 		pool.append("racer")
 	pool.shuffle()
 	pool.resize(mini(pool.size(), maxi(Race.KARTS - people, 0)))
 	return pool
+
+
+## Whether the AI can race as your own and saved drivers (Settings).
+func ai_own_drivers() -> bool:
+	return settings.get_value("race", "ai_own_drivers", false)
+
+
+## Every driver the AI can be, before the draw: the stock drivers, then with
+## ai_own_drivers() the driver screen's one and the saved ones. Leaves out
+## keys in `taken`, anyone who looks like one of `looks` (driver dicts) and
+## any of your own that look like one already in.
+func ai_candidates(taken: Array = [], looks: Array = []) -> Array[String]:
+	var keys := ai_driver_keys()
+	if ai_own_drivers():
+		keys.append(CharacterDesign.OWN_KEY)
+		for entry in CharacterDesign.saved_drivers():
+			keys.append(entry.key)
+	var seen := looks.duplicate()
+	var out: Array[String] = []
+	for key in keys:
+		var look := roster_driver(key).to_dict()
+		if taken.has(key) or seen.has(look):
+			continue
+		seen.append(look)
+		out.append(key)
+	return out
+
+
+## Swaps any saved driver in the Grand Prix field that's been deleted since
+## the cup started for a stock one nobody's using, keeping its kart and rank.
+func refresh_grand_prix_field() -> void:
+	if grand_prix == null:
+		return
+	var people := 2 if grand_prix.two else 1
+	var taken: Array[String] = []
+	var looks := []
+	for player in people:
+		taken.append(race_driver_key(player).trim_prefix(CharacterDesign.STOCK_KEY))
+		looks.append(race_driver(player).to_dict())
+	for i in grand_prix.drivers.size():
+		var key := grand_prix.drivers[i]
+		if not key.begins_with(CharacterDesign.SAVED_KEY) or _driver_there(key):
+			continue
+		var spare := ""
+		var spares := ai_driver_keys()
+		spares.append("racer")
+		for stock in spares:
+			if not grand_prix.drivers.has(stock) and not taken.has(stock) and not looks.has(roster_driver(stock).to_dict()):
+				spare = stock
+				break
+		if spare == "":
+			continue
+		grand_prix.drivers[i] = spare
+		grand_prix.karts[spare] = grand_prix.karts.get(key, DEFAULT_STOCK)
+		grand_prix.ranks[spare] = grand_prix.ranks.get(key, i)
+		grand_prix.karts.erase(key)
+		grand_prix.ranks.erase(key)
 
 
 func player_name() -> String:
@@ -706,6 +766,8 @@ func player_two_kart() -> String:
 	var key := stock_id(settings.get_value("race", "player_two", PLAYER_TWO_STOCK))
 	if key == OWN_KART and design.problems().is_empty():
 		return key
+	if _saved_kart_ok(key):
+		return key
 	return key if stock_keys().has(key) else PLAYER_TWO_STOCK
 
 
@@ -714,7 +776,7 @@ func player_two_design() -> KartDesign:
 	var key := player_two_kart()
 	if mode == MODE_GRAND_PRIX and grand_prix != null and grand_prix.player_two_kart != "":
 		key = grand_prix.player_two_kart
-	return design if key == OWN_KART else stock_kart(key)
+	return kart_design(key)
 
 
 ## Player 2's name, for two on one phone. It's "Player 2" until they give
@@ -801,7 +863,32 @@ func draw_ranks(drivers: Array) -> Dictionary:
 ## kart's key.
 func kart_choice() -> String:
 	var key := stock_id(settings.get_value("race", "kart", OWN_KART))
+	if key.begins_with(KartDesign.SAVED_KEY):
+		# A saved kart that's since been deleted or can't race.
+		if _saved_kart_ok(key):
+			return key
+		return OWN_KART if design.problems().is_empty() else DEFAULT_STOCK
 	return key if key == OWN_KART or stock_keys().has(key) else OWN_KART
+
+
+## The kart for a pick key: the garage kart, a saved one or a stock one. A
+## saved one that's gone is the default stock kart.
+func kart_design(key: String) -> KartDesign:
+	if key == OWN_KART:
+		return design
+	var path := KartDesign.path_for_key(key)
+	if path != "":
+		return KartDesign.load_file(path) if FileAccess.file_exists(path) else stock_kart(DEFAULT_STOCK)
+	return stock_kart(key)
+
+
+## Whether a saved kart pick is still there and can race.
+func _saved_kart_ok(key: String) -> bool:
+	var path := KartDesign.path_for_key(key)
+	if path == "" or not FileAccess.file_exists(path):
+		return false
+	var saved := KartDesign.load_file(path)
+	return saved != null and saved.problems().is_empty()
 
 
 func set_kart_choice(key: String) -> void:
@@ -936,7 +1023,12 @@ func chosen_design() -> KartDesign:
 	var key := kart_choice()
 	if mode == MODE_GRAND_PRIX and grand_prix != null and grand_prix.player_kart != "":
 		key = grand_prix.player_kart
-	return design if key == OWN_KART else stock_kart(key)
+	return kart_design(key)
+
+
+## Whether starting a race asks for a driver before the kart (Settings).
+func driver_picker_step() -> bool:
+	return settings.get_value("race", "driver_picker", true)
 
 
 func show_fps() -> bool:

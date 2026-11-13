@@ -1,6 +1,7 @@
 {
 	"name": "Stomp",
 	"_comment": "A little kid in a dinosaur suit who never takes it off.",
+	"traits": { "aggression": 0.3, "patience": -0.8, "consistency": -0.7, "late_braking": -0.3 },
 	"head": { "style": "big_eyes", "color": "#f2cd37" },
 	"hair": { "style": "none", "color": "#6b4430" },
 	"headgear": { "style": "dino_hood", "color": "#4fb35f" },

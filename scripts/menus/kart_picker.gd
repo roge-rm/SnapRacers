@@ -1,28 +1,36 @@
 class_name KartPicker
 extends Control
 
-## Pick a kart before a race, either the one you built in the garage or one of
-## the stock karts. In a race against the AI, Easy, Normal, Hard and Expert sit
-## in the header between the title and Back. Each card has a picture of the
-## kart, a line about it and bars for how it compares with the rest. It
-## remembers what you picked last time. A card at the top shows who's
-## driving, and tapping it opens the driver cards to change them.
+## Pick a kart before a race. Your karts come first: the one in the garage,
+## the ones you've saved and a last card to make a new one. Then the stock
+## karts. Each card has a picture of the kart, its name and its weight, and
+## one panel at the top shows the bars for the kart picked or the one a
+## controller is on. In a race against the AI, Easy, Normal, Hard and Expert
+## sit in the header between the title and Back. It remembers what you
+## picked last time. A card at the top shows who's driving, and tapping it
+## opens the driver cards to change them.
 ##
 ## Two on one phone each pick in turn on this screen, player 1 first, with
 ## a big tag in their own colour saying whose turn it is, and their name,
 ## which they can change.
 
-const COLUMNS := 3
-## A card's size. Buttons don't grow to fit what's put inside them, so it's
-## set to fit the picture, the name, four lines about it and the bars, with the page above it on a 720 high screen.
-const CARD := Vector2(330, 410)
-## The bars on each card, as [label, what they measure].
+## Cards are the size of the driver picker's, as many to a row.
+const COLUMNS := DriverGrid.COLUMNS
+const CARD := DriverGrid.CARD
+## How much of a kart's picture to show, from its middle, so the kart fills
+## more of the card.
+const ZOOM := 0.8
+## How wide a card's name and weight can be, to stay clear of its slanted
+## right edge at the bottom.
+const WORDS := CARD.x - 44.0
+## The bars in the stats panel, as [label, what they measure].
 const BARS := [["Speed", "speed"], ["Pull", "pull"], ["Grip", "grip"], ["Control", "control"], ["Off-road", "offroad"]]
 ## Each player's colour, for their tag when two are picking.
 const PLAYER_COLOURS := UiKit.PLAYERS
 
 var _go: Callable
 var _back: Callable
+## Each kart's card, as key -> card.
 var _cards := {}
 var _chosen := ""
 var _race: Button
@@ -31,12 +39,23 @@ var _pictures: KartThumbnails
 var _driver: CharacterDesign
 ## Added to each kart's key for its picture, since it's kept per driver.
 var _look := ""
-## Each card's kart, as key -> KartDesign, to take its picture again.
+## Each card's kart, as key -> KartDesign.
 var _designs := {}
+## The lowest and highest of each measure across every kart here.
+var _ranges := {}
+## The stats panel's bars, as measure -> StatBar.
+var _bars := {}
+var _stats_grid: GridContainer
+var _top: HBoxContainer
 ## The card at the top with who's driving, which opens the driver cards.
 var driver_card: DriverCard
-## This same screen again, for coming back from making a new driver. With
-## none it's a new kart picker like this one.
+## The New kart card.
+var new_card: Button
+## The two sections' grids.
+var yours: GridContainer
+var stock: GridContainer
+## This same screen again, for coming back from making a new driver or kart.
+## With none it's a new kart picker like this one.
 var here := Callable()
 var _ai := false
 var _levels := {}
@@ -61,27 +80,26 @@ func focus_key() -> String:
 func _ready() -> void:
 	# With two, the PLAYER tag under it says whose turn it is.
 	var title := "Pick a kart" if player == 0 else "Pick your kart"
-	var column := MenuStyle.page(self, title, go_back, CARD.x * COLUMNS + 24.0 * (COLUMNS - 1))
+	var column := MenuStyle.page(self, title, go_back, DriverGrid.width())
 	_driver = CharacterDesign.for_key(Game.driver_choice(player == 2))
 	_look = "@" + DriverPortraits.key_of(_driver)
 	_pictures = KartThumbnails.new()
 	_pictures.ready_for.connect(_show_picture)
 	add_child(_pictures)
 
-	# What you're racing in and the button to go, which stay put above the
-	# cards as you scroll, in the page's outer column.
-	var top := HBoxContainer.new()
-	top.add_theme_constant_override("separation", 20)
+	# Who's driving, the picked kart's bars and the button to go, which stay
+	# put above the cards as you scroll, in the page's outer column.
+	_top = HBoxContainer.new()
+	_top.add_theme_constant_override("separation", 20)
 	var outer: VBoxContainer = column.get_parent().get_parent().get_parent()
-	outer.add_child(top)
-	outer.move_child(top, 1)
+	outer.add_child(_top)
+	outer.move_child(_top, 1)
 	if _ai and player != 2:
 		_difficulty_row = _make_difficulty_row()
 		_put_in_header(_difficulty_row, outer)
 		_show_level(Game.difficulty())
 	if player > 0:
-		top.add_child(_player_tag())
-	if player > 0:
+		_top.add_child(_player_tag())
 		# Player 1's name is the one in Settings, and player 2 has their own.
 		var key := "name" if player == 1 else "name_two"
 		_name = LineEdit.new()
@@ -89,41 +107,63 @@ func _ready() -> void:
 		_name.placeholder_text = "Player %d's name" % player
 		_name.max_length = 16
 		_name.text = Game.player_one_name() if player == 1 else Game.player_two_name()
-		_name.custom_minimum_size = Vector2(200.0, 48.0)
+		_name.custom_minimum_size = Vector2(180.0, 48.0)
 		_name.text_changed.connect(func(text: String) -> void: Game.set_setting("player", key, text.strip_edges()))
-		top.add_child(_name)
+		_top.add_child(_name)
 	driver_card = DriverCard.new()
 	driver_card.tapped.connect(open_drivers)
-	top.add_child(driver_card)
+	_top.add_child(driver_card)
 	driver_card.show_driver(_driver)
-	# Race sits at the right end.
-	var gap := Control.new()
-	gap.size_flags_horizontal = SIZE_EXPAND_FILL
-	gap.mouse_filter = MOUSE_FILTER_IGNORE
-	top.add_child(gap)
+	_top.add_child(_stats_panel())
 	_race = MenuStyle.button("Next" if player == 1 else "Race", func() -> void: _go.call())
 	_race.custom_minimum_size.x = 220.0
 	_race.theme_type_variation = "MainButton"
-	top.add_child(_race)
+	_top.add_child(_race)
+	_top.resized.connect(_fit_stats)
+	# Up from Race goes to Back above it.
+	var header: HBoxContainer = outer.get_child(0)
+	var back: Control = header.get_child(header.get_child_count() - 1)
+	_race.focus_neighbor_top = _race.get_path_to(back)
 
-	var grid := GridContainer.new()
-	grid.columns = COLUMNS
-	grid.add_theme_constant_override("h_separation", 24)
-	grid.add_theme_constant_override("v_separation", 24)
-	column.add_child(grid)
 	var entries := [[Game.OWN_KART, Game.design]]
+	# A saved kart that's the same as the one in the garage isn't shown twice,
+	# and picking it last time picks the garage card.
+	var garage_json := JSON.stringify(Game.design.to_dict())
+	var same_as_garage: Array[String] = []
+	for path in KartDesign.saved_paths():
+		var saved := KartDesign.load_file(path)
+		if saved != null and JSON.stringify(saved.to_dict()) == garage_json:
+			same_as_garage.append(KartDesign.key_for(path))
+			continue
+		entries.append([KartDesign.key_for(path), saved])
+	var stock_entries := []
 	for key in Game.stock_keys():
-		entries.append([key, Game.stock_kart(key)])
-	var ranges := _ranges(entries.map(func(e): return _measure(e[1])))
+		stock_entries.append([key, Game.stock_kart(key)])
+	_ranges = _ranges_of((entries + stock_entries).map(func(e): return _measure(e[1])))
+	# Your own karts change in the garage, so take their pictures again each time.
 	for entry in entries:
-		var card := _card(entry[0], entry[1], ranges)
-		grid.add_child(card)
-		_cards[entry[0]] = card
+		KartThumbnails.forget(entry[0])
+	var sections := VBoxContainer.new()
+	sections.add_theme_constant_override("separation", 12)
+	column.add_child(sections)
+	sections.add_child(MenuStyle.heading("Your karts"))
+	yours = _grid()
+	sections.add_child(yours)
+	for entry in entries:
+		yours.add_child(_card(entry[0], entry[1]))
+	new_card = _new_card()
+	yours.add_child(new_card)
+	sections.add_child(MenuStyle.heading("Stock karts"))
+	stock = _grid()
+	sections.add_child(stock)
+	for entry in stock_entries:
+		stock.add_child(_card(entry[0], entry[1]))
 	MenuStyle.back_at_bottom(column, go_back)
-	# Your own kart changes in the garage, so take its picture again each time.
-	KartThumbnails.forget(Game.OWN_KART)
 	var last := Game.player_two_kart() if player == 2 else Game.kart_choice()
-	_choose(last if not (last == Game.OWN_KART and not Game.design.problems().is_empty()) else Game.DEFAULT_STOCK)
+	if last in same_as_garage:
+		last = Game.OWN_KART
+	_choose(last if _cards.has(last) and not _cards[last].disabled else Game.DEFAULT_STOCK)
+	_scroll_to_chosen()
 
 
 func go_back() -> void:
@@ -203,6 +243,25 @@ func _choose(key: String) -> void:
 		Game.set_kart_choice(key)
 	for other in _cards:
 		MenuStyle.mark(_cards[other], other == key)
+	show_stats(key)
+
+
+## The picked kart, as its pick key.
+func chosen() -> String:
+	return _chosen
+
+
+## Scrolls to the picked card once it's laid out, since it can be down in the
+## stock karts.
+func _scroll_to_chosen() -> void:
+	await get_tree().process_frame
+	await get_tree().process_frame
+	var card: Control = _cards.get(_chosen)
+	var node: Node = card
+	while node != null and not node is ScrollContainer:
+		node = node.get_parent()
+	if node != null and is_instance_valid(card):
+		(node as ScrollContainer).ensure_control_visible(card)
 
 
 ## How a kart measures up on each bar, before it's compared with the others.
@@ -218,7 +277,7 @@ static func _measure(design: KartDesign) -> Dictionary:
 
 
 ## The lowest and highest of each measure across every kart.
-static func _ranges(all: Array) -> Dictionary:
+static func _ranges_of(all: Array) -> Dictionary:
 	var out := {}
 	for bar in BARS:
 		var values: Array = all.map(func(m): return m[bar[1]])
@@ -226,86 +285,246 @@ static func _ranges(all: Array) -> Dictionary:
 	return out
 
 
-func _card(key: String, design: KartDesign, ranges: Dictionary) -> Button:
+## How full each bar is for this kart, 0.12 to 1, as measure -> amount.
+func amounts_for(design: KartDesign) -> Dictionary:
+	var measured := _measure(design)
+	var out := {}
+	for bar in BARS:
+		var range: Vector2 = _ranges[bar[1]]
+		var amount := inverse_lerp(range.x, range.y, measured[bar[1]]) if range.y > range.x else 1.0
+		out[bar[1]] = lerpf(0.12, 1.0, clampf(amount, 0.0, 1.0))
+	return out
+
+
+## Shows this kart's bars in the stats panel.
+func show_stats(key: String) -> void:
+	if _bars.is_empty() or not _designs.has(key) or not is_inside_tree():
+		return
+	var amounts := amounts_for(_designs[key])
+	for bar in BARS:
+		_bars[bar[1]].amount = amounts[bar[1]]
+		_bars[bar[1]].queue_redraw()
+	_stats_grid.set_meta("kart", key)
+
+
+## The bars for the picked kart, between the driver card and Race.
+func _stats_panel() -> PanelContainer:
+	var panel := PanelContainer.new()
+	panel.name = "Stats"
+	panel.add_theme_stylebox_override("panel", UiKit.pad(UiKit.slant(Color(UiKit.PANEL, 0.88), UiKit.CARD_LEAN, Color(1, 1, 1, 0.14), 1), 22, 6, UiKit.CARD_LEAN, DriverCard.SIZE.y))
+	panel.custom_minimum_size.y = DriverCard.SIZE.y
+	panel.size_flags_horizontal = SIZE_EXPAND_FILL
+	panel.size_flags_vertical = SIZE_SHRINK_CENTER
+	panel.mouse_filter = MOUSE_FILTER_IGNORE
+	_stats_grid = GridContainer.new()
+	_stats_grid.columns = 2
+	_stats_grid.add_theme_constant_override("h_separation", 24)
+	_stats_grid.add_theme_constant_override("v_separation", 2)
+	_stats_grid.size_flags_vertical = SIZE_SHRINK_CENTER
+	panel.add_child(_stats_grid)
+	for bar in BARS:
+		var row := HBoxContainer.new()
+		row.size_flags_horizontal = SIZE_EXPAND_FILL
+		_stats_grid.add_child(row)
+		var label := Label.new()
+		label.text = bar[0]
+		label.custom_minimum_size.x = 72.0
+		label.theme_type_variation = "SmallLabel"
+		row.add_child(label)
+		var meter := StatBar.new(0.5)
+		meter.custom_minimum_size.x = 40.0
+		meter.size_flags_horizontal = SIZE_EXPAND_FILL
+		meter.size_flags_vertical = SIZE_SHRINK_CENTER
+		row.add_child(meter)
+		_bars[bar[1]] = meter
+	return panel
+
+
+## One column of bars when the panel's squeezed, like two players' tag and
+## name beside it with the camera hole, else two.
+func _fit_stats() -> void:
+	var room := _top.size.x
+	for child in _top.get_children():
+		if child is Control and child.visible and child != _stats_grid.get_parent():
+			room -= child.get_combined_minimum_size().x
+	room -= _top.get_theme_constant("separation") * (_top.get_child_count() - 1)
+	var columns := 2 if room >= 330.0 else 1
+	if _stats_grid.columns != columns:
+		_stats_grid.columns = columns
+
+
+func _grid() -> GridContainer:
+	var grid := GridContainer.new()
+	grid.columns = COLUMNS
+	grid.add_theme_constant_override("h_separation", DriverGrid.GAP)
+	grid.add_theme_constant_override("v_separation", DriverGrid.GAP)
+	return grid
+
+
+## A card like a driver card: the kart's picture, its name and its weight.
+## Your own karts that can't be driven say why and can't be picked.
+func _card(key: String, design: KartDesign) -> ScrollButton:
+	var card := _base_card(design.name)
+	card.set_meta("kart", key)
+	_set_picture(card, KartThumbnails.picture(key + _look))
+	var own := key == Game.OWN_KART or key.begins_with(KartDesign.SAVED_KEY)
+	var problems: Array[String] = design.problems() if own else ([] as Array[String])
+	var line := Label.new()
+	line.name = "Weight"
+	line.text = "%d kg" % roundi(KartStats.compute(design).mass) if problems.is_empty() else problems[0]
+	line.theme_type_variation = "SmallLabel" if problems.is_empty() else "DangerLabel"
+	line.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	line.custom_minimum_size.x = WORDS
+	line.size_flags_horizontal = SIZE_SHRINK_BEGIN
+	line.mouse_filter = MOUSE_FILTER_IGNORE
+	card.get_node("Box/Words/Lines").add_child(line)
+	card.disabled = not problems.is_empty()
+	card.tapped.connect(_choose.bind(key))
+	card.focus_entered.connect(show_stats.bind(key))
+	card.focus_exited.connect(func() -> void: show_stats(_chosen))
+	_designs[key] = design
+	_cards[key] = card
+	_pictures.take(key + _look, design, _driver)
+	return card
+
+
+func _new_card() -> ScrollButton:
+	var card := _base_card("New kart")
+	card.set_meta("new_kart", true)
+	var plus := Label.new()
+	plus.text = "+"
+	plus.theme_type_variation = "HeadingLabel"
+	plus.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	plus.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	plus.add_theme_font_size_override("font_size", 96)
+	plus.mouse_filter = MOUSE_FILTER_IGNORE
+	plus.set_anchors_and_offsets_preset(PRESET_FULL_RECT)
+	card.get_node("Box/Picture").add_child(plus)
+	card.tapped.connect(new_kart)
+	return card
+
+
+## Same size and layout as DriverGrid's cards.
+func _base_card(title: String) -> ScrollButton:
 	var card := ScrollButton.new()
 	card.theme_type_variation = "CardButton"
 	card.custom_minimum_size = CARD
 	card.focus_mode = FOCUS_ALL
-	card.set_meta("kart", key)
 	var box := VBoxContainer.new()
 	box.name = "Box"
 	box.mouse_filter = MOUSE_FILTER_IGNORE
-	box.add_theme_constant_override("separation", 4)
+	box.add_theme_constant_override("separation", 2)
 	box.set_anchors_and_offsets_preset(PRESET_FULL_RECT)
-	box.offset_left = 20.0
-	box.offset_right = -14.0
+	box.offset_left = 10.0
+	box.offset_right = -10.0
 	box.offset_top = 10.0
-	box.offset_bottom = -12.0
+	box.offset_bottom = -10.0
 	card.add_child(box)
 	var picture := TextureRect.new()
 	picture.name = "Picture"
-	picture.custom_minimum_size = Vector2(0, 100)
+	# It gives up some height for a name on two or three lines.
+	picture.custom_minimum_size = Vector2(0, 140)
+	picture.size_flags_vertical = SIZE_EXPAND_FILL
 	picture.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	picture.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	picture.mouse_filter = MOUSE_FILTER_IGNORE
-	picture.texture = KartThumbnails.picture(key + _look)
 	box.add_child(picture)
-	var own := key == Game.OWN_KART
-	var title := Label.new()
-	title.text = ("The garage kart, %s" if player == 2 else "Your kart, %s") % design.name if own else design.name
-	title.theme_type_variation = "LeadLabel"
-	# A long garage name goes on to a second line.
-	title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	title.custom_minimum_size = Vector2(CARD.x - 34.0, 0)
-	box.add_child(title)
-	var problems: Array[String] = design.problems() if own else ([] as Array[String])
-	var about := Label.new()
-	var built := "The one in the garage." if player == 2 else "The one you built in the garage."
-	about.text = design.about if not own else (built if problems.is_empty() else problems[0])
-	about.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	about.custom_minimum_size = Vector2(CARD.x - 34.0, 0)
-	about.theme_type_variation = "SmallLabel" if problems.is_empty() else "DangerLabel"
-	box.add_child(about)
-	var spacer := Control.new()
-	spacer.size_flags_vertical = SIZE_EXPAND_FILL
-	spacer.mouse_filter = MOUSE_FILTER_IGNORE
-	box.add_child(spacer)
-	# Keep the bars inside the card's slanted lower edge.
-	var inset := MarginContainer.new()
-	inset.add_theme_constant_override("margin_right", ceili(UiKit.CARD_LEAN * 200.0))
-	inset.mouse_filter = MOUSE_FILTER_IGNORE
-	box.add_child(inset)
-	var meters := VBoxContainer.new()
-	meters.add_theme_constant_override("separation", 4)
-	meters.mouse_filter = MOUSE_FILTER_IGNORE
-	inset.add_child(meters)
-	var measured := _measure(design)
-	for bar in BARS:
-		var row := HBoxContainer.new()
-		row.mouse_filter = MOUSE_FILTER_IGNORE
-		meters.add_child(row)
-		var label := Label.new()
-		label.text = bar[0]
-		label.custom_minimum_size.x = 90.0
-		label.theme_type_variation = "SmallLabel"
-		row.add_child(label)
-		var range: Vector2 = ranges[bar[1]]
-		var amount := inverse_lerp(range.x, range.y, measured[bar[1]]) if range.y > range.x else 1.0
-		var meter := StatBar.new(lerpf(0.12, 1.0, clampf(amount, 0.0, 1.0)))
-		meter.size_flags_horizontal = SIZE_EXPAND_FILL
-		row.add_child(meter)
-	# A kart that can't be driven can be looked at but not picked.
-	card.disabled = not problems.is_empty()
-	card.tapped.connect(_choose.bind(key))
-	_designs[key] = design
-	_pictures.take(key + _look, design, _driver)
+	# The words keep the driver cards' inset.
+	var words := MarginContainer.new()
+	words.name = "Words"
+	words.add_theme_constant_override("margin_left", 6)
+	words.mouse_filter = MOUSE_FILTER_IGNORE
+	box.add_child(words)
+	var lines := VBoxContainer.new()
+	lines.name = "Lines"
+	lines.add_theme_constant_override("separation", 2)
+	lines.mouse_filter = MOUSE_FILTER_IGNORE
+	words.add_child(lines)
+	var name_label := Label.new()
+	name_label.name = "Name"
+	name_label.text = title
+	name_label.theme_type_variation = "LeadLabel"
+	name_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	name_label.custom_minimum_size = Vector2(WORDS, 0)
+	name_label.size_flags_horizontal = SIZE_SHRINK_BEGIN
+	# A long name stops at two lines, with dots.
+	name_label.max_lines_visible = 2
+	name_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	name_label.mouse_filter = MOUSE_FILTER_IGNORE
+	lines.add_child(name_label)
 	return card
+
+
+## Puts a kart's picture on its card, cut in to the middle of it.
+func _set_picture(card: Control, picture: Texture2D) -> void:
+	var rect: TextureRect = card.get_node("Box/Picture")
+	if picture == null:
+		rect.texture = null
+		return
+	var zoomed := AtlasTexture.new()
+	zoomed.atlas = picture
+	var whole := Vector2(picture.get_size())
+	zoomed.region = Rect2(whole * (1.0 - ZOOM) * 0.5, whole * ZOOM)
+	rect.texture = zoomed
 
 
 func _show_picture(look_key: String, picture: Texture2D) -> void:
 	var key := look_key.trim_suffix(_look)
 	if look_key.ends_with(_look) and _cards.has(key):
-		_cards[key].get_node("Box/Picture").texture = picture
+		_set_picture(_cards[key], picture)
+
+
+## Opens the garage with a new kart, and comes back here with it picked once
+## it's saved.
+func new_kart() -> void:
+	var back := here
+	if not back.is_valid():
+		back = func() -> void:
+			var again := KartPicker.new(_go, _back, _ai, player)
+			Game._swap(again)
+	KartPicker.make_new_kart(player == 2, back)
+
+
+## The garage with an empty kart under a name of its own. Leaving it saves it
+## with your karts if it has any parts, under a name of its own if a saved one
+## has its name, picks it for player 1 or (with `second`) player 2 if it can
+## be driven, and goes to `done`. If Save was used, it saves over that file.
+static func make_new_kart(second: bool, done: Callable) -> Garage:
+	var fresh := KartDesign.new()
+	fresh.name = unique_kart_name("New kart")
+	var garage := Garage.new("", done)
+	garage.start = fresh
+	garage.made = func(made: KartDesign) -> void:
+		var path := ""
+		if garage.saved_path != "":
+			path = str(CreationLibrary.save(Sharing.KART, garage.saved_path, made.to_dict(), true).get("path", ""))
+		elif not made.parts.is_empty():
+			made.name = unique_kart_name(made.name)
+			path = str(CreationLibrary.save(Sharing.KART, Sharing.path_for(Sharing.KART, made.name), made.to_dict()).get("path", ""))
+		if path != "" and made.problems().is_empty():
+			if second:
+				Game.set_setting("race", "player_two", KartDesign.key_for(path))
+			else:
+				Game.set_kart_choice(KartDesign.key_for(path))
+		done.call()
+	Game._swap(garage)
+	return garage
+
+
+## `wanted` if no saved kart has its file, or else "<wanted> 2", "<wanted> 3"
+## and so on.
+static func unique_kart_name(wanted: String) -> String:
+	wanted = wanted.strip_edges()
+	if wanted == "":
+		wanted = "My kart"
+	var taken := func(kart_name: String) -> bool:
+		return FileAccess.file_exists(Sharing.path_for(Sharing.KART, kart_name))
+	if not taken.call(wanted):
+		return wanted
+	var n := 2
+	while taken.call("%s %d" % [wanted, n]):
+		n += 1
+	return "%s %d" % [wanted, n]
 
 
 ## Opens the driver cards in a window over this screen.
@@ -333,7 +552,7 @@ func pick_driver(key: String) -> void:
 	for kart in _cards:
 		var picture := KartThumbnails.picture(kart + _look)
 		if picture != null:
-			_cards[kart].get_node("Box/Picture").texture = picture
+			_set_picture(_cards[kart], picture)
 		_pictures.take(kart + _look, _designs[kart], _driver)
 
 

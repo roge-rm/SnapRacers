@@ -20,6 +20,9 @@ const SPREAD := 3.4
 const THROW := 1.5
 const DROP_STEP := 0.1
 const DROP_GAP := 0.1
+## How high over sticky road they start, in metres, about where a kart's
+## middle rides.
+const RIDE_HIGH := 0.4
 ## The sizes a dropped brick can be, in studs across and along, and how often
 ## one is a plate.
 const SIZES := [Vector2i(1, 1), Vector2i(1, 2), Vector2i(1, 3), Vector2i(1, 4), Vector2i(2, 2), Vector2i(2, 3), Vector2i(2, 4), Vector2i(1, 6), Vector2i(2, 6)]
@@ -48,6 +51,18 @@ static func drop_behind(from: Kart) -> Array[BrickPile]:
 	var right := from.global_basis.x
 	var up := from.global_basis.y
 	var behind := drop_distance(from)
+	var start := from.global_position
+	var facing := from.global_basis
+	# On a loop or corkscrew they come out over the road behind, which curves
+	# away from the kart's own back, so none start inside it.
+	var place := BrickTrap.ground_behind(from, behind)
+	if place.sticky:
+		var hit: Dictionary = place.hit
+		up = hit.normal
+		back = back.slide(up).normalized()
+		right = up.cross(back).normalized()
+		start = hit.position + up * RIDE_HIGH - back * behind
+		facing = Basis(right, up, back)
 	# Sizes and colours from the kart's grid slot and how many things it's
 	# dropped, which every machine counts the same since the drops arrive in
 	# order, so every device drops the same pile.
@@ -60,8 +75,8 @@ static func drop_behind(from: Kart) -> Array[BrickPile]:
 		var size := Vector3(studs.x * Grid.STUD, PLATE_HIGH if plate else BRICK_HIGH, studs.y * Grid.STUD)
 		var brick := BrickPile.new(size, COLOURS[rng.randi_range(0, COLOURS.size() - 1)])
 		var spot := spot_of(i)
-		var at := from.global_position + back * (behind + i * DROP_STEP) + right * spot.x + up * spot.y
-		brick.transform = Transform3D(from.global_basis.rotated(up, i * 0.9), at)
+		var at := start + back * (behind + i * DROP_STEP) + right * spot.x + up * spot.y
+		brick.transform = Transform3D(facing.rotated(up, i * 0.9), at)
 		# Thrown back and out, spinning, so they spread across the road and a
 		# little along it.
 		brick.linear_velocity = from.linear_velocity * 0.3 + right * spot.x * THROW + back * (i % 3) + up * (1.0 + spot.y)

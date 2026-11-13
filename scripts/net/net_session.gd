@@ -26,7 +26,7 @@ signal race_begun
 signal race_over(order: Array)
 
 ## Racing uses its own number, so it can't be confused with an older game.
-const VERSION := 20
+const VERSION := 22
 const PORT := 27280
 const MOST_KARTS := 8
 ## What a host can put on.
@@ -263,7 +263,7 @@ func start() -> void:
 ## Where a cup's got to, which only the host keeps.
 var cup_points := {}
 var cup_round := 0
-## The AI drivers in the cup, by roster key, drawn for its first race.
+## The AI drivers in the cup, by roster or pick key, drawn for its first race.
 var cup_drivers: Array = []
 var _race_names := RaceNames.new()
 
@@ -286,7 +286,8 @@ func _setup() -> Dictionary:
 	if settings.ai:
 		# No AI driver is the same as a stock driver someone's racing as.
 		var people := entries.map(func(entry: Dictionary) -> Variant: return entry.driver)
-		var drivers: Array = Game.ai_driver_keys().filter(func(key: String) -> bool: return not people.has(Game.roster_driver(key).to_dict()))
+		# With the host's setting on, that includes the host's own drivers, sent as their dicts.
+		var drivers: Array = Game.ai_candidates([], people)
 		drivers.shuffle()
 		# A cup keeps the drivers it started with while they're still free.
 		if settings.mode == CUP:
@@ -301,7 +302,7 @@ func _setup() -> Dictionary:
 		var ranks := Game.draw_ranks(drivers)
 		for i in fill:
 			var who := Game.roster_driver(drivers[i])
-			entries.push_front({"identity": "ai:" + drivers[i], "owner": 1, "ai": true, "name": who.name, "driver": who.to_dict(), "kart": Game.stock_kart(karts.get(drivers[i], Game.DEFAULT_STOCK)).to_dict(), "rank": ranks.get(drivers[i], i), "line": (i % 3 - 1) * 1.5})
+			entries.push_front({"identity": "ai:" + drivers[i], "owner": 1, "ai": true, "name": who.name, "driver": who.to_dict(), "kart": Game.stock_kart(karts.get(drivers[i], Game.DEFAULT_STOCK)).to_dict(), "rank": ranks.get(drivers[i], i)})
 	_race_names.assign(entries)
 	for entry in entries:
 		entry.erase("identity")

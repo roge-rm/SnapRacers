@@ -30,29 +30,50 @@ const CLEAR_FOR := 1.0
 var colour_seed := 0
 var _age := 0.0
 var _bricks: Array[RigidBody3D] = []
+## Dropped with no road under it, it falls whole until it lands.
+var _falling := false
+var _fall_speed := 0.0
 var _feel: Area3D
 ## [kart, brick, seconds left] for each brick going through the kart that broke it.
 var _clearing: Array = []
 
 
-## A wall on the ground just behind this kart, square to the way it's going.
+## A wall on the ground just behind this kart, square to the way it's going
+## and standing straight out of the road, round loops and corkscrews too.
 static func drop_behind(from: Kart) -> BrickWall:
 	var wall := BrickWall.new()
-	var behind := from.global_position + from.global_basis.z * BEHIND
-	var space := from.get_world_3d().direct_space_state
-	var query := PhysicsRayQueryParameters3D.create(behind + Vector3.UP * 2.0, behind + Vector3.DOWN * 4.0, Kart.LAYER_WORLD)
-	var hit := space.intersect_ray(query)
-	var ground: Vector3 = hit.position if not hit.is_empty() else behind
-	var forward := -from.global_basis.z
-	forward.y = 0.0
+	var place := BrickTrap.ground_behind(from, BEHIND, HALF)
+	var hit: Dictionary = place.hit
+	var up: Vector3 = hit.normal if not hit.is_empty() else Vector3.UP
+	var forward := (-from.global_basis.z).slide(up)
 	if forward.length() < 0.1:
-		forward = Vector3.FORWARD
-	wall.transform = Transform3D(Basis.looking_at(forward.normalized(), Vector3.UP), ground)
+		forward = Vector3.FORWARD.slide(up)
+	var ground: Vector3 = hit.position if not hit.is_empty() else place.at
+	wall.transform = Transform3D(Basis.looking_at(forward.normalized(), up), ground)
+	wall._falling = hit.is_empty()
 	# From the kart's grid slot and how many walls it's dropped, which every
 	# machine counts the same since the drops arrive in order.
 	wall.colour_seed = hash([from.grid_slot, from.drops])
 	from.drops += 1
 	return wall
+
+
+## Falls straight down until it lands on ground it can stand on, then stands
+## straight out of it.
+func _fall(delta: float) -> void:
+	_fall_speed += KartStats.gravity() * delta
+	var step := _fall_speed * delta
+	var query := PhysicsRayQueryParameters3D.create(global_position + Vector3.UP * 0.05, global_position + Vector3.DOWN * step, Kart.LAYER_WORLD)
+	var hit := BrickTrap.road_hit(get_world_3d().direct_space_state, query)
+	if hit.is_empty() or hit.normal.y <= 0.1:
+		global_position += Vector3.DOWN * step
+		return
+	var up: Vector3 = hit.normal
+	var forward := (-global_basis.z).slide(up)
+	if forward.length() < 0.1:
+		forward = Vector3.FORWARD.slide(up)
+	global_transform = Transform3D(Basis.looking_at(forward.normalized(), up), hit.position)
+	_falling = false
 
 
 func _ready() -> void:
@@ -127,7 +148,7 @@ func _knock_loose() -> void:
 			var brick: RigidBody3D = in_way[i]
 			var off := brick.position.x - local.x
 			var side := signf(off) if absf(off) > 0.1 else (1.0 if i % 2 == 0 else -1.0)
-			BrickPile.throw.call_deferred(brick, along * fling * 0.5 + global_basis.x * side * fling * 0.9 + Vector3.UP * 2.0)
+			BrickPile.throw.call_deferred(brick, along * fling * 0.5 + global_basis.x * side * fling * 0.9 + global_basis.y * 2.0)
 			kart.add_collision_exception_with(brick)
 			_clearing.append([kart, brick, CLEAR_FOR])
 		kart.linear_velocity -= global_basis.z * going * (1.0 - KEEP)
@@ -144,6 +165,11 @@ func standing() -> bool:
 
 
 func _physics_process(delta: float) -> void:
+	# Once a brick's knocked loose the rest stay where they are.
+	if _falling and _bricks.all(func(brick: RigidBody3D) -> bool: return brick.freeze):
+		_fall(delta)
+	else:
+		_falling = false
 	if _feel != null and standing():
 		_knock_loose()
 	for i in range(_clearing.size() - 1, -1, -1):

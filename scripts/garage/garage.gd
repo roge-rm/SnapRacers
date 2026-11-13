@@ -45,6 +45,11 @@ const VIEWS := {
 var initial_path := ""
 var saved_path := ""
 var back := Callable()
+## The kart to start from instead of the garage kart, for making a new one.
+var start: KartDesign
+## When set, leaving or Done calls this with the kart instead of keeping it
+## as the garage kart, and there's no test drive.
+var made := Callable()
 
 var design: KartDesign
 var ui: GarageUI
@@ -147,7 +152,10 @@ func _init(from := "", leave := Callable()) -> void:
 
 
 func _ready() -> void:
-	design = KartDesign.load_file(initial_path) if initial_path != "" else Game.design.duplicate_design()
+	if start != null:
+		design = start.duplicate_design()
+	else:
+		design = KartDesign.load_file(initial_path) if initial_path != "" else Game.design.duplicate_design()
 	SkyAndSun.add_to(self, 30.0, Color("#2b3440"))
 	# Looking down on the kart catches a lot more light than the track camera
 	# does, so the garage is lit a little more softly.
@@ -209,6 +217,8 @@ func _ready() -> void:
 	ui.race_pressed.connect(_race)
 	ui.menu_pressed.connect(_to_menu)
 	ui.name_changed.connect(func(text: String) -> void: design.name = text)
+	if made.is_valid():
+		ui.for_new_kart()
 
 	# A controller works the garage its own way (see GaragePad).
 	var pad := GaragePad.new()
@@ -665,7 +675,8 @@ func _open_import() -> void:
 	window.added.connect(func(kind: String, path: String) -> void:
 		if kind == Sharing.KART:
 			_load(path)
-			Game.keep_design(design))
+			if not made.is_valid():
+				Game.keep_design(design))
 
 
 func _save() -> void:
@@ -705,6 +716,9 @@ func _drive() -> void:
 
 
 func _race() -> void:
+	if made.is_valid():
+		made.call(design)
+		return
 	if not design.problems().is_empty():
 		return
 	Game.keep_design(design)
@@ -712,6 +726,9 @@ func _race() -> void:
 
 
 func _to_menu() -> void:
+	if made.is_valid():
+		made.call(design)
+		return
 	Game.keep_design(design)
 	if back.is_valid():
 		back.call()

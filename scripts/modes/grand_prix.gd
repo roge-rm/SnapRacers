@@ -22,7 +22,8 @@ var points := {}
 var race_names := RaceNames.new()
 ## Each race's finishing order so far, as lists of names.
 var results: Array = []
-## The AI drivers for the whole cup, by roster key, drawn at the start.
+## The AI drivers for the whole cup, by roster key or pick key for your own
+## (see Game.ai_field()), drawn at the start.
 var drivers: Array[String] = []
 ## The stock kart each AI driver races the whole cup in, as { driver: kart }.
 var karts := {}

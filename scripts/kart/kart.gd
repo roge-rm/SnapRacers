@@ -213,6 +213,14 @@ const WHEEL_BODY := 0.55
 ## much more for every m/s it's going, less in shallower water. Nothing,
 ## however slippery, grips less than LEAST_GRIP, except a tire that's
 ## hydroplaning.
+## Slipstream: right behind another kart going the same way, its air drag
+## is cut by up to SLIP_MOST, less the further back it is up to SLIP_REACH
+## metres from bumper to bumper, and the further to the side up to
+## SLIP_WIDE of the kart ahead's width. Below SLIP_SPEED m/s there's none.
+const SLIP_MOST := 0.12
+const SLIP_REACH := 14.0
+const SLIP_WIDE := 1.5
+const SLIP_SPEED := 10.0
 const WATER_GRIP := 0.8
 const WATER_PUSH := 0.033
 const WATER_DRAG := 0.033
@@ -457,6 +465,10 @@ var _ground_y := 0.0
 var full_lock := MAX_STEER
 ## How wide it is (see width()), or -1 until it's worked out again.
 var _width := -1.0
+## Its nose and tail along z (see bumper_point() and tail_length()), or NAN
+## until they're worked out again. Slipstream asks every step.
+var _nose := NAN
+var _tail := NAN
 ## Whether the kart is stuck to the road on a loop or a wall ride right now.
 var sticking := false
 ## Which way is up off the road while it's sticking.
@@ -477,6 +489,9 @@ var _rail_speed := 0.0
 ## last line it rode to the end of.
 var _rail_at := 0.0
 var _rail_done := Vector3.INF
+## How much of its air drag the slipstream is cutting right now, 0 to
+## SLIP_MOST (see _slipstream()).
+var slipstream := 0.0
 
 ## The power-ups on the two gadget buttons, "" for none, and how many goes
 ## each has left.
@@ -758,6 +773,8 @@ func _assemble() -> void:
 
 	stats = KartStats.compute(design, lost, _full.origin_cell, _driver_mass())
 	_width = -1.0
+	_nose = NAN
+	_tail = NAN
 	power = stats.power
 	max_force = stats.max_force
 	thrust = stats.thrust
@@ -932,11 +949,12 @@ func eye_point() -> Vector3:
 ## Just in front of the nose of the kart and low down, in the kart's space,
 ## for a bumper camera.
 func bumper_point() -> Vector3:
-	var front := 0.0
-	if stats != null:
-		for info in stats.parts:
-			front = minf(front, info.centre.z - info.extent.z * 0.5)
-	return Vector3(0.0, 0.3, front - 0.05)
+	if is_nan(_nose):
+		_nose = 0.0
+		if stats != null:
+			for info in stats.parts:
+				_nose = minf(_nose, info.centre.z - info.extent.z * 0.5)
+	return Vector3(0.0, 0.3, _nose - 0.05)
 
 
 ## The same just behind its tail, for the bumper camera looking back.
@@ -986,6 +1004,42 @@ func _all_karts() -> Array:
 		_karts_frame = frame
 		_karts = get_tree().get_nodes_in_group("karts")
 	return _karts
+
+
+## How much of its air drag to cut for the slipstream of the kart closest
+## in front, 0 to SLIP_MOST. That kart has to be going the same way at
+## much the same speed or faster, so a kart it's catching quickly gives
+## little. Works off what every device sees, so it works online too.
+func _slipstream(state: PhysicsDirectBodyState3D) -> float:
+	if ghost_left > 0.0 or not is_inside_tree():
+		return 0.0
+	var forward := -state.transform.basis.z
+	var going := state.linear_velocity.dot(forward)
+	if going < SLIP_SPEED:
+		return 0.0
+	var front := maxf(-bumper_point().z, 0.5)
+	var best := 0.0
+	for body in _all_karts():
+		if body == self or not is_instance_valid(body):
+			continue
+		var other: Kart = body
+		if other.ghost_left > 0.0:
+			continue
+		var gap: Vector3 = other.global_position - state.transform.origin
+		if gap.length_squared() > (SLIP_REACH + 10.0) * (SLIP_REACH + 10.0):
+			continue
+		var ahead := gap.dot(forward) - front - other.tail_length()
+		if ahead < -0.5 or ahead > SLIP_REACH:
+			continue
+		var side := absf(gap.dot(state.transform.basis.x)) / (other.width() * SLIP_WIDE)
+		if side >= 1.0 or absf(gap.dot(state.transform.basis.y)) > 2.0:
+			continue
+		var velocity: Vector3 = other.remote_velocity if other.remote else other.linear_velocity
+		if (-other.global_basis.z).dot(forward) < 0.9 or velocity.dot(forward) < going - 4.0:
+			continue
+		var near := 1.0 - clampf(ahead, 0.0, SLIP_REACH) / SLIP_REACH
+		best = maxf(best, near * (1.0 - side * side))
+	return SLIP_MOST * best
 
 
 ## Pushes the kart sideways away from any other kart whose wheels are about
@@ -1046,11 +1100,12 @@ func width() -> float:
 ## How far the back of the kart is behind its middle, in metres, for the chase
 ## cameras.
 func tail_length() -> float:
-	var back := 0.0
-	if stats != null:
-		for info in stats.parts:
-			back = maxf(back, info.centre.z + info.extent.z * 0.5)
-	return back
+	if is_nan(_tail):
+		_tail = 0.0
+		if stats != null:
+			for info in stats.parts:
+				_tail = maxf(_tail, info.centre.z + info.extent.z * 0.5)
+	return _tail
 
 
 ## Resets the kart on the next physics step, just as if the driver had
@@ -1484,7 +1539,8 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 
 	# Air drag from everything facing forward, and downforce from any wings.
 	var air := 0.5 * KartStats.AIR_DENSITY
-	var drag := -state.linear_velocity * speed * air * drag_area
+	slipstream = _slipstream(state)
+	var drag := -state.linear_velocity * speed * air * drag_area * (1.0 - slipstream)
 	var downforce := -up * air * lift_area * forward_speed * forward_speed
 	state.apply_central_force(_ok(drag))
 	state.apply_central_force(_ok(downforce))
@@ -2112,12 +2168,13 @@ func _shield_blocks() -> void:
 		var away: Vector3 = body.global_position - global_position
 		if away.length() > SHIELD_REACH:
 			continue
-		away.y = 0.0
+		# Out along the road and up off it, upside down on a loop too.
+		var up := global_basis.y
+		away = away.slide(up)
 		_shield_shoved.append(body)
 		var out := away.normalized() if away.length() > 0.25 else -global_basis.z
-		var carry := linear_velocity
-		carry.y = 0.0
-		BrickPile.throw(body, out * SHIELD_SHOVE + Vector3.UP * SHIELD_HOP + carry * 0.25)
+		var carry := linear_velocity.slide(up)
+		BrickPile.throw(body, out * SHIELD_SHOVE + up * SHIELD_HOP + carry * 0.25)
 	for trap in get_tree().get_nodes_in_group("traps"):
 		if _shield_shoved.has(trap) or not trap.overlaps_shield(global_position):
 			continue

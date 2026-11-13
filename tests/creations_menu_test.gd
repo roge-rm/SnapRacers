@@ -354,5 +354,32 @@ func _ready() -> void:
 	screen().go_back()
 	await frames()
 	check(screen() is EditorsMenu, "ordinary editors keep their default return route")
+	await _split_course()
 	print("All %d creations menu checks passed." % checks if failures == 0 else "%d creations menu checks failed." % failures)
 	get_tree().quit(1 if failures > 0 else 0)
+
+
+## A course with a split comes in through Add and goes back out through Share.
+func _split_course() -> void:
+	Game.show_creations(Sharing.COURSE, "")
+	await frames()
+	var menu: CreationsMenu = screen()
+	menu._open_import()
+	await frames()
+	var add: AddWindow = menu.find_children("*", "AddWindow", true, false)[0]
+	var split := CourseDesign.load_file("res://tests/data/split_course.json")
+	split.name = "Split import"
+	split.pieces[1] = {"type": "adjustable_split", "metres": 64.0, "island": 13.5}
+	add._add(Sharing.code_for(split.to_dict()))
+	var path := Sharing.path_for(Sharing.COURSE, split.name)
+	check(menu.kind == Sharing.COURSE and menu.selected == path and CourseDesign.load_file(path).pieces[1] == split.pieces[1], "a course with a split comes in through Add")
+	add.hide()
+	await frames()
+	menu._share()
+	await frames()
+	var shares := menu.find_children("*", "ShareWindow", true, false)
+	var shared: Dictionary = Sharing.read(Sharing.code_for(shares[0].data)) if not shares.is_empty() else {}
+	check(shared.get("kind") == Sharing.COURSE and shared.data.pieces[1] == split.pieces[1], "and goes back out through Share the same")
+	if not shares.is_empty():
+		shares[0].hide()
+	await frames()

@@ -264,19 +264,31 @@ func _set_on_selected(key: String, value: String, plain: String) -> void:
 
 
 func set_dimension(key: String, value: float) -> void:
-	if selected < 0 or selected >= course.pieces.size() or key not in ["metres", "shift"] or not is_finite(value):
+	if selected < 0 or selected >= course.pieces.size() or key not in ["metres", "shift", "island"] or not is_finite(value):
 		return
 	var spec := TrackPiece.adjustable_spec(course.pieces[selected])
-	if spec.is_empty() or (key == "shift" and spec.type != "adjustable_offset"):
+	if spec.is_empty() or (key == "shift" and spec.type != "adjustable_offset") or (key == "island" and spec.type != "adjustable_split"):
 		return
-	var minimum := 2.0 if spec.type == "adjustable_offset" else 0.25
-	var valid := value >= minimum and value <= 512.0 if key == "metres" else absf(value) <= 256.0
+	var split: bool = spec.type == "adjustable_split"
+	var valid: bool
+	match key:
+		"metres":
+			var least := TrackPiece.SPLIT_LEAST_METRES if split else 2.0 if spec.type == "adjustable_offset" else 0.25
+			var most := TrackPiece.SPLIT_MOST_METRES if split else TrackPiece.MAX_METRES
+			valid = value >= least and value <= most
+		"island":
+			valid = value >= TrackPiece.SPLIT_LEAST_ISLAND and value <= TrackPiece.SPLIT_MOST_ISLAND
+		_:
+			valid = absf(value) <= TrackPiece.MAX_SHIFT
 	if not valid or is_equal_approx(float(spec.get(key, 0.0)), value):
 		ui.show_selection(selected, course.pieces[selected])
 		return
 	spec[key] = value
 	if not TrackPiece.from_spec(spec).safe_dimensions(course.width):
-		ui.toast("That offset is too tight. Increase its length or reduce Sideways.")
+		if split:
+			ui.toast("That island is too wide for its length. Make it longer or the island narrower.")
+		else:
+			ui.toast("That offset is too tight. Increase its length or reduce Sideways.")
 		ui.show_selection(selected, course.pieces[selected])
 		return
 	_remember()
@@ -716,7 +728,7 @@ func _lay_out() -> void:
 	for i in track.pieces.size():
 		var spec: Dictionary = course.pieces[i]
 		var key := "%s %s %s" % [JSON.stringify(spec), course.width, course.theme]
-		var adjustable: bool = spec.get("type") in ["adjustable_straight", "adjustable_offset", "connector"]
+		var adjustable: bool = spec.get("type") in TrackPiece.ADJUSTABLE_TYPES
 		if not adjustable and not _meshes.has(key):
 			var mesh := TrackBuilder.piece_mesh(spec, course.width, course.theme)
 			_meshes[key] = [mesh, mesh.create_trimesh_shape() if mesh != null else null]

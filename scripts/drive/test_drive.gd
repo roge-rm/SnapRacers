@@ -142,6 +142,7 @@ func _physics_process(_delta: float) -> void:
 ## before the loop if it came off there, so it has the speed for another go.
 func _reset_spot() -> Transform3D:
 	var start := offset
+	var across := (kart.global_position - track.point_at(offset)).dot(track.right_at(offset))
 	var backed := false
 	for step in 80:
 		if track.up_at(start).y > 0.95 and not _loop_coming(start):
@@ -152,7 +153,10 @@ func _reset_spot() -> Transform3D:
 		start -= Race.RUN_UP
 	kart.run_up_reset = backed
 	offset = fposmod(start, track.length)
-	return track.place_at(start)
+	# On a split, back on the branch it was on.
+	var spot := track.place_at(start)
+	spot.origin += spot.basis.x * track.reset_spots(start, across)[0]
+	return spot
 
 
 func _loop_coming(at: float) -> bool:
