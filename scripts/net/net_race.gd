@@ -98,6 +98,10 @@ func slot_of(racer: Race.Racer) -> int:
 
 func _ready() -> void:
 	_slow = session.multiplayer.multiplayer_peer is BluetoothPeer
+	# The host decides when dropped things go, and tells everyone.
+	race.dropped.deciding = session.is_host()
+	if session.is_host():
+		race.dropped.send = func(changes: PackedInt32Array) -> void: session.drops_changed.rpc(changes)
 	session.race_ready(self)
 
 
@@ -257,6 +261,12 @@ func got_event(sender: int, slot: int, kind: String, data: Variant) -> void:
 						race.add_child(brick)
 				"marbles":
 					race.add_child(BrickTrap.drop_behind(kart))
+
+
+## The host's word on what karts dropped: worn down or gone.
+func got_drops(changes: PackedInt32Array) -> void:
+	if not session.is_host():
+		race.dropped.take_changes(changes)
 
 
 ## The host's word that a kart's finished, and when.

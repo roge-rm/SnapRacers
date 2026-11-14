@@ -3,10 +3,9 @@ extends Node3D
 
 ## A wall of bricks dropped across the road behind a kart, two high and about
 ## half the road wide. The bricks stay put until a kart drives into them, and
-## then they tumble, knocking it about like any bricks would. They clear
-## away after a while.
+## then they tumble, knocking it about like any bricks would. It stays until
+## it's cleared away (see DropKeeper).
 
-const LIFETIME := 15.0
 const BRICK := Vector3(1.0, 0.55, 0.5)
 const ACROSS := 6
 const HIGH := 2
@@ -28,7 +27,10 @@ const CLEAR_FOR := 1.0
 ## Picks each brick's colour. Every machine seeds it the same way for the same
 ## drop, so the walls look alike online.
 var colour_seed := 0
-var _age := 0.0
+## Which drop it is (see DropKeeper.key_of()), or -1 when it wasn't dropped.
+var drop_key := -1
+## Seconds before it's gone. A DropKeeper decides that in a race.
+var _left := DropKeeper.BACKSTOP
 var _bricks: Array[RigidBody3D] = []
 ## Dropped with no road under it, it falls whole until it lands.
 var _falling := false
@@ -54,6 +56,7 @@ static func drop_behind(from: Kart) -> BrickWall:
 	# From the kart's grid slot and how many walls it's dropped, which every
 	# machine counts the same since the drops arrive in order.
 	wall.colour_seed = hash([from.grid_slot, from.drops])
+	wall.drop_key = DropKeeper.key_of(from)
 	from.drops += 1
 	return wall
 
@@ -119,6 +122,10 @@ func _ready() -> void:
 	feel.add_child(reach)
 	add_child(feel)
 	_feel = feel
+	var keeper := DropKeeper.find(get_tree())
+	if keeper != null and drop_key >= 0:
+		_left = INF
+		keeper.add(self, drop_key)
 
 
 ## Knocks flying the bricks in the way of each kart that drives into it, at
@@ -154,6 +161,11 @@ func _knock_loose() -> void:
 		kart.linear_velocity -= global_basis.z * going * (1.0 - KEEP)
 
 
+## Goes now, bricks and all.
+func fade() -> void:
+	_left = 0.0
+
+
 ## The bricks it's made of.
 func bricks() -> Array[RigidBody3D]:
 	return _bricks
@@ -179,6 +191,6 @@ func _physics_process(delta: float) -> void:
 			if is_instance_valid(entry[0]) and is_instance_valid(entry[1]):
 				entry[0].remove_collision_exception_with(entry[1])
 			_clearing.remove_at(i)
-	_age += delta
-	if _age > LIFETIME:
+	_left -= delta
+	if _left <= 0.0:
 		queue_free()

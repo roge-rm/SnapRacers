@@ -2,7 +2,7 @@ class_name BrickTrap
 extends StaticBody3D
 
 ## A trap dropped on the road behind a kart, lying flat on whatever's under
-## it, that clears away after a while:
+## it, until it's cleared away (see DropKeeper):
 ## - "marbles": round 1x1 bricks scattered all over, which roll under the
 ##   wheels, so whoever drives across them loses nearly all their grip and
 ##   slides;
@@ -14,7 +14,8 @@ extends StaticBody3D
 ## over it as if it isn't there ("trap"). A shield slides the whole patch
 ## aside, and it stays where it comes to rest.
 
-const LIFETIME := 15.0
+## Seconds it takes to shrink away.
+const SHRINK_TIME := 0.5
 ## Clear space between the kart's tail and the nearest edge of the patch.
 const DROP_GAP := 0.5
 ## For each kind: how far it reaches either side of its middle across the
@@ -33,7 +34,13 @@ const MARBLE_SHAPES := ["round", "square", "round_plate", "ball", "plate_1x2"]
 const SPIKE := Color("#635f61")
 
 var kind := "marbles"
-var _age := 0.0
+## Which drop it is (see DropKeeper.key_of()), or -1 when it wasn't dropped.
+var drop_key := -1
+## Seconds before it's gone. A DropKeeper decides that in a race.
+var _left := DropKeeper.BACKSTOP
+## How much of its size is left after karts have worn it, and how many of its
+## pieces.
+var _share := 1.0
 ## Slide left after a shield shove, in m/s, world space and horizontal.
 var _slide := Vector3.ZERO
 var _moving := false
@@ -80,6 +87,7 @@ static func drop_behind(from: Kart, what := "marbles") -> BrickTrap:
 	# From the kart's grid slot and how many things it's dropped, so every
 	# device scatters the same pieces.
 	var trap := BrickTrap.new(what, hash([from.grid_slot, from.drops]))
+	trap.drop_key = DropKeeper.key_of(from)
 	from.drops += 1
 	# The entire patch must clear the kart, including long builds and rear wheels.
 	var distance: float = from.rear_bumper_point().z + KINDS[trap.kind].along + DROP_GAP
@@ -219,6 +227,10 @@ func _init(what := "marbles", look_seed := 0) -> void:
 
 
 func _ready() -> void:
+	var keeper := DropKeeper.find(get_tree())
+	if keeper != null and drop_key >= 0:
+		_left = INF
+		keeper.add(self, drop_key)
 	if _fit_on_ready:
 		_fit_on_ready = false
 		_fit()
@@ -231,7 +243,7 @@ func _flat_oval() -> Shape3D:
 	for i in SIDES:
 		var a := TAU * i / SIDES
 		for y in [-0.02, 0.02]:
-			points.append(Vector3(cos(a) * KINDS[kind].across, y, sin(a) * KINDS[kind].along))
+			points.append(Vector3(cos(a) * reach_across(), y, sin(a) * reach_along()))
 	oval.points = points
 	return oval
 
@@ -252,8 +264,8 @@ func _road_height(space: PhysicsDirectSpaceState3D, local: Vector3) -> float:
 ## like the top of a loop or a corkscrew, or puts them back flat if it's flat.
 func _fit() -> void:
 	var space := get_world_3d().direct_space_state
-	var across: float = KINDS[kind].across
-	var along: float = KINDS[kind].along
+	var across := reach_across()
+	var along := reach_along()
 	var middle := _road_height(space, Vector3.ZERO)
 	if is_nan(middle):
 		middle = GROUND_CLEAR
@@ -321,12 +333,13 @@ func _flatten() -> void:
 ## sits on the road under it, otherwise on the patch's plane.
 func _pieces(space: PhysicsDirectSpaceState3D) -> MeshInstance3D:
 	var of: Dictionary = KINDS[kind]
-	var across: float = of.across
-	var along: float = of.along
+	var across := reach_across()
+	var along := reach_along()
 	var rng := RandomNumberGenerator.new()
 	rng.seed = hash([kind, _look_seed])
 	var parts: Array[Node3D] = []
-	for i in of.pieces:
+	# Worn, it keeps the first of the same pieces, drawn in closer.
+	for i in ceili(of.pieces * _share):
 		var a := rng.randf() * TAU
 		var r := sqrt(rng.randf()) * 0.9
 		var at := Vector3(cos(a) * r * across, 0.0, sin(a) * r * along)
@@ -392,7 +405,7 @@ func overlaps_shield(at: Vector3) -> bool:
 	if absf((at - global_position).dot(up)) > Kart.SHIELD_REACH:
 		return false
 	var away := (global_position - at).slide(up)
-	var span: float = maxf(KINDS[kind].across, KINDS[kind].along)
+	var span := maxf(reach_across(), reach_along())
 	return away.length() < Kart.SHIELD_REACH + span * 0.55
 
 
@@ -445,7 +458,7 @@ func _overhang(space: PhysicsDirectSpaceState3D, place: Transform3D) -> Vector3:
 	var missing := 0
 	for i in RIM_POINTS:
 		var a := TAU * i / RIM_POINTS
-		var rim := place * Vector3(cos(a) * KINDS[kind].across * 0.8, 0.0, sin(a) * KINDS[kind].along * 0.8)
+		var rim := place * Vector3(cos(a) * reach_across() * 0.8, 0.0, sin(a) * reach_along() * 0.8)
 		var query := PhysicsRayQueryParameters3D.create(rim + up * FIT_REACH, rim - up * FIT_REACH, Kart.LAYER_WORLD, [get_rid()])
 		var hit := road_hit(space, query)
 		if hit.is_empty() or hit.normal.dot(up) <= 0.5:
@@ -512,9 +525,44 @@ func _move(delta: float) -> void:
 			_fit()
 
 
+## How far it reaches either side of its middle across the road and along
+## it now, in metres.
+func reach_across() -> float:
+	return KINDS[kind].across * _share
+
+
+func reach_along() -> float:
+	return KINDS[kind].along * _share
+
+
+## Worn down by `hits` karts out of `of`: smaller, with fewer pieces.
+func wear_to(hits: int, of: int) -> void:
+	var share := 1.0 - float(hits) / (of + 1)
+	if share >= _share or _left <= SHRINK_TIME:
+		return
+	_share = share
+	if _bent:
+		_fit()
+	else:
+		_flatten()
+
+
+## Shrinks away and goes.
+func fade() -> void:
+	if _left <= SHRINK_TIME:
+		return
+	_left = SHRINK_TIME
+	collision_layer = 0
+	remove_from_group("traps")
+
+
 func _physics_process(delta: float) -> void:
-	_age += delta
 	if _moving:
 		_move(delta)
-	if _age > LIFETIME:
+	_left -= delta
+	if _left <= 0.0:
 		queue_free()
+	elif _left < SHRINK_TIME:
+		# Nothing feels it while it shrinks.
+		collision_layer = 0
+		$Look.scale = Vector3.ONE * maxf(_left / SHRINK_TIME, 0.01)

@@ -578,6 +578,14 @@ func build_up(steps: int) -> void:
 		race.got_build_up(steps)
 
 
+## What karts dropped that's worn down or gone, as [key, state] pairs (see
+## DropKeeper).
+@rpc("authority", "reliable")
+func drops_changed(changes: PackedInt32Array) -> void:
+	if race != null:
+		race.got_drops(changes)
+
+
 ## A kart's finished, by the host's clock, so everyone agrees on the order.
 @rpc("authority", "reliable")
 func finished(slot: int, time: float) -> void:

@@ -4,12 +4,12 @@ extends RigidBody3D
 ## One of the loose bricks a brick dropper leaves behind, a handful of
 ## different sizes that tumble out the back and scatter. Karts hit them like
 ## anything else, so running into a pile at speed can knock your parts off.
-## They clear away after a while.
+## They stay until they're cleared away (see DropKeeper), and the bricks a
+## kart hits go a moment later.
 
-const LIFETIME := 15.0
 const SHRINK_TIME := 0.5
 ## Phones can't handle too many loose bodies, so past this many the oldest go
-## first.
+## first. In a race the DropKeeper keeps to it by whole piles.
 const MOST_AT_ONCE := 80
 ## How many bricks a drop leaves, five drops under MOST_AT_ONCE.
 ## They come out spread over SPREAD metres across, and are thrown out
@@ -42,7 +42,12 @@ const COLOURS := [Color("#c4281c"), Color("#f2cd37"), Color("#0d69ab"), Color("#
 
 static var _alive: Array[BrickPile] = []
 
-var _age := 0.0
+## Which drop it's from (see DropKeeper.key_of()), or -1 when it wasn't
+## dropped, and which brick of the drop it is.
+var drop_key := -1
+var drop_index := 0
+## Seconds before it's gone. A DropKeeper decides that in a race.
+var _left := DropKeeper.BACKSTOP
 
 
 static func drop_behind(from: Kart) -> Array[BrickPile]:
@@ -68,12 +73,15 @@ static func drop_behind(from: Kart) -> Array[BrickPile]:
 	# order, so every device drops the same pile.
 	var rng := RandomNumberGenerator.new()
 	rng.seed = hash([from.grid_slot, from.drops])
+	var key := DropKeeper.key_of(from)
 	from.drops += 1
 	for i in COUNT:
 		var studs: Vector2i = SIZES[rng.randi_range(0, SIZES.size() - 1)]
 		var plate := rng.randf() < PLATE_CHANCE
 		var size := Vector3(studs.x * Grid.STUD, PLATE_HIGH if plate else BRICK_HIGH, studs.y * Grid.STUD)
 		var brick := BrickPile.new(size, COLOURS[rng.randi_range(0, COLOURS.size() - 1)])
+		brick.drop_key = key
+		brick.drop_index = i
 		var spot := spot_of(i)
 		var at := start + back * (behind + i * DROP_STEP) + right * spot.x + up * spot.y
 		brick.transform = Transform3D(facing.rotated(up, i * 0.9), at)
@@ -149,6 +157,11 @@ static func throw(brick: Object, push: Vector3) -> void:
 
 func _ready() -> void:
 	add_to_group("brick_piles")
+	var keeper := DropKeeper.find(get_tree())
+	if keeper != null and drop_key >= 0:
+		_left = INF
+		keeper.add(self, drop_key)
+		return
 	_alive.append(self)
 	while _alive.size() > MOST_AT_ONCE:
 		var oldest: BrickPile = _alive.pop_front()
@@ -160,9 +173,14 @@ func _exit_tree() -> void:
 	_alive.erase(self)
 
 
+## Shrinks away and goes, after `after` seconds.
+func fade(after := 0.0) -> void:
+	_left = minf(_left, after + SHRINK_TIME)
+
+
 func _physics_process(delta: float) -> void:
-	_age += delta
-	var left := LIFETIME - _age
+	_left -= delta
+	var left := _left
 	if left <= 0.0:
 		queue_free()
 	elif left < SHRINK_TIME:

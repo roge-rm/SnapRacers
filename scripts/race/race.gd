@@ -107,6 +107,8 @@ var started := false
 
 ## The power-up boxes along the track, or null in a time trial.
 var boxes: PowerupField
+## Decides when what karts drop goes (see DropKeeper).
+var dropped: DropKeeper
 ## Player 1's.
 var hud: RaceHud
 var camera: RaceCamera
@@ -171,6 +173,10 @@ func _ready() -> void:
 		conditions = _conditions()
 	builder = TrackBuilder.new(track, conditions)
 	add_child(builder)
+	dropped = DropKeeper.new()
+	dropped.track = track
+	dropped.racers = racers
+	add_child(dropped)
 
 	if Game.net.is_online() and not Game.net.setup.is_empty():
 		_ready_online()
