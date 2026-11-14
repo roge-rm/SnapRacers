@@ -3,7 +3,8 @@ extends Node
 ## Takes a picture of the garage with each drawer tab open, for checking how
 ## the parts look without a phone. Like course_shots, it needs a screen, and
 ## saves them in build/shots. With "wheel" it takes a trail bike wheel going
-## onto a sports bike frame instead, saved where the next argument says.
+## onto a sports bike frame instead, saved where the next argument says, and
+## with "mirror" wheels put on with Mirror on and by hand.
 ##   DISPLAY=:0 tools/godot/Godot_v4.7.2-stable_linux.x86_64 --path . res://tools/shots/garage_shots.tscn
 ##   DISPLAY=:0 tools/godot/Godot_v4.7.2-stable_linux.x86_64 --path . res://tools/shots/garage_shots.tscn -- wheel /some/folder
 
@@ -39,6 +40,12 @@ func _ready() -> void:
 		await _save("suspension_hard")
 		garage.select(0)
 		await _save("suspension_other_part")
+		get_tree().quit()
+		return
+	if args.size() >= 2 and args[0] == "mirror":
+		OUT = args[1]
+		DirAccess.make_dir_recursive_absolute(OUT)
+		await _mirror(garage)
 		get_tree().quit()
 		return
 	if args.size() >= 2 and args[0] == "wheel":
@@ -107,6 +114,83 @@ func _wheel(garage: Garage) -> void:
 	if not left.is_empty():
 		garage.snap_to(left[0])
 	await _save("wheel_red_note")
+
+
+## The red stock kart as it was built, then with its right wheels taken off
+## and put back with Mirror on from the left ones, then put back by hand.
+## Then a wheel on the end of an axle and its twin. Each from the front and
+## close up from each side.
+func _mirror(garage: Garage) -> void:
+	var stock := KartDesign.load_file("res://data/karts/stock/redline.json")
+	garage.design = stock
+	garage._rebuild()
+	await _mirror_views(garage, "stock")
+	var middle := stock.middle()
+	var right := func(p: Dictionary) -> bool: return KartDesign.is_wheel(p.id) and KartDesign.fine_box(p.id, KartDesign.place_of(p)).get_center().x > middle
+	var lefts := stock.parts.filter(func(p): return KartDesign.is_wheel(p.id) and not right.call(p))
+	var bare := stock.duplicate_design()
+	bare.parts = bare.parts.filter(func(p): return not KartDesign.is_wheel(p.id))
+	# Mirror on, the left wheels put back on their pins.
+	garage.design = bare.duplicate_design()
+	garage._rebuild()
+	garage.set_mirror(true)
+	for p in lefts:
+		_snap_wheel(garage, p.id, KartDesign.fine_box(p.id, KartDesign.place_of(p)).get_center())
+	_print_wheels(garage, "mirrored")
+	await _mirror_views(garage, "mirrored")
+	# Mirror off, all four put on by hand.
+	garage.set_mirror(false)
+	garage.design = bare.duplicate_design()
+	garage._rebuild()
+	for p in stock.parts.filter(func(p): return KartDesign.is_wheel(p.id)):
+		_snap_wheel(garage, p.id, KartDesign.fine_box(p.id, KartDesign.place_of(p)).get_center())
+	_print_wheels(garage, "by hand")
+	await _mirror_views(garage, "by_hand")
+	# An axle across the middle and a wheel on its left end, with Mirror on.
+	garage._new_kart()
+	garage.set_mirror(true)
+	garage.start_placing("p_axle_8", Basis.IDENTITY, null, Vector3i(6, 2, 10))
+	garage.place()
+	garage.cancel()
+	_snap_wheel(garage, "w_kart_wide", Vector3(110.0, 24.0, 210.0))
+	_print_wheels(garage, "axle")
+	await _mirror_views(garage, "axle")
+
+
+## Puts a wheel on the hub spot nearest `near`, in the fine unit.
+func _snap_wheel(garage: Garage, id: String, near: Vector3) -> void:
+	garage.start_placing(id)
+	var spots: Array = garage._spots.filter(func(s): return s.type in ["pin", "axle"])
+	spots.sort_custom(func(a, b): return a.at.distance_to(near) < b.at.distance_to(near))
+	for spot in spots:
+		if garage.snap_to(spot) and garage._ghost_ok:
+			garage.place()
+			break
+	garage.cancel()
+
+
+func _print_wheels(garage: Garage, what: String) -> void:
+	for p in garage.design.parts:
+		if KartDesign.is_wheel(p.id) or p.id.begins_with("p_axle"):
+			print(what, " ", p.id, " ", KartDesign.place_of(p))
+
+
+func _mirror_views(garage: Garage, name: String) -> void:
+	garage.show_view("front")
+	await _save("mirror_%s_front" % name)
+	var wheels: Array = garage.design.parts.filter(func(p): return KartDesign.is_wheel(p.id))
+	wheels.sort_custom(func(a, b): return KartDesign.place_of(a).origin.z < KartDesign.place_of(b).origin.z)
+	for side in [["left", 270.0], ["right", 90.0]]:
+		for p in wheels:
+			var centre := KartDesign.fine_box(p.id, KartDesign.place_of(p)).get_center()
+			if (centre.x < garage.design.middle()) == (side[0] == "left"):
+				garage._focus = Grid.to_metres(centre / Grid.UNIT_FINE)
+				break
+		garage._yaw = deg_to_rad(side[1] - 25.0 if side[0] == "left" else side[1] + 25.0)
+		garage._pitch = deg_to_rad(-12.0)
+		garage._distance = 1.6
+		garage._place_camera()
+		await _save("mirror_%s_%s" % [name, side[0]])
 
 
 func _save(name: String) -> void:

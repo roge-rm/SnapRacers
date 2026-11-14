@@ -801,7 +801,7 @@ func _assemble() -> void:
 			w.damper = setup[3]
 			w.standing_load = setup[4]
 			w.spring_offset = setup[5]
-			w.visual = PartVisuals.make_wheel(info.def)
+			w.visual = PartVisuals.make_wheel(info.def, info.basis)
 			w.visual.position = info.centre
 			_looks.add_child(w.visual)
 			wheels.append(w)

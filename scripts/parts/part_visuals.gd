@@ -24,7 +24,7 @@ static func make(def: Dictionary, extent: Vector3, rot := 0) -> Node3D:
 static func make_turned(def: Dictionary, extent: Vector3, basis: Basis) -> Node3D:
 	var kind: String = def.get("kind", "")
 	if kind == "wheel":
-		return make_wheel(def)
+		return make_wheel(def, basis)
 	if kind == "steering" and not def.has("mesh"):
 		return SteeringVisual.new(def, extent)
 	if kind == "steering" and def.get("style", "") == "bikebars":
@@ -126,7 +126,22 @@ static func finished(color: Color, finish: String) -> StandardMaterial3D:
 	return material(color)
 
 
-static func make_wheel(def: Dictionary) -> Node3D:
+## A wheel with its axle along X. Its outside is on its own left (-X), and a
+## wheel `basis` turns round, like one on the right of a kart, comes out
+## turned round with its outside to the right. Only the side counts, as a
+## wheel always spins about X. The turn is on a child, so the kart can spin
+## and steer the wheel by its own basis.
+static func make_wheel(def: Dictionary, basis := Basis.IDENTITY) -> Node3D:
+	var look := _wheel_look(def)
+	if (basis * Vector3.RIGHT).x >= 0.0:
+		return look
+	var pivot := Node3D.new()
+	look.basis = Basis.from_scale(Vector3(-1.0, 1.0, -1.0))
+	pivot.add_child(look)
+	return pivot
+
+
+static func _wheel_look(def: Dictionary) -> Node3D:
 	if def.has("mesh"):
 		return _modelled(def)
 	var radius: float = def.get("radius", 0.3)

@@ -211,8 +211,8 @@ static func exact(basis: Basis) -> Basis:
 ## Where a part would go as the mirror image of one at `place`, across
 ## `middle`, the middle of the kart from side to side in the fine unit (see
 ## KartDesign.middle). Parts can't really be mirrored, so its twin is turned
-## to look like it: the same, end for end. A wheel's twin is turned round, so
-## its outside faces out on both sides.
+## to look like it: the same, end for end. A wheel's twin is turned round
+## instead, so its outside faces out on both sides (see facing_out).
 static func mirror_place(id: String, place: Transform3D, middle: float) -> Transform3D:
 	var width := middle * 2.0
 	var size := PartCatalog.fine_size(id)
@@ -222,3 +222,15 @@ static func mirror_place(id: String, place: Transform3D, middle: float) -> Trans
 		own = Transform3D(Basis.from_scale(Vector3(1.0, 1.0, -1.0)), Vector3(0.0, 0.0, size.z))
 	var twin := across * place * own
 	return Transform3D(exact(twin.basis), twin.origin)
+
+
+## A wheel turned `basis`, turned round if it has to be so its outside (its
+## own left, -X) faces away from the middle of the kart, for a wheel going on
+## at `x` across. One within a stud of the middle, like a bike's, stays as
+## it is, so it doesn't turn round as it slides along its axle.
+static func facing_out(basis: Basis, x: float, middle: float) -> Basis:
+	var right := x > middle + Grid.STUD_FINE
+	var left := x < middle - Grid.STUD_FINE
+	if (right and basis.x.x < 0.0) or (left and basis.x.x > 0.0) or not (right or left):
+		return basis
+	return Basis.from_scale(Vector3(-1.0, 1.0, -1.0)) * basis

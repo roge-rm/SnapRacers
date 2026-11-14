@@ -918,9 +918,12 @@ func _aim_ghost(screen_pos: Vector2) -> void:
 func snap_to(spot: Dictionary) -> bool:
 	if spot.is_empty() or _holding == "":
 		return false
-	var aim := [_holding, spot, _ghost_place.basis]
+	var keep := _ghost_place.basis
+	if KartDesign.is_wheel(_holding):
+		keep = Snap.facing_out(keep, spot.at.x, design.middle())
+	var aim := [_holding, spot, keep]
 	if _last_snap.is_empty() or _last_snap[0] != aim:
-		_last_snap = [aim, Snap.best(design, _holding, Snap.ways(_holding, spot, _ghost_place.basis, spot.at))]
+		_last_snap = [aim, Snap.best(design, _holding, Snap.ways(_holding, spot, keep, spot.at))]
 	var way: Dictionary = _last_snap[1]
 	if way.is_empty():
 		return false

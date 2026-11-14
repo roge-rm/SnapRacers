@@ -129,6 +129,7 @@ func _ready() -> void:
 	await _loose_and_new(parts)
 	await _wheel_on_bike(parts)
 	_mirror_off_centre()
+	_mirror_wheels()
 	garage.ui.drive_pressed.emit()
 	await frames(6)
 	check(host.get_child(host.get_child_count() - 1) is TestDrive, "drive takes the kart out to the track")
@@ -386,6 +387,93 @@ func _mirror_off_centre() -> void:
 	garage.ui.mirror_toggled.emit(false)
 	garage.design = before
 	garage._rebuild()
+
+
+## A wheel's twin is the same as one put on the other side by hand: turned
+## round with its outside out, on the same axle, and it looks turned round too.
+func _mirror_wheels() -> void:
+	var before := garage.design
+	var stock := KartDesign.load_file("res://data/karts/stock/redline.json")
+	var bare := stock.duplicate_design()
+	bare.parts = bare.parts.filter(func(p): return not KartDesign.is_wheel(p.id))
+	# Puts a wheel on the first hub dot nearest `near` it fits on, and gives
+	# back where it went once the kart has gone up for it.
+	var wheel_on := func(id: String, near: Vector3) -> Dictionary:
+		garage.start_placing(id)
+		var spots: Array = garage._spots.filter(func(s): return s.type in ["pin", "axle"])
+		spots.sort_custom(func(a, b): return a.at.distance_to(near) < b.at.distance_to(near))
+		var on := false
+		for spot in spots:
+			if garage.snap_to(spot) and garage._ghost_ok:
+				on = true
+				break
+		var index := garage.design.parts.size()
+		garage.place()
+		garage.cancel()
+		return { "on": on, "place": KartDesign.place_of(garage.design.parts[index]) if on else Transform3D() }
+	# Near the front axle plate's pins, from the stock kart.
+	var left := Vector3(130.0, 24.0, 80.0)
+	var right := Vector3(270.0, 24.0, 80.0)
+	garage.design = bare.duplicate_design()
+	garage._rebuild()
+	garage.set_mirror(false)
+	var by_hand: Dictionary = wheel_on.call("w_kart_wide", left)
+	var by_hand_right: Dictionary = wheel_on.call("w_kart_wide", right)
+	check(by_hand.on and by_hand.place.basis.x.x > 0.99 and by_hand_right.on and by_hand_right.place.basis.x.x < -0.99, "a wheel put on by hand has its outside out on either side (%s, %s)" % [by_hand.place.basis.x, by_hand_right.place.basis.x])
+	garage.design = bare.duplicate_design()
+	garage._rebuild()
+	garage.set_mirror(true)
+	var middle := garage.design.middle()
+	var first: Dictionary = wheel_on.call("w_kart_wide", left)
+	var twin := Garage.mirrored({ "id": "w_kart_wide", "place": first.place }, middle)
+	var twin_place := KartDesign.place_of(twin)
+	check(first.on and garage.find_part(twin) >= 0, "Mirror puts the wheel's twin on")
+	check(twin_place.basis.is_equal_approx(by_hand_right.place.basis), "turned the same as one put on the right by hand (%s)" % twin_place.basis.x)
+	var box := KartDesign.fine_box("w_kart_wide", first.place)
+	var twin_box := KartDesign.fine_box("w_kart_wide", twin_place)
+	check(is_equal_approx(middle - box.end.x, twin_box.position.x - middle) and garage.design.attaches_place("w_kart_wide", twin_place), "the same way out from the middle, on the right pin (%.0f..%.0f)" % [twin_box.position.x, twin_box.end.x])
+	var hub: Dictionary = Connectors.placed("w_kart_wide", twin_place)[0]
+	check(is_equal_approx(hub.at.x, twin_box.end.x), "with its outside, where its hub starts, on the outer edge (%.0f)" % hub.at.x)
+	var look := PartVisuals.make_turned(PartCatalog.get_part("w_kart_wide"), Vector3.ONE, twin_place.basis)
+	var flat := PartVisuals.make_turned(PartCatalog.get_part("w_kart_wide"), Vector3.ONE, first.place.basis)
+	var outside := func(node: Node3D) -> float:
+		var mesh: MeshInstance3D = node.find_children("*", "MeshInstance3D", true, false)[0]
+		return _chain(mesh, node).x.x
+	check(outside.call(look) < -0.99 and outside.call(flat) > 0.99, "and it looks turned round, where the left one doesn't")
+	look.free()
+	flat.free()
+	# An axle across the middle with a wheel on its left end.
+	garage._new_kart()
+	garage.start_placing("p_axle_8", Basis.IDENTITY, null, Vector3i(6, 2, 10))
+	garage.place()
+	garage.cancel()
+	check(garage.design.parts.size() == 1, "an axle across the middle has no twin of its own")
+	var axle_middle := garage.design.middle()
+	var on_axle: Dictionary = wheel_on.call("w_kart_wide", Vector3(110.0, 24.0, 210.0))
+	var axle_twin := KartDesign.place_of(Garage.mirrored({ "id": "w_kart_wide", "place": on_axle.place }, axle_middle))
+	check(on_axle.on and on_axle.place.basis.x.x > 0.99 and garage.find_part(KartDesign.placed_entry("w_kart_wide", axle_twin)) >= 0 and axle_twin.basis.x.x < -0.99 and garage.design.attaches_place("w_kart_wide", axle_twin), "a wheel on one end of an axle has its twin turned round on the other end")
+	# An axle sticking out the left has its twin sticking out the right.
+	garage._new_kart()
+	garage.start_placing("p_axle_4", Basis.IDENTITY, null, Vector3i(3, 2, 10))
+	garage.place()
+	garage.cancel()
+	var axles := garage.design.parts.filter(func(p): return p.id == "p_axle_4")
+	var mid := garage.design.middle()
+	var boxes := axles.map(func(p): return KartDesign.fine_box(p.id, KartDesign.place_of(p)))
+	check(axles.size() == 2 and is_equal_approx(mid - boxes[0].position.x, boxes[1].end.x - mid), "an axle out one side has its twin out the other (%s)" % [boxes])
+	garage.set_mirror(false)
+	garage.design = before
+	garage._rebuild()
+
+
+## A node's basis from `top` down to `node`, for one that isn't in the tree.
+func _chain(node: Node3D, top: Node3D) -> Basis:
+	var basis := node.basis
+	var at := node.get_parent()
+	while at != null and at != top.get_parent():
+		basis = (at as Node3D).basis * basis
+		at = at.get_parent()
+	return basis
 
 
 func _air(parts: int) -> void:
