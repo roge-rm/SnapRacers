@@ -304,7 +304,7 @@ static func _hazard_ahead(ai: AIDriver, reach: float, blast_only := false) -> bo
 			if hazard is BrickWall:
 				half = BrickWall.HALF
 			elif hazard is BrickTrap:
-				half = BrickTrap.KINDS[hazard.kind].across
+				half = hazard.half_size().x
 			if absf(gap.dot(kart.global_basis.x)) < half + kart.width() * 0.5:
 				var body := hazard as PhysicsBody3D
 				if _clear(kart, kart.global_position + kart.global_basis.y * 0.7, hazard.global_position + kart.global_basis.y * 0.7, body, Kart.LAYER_WORLD):

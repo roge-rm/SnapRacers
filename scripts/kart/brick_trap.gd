@@ -525,8 +525,13 @@ func _move(delta: float) -> void:
 			_fit()
 
 
-## How far it reaches either side of its middle across the road and along
-## it now, in metres.
+## How far it reaches either side of its middle now, worn or not, in metres:
+## across the road in x and along it in y.
+func half_size() -> Vector2:
+	return Vector2(reach_across(), reach_along())
+
+
+## The same, across the road and along it on their own.
 func reach_across() -> float:
 	return KINDS[kind].across * _share
 

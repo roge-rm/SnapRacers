@@ -1189,9 +1189,11 @@ func _dodge_traps(facing: Vector3) -> float:
 			continue
 		var gap: Vector3 = trap.global_position - kart.global_position
 		var ahead := gap.dot(facing)
-		var reach: float = BrickTrap.KINDS[trap.kind].across
+		# Its size now, smaller once karts have worn it.
+		var half: Vector2 = trap.half_size()
+		var reach := half.x
 		# It keeps clear until its back end is past it.
-		if ahead < -reach - 1.0 or ahead > see or ahead >= nearest:
+		if ahead < -half.y - 1.0 or ahead > see or ahead >= nearest:
 			continue
 		var key: int = trap.get_instance_id()
 		if not _trap_offsets.has(key):

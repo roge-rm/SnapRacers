@@ -212,11 +212,111 @@ class Runner:
 		check(gone(made[client][2]), "word that comes before the drop is kept until it arrives")
 		await clear(made[host] + made[client] + [host, client])
 
+	## The AI goes by how big a worn patch is now.
+	func _ai_sees_wear() -> void:
+		var one := racer(6, null, 0.0)
+		var kart := one.kart
+		var full: float = BrickTrap.KINDS.marbles.across
+		# Off to the side, where the full patch reaches the kart's line but
+		# half of it doesn't.
+		var side := full * 0.75 + kart.width() * 0.5
+		var trap := BrickTrap.new("marbles", 3)
+		trap.position = kart.position + Vector3(side, 0, -6)
+		add_child(trap)
+		await frames(2)
+		var ai := AIDriver.new()
+		ai.kart = kart
+		check(trap.half_size() == Vector2(full, BrickTrap.KINDS.marbles.along), "a new patch is full size")
+		check(AIGadgetTactics._hazard_ahead(ai, 20.0), "the AI sees a full patch in its way")
+		trap.wear_to(2, DropKeeper.WEAR_HITS)
+		check(is_equal_approx(trap.half_size().x, full * 0.5) and trap.half_size().y < BrickTrap.KINDS.marbles.along, "worn, it's smaller (%.2f by %.2f m)" % [trap.half_size().x, trap.half_size().y])
+		check(not AIGadgetTactics._hazard_ahead(ai, 20.0), "and the AI sees it's out of its way now")
+		ai.free()
+		await clear([trap, kart])
+
+	## Once the leader's finished the next kart still racing decides, and
+	## online the client follows the host.
+	func _leader_finishes() -> void:
+		var track := TrackPath.load_file("res://data/tracks/hairpin_hall.json")
+		var lead := racer(0, track, 100.0)
+		var second := racer(1, track, 50.0)
+		lead.progress.laps = 2
+		second.progress.laps = 2
+		var host := keeper(track, [lead, second])
+		var client := DropKeeper.new()
+		client.deciding = false
+		add_child(client)
+		host.send = client.take_changes
+		var made := {}
+		for side in [host, client]:
+			var list: Array = []
+			# Behind the kart in second, and just ahead of it, dropped by the leader.
+			for at in [45.0, 70.0]:
+				var trap := BrickTrap.new("marbles", int(at))
+				trap.position = track.point_at(at)
+				add_child(trap)
+				list.append(trap)
+			made[side] = list
+			for i in 2:
+				made[side][i]._left = INF
+				side.add(made[side][i], 40 * 65536 + i)
+		var behind: BrickTrap = made[host][0]
+		var ahead: BrickTrap = made[host][1]
+		await a_check()
+		check(not gone(behind) and not gone(ahead), "both wait for the leader")
+		lead.progress.finished = true
+		await a_check()
+		check(not gone(behind) and not gone(ahead), "when the leader finishes they're still there")
+		second.progress.offset = 70.0 + DropKeeper.PAST + 2.0
+		await a_check()
+		check(gone(ahead) and not gone(behind), "and go once the next kart still racing has driven past")
+		check(gone(made[client][1]) and not gone(made[client][0]), "on the client too, as the host says")
+		second.progress.finished = true
+		await a_check()
+		check(gone(behind) and gone(made[client][0]), "once everyone's finished the rest go")
+		await clear(made[host] + made[client] + [host, client, lead.kart, second.kart])
+
+	## A brick the host says is hit gets knocked on a client, where it was
+	## still lying, before it goes.
+	func _pile_online() -> void:
+		var one := racer(5, null, 0.0)
+		var client := DropKeeper.new()
+		client.deciding = false
+		client.racers = [one]
+		add_child(client)
+		var host := keeper(null, [])
+		host.send = client.take_changes
+		var made := {}
+		for side in [host, client]:
+			var list: Array = []
+			for i in 4:
+				var brick := BrickPile.new()
+				brick.drop_index = i
+				brick.freeze = true
+				brick.position = one.kart.position + Vector3(i - 1.5, 0, -3)
+				add_child(brick)
+				list.append(brick)
+			made[side] = list
+			for brick in list:
+				brick._left = INF
+				side.add(brick, 41 * 65536)
+		host._decide(host._by_key[41 * 65536], 1 << 2)
+		await a_check()
+		var bricks: Array = made[client]
+		var hit: BrickPile = bricks[2]
+		var away: Vector3 = (hit.global_position - one.kart.global_position).slide(Vector3.UP)
+		check(not hit.freeze and hit.linear_velocity.slide(Vector3.UP).dot(away) > 0.0, "a client knocks the brick the host says was hit, away from the kart")
+		check(hit._left < INF and bricks[0].freeze and bricks[0]._left == INF, "it goes a moment later and the rest lie still")
+		await clear(made[host] + made[client] + [host, client, one.kart])
+
 	func _ready() -> void:
 		await _leader()
 		await _wear()
 		await _cap()
 		await _online()
+		await _ai_sees_wear()
+		await _leader_finishes()
+		await _pile_online()
 		print("All drop keeper checks passed." if failures == 0 else "%d drop keeper checks failed." % failures)
 		get_tree().quit(1 if failures > 0 else 0)
 

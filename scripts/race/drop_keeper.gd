@@ -4,7 +4,9 @@ extends Node
 ## Keeps track of what karts drop in a race (marbles, spikes, walls and piles
 ## of bricks) and decides when each one goes:
 ## - once the leader has come round and driven past it, so the kart in front
-##   meets it too, the one who dropped it included;
+##   meets it too, the one who dropped it included. The leader is the kart in
+##   front that's still racing, and when it finishes everything is judged
+##   again by the next one's next pass. Once everyone's finished it all goes;
 ## - once karts have worn it away: each kart through a patch of marbles or
 ##   spikes scatters part of it, and the bricks of a pile a kart hits go;
 ## - when there are more than MOST on the course, oldest first;
@@ -37,6 +39,11 @@ const JUMP := 40.0
 const PILE_REACH := 12.0
 ## Seconds a brick a kart hit still tumbles before it shrinks away.
 const BRICK_LINGER := 0.6
+## A brick said to be hit that's moving slower than this, in m/s, gets knocked
+## at KNOCK m/s away from the nearest kart, so it looks hit on every device
+## even though each one moves its own bricks.
+const STILL := 1.0
+const KNOCK := 4.0
 ## A drop's state: how many karts have been through a patch, the bricks hit
 ## out of a pile as bits, or GONE once it's fading out.
 const GONE := -1
@@ -49,6 +56,8 @@ class Item:
 	var kind := TRAP
 	var nodes: Array[Node3D] = []
 	var born := 0.0
+	## Where it is along the track's spine, or -1 with no track.
+	var spot := -1.0
 	## The leader's race distance once it's driven past this, or -1.
 	var pass_at := -1.0
 	var state := 0
@@ -69,6 +78,8 @@ var _by_key := {}
 var _early := {}
 var _clock := 0.0
 var _check_in := 0.0
+## The racer the items are judged against now.
+var _leader = null
 ## Where each kart was at the last check.
 var _was := {}
 var _outbox := PackedInt32Array()
@@ -100,7 +111,8 @@ func add(node: Node3D, key: int) -> void:
 		item.key = key
 		item.kind = PILE if node is BrickPile else (WALL if node is BrickWall else TRAP)
 		item.born = _clock
-		item.pass_at = _pass_point(node.global_position, key)
+		item.spot = _spot_of(node.global_position, key)
+		item.pass_at = _pass_from(_leading(), item.spot)
 		_items.append(item)
 		_by_key[key] = item
 		if deciding:
@@ -137,28 +149,37 @@ func take_changes(changes: PackedInt32Array) -> void:
 			_early[key] = changes[i + 1]
 
 
-## Where the leader will be in the race once it's come round and driven past
-## the spot, from the spot's place along the track's spine. Splits share the
-## spine, so it works on them too.
-func _pass_point(at: Vector3, key: int) -> float:
-	if track == null or racers.is_empty():
+## Where a spot is along the track's spine, or -1 with no track. Splits
+## share the spine, so it works on them too.
+func _spot_of(at: Vector3, key: int) -> float:
+	if track == null:
 		return -1.0
-	var lead := -INF
-	var lead_offset := 0.0
-	var hint := -1.0
 	for racer in racers:
-		if racer.progress == null:
+		if is_instance_valid(racer.kart) and racer.kart.grid_slot == key / 65536:
+			return track.offset_of(at, racer.offset)
+	return track.offset_of(at)
+
+
+## The racer in front that hasn't finished, or null when there's none.
+func _leading():
+	var best = null
+	var lead := -INF
+	for racer in racers:
+		if racer.progress == null or racer.progress.finished:
 			continue
 		var distance: float = racer.progress.distance()
 		if distance > lead:
 			lead = distance
-			lead_offset = racer.progress.offset
-		if is_instance_valid(racer.kart) and racer.kart.grid_slot == key / 65536:
-			hint = racer.offset
-	if lead == -INF:
+			best = racer
+	return best
+
+
+## Where `leader` will be in the race once it's next come round and driven
+## past `spot`, or -1 when it can't be known.
+func _pass_from(leader, spot: float) -> float:
+	if leader == null or spot < 0.0:
 		return -1.0
-	var offset := track.offset_of(at, hint) if hint >= 0.0 else track.offset_of(at)
-	return lead + fposmod(offset - lead_offset, track.length)
+	return leader.progress.distance() + fposmod(spot - leader.progress.offset, track.length)
 
 
 func _physics_process(delta: float) -> void:
@@ -187,13 +208,22 @@ func _physics_process(delta: float) -> void:
 
 ## Decides what goes now. The host or a race on its own does this.
 func check() -> void:
-	var lead := -INF
-	for racer in racers:
-		if racer.progress != null:
-			lead = maxf(lead, racer.progress.distance())
+	var leader = _leading()
+	if leader != _leader:
+		# The one in front finished, so the next one's next pass decides.
+		if _leader != null and _leader.progress.finished:
+			for item in _items:
+				item.pass_at = _pass_from(leader, item.spot)
+		_leader = leader
+	var lead: float = leader.progress.distance() if leader != null else -INF
+	# Everyone's finished.
+	var all_home := false
+	if leader == null:
+		for racer in racers:
+			all_home = all_home or racer.progress != null
 	for i in range(_items.size() - 1, -1, -1):
 		var item := _items[i]
-		if _clock - item.born > BACKSTOP or (item.pass_at >= 0.0 and lead >= item.pass_at + PAST):
+		if all_home or _clock - item.born > BACKSTOP or (item.pass_at >= 0.0 and lead >= item.pass_at + PAST):
 			_decide(item, GONE)
 		elif item.kind != WALL:
 			_wear(item)
@@ -293,7 +323,31 @@ func _apply(item: Item, state: int, again := false) -> void:
 		item.state |= state
 		for brick in item.nodes:
 			if is_instance_valid(brick) and hit & (1 << brick.drop_index) != 0:
+				_knock(brick)
 				brick.fade(BRICK_LINGER)
+
+
+## Knocks a brick said to be hit that isn't already tumbling, away from the
+## nearest kart and along the way it's going.
+func _knock(brick: BrickPile) -> void:
+	if brick.collision_layer == 0 or brick.linear_velocity.length_squared() > STILL * STILL:
+		return
+	var nearest: Kart
+	var far := INF
+	for racer in racers:
+		var kart: Kart = racer.kart
+		if is_instance_valid(kart):
+			var d := kart.global_position.distance_squared_to(brick.global_position)
+			if d < far:
+				far = d
+				nearest = kart
+	var way := Vector3.ZERO
+	if nearest != null:
+		way = (brick.global_position - nearest.global_position).slide(Vector3.UP).normalized()
+		var going := nearest.linear_velocity.slide(Vector3.UP)
+		if going.length_squared() > 4.0:
+			way = (way + going.normalized()).normalized()
+	BrickPile.throw(brick, way * KNOCK + Vector3.UP * KNOCK * 0.4)
 
 
 func _forget(item: Item) -> void:
