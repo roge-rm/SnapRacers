@@ -157,7 +157,7 @@ func _bank() -> void:
 	check(mounts.all(func(id): return shown.has(id)), "the inverted and opposite-side mounts, centred jumper and compact Technic adapters are in the drawer")
 	var shapes := ["p_inverted_slope_1x2", "p_inverted_slope_1x3", "p_brick_1x3", "p_tile_1x3", "p_tile_2x3", "p_wedge_2x4_left", "p_wedge_2x4_right"]
 	check(shapes.all(func(id): return shown.has(id)), "the narrow inverted slopes, 1×3 brick, smooth tiles and medium wedges are in the drawer")
-	check(shown.size() == 302 and PartCatalog.ids().size() == 325, "the drawer offers 302 parts and keeps all 325 saved IDs")
+	check(shown.size() == 356 and PartCatalog.ids().size() == 379, "the drawer offers 356 parts and keeps all 379 saved IDs")
 	check(GarageUI.category_of(PartCatalog.get_part("d_number_brick")) == 1, "the race-number brick is in Bricks")
 	check(shown.has("p_tile_2x4") and not shown.has("tile_2x4"), "the smooth 2×4 tile replaces the legacy tile in the drawer")
 	check(shown.has("plate_6x10") and shown.has("p_plate_6x10") and shown.has("plate_6x12") and shown.has("p_plate_6x12"), "both chassis plate sizes offer the side-mount and plain versions")

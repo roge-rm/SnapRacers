@@ -6,9 +6,9 @@
 		{"id": "b_nose_reverse_trike", "pos": [173.0, 29, 2], "turn": 0, "color": "#da8540"},
 		{"id": "b_tail_reverse_trike", "pos": [177.0, 41, 162], "turn": 0, "color": "#da8540"},
 		{"id": "b_quad_bars", "pos": [180.0, 52, 97], "turn": 0},
-		{"id": "w_kart", "pos": [146.0, 0, 21.0], "turn": 0},
-		{"id": "w_kart", "pos": [254.0, 0, 69.0], "turn": 2},
-		{"id": "w_kart", "pos": [190.0, 0, 161.0], "turn": 0},
+		{"id": "w_kart_tread", "pos": [146.0, 0, 21.0], "turn": 0},
+		{"id": "w_kart_tread", "pos": [254.0, 0, 69.0], "turn": 2},
+		{"id": "w_kart_tread", "pos": [190.0, 0, 161.0], "turn": 0},
 		{"id": "b_wing_trike_left", "pos": [143.0, 20, 17], "turn": 0, "color": "#da8540"},
 		{"id": "b_wing_trike_right", "pos": [232.0, 20, 17], "turn": 0, "color": "#da8540"}
 	]

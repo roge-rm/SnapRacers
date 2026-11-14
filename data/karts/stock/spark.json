@@ -1,0 +1,11 @@
+{
+	"name": "Spark",
+	"about": "An electric bike with a battery where the engine would be. Loads of pull, but not much top speed.",
+	"parts": [
+		{"id": "b_frame_electric", "pos": [180.0, 16, 46], "turn": 0, "color": "#1b1b1b"},
+		{"id": "b_body_electric", "pos": [181.0, 18, 59], "turn": 0, "color": "#f2f3f2"},
+		{"id": "b_fork_sport", "pos": [175.0, 20.4, 20], "turn": 0},
+		{"id": "w_street", "pos": [192.8, 0, 6.0], "turn": 0},
+		{"id": "w_street", "pos": [192.8, 0, 146.0], "turn": 0}
+	]
+}

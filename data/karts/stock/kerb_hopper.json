@@ -1,0 +1,11 @@
+{
+	"name": "Kerb Hopper",
+	"about": "A supermoto, a dirt bike on road tires. Good on a bit of everything and easy to flick about.",
+	"parts": [
+		{"id": "b_frame_scrambler", "pos": [181.0, 20, 57], "turn": 0, "color": "#1b1b1b"},
+		{"id": "b_body_supermoto", "pos": [186.0, 53, 66], "turn": 0, "color": "#f2f3f2"},
+		{"id": "b_fork_dirt_small", "pos": [173.0, 26.4, 35], "turn": 0, "color": "#c4281c"},
+		{"id": "w_supermoto", "pos": [192.0, 0, 15.0], "turn": 0},
+		{"id": "w_supermoto", "pos": [192.0, 0, 159.0], "turn": 0}
+	]
+}

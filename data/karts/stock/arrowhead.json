@@ -1,0 +1,15 @@
+{
+	"name": "Arrowhead",
+	"about": "A sports trike with two wide wheels in front and one behind. Low and very steady, and it holds a bend well.",
+	"parts": [
+		{"id": "b_frame_reverse_trike", "pos": [145.0, 19, 24], "turn": 0, "color": "#1b1b1b"},
+		{"id": "b_nose_arrowhead", "pos": [174.0, 29, -2], "turn": 0, "color": "#c4281c"},
+		{"id": "b_tail_arrowhead", "pos": [177.0, 41, 162], "turn": 0, "color": "#c4281c"},
+		{"id": "b_quad_bars", "pos": [180.0, 52, 97], "turn": 0},
+		{"id": "w_kart_wide", "pos": [130.0, 0, 21.0], "turn": 0},
+		{"id": "w_kart_wide", "pos": [270.0, 0, 69.0], "turn": 2},
+		{"id": "w_kart_wide", "pos": [182.0, 0, 161.0], "turn": 0},
+		{"id": "b_wing_wide_left", "pos": [127.0, 20, 17], "turn": 0, "color": "#c4281c"},
+		{"id": "b_wing_wide_right", "pos": [232.0, 20, 17], "turn": 0, "color": "#c4281c"}
+	]
+}

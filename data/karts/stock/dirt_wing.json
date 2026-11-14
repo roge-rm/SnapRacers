@@ -1,0 +1,31 @@
+{
+	"name": "Dirt Wing",
+	"about": "A sprint car with a huge wing on top and a fat tire on the right. Brilliant on dirt, and a bit twitchy on tarmac.",
+	"parts": [
+		{"id": "p_kart_axle_plate_4", "pos": [140, 24.0, 40], "turn": 0, "color": "#1b1b1b"},
+		{"id": "w_racing", "pos": [132.0, 0, 32.0], "turn": 0, "color": "#f2cd37"},
+		{"id": "w_racing", "pos": [268.0, 0, 88.0], "turn": 2, "color": "#f2cd37"},
+		{"id": "p_plate_2x4", "pos": [240.0, 32.0, 40], "turn": 1, "color": "#1b1b1b"},
+		{"id": "p_kart_axle_plate_4", "pos": [140, 32.0, 200], "turn": 0, "color": "#1b1b1b"},
+		{"id": "w_truck", "pos": [120.0, 0, 184.0], "turn": 0, "color": "#f2cd37"},
+		{"id": "p_plate_4x4", "pos": [160, 40.0, 40], "turn": 0, "color": "#1b1b1b"},
+		{"id": "p_plate_4x6", "pos": [160, 40.0, 120], "turn": 0, "color": "#1b1b1b"},
+		{"id": "p_plate_2x2", "pos": [180, 32.0, 100], "turn": 0, "color": "#1b1b1b"},
+		{"id": "w_sprint_right", "pos": [292.0, 0, 256.0], "turn": 2, "color": "#f2cd37"},
+		{"id": "p_curve_2x4", "pos": [180, 48.0, 0], "turn": 0, "color": "#0d69ab"},
+		{"id": "p_curve_1x4", "pos": [160, 48.0, 0], "turn": 0, "color": "#0d69ab"},
+		{"id": "p_curve_1x4", "pos": [220.0, 48.0, 0], "turn": 0, "color": "#0d69ab"},
+		{"id": "d_roll_cage_4x4", "pos": [160, 48.0, 80], "turn": 0, "color": "#1b1b1b"},
+		{"id": "steering_wheel", "pos": [180, 48.0, 80], "turn": 0},
+		{"id": "s_racing_seat", "pos": [180, 48.0, 100], "turn": 0},
+		{"id": "p_tile_1x2", "pos": [160, 48.0, 100], "turn": 0, "color": "#0d69ab"},
+		{"id": "p_tile_1x2", "pos": [220.0, 48.0, 100], "turn": 0, "color": "#0d69ab"},
+		{"id": "engine_v8", "pos": [180, 48.0, 160], "turn": 0, "color": "#a3a2a4"},
+		{"id": "p_brick_1x4", "pos": [160, 48.0, 160], "turn": 0, "color": "#0d69ab"},
+		{"id": "p_brick_1x4", "pos": [220.0, 48.0, 160], "turn": 0, "color": "#0d69ab"},
+		{"id": "p_curve_2x4", "pos": [220.0, 72.0, 240.0], "turn": 2, "color": "#0d69ab"},
+		{"id": "p_tile_1x4", "pos": [160, 72.0, 160], "turn": 0, "color": "#f2cd37"},
+		{"id": "p_tile_1x4", "pos": [220.0, 72.0, 160], "turn": 0, "color": "#f2cd37"},
+		{"id": "d_sprint_wing", "pos": [130.0, 142.4, 70.0], "turn": 0, "color": "#f2cd37"}
+	]
+}

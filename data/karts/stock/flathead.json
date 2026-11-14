@@ -1,10 +1,10 @@
 {
 	"name": "Flathead",
-	"about": "A hot rod with a blower V8 out in the open and fat tires at the back. Loads of pull, and a bit of a handful.",
+	"about": "A hot rod with a blower V8 out in the open and fat tires at the back. Loads of pull and quick on the straights.",
 	"parts": [
 		{"id": "p_kart_axle_plate_4", "pos": [140, 20.0, 20], "turn": 0, "color": "#1b1b1b"},
-		{"id": "w_kart", "pos": [140.0, 0, 16.0], "turn": 0},
-		{"id": "w_kart", "pos": [260.0, 0, 64.0], "turn": 2},
+		{"id": "w_kart_wide", "pos": [124.0, 0, 16.0], "turn": 0},
+		{"id": "w_kart_wide", "pos": [276.0, 0, 64.0], "turn": 2},
 		{"id": "p_plate_4x8", "pos": [160, 20.0, 60], "turn": 0, "color": "#1b1b1b"},
 		{"id": "p_kart_axle_plate_4", "pos": [140, 28.0, 180], "turn": 0, "color": "#1b1b1b"},
 		{"id": "w_slick", "pos": [120.0, 0, 168.0], "turn": 0},

@@ -1,7 +1,7 @@
 extends Node
 
-## Checks the stock karts, bikes, trikes and quads. There are twenty-nine
-## karts, eight bikes, six trikes and three quads, every one can be driven and says what it's like, no
+## Checks the stock karts, bikes, trikes and quads. There are 22 karts and
+## trucks, seven bikes, five trikes and six quads, every one can be driven and says what it's like, no
 ## two drive the same, and each one gets around a lap of Peach Pit with the AI
 ## driving it. tools/stock-karts/balance.tscn goes
 ## further and times them all on four courses.
@@ -32,7 +32,7 @@ func _ready() -> void:
 		var wheels := stats.wheels.size()
 		var kind := "bike" if wheels == 2 else "trike" if wheels == 3 else "quad" if stats.is_quad() else "kart"
 		by_wheels[kind] = by_wheels.get(kind, 0) + 1
-	check(by_wheels.get("kart", 0) == 14 and by_wheels.get("bike", 0) == 4 and by_wheels.get("trike", 0) == 3 and by_wheels.get("quad", 0) == 3, "there are fourteen karts and trucks, four bikes, three trikes and three quads %s" % by_wheels)
+	check(by_wheels.get("kart", 0) == 22 and by_wheels.get("bike", 0) == 7 and by_wheels.get("trike", 0) == 5 and by_wheels.get("quad", 0) == 6, "there are 22 karts and trucks, seven bikes, five trikes and six quads %s" % by_wheels)
 	# Every old stock id leads to one that's still there, and a saved old
 	# pick is swapped for its new id.
 	var lost := Game.OLD_STOCK.keys().filter(func(k): return not keys.has(Game.OLD_STOCK[k]))

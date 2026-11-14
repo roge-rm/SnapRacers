@@ -1,0 +1,16 @@
+{
+	"name": "Bogtrotter",
+	"about": "A farm quad on six wheels with a bull bar and a rack. Slow, but it grips on anything.",
+	"parts": [
+		{"id": "b_frame_quad_bogtrotter", "pos": [132.0, 16.4, 26], "turn": 0, "color": "#1b1b1b"},
+		{"id": "b_quad_front_bogtrotter", "pos": [148.0, 28.4, 3.6], "turn": 0, "color": "#c9a227"},
+		{"id": "b_quad_back_bogtrotter", "pos": [148.0, 28.4, 121.6], "turn": 0, "color": "#c9a227"},
+		{"id": "b_quad_bars", "pos": [180.0, 62, 53.6], "turn": 0},
+		{"id": "w_quad", "pos": [132.0, 0, 17.6], "turn": 0, "color": "#635f61"},
+		{"id": "w_quad", "pos": [268.0, 0, 62.4], "turn": 2, "color": "#635f61"},
+		{"id": "w_quad", "pos": [132.0, 0, 129.6], "turn": 0, "color": "#635f61"},
+		{"id": "w_quad", "pos": [268.0, 0, 174.4], "turn": 2, "color": "#635f61"},
+		{"id": "w_quad", "pos": [132.0, 0, 185.6], "turn": 0, "color": "#635f61"},
+		{"id": "w_quad", "pos": [268.0, 0, 230.4], "turn": 2, "color": "#635f61"}
+	]
+}

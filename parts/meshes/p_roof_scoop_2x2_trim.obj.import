@@ -1,0 +1,25 @@
+[remap]
+
+importer="wavefront_obj"
+importer_version=1
+type="Mesh"
+uid="uid://d0jh0h2e8cxwp"
+path="res://.godot/imported/p_roof_scoop_2x2_trim.obj-d2d3c20338077b3ec6132b6198e2ef69.mesh"
+
+[deps]
+
+files=["res://.godot/imported/p_roof_scoop_2x2_trim.obj-d2d3c20338077b3ec6132b6198e2ef69.mesh"]
+
+source_file="res://parts/meshes/p_roof_scoop_2x2_trim.obj"
+dest_files=["res://.godot/imported/p_roof_scoop_2x2_trim.obj-d2d3c20338077b3ec6132b6198e2ef69.mesh", "res://.godot/imported/p_roof_scoop_2x2_trim.obj-d2d3c20338077b3ec6132b6198e2ef69.mesh"]
+
+[params]
+
+generate_tangents=true
+generate_lods=true
+generate_shadow_mesh=true
+generate_lightmap_uv2=false
+generate_lightmap_uv2_texel_size=0.2
+scale_mesh=Vector3(1, 1, 1)
+offset_mesh=Vector3(0, 0, 0)
+force_disable_mesh_compression=false

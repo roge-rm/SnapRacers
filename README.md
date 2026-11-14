@@ -139,7 +139,7 @@ The kart's shape decides its drag. Flat faces catch the wind, slopes and nose co
 
 ### Stock vehicles
 
-You can pick any of the 24 stock vehicles before a race, even while your garage kart is unfinished. The AI uses them too, picking one at random for a race or a whole Grand Prix. Their lap times are within about ten percent of each other overall.
+You can pick any of the 40 stock vehicles before a race, even while your garage kart is unfinished. The AI uses them too, picking one at random for a race or a whole Grand Prix. Their lap times are within about ten percent of each other overall.
 
 | Vehicle | How it drives |
 |---|---|
@@ -153,20 +153,36 @@ You can pick any of the 24 stock vehicles before a race, even while your garage 
 | Flathead | A hot rod with a blower V8. Plenty of pull and a handful to drive. |
 | Sandhopper | A dune buggy with a roll cage. Good on sand and grass. |
 | Volt | An electric racer with wings. Quick off the line and easy to drive. |
+| Shifter | A tiny sprint kart on soft slicks. Nothing corners faster, but it's slow on the straights. |
+| Dirt Wing | A sprint car with a huge wing on top. Brilliant on dirt, a bit twitchy on tarmac. |
+| Hot Hatch | A little rally hatchback on knobbly tires. Grips on road, dirt or grass. |
+| Long Lap | A long endurance racer under a bubble. The fastest down a long straight, heavy in the tight stuff. |
+| Dune Bug | A light beach buggy. Bounces about on the road and floats over sand and grass. |
 | Crusher | A tall monster truck. Rolls over bumps but needs care in corners. |
 | Long Haul | A big rig without a trailer. Slow to start and stop, and shoves other karts about. |
 | Desert Pro | A desert racer on big knobbly tires. Good on rough ground and the road. |
 | Six Pack | A truck with two rear axles. Plenty of grip but slow to turn. |
+| Tow Boss | A tow truck with a boom and hook. Heavy and tough, and barges through a crowd. |
+| Rock Crawler | A rock crawler on huge wheels. Slow, but doesn't care what's under it. |
+| Fire Chief | A short fire engine with a ladder. Strong off the line and steady once going. |
 | Streak | A low superbike with fairings. Fast, but gets knocked about and takes bends wider than a kart. |
 | Scrambler | A dirt bike. Good on grass and bumps, slower to turn on tarmac. |
 | Zippy | A little scooter. Quick off the line, with a low top speed. |
 | Long Fork | A chopper with a long fork. Fast on straights but slow to turn. |
+| Ton Up | A café racer. Quick on smooth road, and its treaded tires keep it going in the wet. |
+| Kerb Hopper | A supermoto. Good on a bit of everything and easy to flick about. |
+| Spark | An electric bike. Loads of pull, but not much top speed. |
 | Twin Nose | A trike with two front wheels. Leans into bends and corners nearly like a kart. |
 | Sunday Trike | A chopper trike with a rounded rear body. Steady but slow to turn. |
 | Tiddler | A little electric trike with a rear box. Slow, steady and easy to drive. |
+| Arrowhead | A sports trike with two wide front wheels. Low, steady and holds a bend well. |
+| Tuk Tuk | A little delivery trike with a canopy. Slow, but nips round corners. |
 | Zipper | A sport quad. Corners flat and handles grass well. |
 | Mudlark | A tall quad on big knobbly wheels. Good off the road, slow on tarmac. |
 | Flat Track | A low racing quad on wide wheels. Sharp in bends, with little grip on grass. |
+| Dust Devil | A long sport quad, the fastest of the quads. Sits flat in bends and doesn't mind dirt. |
+| Pip | A kids' mini quad. Turns on the spot, but there isn't much to it on the straights. |
+| Bogtrotter | A six wheel farm quad. Slow, but grips on anything. |
 
 ## Drivers
 

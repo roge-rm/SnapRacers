@@ -1,0 +1,31 @@
+{
+	"name": "Rock Crawler",
+	"about": "A rock crawler up on huge wheels. Slow, but it doesn't care what's under it.",
+	"parts": [
+		{"id": "p_kart_axle_plate_4", "pos": [140, 44.0, 40], "turn": 0, "color": "#1b1b1b"},
+		{"id": "w_monster", "pos": [104.0, 0, 12.0], "turn": 0, "color": "#f2cd37"},
+		{"id": "w_monster", "pos": [296.0, 0, 108.0], "turn": 2, "color": "#f2cd37"},
+		{"id": "p_kart_axle_plate_4", "pos": [140, 44.0, 200], "turn": 0, "color": "#1b1b1b"},
+		{"id": "w_monster", "pos": [104.0, 0, 172.0], "turn": 0, "color": "#f2cd37"},
+		{"id": "w_monster", "pos": [296.0, 0, 268.0], "turn": 2, "color": "#f2cd37"},
+		{"id": "p_plate_4x4", "pos": [160, 52.0, 40], "turn": 0, "color": "#1b1b1b"},
+		{"id": "p_plate_4x6", "pos": [160, 52.0, 120], "turn": 0, "color": "#1b1b1b"},
+		{"id": "p_plate_2x2", "pos": [180, 44.0, 100], "turn": 0, "color": "#1b1b1b"},
+		{"id": "p_brick_2x4", "pos": [180, 60.0, 20], "turn": 0, "color": "#a4bd46"},
+		{"id": "p_brick_1x4", "pos": [160, 60.0, 20], "turn": 0, "color": "#a4bd46"},
+		{"id": "p_brick_1x4", "pos": [220.0, 60.0, 20], "turn": 0, "color": "#a4bd46"},
+		{"id": "p_plate_4x4", "pos": [160, 84.0, 20], "turn": 0, "color": "#a4bd46"},
+		{"id": "p_bonnet_4x4", "pos": [160, 92.0, 20], "turn": 0, "color": "#a4bd46"},
+		{"id": "d_roll_cage_4x4", "pos": [160, 60.0, 100], "turn": 0, "color": "#1b1b1b"},
+		{"id": "d_light_1x1", "pos": [170.0, 154.4, 140], "turn": 0, "color": "#f2cd37"},
+		{"id": "d_light_1x1", "pos": [190.0, 154.4, 140], "turn": 0, "color": "#f2cd37"},
+		{"id": "d_light_1x1", "pos": [210.0, 154.4, 140], "turn": 0, "color": "#f2cd37"},
+		{"id": "steering_wheel", "pos": [180, 60.0, 100], "turn": 0},
+		{"id": "s_racing_seat", "pos": [180, 60.0, 120], "turn": 0},
+		{"id": "p_tile_1x2", "pos": [160, 60.0, 120], "turn": 0, "color": "#a4bd46"},
+		{"id": "p_tile_1x2", "pos": [220.0, 60.0, 120], "turn": 0, "color": "#a4bd46"},
+		{"id": "engine_big", "pos": [180, 60.0, 180], "turn": 0, "color": "#a3a2a4"},
+		{"id": "p_brick_1x3", "pos": [160, 60.0, 180], "turn": 0, "color": "#a4bd46"},
+		{"id": "p_brick_1x3", "pos": [220.0, 60.0, 180], "turn": 0, "color": "#a4bd46"}
+	]
+}

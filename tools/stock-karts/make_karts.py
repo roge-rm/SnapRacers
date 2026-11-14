@@ -367,9 +367,9 @@ k = kart("quarter_mile", "Quarter Mile", "A dragster with a blower V8, huge slic
 # It's built by hand so the engine and driver sit low: a plate 4×8 hangs
 # off the back axle plate and reaches forward to the front one, with tiles
 # either side of the engine joining the two.
-k = kart("flathead", "Flathead", "A hot rod with a blower V8 out in the open and fat tires at the back. Loads of pull, and a bit of a handful.")
+k = kart("flathead", "Flathead", "A hot rod with a blower V8 out in the open and fat tires at the back. Loads of pull and quick on the straights.")
 (k.add("p_kart_axle_plate_4", 7, 2.5, 1, colour=DARK)
-    .pair_fine("w_kart", 8 * STUD - fine_size("w_kart")[0], 0, 2 * STUD - fine_size("w_kart")[2] / 2)
+    .pair_fine("w_kart_wide", 8 * STUD - fine_size("w_kart_wide")[0], 0, 2 * STUD - fine_size("w_kart_wide")[2] / 2)
     .add("p_plate_4x8", 8, 2.5, 3, colour=DARK)
     .add("p_kart_axle_plate_4", 7, 3.5, 9, colour=DARK)
     .pair_fine("w_slick", 8 * STUD - fine_size("w_slick")[0], 0, 10 * STUD - fine_size("w_slick")[2] / 2)
@@ -419,6 +419,93 @@ arches(k, T, (4, 12), WHITE, sides=WHITE, part="p_arch_2x6_teal_stripe")
     .add("electric_motor", 9, T, 14, colour=DARK)
     .pair("p_tile_1x2", 8, T, 14, colour=WHITE)
     .add("d_rear_wing_8", 6, T + 2, 14, colour=BLUE))
+
+
+# 25. A sprint kart: tiny and low on soft slicks, rounded side pods and a
+# little single behind the seat.
+k = kart("shifter", "Shifter", "A tiny sprint kart on soft slicks, the lightest of the karts. Nothing goes round a corner faster, but it's slow down the straights.")
+T = racer(k, "w_kart_slick", "w_kart_slick", 1, 8, arches=0, width=4)
+(k.add("p_curve_2x4", 9, T, 0, colour=ORANGE)
+    .add("p_tile_1x2", 9, T + 3, 3, rot=1, colour=WHITE)
+    .add("steering_wheel", 9, T, 4)
+    .add("s_bucket_seat", 9, T, 5, colour=DARK)
+    .pair("p_tile_1x4", 8, T, 4, colour=DARK)
+    .add("engine_micro", 9, T, 7, colour=SILVER)
+    .add("p_tile_1x2", 10, T, 7, colour=DARK)
+    .pair("p_plate_2x3", 6, T - 2, 4, rot=1, colour=ORANGE)
+    .pair("p_curve_2x2", 6, T - 1, 4, colour=ORANGE))
+
+# 26. A sprint car: a small nose, the driver in a cage with a huge flat wing
+# on top, the engine behind and a wider tire on the right back corner.
+k = kart("dirt_wing", "Dirt Wing", "A sprint car with a huge wing on top and a fat tire on the right. Brilliant on dirt, and a bit twitchy on tarmac.")
+T = racer(k, "w_racing", "w_truck", 2, 10, arches=0, width=4, rims=YELLOW)
+# The right back wheel is the wide one.
+wide = [p for p in k.parts if p["id"] == "w_truck"][-1]
+k.parts.remove(wide)
+k.fine("w_sprint_right", 12 * STUD, 0, 11 * STUD - fine_size("w_sprint_right")[2] / 2, rot=2, colour=YELLOW)
+(k.add("p_curve_2x4", 9, T, 0, colour=BLUE)
+    .pair("p_curve_1x4", 8, T, 0, colour=BLUE)
+    .add("d_roll_cage_4x4", 8, T, 4, colour=DARK)
+    .add("steering_wheel", 9, T, 4)
+    .add("s_racing_seat", 9, T, 5)
+    .pair("p_tile_1x2", 8, T, 5, colour=BLUE)
+    .add("engine_v8", 9, T, 8, colour=SILVER)
+    .pair("p_brick_1x4", 8, T, 8, colour=BLUE)
+    .add("p_curve_2x4", 9, T + 3, 8, rot=2, colour=BLUE)
+    .pair("p_tile_1x4", 8, T + 3, 8, colour=YELLOW)
+    .add("d_sprint_wing", 6.5, T + 11.8, 3.5, colour=YELLOW))
+
+# 27. A rally hatchback: a short striped bonnet, a car cab right to the
+# back with the engine in behind the seat, and lamps on the roof.
+k = kart("hot_hatch", "Hot Hatch", "A little rally hatchback on knobbly tires. It grips on everything, road, dirt or grass, and it's middling on the straights.")
+T = racer(k, "w_offroad", "w_offroad", 3, 8, width=4)
+arches(k, T, (3, 9), RED)
+(k.add("p_plate_4x6", 8, T, 1, colour=RED)
+    .add("p_bonnet_4x6_black_stripes", 8, T + 1, 1, colour=RED)
+    .pair("p_brick_1x6", 8, T, 7, colour=RED)
+    .add("steering_wheel", 9, T, 7)
+    .add("s_racing_seat", 9, T, 8)
+    .add("engine_small", 9, T, 11, colour=SILVER)
+    .add("p_cab_4x6", 8, T + 3, 7, colour=RED)
+    .add("d_spotlights", 9, T + 9, 9, colour=YELLOW)
+    .add("p_tile_1x2", 9, T + 9, 10, rot=1, colour=WHITE))
+
+# 28. A long closed-cockpit endurance prototype in purple: a bubble over a
+# lay-down driver, side pods between the arches and the engine under a long fin.
+k = kart("long_lap", "Long Lap", "A long, low endurance racer with the driver shut in under a bubble and the engine under the fin. The fastest thing down a long straight, and heavy in the tight stuff.")
+T = racer(k, "w_racing", "w_racing", 3, 12, width=4)
+arches(k, T, (3, 13), PURPLE)
+(k.add("p_plate_4x4", 8, T, 1, colour=PURPLE)
+    .add("p_bonnet_4x4_lime_stripe", 8, T + 1, 1, colour=PURPLE)
+    .pair("p_brick_1x6", 8, T, 5, colour=PURPLE)
+    .pair("p_plate_1x1", 8, T + 3, 5, colour=LIME)
+    .pair("p_tile_1x4", 8, T + 3, 6, colour=LIME)
+    .pair("p_plate_1x1", 8, T + 3, 10, colour=LIME)
+    .add("racing_wheel", 9, T, 5)
+    .add("s_lay_down_seat", 9, T, 6)
+    .add("p_tile_1x2", 9, T, 10, rot=1, colour=DARK)
+    .add("d_canopy", 8, T + 4, 5))
+# Side pods in the gap between the arches, on plates under the chassis.
+for z in (7, 9):
+    k.pair("p_plate_2x3", 6, T - 2, z, rot=1, colour=DARK)
+(k.pair("p_plate_2x4", 6, T - 1, 7, colour=DARK)
+    .pair("p_brick_2x4", 6, T, 7, colour=PURPLE)
+    .pair("p_tile_2x4", 6, T + 3, 7, colour=LIME)
+    .add("engine_hybrid", 9, T, 11, colour=DARK)
+    .add("p_fin_cover_4x6", 8, T, 11, colour=PURPLE))
+
+# 29. A beach buggy: a short rounded nose, a roll hoop and the engine out
+# in the open at the back.
+k = kart("dune_bug", "Dune Bug", "A light beach buggy with its engine out the back. It bounces about on the road and floats over sand and grass.")
+T = racer(k, "w_offroad", "w_offroad", 1, 8, arches=0, width=4, rims=WHITE)
+(k.add("p_curve_4x4", 8, T, 0, colour=TEAL)
+    .add("steering_wheel", 9, T, 4)
+    .add("s_racing_seat", 9, T, 5)
+    .pair("p_brick_1x3", 8, T, 4, colour=TEAL)
+    .pair("p_tile_1x3", 8, T + 3, 4, colour=WHITE)
+    .add("d_roll_hoop", 8, T, 7, colour=DARK)
+    .add("engine_small", 9, T, 7, colour=SILVER)
+    .add("p_tile_2x2", 9, T + 3, 7, colour=TEAL))
 
 
 # Trucks.
@@ -544,6 +631,80 @@ fenders(k, 11, T + 3)
     .add("p_truck_cab_4x4", 8, T + 4, 2, colour=ORANGE))
 
 
+# 30. A tow truck: a yellow cab, a bed with a boom leaning out the back and
+# a hook on its cable.
+k = kart("tow_boss", "Tow Boss", "A tow truck with a boom and hook on the back. Heavy and tough, and it barges through a crowd.")
+T = racer(k, "w_truck", "w_truck", 1, 12, arches=0, width=4)
+(k.pair("p_brick_1x4", 8, T, 0, colour=YELLOW)
+    .add("p_brick_2x4", 9, T, 0, colour=YELLOW)
+    .pair("p_plate_1x1", 8, T + 3, 0, colour=YELLOW).pair("p_plate_1x1", 8, T + 3, 3, colour=YELLOW)
+    .add("p_plate_2x4", 9, T + 3, 0, colour=YELLOW)
+    .add("p_bonnet_4x4", 8, T + 4, 0, colour=YELLOW)
+    .pair("p_brick_1x4", 8, T, 4, colour=YELLOW)
+    .pair("p_plate_1x4", 8, T + 3, 4, colour=DARK)
+    .add("steering_wheel", 9, T, 4)
+    .add("s_racing_seat", 9, T, 5)
+    .add("p_cab_4x4", 8, T + 4, 4, colour=YELLOW)
+    .add("d_light_bar", 8, T + 10, 6, colour=ORANGE)
+    .add("engine_v8", 9, T, 8, colour=GREY)
+    .pair("p_brick_1x4", 8, T, 8, colour=YELLOW)
+    .pair("p_brick_1x2", 8, T, 12, colour=YELLOW)
+    .add("p_brick_2x2", 9, T, 12, colour=DARK)
+    .pair("p_plate_1x3", 8, T + 3, 8, colour=YELLOW)
+    .pair("p_plate_1x1", 8, T + 3, 13, colour=YELLOW)
+    .add("p_plate_2x6", 9, T + 3, 8, colour=DARK)
+    .pair("p_tile_1x3", 8, T + 4, 8, colour=YELLOW)
+    .pair("p_tile_1x1", 8, T + 4, 13, colour=YELLOW)
+    .add("p_tile_2x2", 9, T + 4, 8, colour=DARK)
+    .add("d_tow_boom", 9, T + 4, 10, colour=GREY))
+fenders(k, 2, T + 3)
+fenders(k, 12, T + 3)
+
+# 31. A rock crawler: tall on huge wheels, a lime bonnet out front, an
+# open cage with lamps and the engine out back over the back wheels, which
+# need the weight to push.
+k = kart("rock_crawler", "Rock Crawler", "A rock crawler up on huge wheels. Slow, but it doesn't care what's under it.")
+T = racer(k, "w_monster", "w_monster", 2, 10, arches=0, width=4, rims=YELLOW)
+(k.add("p_brick_2x4", 9, T, 1, colour=LIME)
+    .pair("p_brick_1x4", 8, T, 1, colour=LIME)
+    .add("p_plate_4x4", 8, T + 3, 1, colour=LIME)
+    .add("p_bonnet_4x4", 8, T + 4, 1, colour=LIME)
+    .add("d_roll_cage_4x4", 8, T, 5, colour=DARK)
+    .add("d_light_1x1", 8.5, T + 11.8, 7, colour=YELLOW).add("d_light_1x1", 9.5, T + 11.8, 7, colour=YELLOW).add("d_light_1x1", 10.5, T + 11.8, 7, colour=YELLOW)
+    .add("steering_wheel", 9, T, 5)
+    .add("s_racing_seat", 9, T, 6)
+    .pair("p_tile_1x2", 8, T, 6, colour=LIME)
+    .add("engine_big", 9, T, 9, colour=SILVER)
+    .pair("p_brick_1x3", 8, T, 9, colour=LIME))
+
+# 32. A short fire engine: a red car cab, a locker behind with a ladder
+# on a post reaching forward over the cab.
+k = kart("fire_chief", "Fire Chief", "A short fire engine with a ladder on top. Strong off the line, and steady once it's going.")
+T = racer(k, "w_truck", "w_truck", 1, 10, arches=0, width=4)
+(k.pair("p_brick_1x4", 8, T, 0, colour=RED)
+    .add("p_brick_2x4", 9, T, 0, colour=RED)
+    .pair("p_plate_1x1", 8, T + 3, 0, colour=RED).pair("p_plate_1x1", 8, T + 3, 3, colour=RED)
+    .add("p_plate_2x4", 9, T + 3, 0, colour=RED)
+    .add("p_bonnet_4x4", 8, T + 4, 0, colour=RED)
+    .pair("p_brick_1x4", 8, T, 4, colour=RED)
+    .pair("p_plate_1x4", 8, T + 3, 4, colour=WHITE)
+    .add("steering_wheel", 9, T, 4)
+    .add("s_racing_seat", 9, T, 5)
+    .add("p_cab_4x4", 8, T + 4, 4, colour=RED)
+    .add("d_light_1x1", 9, T + 10, 6, colour=BLUE).add("d_light_1x1", 10, T + 10, 6, colour=BLUE)
+    .add("engine_hybrid", 9, T, 8, colour=SILVER)
+    .pair("p_brick_1x3", 8, T, 8, colour=RED)
+    .add("p_plate_2x4", 9, T + 3, 8, colour=RED)
+    .pair("p_plate_1x1", 8, T + 3, 8, colour=RED).pair("p_plate_1x1", 8, T + 3, 11, colour=RED)
+    .pair("p_brick_1x4", 8, T + 4, 8, colour=RED)
+    .add("p_brick_2x4", 9, T + 4, 8, colour=RED)
+    .pair("p_tile_1x4", 8, T + 7, 8, colour=WHITE)
+    .add("p_tile_2x2", 9, T + 7, 8, colour=WHITE)
+    .add("d_fire_ladder", 9, T + 7, 2))
+fenders(k, 2, T + 3)
+fenders(k, 10, T + 3)
+
+
 MID = WIDTH / 2
 
 
@@ -596,7 +757,7 @@ bike("long_fork", "Long Fork", "A chopper with its fork way out in front and the
 k = bike("twin_nose", "Twin Nose", "A reverse trike with two wheels in front and one behind. It holds a bend nearly like a kart and still leans into it.", 45,
          [("b_frame_reverse_trike", (-55, 19, -21), DARK), ("b_nose_reverse_trike", (-27, 29, -43), ORANGE),
           ("b_tail_reverse_trike", (-23, 41, 117), ORANGE), ("b_quad_bars", (-20, 52, 52), None)],
-         [("w_kart", 0, None, 34), ("w_kart", 140, None, 0)])
+         [("w_kart_tread", 0, None, 34), ("w_kart_tread", 140, None, 0)])
 k.pair_fine("b_wing_trike_left", MID - 57, 20, 45 - 28, colour=ORANGE)
 
 # 20. A chopper trike with a yellow rounded body over the back wheels.
@@ -612,6 +773,38 @@ k = bike("tiddler", "Tiddler", "A little electric trike with a box on the back. 
 k.fine("b_box_delta_trike", MID - 20, 42, 30 + 94)
 
 
+# 33. A cafe racer in red with a white stripe, a long tank, a hump behind
+# the seat and a round lamp.
+bike("ton_up", "Ton Up", "A café racer, low with a long tank and a round lamp. Quick on smooth road, and its treaded tires keep it going in the wet.", 30,
+     [("b_frame_cafe", (-20, 16, 16), DARK), ("b_body_cafe", (-15, 44, 34), RED), ("b_fork_cafe", (-25, 20.4, -10), None)],
+     [("w_street", 0, None, 0), ("w_street", 140, None, 0)])
+
+# 34. A supermoto in white with red, a dirt bike on road wheels.
+bike("kerb_hopper", "Kerb Hopper", "A supermoto, a dirt bike on road tires. Good on a bit of everything and easy to flick about.", 45,
+     [("b_frame_scrambler", (-19, 20, 12), DARK), ("b_body_supermoto", (-14, 53, 21), WHITE), ("b_fork_dirt_small", (-27, 26.4, -10), RED)],
+     [("w_supermoto", 0, None, 0), ("w_supermoto", 144, None, 0)])
+
+# 35. An electric bike in white with lime stripes.
+bike("spark", "Spark", "An electric bike with a battery where the engine would be. Loads of pull, but not much top speed.", 30,
+     [("b_frame_electric", (-20, 16, 16), DARK), ("b_body_electric", (-19, 18, 29), WHITE), ("b_fork_sport", (-25, 20.4, -10), None)],
+     [("w_street", 0, None, 0), ("w_street", 140, None, 0)])
+
+# 36. A sports trike: two wide wheels in front under wide wings, a low red
+# pointed nose and a tail with a lip.
+k = bike("arrowhead", "Arrowhead", "A sports trike with two wide wheels in front and one behind. Low and very steady, and it holds a bend well.", 45,
+         [("b_frame_reverse_trike", (-55, 19, -21), DARK), ("b_nose_arrowhead", (-26, 29, -47), RED),
+          ("b_tail_arrowhead", (-23, 41, 117), RED), ("b_quad_bars", (-20, 52, 52), None)],
+         [("w_kart_wide", 0, None, 34), ("w_kart_wide", 140, None, 0)])
+k.pair_fine("b_wing_wide_left", MID - 73, 20, 45 - 28, colour=RED)
+
+# 37. A delivery trike: a little trike in green with a load box and a
+# yellow canopy over the rider.
+k = bike("tuk_tuk", "Tuk Tuk", "A little delivery trike with a canopy over the top. Slow, but it nips round corners.", 30,
+         [("b_frame_delta_trike", (-45, 16, 11), DARK), ("b_body_delta_trike", (-47, 18, 23), KART_GREEN), ("b_fork_scooter_small", (-25, 16.4, -10), KART_GREEN)],
+         [("w_scooter_small", 0, None, 0), ("w_scooter_small", 104, None, 32)])
+k.fine("b_canopy_tuk_tuk", MID - 31, 42, 30 + 15, colour=YELLOW)
+
+
 # The quads, laid out like the bikes from the same numbers as in library.py:
 # (wheel radius, wheel width, wheelbase, the wheels' outside face across,
 # half width of the bodies, top of the bodies, top of the saddle). The rider
@@ -619,16 +812,23 @@ k.fine("b_box_delta_trike", MID - 20, 42, 30 + 94)
 
 QUADS = {"zipper": (22.4, 32, 120, 68, 50, 56, 64),
          "mudlark": (33.6, 32, 140, 74, 52, 75, 84),
-         "flat_track": (24, 36, 120, 72, 54, 56, 66)}
+         "flat_track": (24, 36, 120, 72, 54, 56, 66),
+         "dust_devil": (22.4, 32, 132, 72, 54, 54, 62),
+         "pip": (22.4, 32, 108, 66, 42, 52, 60),
+         "bogtrotter": (22.4, 32, 112, 68, 52, 62, 70)}
+# A third axle this far behind the second, for a six wheeler.
+QUAD_EXTRA = {"bogtrotter": 56}
+# How far a bull bar reaches in front of the front body.
+QUAD_BAR = {"bogtrotter": 6}
 
 
 def quad(key, part_key, name, about, colour, wheel, rims):
     R, ww, wb, xo, hw, yt, ys = QUADS[part_key]
     zs = wb - R - 28
     return bike(key, name, about, 40,
-                [("b_frame_quad_" + part_key, (-xo, R - 6, -14), DARK), ("b_quad_front_" + part_key, (-hw, R + 6, -R - 8), colour),
+                [("b_frame_quad_" + part_key, (-xo, R - 6, -14), DARK), ("b_quad_front_" + part_key, (-hw, R + 6, -R - 8 - QUAD_BAR.get(part_key, 0)), colour),
                  ("b_quad_back_" + part_key, (-hw, R + 6, wb - R - 8), colour), ("b_quad_bars", (-20, ys - 8, zs - 48), None)],
-                [(wheel, 0, rims, xo - ww), (wheel, wb, rims, xo - ww)])
+                [(wheel, z, rims, xo - ww) for z in [0, wb] + ([wb + QUAD_EXTRA[part_key]] if part_key in QUAD_EXTRA else [])])
 
 
 # 22. A sport quad in blue with a white stripe and studs on the back.
@@ -642,6 +842,19 @@ quad("mudlark_quad", "mudlark", "Mudlark", "A mud quad up on big knobbly wheels,
 # 24. A low yellow racing quad on wide wheels.
 quad("flat_track", "flat_track", "Flat Track", "A low racing quad on wide grippy wheels. Fast and sharp in the bends, but it doesn't like the grass.",
      YELLOW, "w_kart_wide", GREY)
+
+
+# 38. A long orange desert quad with a black stripe and a number.
+quad("dust_devil", "dust_devil", "Dust Devil", "A long sport quad with a big engine, the fastest of the quads. It sits flat in the bends and doesn't mind the dirt.",
+     ORANGE, "w_quad", DARK)
+
+# 39. A little pink quad for kids.
+quad("pip", "pip", "Pip", "A kids' mini quad, tiny and light. It turns on the spot, but there isn't much to it on the straights.",
+     "#e86a9a", "w_quad", WHITE)
+
+# 40. A farm quad on six wheels with a bull bar in front and a rack behind.
+quad("bogtrotter", "bogtrotter", "Bogtrotter", "A farm quad on six wheels with a bull bar and a rack. Slow, but it grips on anything.",
+     "#c9a227", "w_quad", GREY)
 
 
 if __name__ == "__main__":

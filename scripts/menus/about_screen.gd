@@ -21,7 +21,7 @@ func _ready() -> void:
 		"",
 		"Every part you add changes how it drives. Wider tires grip more and drag more, a bigger engine is faster and heavier, and slopes, nose cones and fairings let the air slide past. Crashes knock parts off, and a reset puts them back on for a moment's slowdown.",
 		"",
-		"If you'd rather not build, there are twenty-four stock karts, trucks, trikes, quads and bikes to pick from, and the AI drivers race in them too.",
+		"If you'd rather not build, there are forty stock karts, trucks, trikes, quads and bikes to pick from, and the AI drivers race in them too.",
 		"",
 		"Race the AI on your own, with a friend on the same phone, or with people on other phones. Build your own courses and cups in the editors.",
 		"",

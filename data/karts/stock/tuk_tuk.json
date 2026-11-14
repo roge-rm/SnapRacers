@@ -1,0 +1,13 @@
+{
+	"name": "Tuk Tuk",
+	"about": "A little delivery trike with a canopy over the top. Slow, but it nips round corners.",
+	"parts": [
+		{"id": "b_frame_delta_trike", "pos": [155.0, 16, 41], "turn": 0, "color": "#1b1b1b"},
+		{"id": "b_body_delta_trike", "pos": [153.0, 18, 53], "turn": 0, "color": "#4b9f4a"},
+		{"id": "b_fork_scooter_small", "pos": [175.0, 16.4, 20], "turn": 0, "color": "#4b9f4a"},
+		{"id": "w_scooter_small", "pos": [194.0, 0, 10.0], "turn": 0},
+		{"id": "w_scooter_small", "pos": [156.0, 0, 114.0], "turn": 0},
+		{"id": "w_scooter_small", "pos": [244.0, 0, 154.0], "turn": 2},
+		{"id": "b_canopy_tuk_tuk", "pos": [169.0, 42, 45], "turn": 0, "color": "#f2cd37"}
+	]
+}

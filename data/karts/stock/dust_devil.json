@@ -1,0 +1,14 @@
+{
+	"name": "Dust Devil",
+	"about": "A long sport quad with a big engine, the fastest of the quads. It sits flat in the bends and doesn't mind the dirt.",
+	"parts": [
+		{"id": "b_frame_quad_dust_devil", "pos": [128.0, 16.4, 26], "turn": 0, "color": "#1b1b1b"},
+		{"id": "b_quad_front_dust_devil", "pos": [146.0, 28.4, 9.6], "turn": 0, "color": "#da8540"},
+		{"id": "b_quad_back_dust_devil", "pos": [146.0, 28.4, 141.6], "turn": 0, "color": "#da8540"},
+		{"id": "b_quad_bars", "pos": [180.0, 54, 73.6], "turn": 0},
+		{"id": "w_quad", "pos": [128.0, 0, 17.6], "turn": 0, "color": "#1b1b1b"},
+		{"id": "w_quad", "pos": [272.0, 0, 62.4], "turn": 2, "color": "#1b1b1b"},
+		{"id": "w_quad", "pos": [128.0, 0, 149.6], "turn": 0, "color": "#1b1b1b"},
+		{"id": "w_quad", "pos": [272.0, 0, 194.4], "turn": 2, "color": "#1b1b1b"}
+	]
+}

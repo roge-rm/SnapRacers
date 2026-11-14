@@ -1,0 +1,11 @@
+{
+	"name": "Ton Up",
+	"about": "A café racer, low with a long tank and a round lamp. Quick on smooth road, and its treaded tires keep it going in the wet.",
+	"parts": [
+		{"id": "b_frame_cafe", "pos": [180.0, 16, 46], "turn": 0, "color": "#1b1b1b"},
+		{"id": "b_body_cafe", "pos": [185.0, 44, 64], "turn": 0, "color": "#c4281c"},
+		{"id": "b_fork_cafe", "pos": [175.0, 20.4, 20], "turn": 0},
+		{"id": "w_street", "pos": [192.8, 0, 6.0], "turn": 0},
+		{"id": "w_street", "pos": [192.8, 0, 146.0], "turn": 0}
+	]
+}

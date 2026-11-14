@@ -1,0 +1,25 @@
+[remap]
+
+importer="wavefront_obj"
+importer_version=1
+type="Mesh"
+uid="uid://b1rnuvqmuxbf4"
+path="res://.godot/imported/b_fork_cafe_lamp.obj-926c52d2832ef6eced300275173c1ddd.mesh"
+
+[deps]
+
+files=["res://.godot/imported/b_fork_cafe_lamp.obj-926c52d2832ef6eced300275173c1ddd.mesh"]
+
+source_file="res://parts/meshes/b_fork_cafe_lamp.obj"
+dest_files=["res://.godot/imported/b_fork_cafe_lamp.obj-926c52d2832ef6eced300275173c1ddd.mesh", "res://.godot/imported/b_fork_cafe_lamp.obj-926c52d2832ef6eced300275173c1ddd.mesh"]
+
+[params]
+
+generate_tangents=true
+generate_lods=true
+generate_shadow_mesh=true
+generate_lightmap_uv2=false
+generate_lightmap_uv2_texel_size=0.2
+scale_mesh=Vector3(1, 1, 1)
+offset_mesh=Vector3(0, 0, 0)
+force_disable_mesh_compression=false
