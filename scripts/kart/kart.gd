@@ -561,6 +561,11 @@ var _body: Array[MeshInstance3D] = []
 ## part knocked off goes without building the kart again (see _drop_lost()).
 var _part_nodes := {}
 var _body_spans := {}
+## Where the parts were when the kart was last built, by index, and the baked
+## spans of those since knocked off, so a repair can put them back (see
+## _restore_lost()).
+var _built_at := {}
+var _hidden_spans := {}
 ## Where the headlight pool was made for, as (front, ground).
 var _pool_at := Vector2.ZERO
 ## Which parts are joined to which (see KartDesign.links()), and the design
@@ -783,6 +788,8 @@ func _assemble() -> void:
 	_turning.clear()
 	_part_nodes.clear()
 	_body_spans.clear()
+	_built_at.clear()
+	_hidden_spans.clear()
 	# Everything you see goes in here, so a bike can lean it.
 	_looks = Node3D.new()
 	add_child(_looks)
@@ -801,48 +808,14 @@ func _assemble() -> void:
 	var looks: Array[Node3D] = []
 	var look_parts: Array[int] = []
 	for info in stats.parts:
+		_built_at[info.index] = Transform3D(info.basis, info.centre)
 		if info.def.kind == "wheel":
-			var w := Wheel.new()
-			w.index = info.index
-			w.part = info.def
-			w.rest = info.centre
-			w.radius = info.def.get("radius", 0.3)
-			w.width = info.def.get("width", 0.25)
-			w.grip = info.def.get("grip", 1.0)
-			w.rolling = info.def.get("rolling", 0.015)
-			w.offroad = info.def.get("offroad", 0.0)
-			var setup: Array = _wheel_setup[info.index]
-			w.steered = setup[0]
-			w.driven = setup[1]
-			w.spring = setup[2]
-			w.damper = setup[3]
-			w.standing_load = setup[4]
-			w.spring_offset = setup[5]
-			w.visual = PartVisuals.make_wheel(info.def, info.basis)
-			w.visual.position = info.centre
-			_looks.add_child(w.visual)
-			wheels.append(w)
-			var body := CollisionShape3D.new()
-			var ball := SphereShape3D.new()
-			ball.radius = w.radius * WHEEL_BODY
-			body.shape = ball
-			body.position = info.centre
-			add_child(body)
-			_part_nodes[info.index] = [w.visual, body]
+			wheels.append(_add_wheel(info))
 			continue
 		_add_bodies(info)
 		var look := PartVisuals.make_turned(info.def, info.extent, info.basis)
 		look.position = info.centre
-		if info.def.get("steers", false) and _beside_steered_wheel(info):
-			_looks.add_child(look)
-			_turning.append([look, look.basis])
-			_part_nodes[info.index].append(look)
-		elif look is SteeringVisual:
-			_looks.add_child(look)
-			_part_nodes[info.index].append(look)
-			if _steering == null:
-				_steering = look
-		else:
+		if not _add_loose_look(info, look):
 			looks.append(look)
 			look_parts.append(info.index)
 	_lamps = null
@@ -895,6 +868,54 @@ func _assemble() -> void:
 			_steered_count += 1
 	if ghost_left > 0.0:
 		_find_ghost_looks()
+
+
+## Makes the wheel for this part, with its look and collision ball.
+func _add_wheel(info: KartStats.PartInfo) -> Wheel:
+	var w := Wheel.new()
+	w.index = info.index
+	w.part = info.def
+	w.rest = info.centre
+	w.radius = info.def.get("radius", 0.3)
+	w.width = info.def.get("width", 0.25)
+	w.grip = info.def.get("grip", 1.0)
+	w.rolling = info.def.get("rolling", 0.015)
+	w.offroad = info.def.get("offroad", 0.0)
+	var setup: Array = _wheel_setup[info.index]
+	w.steered = setup[0]
+	w.driven = setup[1]
+	w.spring = setup[2]
+	w.damper = setup[3]
+	w.standing_load = setup[4]
+	w.spring_offset = setup[5]
+	w.visual = PartVisuals.make_wheel(info.def, info.basis)
+	w.visual.position = info.centre
+	_looks.add_child(w.visual)
+	var body := CollisionShape3D.new()
+	var ball := SphereShape3D.new()
+	ball.radius = w.radius * WHEEL_BODY
+	body.shape = ball
+	body.position = info.centre
+	add_child(body)
+	_part_nodes[info.index] = [w.visual, body]
+	return w
+
+
+## Adds a part's look that moves by itself, a fork that turns with its wheel
+## or a steering wheel, to the kart. False for any other look, which goes in
+## the baked body.
+func _add_loose_look(info: KartStats.PartInfo, look: Node3D) -> bool:
+	if info.def.get("steers", false) and _beside_steered_wheel(info):
+		_looks.add_child(look)
+		_turning.append([look, look.basis])
+	elif look is SteeringVisual:
+		_looks.add_child(look)
+		if _steering == null:
+			_steering = look
+	else:
+		return false
+	_part_nodes[info.index].append(look)
+	return true
 
 
 ## Bakes these part looks, of these parts, into the kart's body and frees
@@ -1216,14 +1237,6 @@ func _drop_lost(newly: Array[int]) -> bool:
 		if not was.has(info.index) or was[info.index].centre != info.centre or was[info.index].basis != info.basis:
 			return false
 	stats = now
-	_width = -1.0
-	_nose = NAN
-	_tail = NAN
-	power = stats.power
-	max_force = stats.max_force
-	thrust = stats.thrust
-	drag_area = stats.drag_area
-	lift_area = stats.lift_area
 	var gone := {}
 	for i in newly:
 		for node: Node in _part_nodes.get(i, []):
@@ -1231,8 +1244,10 @@ func _drop_lost(newly: Array[int]) -> bool:
 			node.get_parent().remove_child(node)
 			node.queue_free()
 		_part_nodes.erase(i)
-		for span: Array in _body_spans.get(i, []):
-			KartMesh.hide_span(_body[0].mesh, span[0], span[1], span[2])
+		if _body_spans.has(i):
+			for span: Array in _body_spans[i]:
+				KartMesh.hide_span(_body[0].mesh, span[0], span[1], span[2])
+			_hidden_spans[i] = _body_spans[i]
 		_body_spans.erase(i)
 	for n in range(wheels.size() - 1, -1, -1):
 		if newly.has(wheels[n].index):
@@ -1247,6 +1262,93 @@ func _drop_lost(newly: Array[int]) -> bool:
 			for node: Node in _part_nodes.get(info.index, []):
 				if _steering == null and node is SteeringVisual:
 					_steering = node
+	_refit()
+	return true
+
+
+## Puts every lost part back on as it was built, without building the kart
+## again: their collision shapes, wheels and loose looks are made and their
+## spans of the baked body drawn again, then everything worked out from the
+## parts is updated as _assemble() does. Only for parts taken off by
+## _drop_lost() since the kart was built. False when it can't.
+func _restore_lost() -> bool:
+	if _looks == null or stats == null or _body.size() > 1:
+		return false
+	# With nothing lost it's the whole kart, worked out when it was built.
+	var now := _full
+	if now.has_seat != stats.has_seat or now.seat_top != stats.seat_top or now.recline != stats.recline or now.astride != stats.astride or now.feet_forward != stats.feet_forward:
+		return false
+	var on := {}
+	for info in stats.parts:
+		on[info.index] = true
+	for info in now.parts:
+		if not _built_at.has(info.index) or _built_at[info.index] != Transform3D(info.basis, info.centre):
+			return false
+	stats = now
+	var had := {}
+	for w in wheels:
+		had[w.index] = w
+	var turning := {}
+	for turn in _turning:
+		turning[turn[0]] = turn
+	wheels.clear()
+	_turning.clear()
+	_steering = null
+	var added: Array[Node] = []
+	for info in stats.parts:
+		if on.has(info.index):
+			if had.has(info.index):
+				wheels.append(had[info.index])
+			for node: Node in _part_nodes.get(info.index, []):
+				if turning.has(node):
+					_turning.append(turning[node])
+				elif _steering == null and node is SteeringVisual:
+					_steering = node
+			continue
+		if info.def.kind == "wheel":
+			var w := _add_wheel(info)
+			wheels.append(w)
+			added.append(w.visual)
+			continue
+		_add_bodies(info)
+		if _hidden_spans.has(info.index):
+			for span: Array in _hidden_spans[info.index]:
+				KartMesh.show_span(_body[0].mesh, span[0], span[1], span[2])
+			_body_spans[info.index] = _hidden_spans[info.index]
+			_hidden_spans.erase(info.index)
+			continue
+		var look := PartVisuals.make_turned(info.def, info.extent, info.basis)
+		look.position = info.centre
+		if _add_loose_look(info, look):
+			added.append(look)
+			# Lamps on it light with the rest.
+			for lamp in look.find_children("*", "MeshInstance3D", true, false):
+				if lamp.has_meta("light"):
+					if _lamps == null:
+						_lamps = KartMesh.material("lamp").duplicate()
+					lamp.material_override = _lamps
+		else:
+			# A baked part always has a span, so this one had nothing to draw.
+			look.free()
+			_body_spans[info.index] = []
+	if ghost_left > 0.0:
+		for node in added:
+			_add_ghost_looks(node)
+	_refit()
+	return true
+
+
+## Updates everything worked out from the parts on the kart, after some came
+## off or went back on, as _assemble() does.
+func _refit() -> void:
+	_width = -1.0
+	_nose = NAN
+	_tail = NAN
+	power = stats.power
+	max_force = stats.max_force
+	thrust = stats.thrust
+	drag_area = stats.drag_area
+	lift_area = stats.lift_area
 	_ground_y = 0.0
 	for w in wheels:
 		_ground_y = minf(_ground_y, w.rest.y - w.radius)
@@ -1273,7 +1375,6 @@ func _drop_lost(newly: Array[int]) -> bool:
 			_driven_count += 1
 		if w.steered:
 			_steered_count += 1
-	return true
 
 
 func _physics_process(delta: float) -> void:
@@ -2631,6 +2732,11 @@ func _reset(state: PhysicsDirectBodyState3D) -> void:
 	for w: Wheel in wheels:
 		w.water = 0.0
 		w.planing = 0.0
+		w.snow = 0.0
+		w.spin = 0.0
+		w.kerb_travel = 0.0
+		w.length = SUSPENSION_TRAVEL
+		w.grounded = false
 	# A kart put back before a loop has already lost time by starting further
 	# back, so it gets no slowdown.
 	slowdown_left = 0.0 if run_up_reset else RESET_SLOWDOWN_TIME
@@ -2671,15 +2777,17 @@ func _show_lights() -> void:
 	_lamps.set_shader_parameter("brake", 1.0 if _braking_shown else 0.0)
 
 
-## Puts every lost part back on.
+## Puts every lost part back on. A kart with nothing lost stays as it is.
 func repair_now() -> void:
 	var had_lost := not lost.is_empty()
 	lost.clear()
 	_impact.clear()
 	_breaking.clear()
-	_assemble()
-	if had_lost:
-		repaired.emit()
+	if not had_lost:
+		return
+	if not _restore_lost():
+		_assemble()
+	repaired.emit()
 
 
 ## Where this kart is and what it's doing, to send to the other devices. That's

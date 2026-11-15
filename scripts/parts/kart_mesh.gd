@@ -52,6 +52,8 @@ static func bake(looks: Array[Node3D], spans: Array = []) -> MeshInstance3D:
 		found.append(span)
 	var mesh := ArrayMesh.new()
 	var surface_of := {}
+	# Each surface's positions, kept for show_span().
+	var kept := []
 	for kind in ["plastic", "glass", "metal", "lamp"]:
 		if not surfaces.has(kind):
 			continue
@@ -65,12 +67,14 @@ static func bake(looks: Array[Node3D], spans: Array = []) -> MeshInstance3D:
 		arrays[Mesh.ARRAY_INDEX] = s[3]
 		mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
 		mesh.surface_set_material(mesh.get_surface_count() - 1, material(kind))
+		kept.append(s[0])
 	spans.clear()
 	for span in found:
 		var where := []
 		for kind in span:
 			where.append([surface_of[kind], span[kind].x, span[kind].y])
 		spans.append(where)
+	mesh.set_meta("positions", kept)
 	var out := MeshInstance3D.new()
 	out.mesh = mesh
 	return out
@@ -80,11 +84,23 @@ static func bake(looks: Array[Node3D], spans: Array = []) -> MeshInstance3D:
 ## knocked off a kart, by moving them all to one point so their triangles
 ## have no size. It's much quicker than baking the mesh again.
 static func hide_span(mesh: ArrayMesh, surface: int, first: int, last: int) -> void:
-	var stride := RenderingServer.mesh_surface_get_format_vertex_stride(mesh.surface_get_format(surface), mesh.surface_get_array_len(surface))
+	var stride := _stride(mesh, surface)
 	var gone := PackedByteArray()
 	gone.resize((last - first) * stride)
 	gone.fill(0)
 	mesh.surface_update_vertex_region(surface, first * stride, gone)
+
+
+## Draws vertices `first` up to `last` of a surface made by bake() again, as
+## they were baked, after hide_span(). Only the positions were hidden, and
+## they're stored as plain floats at the start of the vertex buffer.
+static func show_span(mesh: ArrayMesh, surface: int, first: int, last: int) -> void:
+	var verts: PackedVector3Array = mesh.get_meta("positions")[surface]
+	mesh.surface_update_vertex_region(surface, first * _stride(mesh, surface), verts.slice(first, last).to_byte_array())
+
+
+static func _stride(mesh: ArrayMesh, surface: int) -> int:
+	return RenderingServer.mesh_surface_get_format_vertex_stride(mesh.surface_get_format(surface), mesh.surface_get_array_len(surface))
 
 
 ## The material for one kind of surface, coloured by the mesh. Each kart
