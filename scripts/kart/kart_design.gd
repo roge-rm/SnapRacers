@@ -510,9 +510,10 @@ func groups() -> Array:
 
 ## Which parts would fall off once the parts in `lost` are gone, because
 ## nothing joins them to `anchor` (the seat) any more. The lost parts
-## themselves aren't in the list.
-func detached_after(lost: Dictionary, anchor: int) -> Array[int]:
-	var link := links()
+## themselves aren't in the list. `link` is links(), if it's to hand.
+func detached_after(lost: Dictionary, anchor: int, link: Array = []) -> Array[int]:
+	if link.size() != parts.size():
+		link = links()
 	var reached := { anchor: true }
 	var todo := [anchor]
 	while not todo.is_empty():

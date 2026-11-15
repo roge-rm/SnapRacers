@@ -141,6 +141,11 @@ func _warm_race(weather: String, time: String) -> Node:
 	var filler := WorldDamage.far_sample()
 	filler.position = Vector3(-2.5, 0.0, -5.0)
 	kart.add_child(filler)
+	# Marbles and spikes, drawn instanced with their own shader variant.
+	for i in 2:
+		var trap := BrickTrap.new(["marbles", "spikes"][i])
+		trap.position = Vector3(-1.5 + i * 3.0, -0.3, -7.0)
+		kart.add_child(trap)
 	return race
 
 

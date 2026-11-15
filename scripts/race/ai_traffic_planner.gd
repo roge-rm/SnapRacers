@@ -5,7 +5,11 @@ extends RefCounted
 ## All distances are metres in the road frame, times are seconds. Across the
 ## road they're measured from the driver's own line (see AIDriver.line_at()),
 ## so karts on the line through a bend count as in the same lane.
-const SAMPLE := 0.15
+## The plan checks each line this often over its horizon, in seconds, and
+## takes the karts as moving straight between.
+const SAMPLE := 0.3
+## A line in line with a kart until this close to the horizon follows it.
+const STAYS_SLACK := 0.15
 const HOLD_FOR := 1.2
 const EDGE := 0.65
 ## Racecraft, scaled by AIDriver.racecraft. A bend this close, in seconds
@@ -63,6 +67,8 @@ const DEFEND_TIME := 2.5
 const FOLLOW_TIME := 0.08
 const SHAKEN_TIME := 0.25
 const SHAKEN_ROOM := 0.5
+## It plans every time it drives from this many metres before a split.
+const SPLIT_SEE := 40.0
 ## What a line over a trap costs in score, more than lines ever differ by.
 const TRAP_COST := 200.0
 var target := NAN
@@ -73,7 +79,6 @@ var contact_left := 0.0
 var _hold := 0.0
 var _cooldown := 0.0
 var _contact_gap := INF
-var _offsets := {}
 ## The kart it's following or passing, how long it's been behind it, the
 ## side it's committed to passing on (1 right, -1 left, 0 none), how long
 ## until it tries again after a beaten pass, and its closest gap so far.
@@ -116,6 +121,8 @@ var brake_bonus := 1.0
 ## After a pass on the inside: how long it keeps covering and the line it holds.
 var _cover_left := 0.0
 var _cover_line := NAN
+## The road's edges from its line when it last planned (see held()).
+var _lane := Vector2(NAN, NAN)
 
 
 func plan(ai: AIDriver, preferred: float, delta: float, wall_line := NAN) -> float:
@@ -132,6 +139,7 @@ func plan(ai: AIDriver, preferred: float, delta: float, wall_line := NAN) -> flo
 	var lane := ai.lane_at(ai._aim_or_here(), kart.width() * 0.5 + margin)
 	var low := minf(lane.x - mine, 0.0)
 	var high := maxf(lane.y - mine, 0.0)
+	_lane = Vector2(low, high)
 	preferred = clampf(preferred, low, high)
 	if is_finite(wall_line):
 		wall_line = clampf(wall_line, low, high)
@@ -211,13 +219,24 @@ func plan(ai: AIDriver, preferred: float, delta: float, wall_line := NAN) -> flo
 		choices.append(clampf(rival.across, low, high))
 		choices.append(clampf(rival.across - peek, low, high))
 		choices.append(clampf(rival.across + peek, low, high))
+	# Lines within a few centimetres of one already in the list judge the same.
+	var lines: Array[float] = []
+	for across in choices:
+		var fresh := true
+		for seen in lines:
+			if absf(seen - across) < 0.03:
+				fresh = false
+				break
+		if fresh:
+			lines.append(across)
 	var holding := _holding_back(ai, rival, speed)
+	var sweep := _sweep(ai, speed, horizon, traffic)
 	var best := -INF
 	var chosen := here
 	var chosen_limit := 0.0
 	var chosen_contact: Kart
-	for across in choices:
-		var result := _evaluate(ai, across, here, speed, horizon, decel, traffic, wall_line)
+	for across in lines:
+		var result := _evaluate(ai, across, here, speed, horizon, decel, traffic, wall_line, false, sweep)
 		if not result.safe:
 			continue
 		# Predicted progress favours an open passing lane. A held line wins small ties.
@@ -241,7 +260,7 @@ func plan(ai: AIDriver, preferred: float, delta: float, wall_line := NAN) -> flo
 	# stopping dead in their way.
 	if best == -INF:
 		chosen = clampf(here, low, high)
-		chosen_limit = _evaluate(ai, chosen, here, speed, horizon, decel, traffic, wall_line, true).limit
+		chosen_limit = _evaluate(ai, chosen, here, speed, horizon, decel, traffic, wall_line, true, sweep).limit
 	if not is_finite(target) or absf(chosen - target) > 0.3:
 		_hold = HOLD_FOR * ai.traffic_hold
 	target = clampf(chosen, low, high)
@@ -276,6 +295,24 @@ func plan(ai: AIDriver, preferred: float, delta: float, wall_line := NAN) -> flo
 	return target
 
 
+## The last plan's line between plans, or NAN when it needs to plan again:
+## on or up to SPLIT_SEE metres before a split, or when the road's edges
+## where it's aiming have moved since.
+func held(ai: AIDriver) -> float:
+	var kart := ai.kart
+	var track := ai.track
+	if track.has_splits and (track.lanes_at(ai.offset).size() > 1 or track.lanes_at(ai.offset + SPLIT_SEE * 0.5).size() > 1 or track.lanes_at(ai.offset + SPLIT_SEE).size() > 1):
+		return NAN
+	var margin := EDGE + (1.0 - minf(kart.stats.control, 1.0)) * 0.6 + (1.0 - kart.weather_grip) * 0.5
+	var mine := ai.line_at(ai._aim_or_here())
+	var lane := ai.lane_at(ai._aim_or_here(), kart.width() * 0.5 + margin)
+	var low := minf(lane.x - mine, 0.0)
+	var high := maxf(lane.y - mine, 0.0)
+	if not (absf(low - _lane.x) < 0.25 and absf(high - _lane.y) < 0.25):
+		return NAN
+	return clampf(target, low, high)
+
+
 ## How quickly the driver's own line moves right, in metres across for each
 ## metre along.
 static func line_slope(ai: AIDriver, at: float) -> float:
@@ -293,94 +330,226 @@ static func braking(ai: AIDriver) -> float:
 func _traffic(ai: AIDriver, reach: float) -> Array[Dictionary]:
 	var out: Array[Dictionary] = []
 	var track := ai.track
-	if _offsets.size() > ai.others.size() + 4:
-		_offsets.clear()
 	var origin := track.point_at(ai.offset)
+	var own_forward := track.forward_at(ai.offset)
+	var own_height := (ai.kart.global_position - origin).dot(track.up_at(ai.offset))
+	var own_speed := ai.kart.linear_velocity.length()
 	for other in ai.others:
 		if not is_instance_valid(other) or other == ai.kart or other.ghost_left > 0.0:
 			continue
 		var gap := other.global_position - ai.kart.global_position
-		if gap.length() > reach + track.width:
+		var distance := gap.length()
+		if distance > reach + track.width:
 			continue
-		var key := other.get_instance_id()
-		var at := track.offset_of(other.global_position, _offsets.get(key, -1.0), 20.0)
-		if track.point_at(at).distance_to(other.global_position) > track.width + 4.0:
-			at = track.offset_of(other.global_position)
-		_offsets[key] = at
+		var info := road_info(track, other)
+		var at: float = info.at
 		var ahead := fposmod(at - ai.offset + track.length * 0.5, track.length) - track.length * 0.5
 		if absf(ahead) > reach:
 			continue
-		var local := other.global_position - track.point_at(at)
-		var road_up := track.up_at(at)
-		var forward := track.forward_at(at)
-		var line := ai.line_at(at)
 		# Nearby hairpins and bridges are different pieces of road. Check both
 		# their projection and the actual world separation before predicting.
-		if absf(local.dot(road_up) - (ai.kart.global_position - origin).dot(track.up_at(ai.offset))) > 1.8 or forward.dot(track.forward_at(ai.offset)) < 0.65:
+		if absf(info.height - own_height) > 1.8 or (info.forward as Vector3).dot(own_forward) < 0.65:
 			continue
-		if absf(gap.dot(track.forward_at(ai.offset)) - ahead) > maxf(6.0, absf(ahead) * 0.25):
+		if absf(gap.dot(own_forward) - ahead) > maxf(6.0, absf(ahead) * 0.25):
 			continue
-		if gap.length() + 3.0 < absf(ahead) * 0.7:
+		if distance + 3.0 < absf(ahead) * 0.7:
 			continue
 		# "road" is across from the middle of the road, the rest from its line.
-		var road := local.dot(track.right_at(at))
-		var along := other.linear_velocity.dot(forward)
-		# A kart turned across the road takes up its length across it, so its
-		# size is measured along the road and across it, whichever way it faces.
-		var heading := (-other.global_basis.z).dot(forward)
-		var square := absf(other.global_basis.x.dot(forward))
-		var half_wide := other.width() * 0.5
-		var nose := _front(other)
-		var tail := other.tail_length()
-		var wide := 2.0 * (absf(other.global_basis.x.dot(track.right_at(at))) * half_wide + absf(other.global_basis.z.dot(track.right_at(at))) * (nose + tail) * 0.5)
-		var front := absf(heading) * (nose if heading >= 0.0 else tail) + square * half_wide
-		var back := absf(heading) * (tail if heading >= 0.0 else nose) + square * half_wide
-		out.append({"kart": other, "ahead": ahead, "across": road - line, "road": road, "speed": along, "side": other.linear_velocity.dot(track.right_at(at)) - along * line_slope(ai, at), "width": maxf(wide, other.width()), "front": front, "back": back, "heading": heading, "slow": _obstacle(along, heading, ai.kart.linear_velocity.length())})
+		var line := ai.line_at(at)
+		var along: float = info.along
+		out.append({"kart": other, "ahead": ahead, "across": info.road - line, "road": info.road, "speed": along, "side": info.side - along * line_slope(ai, at), "width": info.width, "front": info.front, "back": info.back, "heading": info.heading, "slow": _obstacle(along, info.heading, own_speed)})
 	out.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return absf(a.ahead) < absf(b.ahead))
 	return out
 
 
-## With `anyway` it judges the line even when the move isn't safe.
-func _evaluate(ai: AIDriver, across: float, here: float, speed: float, horizon: float, decel: float, traffic: Array[Dictionary], wall_line: float, anyway := false) -> Dictionary:
+## Where a kart is on the road and its size and speed along and across it,
+## worked out once a physics step and shared by every AI driver. It's worked
+## out again if the kart has moved or changed since, as tests move karts
+## between plans in the same step.
+static var _road := {}
+static var _road_track := 0
+## Where the race found each kart along the track this step, so the planner
+## needn't look again: [physics frame, position, offset] by kart.
+static var _known := {}
+
+
+## The race gives each kart's offset along the track once a step.
+static func share_offset(track: TrackPath, kart: Kart, at: float) -> void:
+	_check_track(track)
+	_known[kart.get_instance_id()] = [Engine.get_physics_frames(), kart.global_position, at]
+
+
+static func _check_track(track: TrackPath) -> void:
+	if _road_track != track.get_instance_id():
+		_road.clear()
+		_known.clear()
+		_road_track = track.get_instance_id()
+	elif _road.size() > 64 or _known.size() > 64:
+		_road.clear()
+		_known.clear()
+
+
+static func road_info(track: TrackPath, other: Kart) -> Dictionary:
+	_check_track(track)
+	var key := other.get_instance_id()
+	var frame := Engine.get_physics_frames()
+	var info: Dictionary = _road.get(key, {})
+	var position := other.global_position
+	var basis := other.global_basis
+	var velocity := other.linear_velocity
+	if not info.is_empty() and info.frame == frame and info.position == position and info.basis == basis and info.velocity == velocity and info.kart_width == other.width():
+		return info
+	var at := -1.0
+	var known: Array = _known.get(key, [])
+	if not known.is_empty() and known[0] == frame and known[1] == position:
+		at = known[2]
+	else:
+		var hint: float = info.get("at", -1.0)
+		at = track.offset_near(position, hint, 5.0, 20.0) if hint >= 0.0 else track.offset_of(position)
+	var point := track.point_at(at)
+	if point.distance_to(position) > track.width + 4.0:
+		at = track.offset_of(position)
+		point = track.point_at(at)
+	var local := position - point
+	var forward := track.forward_at(at)
+	var right := track.right_at(at)
+	var along := velocity.dot(forward)
+	# A kart turned across the road takes up its length across it, so its
+	# size is measured along the road and across it, whichever way it faces.
+	var heading := (-basis.z).dot(forward)
+	var square := absf(basis.x.dot(forward))
+	var half_wide := other.width() * 0.5
+	var nose := _front(other)
+	var tail := other.tail_length()
+	var wide := 2.0 * (absf(basis.x.dot(right)) * half_wide + absf(basis.z.dot(right)) * (nose + tail) * 0.5)
+	info = {
+		"frame": frame, "position": position, "basis": basis, "velocity": velocity, "kart_width": other.width(),
+		"at": at, "height": local.dot(track.up_at(at)), "forward": forward, "road": local.dot(right),
+		"along": along, "side": velocity.dot(right), "heading": heading,
+		"width": maxf(wide, other.width()),
+		"front": absf(heading) * (nose if heading >= 0.0 else tail) + square * half_wide,
+		"back": absf(heading) * (tail if heading >= 0.0 else nose) + square * half_wide,
+	}
+	_road[key] = info
+	return info
+
+
+## What every line's check shares in one plan: the sample times, and for
+## each kart in traffic where it'll be across the road at each of them, the
+## times it's within a kart's length along it, and whether it can matter at all.
+func _sweep(ai: AIDriver, speed: float, horizon: float, traffic: Array[Dictionary]) -> Dictionary:
+	var kart := ai.kart
+	var steps := maxi(ceili(horizon / SAMPLE - 0.001), 1)
+	var dt := horizon / steps
+	var own_front := _front(kart)
+	var own_back := kart.tail_length()
+	var clearance := ai.traffic_clearance + maxf(1.0 - kart.stats.control, 0.0) * 0.4 + (1.0 - kart.weather_grip) * 0.4 + (SHAKEN_ROOM if ai.shaken > 0.0 else 0.0)
+	var bodies: Array[Dictionary] = []
+	for body: Dictionary in traffic:
+		var front_gap: float = own_front + body.back + clearance
+		var rear_gap: float = own_back + body.front + clearance
+		# When the gap along the road is between -rear_gap and front_gap.
+		var ahead: float = body.ahead
+		var closing: float = body.speed - speed
+		var from := 0.0
+		var to := horizon
+		if absf(closing) < 0.0001:
+			if ahead <= -rear_gap or ahead >= front_gap:
+				from = INF
+		else:
+			var a := (-rear_gap - ahead) / closing
+			var b := (front_gap - ahead) / closing
+			from = maxf(minf(a, b), 0.0)
+			to = minf(maxf(a, b), horizon)
+		# A kart behind that never comes up alongside changes nothing.
+		if from > to and ahead <= 0.0 and absf(ahead) > 1.5:
+			continue
+		var sides := PackedFloat32Array()
+		sides.resize(steps + 1)
+		for k in steps + 1:
+			sides[k] = body.across + body.side * minf(k * dt, SIDE_SEE)
+		var end_side: float = body.across + body.side * minf(horizon, SIDE_SEE)
+		bodies.append({"body": body, "half": (kart.width() + body.width) * 0.5, "from": from, "to": to, "sides": sides, "end_side": end_side, "lowest": minf(body.across, end_side), "highest": maxf(body.across, end_side)})
+	var reaction := ai.traffic_reaction + (1.0 - minf(kart.stats.control, 1.0)) * 0.3
+	var side_speed := kart.linear_velocity.dot(ai.track.right_at(ai.offset)) - speed * line_slope(ai, ai.offset)
+	var rate := clampf(speed * 0.14, 1.0, 3.2) * minf(kart.stats.control, 1.0) * sqrt(kart.weather_grip)
+	return {"steps": steps, "dt": dt, "clearance": clearance, "bodies": bodies, "reaction": reaction, "side_speed": side_speed, "rate": rate}
+
+
+## With `anyway` it judges the line even when the move isn't safe. `sweep`
+## is from _sweep(), made here if not given.
+func _evaluate(ai: AIDriver, across: float, here: float, speed: float, horizon: float, decel: float, traffic: Array[Dictionary], wall_line: float, anyway := false, sweep := {}) -> Dictionary:
+	if sweep.is_empty():
+		sweep = _sweep(ai, speed, horizon, traffic)
 	var kart := ai.kart
 	var own_front := _front(kart)
 	var own_back := kart.tail_length()
 	var limit := INF
 	var future := INF
 	var touching: Kart
-	var reaction := ai.traffic_reaction + (1.0 - minf(kart.stats.control, 1.0)) * 0.3
-	var side_speed := kart.linear_velocity.dot(ai.track.right_at(ai.offset)) - speed * line_slope(ai, ai.offset)
-	var rate := clampf(speed * 0.14, 1.0, 3.2) * minf(kart.stats.control, 1.0) * sqrt(kart.weather_grip)
-	for body: Dictionary in traffic:
-		var half: float = (kart.width() + body.width) * 0.5
-		var clearance := ai.traffic_clearance + maxf(1.0 - kart.stats.control, 0.0) * 0.4 + (1.0 - kart.weather_grip) * 0.4 + (SHAKEN_ROOM if ai.shaken > 0.0 else 0.0)
+	var reaction: float = sweep.reaction
+	var side_speed: float = sweep.side_speed
+	var rate: float = sweep.rate
+	var steps: int = sweep.steps
+	var dt: float = sweep.dt
+	var clearance: float = sweep.clearance
+	# Include the current lateral motion while the driver reacts, then sweep
+	# towards the new line instead of checking only its endpoint.
+	var path := PackedFloat32Array()
+	path.resize(steps + 1)
+	var lowest := INF
+	var highest := -INF
+	for k in steps + 1:
+		var t := k * dt
+		var lateral := move_toward(here + side_speed * minf(t, reaction), across, rate * maxf(t - reaction, 0.0))
+		path[k] = lateral
+		lowest = minf(lowest, lateral)
+		highest = maxf(highest, lateral)
+	for entry: Dictionary in sweep.bodies:
+		var body: Dictionary = entry.body
+		var half: float = entry.half
+		var room_across := half + clearance
 		# Recovery may pull past the kart it collided with, provided the
 		# destination clears its footprint. Every other body is checked.
-		if ai._tries > 0 and ai._stuck > 0.0 and body.kart == ai._recover_from and absf(across - body.across) > half + clearance and absf(across - body.across) >= absf(here - body.across) and (across - body.across) * (here - body.across) >= 0.0:
+		if ai._tries > 0 and ai._stuck > 0.0 and body.kart == ai._recover_from and absf(across - body.across) > room_across and absf(across - body.across) >= absf(here - body.across) and (across - body.across) * (here - body.across) >= 0.0:
 			continue
-		var contact_ok: bool = absf(across - here) < 0.15 and absf(across - body.across) < half + 0.1 and (body.kart == contact or (_cooldown <= 0.0 and contact == null)) and _contact_safe(ai, body, traffic)
+		var contact_ok: bool = absf(across - here) < 0.15 and absf(across - body.across) < half + 0.1 and (body.kart == contact or (_cooldown <= 0.0 and contact == null))
+		if contact_ok:
+			# The same for every line, so it's worked out once a plan.
+			if not entry.has("contact_safe"):
+				entry.contact_safe = _contact_safe(ai, body, traffic)
+			contact_ok = entry.contact_safe
 		var path_conflict := false
-		var rear_conflict := false
 		# The last time in the sweep it's still in line with the kart, at
-		# whatever gap, so how long until it's moved clear of it.
+		# whatever gap, so how long until it's moved clear of it. Between
+		# samples both paths are taken as straight.
 		var in_line := -1.0
-		var t := 0.0
-		while t <= horizon + 0.01:
-			# Include the current lateral motion while the driver reacts, then
-			# sweep towards the new line instead of checking only its endpoint.
-			var lateral := here + side_speed * minf(t, reaction)
-			lateral = move_toward(lateral, across, rate * maxf(t - reaction, 0.0))
-			var other_side: float = body.across + body.side * minf(t, SIDE_SEE)
-			var longitudinal: float = body.ahead + (body.speed - speed) * t
-			var front_gap: float = own_front + body.back + clearance
-			var rear_gap: float = own_back + body.front + clearance
-			if absf(lateral - other_side) < half + clearance:
-				in_line = t
-			if absf(lateral - other_side) < half + clearance and longitudinal < front_gap and longitudinal > -rear_gap:
-				path_conflict = true
-				if body.ahead <= 0.0 or body.speed > speed + 1.0:
-					rear_conflict = true
-			t += SAMPLE
+		var from: float = entry.from
+		var to: float = entry.to
+		var sides: PackedFloat32Array = entry.sides
+		var d0 := path[0] - sides[0]
+		# Never within reach across the road of it, it's never in line.
+		var apart: bool = lowest - entry.highest >= room_across or entry.lowest - highest >= room_across
+		for k in 0 if apart else steps:
+			var d1 := path[k + 1] - sides[k + 1]
+			var lo := 0.0
+			var hi := 1.0
+			if absf(d1 - d0) < 0.0001:
+				if absf(d0) >= room_across:
+					hi = -1.0
+			else:
+				var a := (-room_across - d0) / (d1 - d0)
+				var b := (room_across - d0) / (d1 - d0)
+				lo = maxf(minf(a, b), 0.0)
+				hi = minf(maxf(a, b), 1.0)
+			if lo <= hi:
+				var start := (k + lo) * dt
+				var end := (k + hi) * dt
+				in_line = maxf(in_line, end)
+				if start <= to and end >= from:
+					path_conflict = true
+			d0 = d1
+		var rear_conflict: bool = path_conflict and (body.ahead <= 0.0 or body.speed > speed + 1.0)
 		if contact_ok:
 			touching = body.kart
 			continue
@@ -395,18 +564,18 @@ func _evaluate(ai: AIDriver, across: float, here: float, speed: float, horizon: 
 		# Only the line it's judging counts: one that stays in line with the
 		# kart follows it, and one moving out from behind it only has to be
 		# slow enough to clear it before it gets there.
-		var stays := in_line >= horizon - SAMPLE
+		var stays := in_line >= horizon - STAYS_SLACK
 		if body.ahead > 0.0 and (path_conflict or stays):
 			var room: float = maxf(body.ahead - own_front - body.back - clearance - maxf(speed - body.speed, 0.0) * reaction - speed * (FOLLOW_TIME + (SHAKEN_TIME if ai.shaken > 0.0 else 0.0)), 0.0)
 			var following := sqrt(maxf(body.speed, 0.0) ** 2 + 2.0 * decel * room)
 			if not stays:
-				following = maxf(following, maxf(body.speed, 0.0) + room / maxf(in_line, SAMPLE))
+				following = maxf(following, maxf(body.speed, 0.0) + room / maxf(in_line, STAYS_SLACK))
 			limit = minf(limit, following)
 			# At walking speed stop at a following gap instead of creeping into
 			# an immobile queue, then accidentally using brake to reverse.
 			if body.speed >= -0.5 and body.heading > 0.0 and body.speed < 0.6 and room < 0.8:
 				limit = 0.0
-		if body.ahead >= -own_back - body.front and absf(across - (body.across + body.side * minf(horizon, SIDE_SEE))) < half + clearance:
+		if body.ahead >= -own_back - body.front and absf(across - entry.end_side) < room_across:
 			future = minf(future, maxf(body.speed, 0.0))
 	# The wall's chosen end remains a preference, but traffic still checks
 	# the move. Waiting in front of the wall is allowed when that end is busy.

@@ -105,7 +105,7 @@ func _ready() -> void:
 			look.mesh = MeshKit.rounded_box(BRICK - Vector3.ONE * 0.01, 0.02)
 			look.material_override = PartVisuals.material(colour)
 			brick.add_child(look)
-			brick.add_child(PartVisuals.make_studs(BRICK, colour))
+			brick.add_child(BrickPile.studs(BRICK, colour))
 			brick.position = Vector3((i - (ACROSS - 1) * 0.5) * BRICK.x + shift, BRICK.y * (row + 0.5) + 0.01, 0.0)
 			add_child(brick)
 			_bricks.append(brick)

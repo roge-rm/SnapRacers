@@ -53,6 +53,7 @@ var _fit_on_ready := false
 ## Whether its pieces and shape are fitted to curved road rather than flat.
 var _bent := false
 var _look_seed := 0
+var _probe: PhysicsRayQueryParameters3D
 ## Nearby ground follows the patch's current plane. Larger drops use gravity.
 const GROUND_STEP := 0.2
 const GROUND_CLEAR := 0.01
@@ -251,13 +252,18 @@ func _flat_oval() -> Shape3D:
 ## How far the road is above the patch's plane at `local`, in metres, or NAN
 ## where there's no road facing the same way, like off its edge or on a wall.
 func _road_height(space: PhysicsDirectSpaceState3D, local: Vector3) -> float:
-	var up := global_basis.y.normalized()
-	var at := global_transform * Vector3(local.x, 0.0, local.z)
-	var query := PhysicsRayQueryParameters3D.create(at + up * FIT_REACH, at - up * FIT_REACH, Kart.LAYER_WORLD, [get_rid()])
-	var hit := road_hit(space, query)
+	var place := global_transform
+	var up := place.basis.y.normalized()
+	var at := place * Vector3(local.x, 0.0, local.z)
+	# One query, reused for every probe of a fit.
+	if _probe == null:
+		_probe = PhysicsRayQueryParameters3D.create(Vector3.ZERO, Vector3.DOWN, Kart.LAYER_WORLD, [get_rid()])
+	_probe.from = at + up * FIT_REACH
+	_probe.to = at - up * FIT_REACH
+	var hit := road_hit(space, _probe)
 	if hit.is_empty() or hit.normal.dot(up) < 0.5:
 		return NAN
-	return (hit.position - global_position).dot(up) + GROUND_CLEAR
+	return (hit.position - place.origin).dot(up) + GROUND_CLEAR
 
 
 ## Fits the pieces and the shape to curved or twisting road under the patch,
@@ -329,15 +335,17 @@ func _flatten() -> void:
 	add_child(look)
 
 
-## The bricks scattered over it, baked into one mesh. With `space` each one
-## sits on the road under it, otherwise on the patch's plane.
-func _pieces(space: PhysicsDirectSpaceState3D) -> MeshInstance3D:
+## The bricks scattered over it, one instanced mesh for each shape of piece,
+## so a drop doesn't build a mesh of its own. With `space` each one sits on the
+## road under it, otherwise on the patch's plane.
+func _pieces(space: PhysicsDirectSpaceState3D) -> Node3D:
 	var of: Dictionary = KINDS[kind]
 	var across := reach_across()
 	var along := reach_along()
 	var rng := RandomNumberGenerator.new()
 	rng.seed = hash([kind, _look_seed])
-	var parts: Array[Node3D] = []
+	# For each shape: [transforms, colours].
+	var placed := {}
 	# Worn, it keeps the first of the same pieces, drawn in closer.
 	for i in ceili(of.pieces * _share):
 		var a := rng.randf() * TAU
@@ -346,57 +354,94 @@ func _pieces(space: PhysicsDirectSpaceState3D) -> MeshInstance3D:
 		if space != null:
 			var h := _road_height(space, at)
 			at.y = 0.0 if is_nan(h) else h
-		var piece := MeshInstance3D.new()
 		if kind == "spikes":
 			# A little grey cone on a round plate.
+			var turn := Basis.from_euler(Vector3(rng.randf_range(-0.3, 0.3), rng.randf() * TAU, rng.randf_range(-0.3, 0.3)))
+			_place(placed, "plate", Transform3D(Basis.IDENTITY, at + Vector3.UP * 0.03), SPIKE.darkened(0.2))
+			_place(placed, "cone", Transform3D(turn, at + Vector3.UP * 0.19), SPIKE)
+		else:
+			# A little piece of a random shape, some on their sides.
+			var tipped := rng.randf() < 0.5
+			var high := 0.2
+			var shape: String = MARBLE_SHAPES[rng.randi_range(0, MARBLE_SHAPES.size() - 1)]
+			match shape:
+				"round_plate", "plate_1x2":
+					high = 0.08
+					tipped = false
+				"ball":
+					high = 0.24
+					tipped = false
+			var turn := Basis.from_euler(Vector3(PI * 0.5 if tipped else 0.0, rng.randf() * TAU, 0.0))
+			var colour: Color = MARBLE_COLOURS[rng.randi_range(0, MARBLE_COLOURS.size() - 1)]
+			_place(placed, shape, Transform3D(turn, at + Vector3.UP * (0.12 if tipped else high * 0.5)), colour)
+	var out := Node3D.new()
+	for shape in placed:
+		var where: Array = placed[shape][0]
+		var colours: Array = placed[shape][1]
+		var multi := MultiMesh.new()
+		multi.transform_format = MultiMesh.TRANSFORM_3D
+		multi.use_colors = true
+		multi.mesh = piece_mesh(shape)
+		multi.instance_count = where.size()
+		for k in where.size():
+			multi.set_instance_transform(k, where[k])
+			multi.set_instance_color(k, colours[k])
+		var node := MultiMeshInstance3D.new()
+		node.multimesh = multi
+		# Coloured by each piece, like a baked kart body.
+		node.material_override = KartMesh.material("plastic")
+		out.add_child(node)
+	return out
+
+
+static func _place(placed: Dictionary, shape: String, where: Transform3D, colour: Color) -> void:
+	if not placed.has(shape):
+		placed[shape] = [[], []]
+	placed[shape][0].append(where)
+	placed[shape][1].append(colour)
+
+
+## Each shape of piece, made once and shared by every patch.
+static var _piece_meshes := {}
+
+
+static func piece_mesh(shape: String) -> Mesh:
+	if _piece_meshes.has(shape):
+		return _piece_meshes[shape]
+	var mesh: Mesh
+	match shape:
+		"cone":
 			var cone := CylinderMesh.new()
 			cone.top_radius = 0.0
 			cone.bottom_radius = 0.13
 			cone.height = 0.3
 			cone.radial_segments = 10
-			piece.mesh = cone
-			piece.position = at + Vector3.UP * 0.19
-			piece.rotation = Vector3(rng.randf_range(-0.3, 0.3), rng.randf() * TAU, rng.randf_range(-0.3, 0.3))
-			piece.material_override = PartVisuals.material(SPIKE)
-			var plate := MeshInstance3D.new()
-			plate.mesh = MeshKit.rounded_cylinder(0.14, 0.06, 0.015, 12)
-			plate.position = at + Vector3.UP * 0.03
-			plate.material_override = PartVisuals.material(SPIKE.darkened(0.2))
-			parts.append(plate)
-		else:
-			# A little piece of a random shape, some on their sides.
-			var tipped := rng.randf() < 0.5
-			var high := 0.2
-			match MARBLE_SHAPES[rng.randi_range(0, MARBLE_SHAPES.size() - 1)]:
-				"round":
-					piece.mesh = MeshKit.rounded_cylinder(0.12, 0.2, 0.025, 14)
-				"square":
-					piece.mesh = MeshKit.rounded_box(Vector3(0.24, 0.2, 0.24), 0.025)
-				"round_plate":
-					piece.mesh = MeshKit.rounded_cylinder(0.12, 0.08, 0.02, 14)
-					high = 0.08
-					tipped = false
-				"ball":
-					var ball := SphereMesh.new()
-					ball.radius = 0.12
-					ball.height = 0.24
-					ball.radial_segments = 12
-					ball.rings = 6
-					piece.mesh = ball
-					high = 0.24
-					tipped = false
-				_:
-					piece.mesh = MeshKit.rounded_box(Vector3(0.24, 0.08, 0.48), 0.02)
-					high = 0.08
-					tipped = false
-			piece.position = at + Vector3.UP * (0.12 if tipped else high * 0.5)
-			piece.rotation = Vector3(PI * 0.5 if tipped else 0.0, rng.randf() * TAU, 0.0)
-			piece.material_override = PartVisuals.material(MARBLE_COLOURS[rng.randi_range(0, MARBLE_COLOURS.size() - 1)])
-		parts.append(piece)
-	var baked := KartMesh.bake(parts)
-	for part in parts:
-		part.free()
-	return baked
+			mesh = cone
+		"plate":
+			mesh = MeshKit.rounded_cylinder(0.14, 0.06, 0.015, 12)
+		"round":
+			mesh = MeshKit.rounded_cylinder(0.12, 0.2, 0.025, 14)
+		"square":
+			mesh = MeshKit.rounded_box(Vector3(0.24, 0.2, 0.24), 0.025)
+		"round_plate":
+			mesh = MeshKit.rounded_cylinder(0.12, 0.08, 0.02, 14)
+		"ball":
+			var ball := SphereMesh.new()
+			ball.radius = 0.12
+			ball.height = 0.24
+			ball.radial_segments = 12
+			ball.rings = 6
+			mesh = ball
+		_:
+			mesh = MeshKit.rounded_box(Vector3(0.24, 0.08, 0.48), 0.02)
+	_piece_meshes[shape] = mesh
+	return mesh
+
+
+## Makes every shape of piece ahead of a race, so the first drop doesn't.
+static func warm() -> void:
+	for shape in ["cone", "plate"] + MARBLE_SHAPES:
+		piece_mesh(shape)
 
 
 ## True when `at` is on the patch or close enough that the bubble meets it.

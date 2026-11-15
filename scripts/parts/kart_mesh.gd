@@ -32,16 +32,30 @@ void fragment() {
 
 
 ## One mesh of all these part looks, which have to be in the same space (the
-## kart's) and aren't in the tree yet.
-static func bake(looks: Array[Node3D]) -> MeshInstance3D:
+## kart's) and aren't in the tree yet. `spans` gets, for each look in order,
+## where its vertices went as [surface, first, past the last] lists, for
+## hide_span().
+static func bake(looks: Array[Node3D], spans: Array = []) -> MeshInstance3D:
 	# For each kind of surface: vertices, normals, colours and indices.
 	var surfaces := {}
+	var found := []
 	for look in looks:
+		var before := {}
+		for kind in surfaces:
+			before[kind] = surfaces[kind][0].size()
 		_gather(look, look.transform, surfaces)
+		var span := {}
+		for kind in surfaces:
+			var first: int = before.get(kind, 0)
+			if surfaces[kind][0].size() > first:
+				span[kind] = Vector2i(first, surfaces[kind][0].size())
+		found.append(span)
 	var mesh := ArrayMesh.new()
+	var surface_of := {}
 	for kind in ["plastic", "glass", "metal", "lamp"]:
 		if not surfaces.has(kind):
 			continue
+		surface_of[kind] = mesh.get_surface_count()
 		var s: Array = surfaces[kind]
 		var arrays := []
 		arrays.resize(Mesh.ARRAY_MAX)
@@ -51,9 +65,26 @@ static func bake(looks: Array[Node3D]) -> MeshInstance3D:
 		arrays[Mesh.ARRAY_INDEX] = s[3]
 		mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
 		mesh.surface_set_material(mesh.get_surface_count() - 1, material(kind))
+	spans.clear()
+	for span in found:
+		var where := []
+		for kind in span:
+			where.append([surface_of[kind], span[kind].x, span[kind].y])
+		spans.append(where)
 	var out := MeshInstance3D.new()
 	out.mesh = mesh
 	return out
+
+
+## Stops drawing vertices `first` up to `last` of a baked surface, like a part
+## knocked off a kart, by moving them all to one point so their triangles
+## have no size. It's much quicker than baking the mesh again.
+static func hide_span(mesh: ArrayMesh, surface: int, first: int, last: int) -> void:
+	var stride := RenderingServer.mesh_surface_get_format_vertex_stride(mesh.surface_get_format(surface), mesh.surface_get_array_len(surface))
+	var gone := PackedByteArray()
+	gone.resize((last - first) * stride)
+	gone.fill(0)
+	mesh.surface_update_vertex_region(surface, first * stride, gone)
 
 
 ## The material for one kind of surface, coloured by the mesh. Each kart

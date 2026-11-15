@@ -41,6 +41,7 @@ const DENSITY := 22.0
 const COLOURS := [Color("#c4281c"), Color("#f2cd37"), Color("#0d69ab"), Color("#f2f3f2"), Color("#237841"), Color("#da8540"), Color("#a5ca18"), Color("#e4adc8"), Color("#68c3e2"), Color("#81007b"), Color("#1b2a34")]
 
 static var _alive: Array[BrickPile] = []
+static var _studs := {}
 
 ## Which drop it's from (see DropKeeper.key_of()), or -1 when it wasn't
 ## dropped, and which brick of the drop it is.
@@ -120,7 +121,30 @@ func _init(size := Vector3(0.5, BRICK_HIGH, 1.0), colour := Color("#c4281c")) ->
 	look.mesh = MeshKit.rounded_box(size - Vector3.ONE * 0.01, 0.02)
 	look.material_override = PartVisuals.material(colour)
 	add_child(look)
-	add_child(PartVisuals.make_studs(size, colour))
+	add_child(studs(size, colour))
+
+
+## The studs on top of a loose brick this size, sharing one set of them with
+## every other brick its size.
+static func studs(size: Vector3, colour: Color) -> MultiMeshInstance3D:
+	if not _studs.has(size):
+		_studs[size] = PartVisuals.make_studs(size, colour).multimesh
+	var node := MultiMeshInstance3D.new()
+	node.multimesh = _studs[size]
+	node.material_override = PartVisuals.material(colour)
+	return node
+
+
+## Makes the looks of every size of loose brick and wall brick ahead of a race,
+## so the first drop of each doesn't.
+static func warm() -> void:
+	for studs_of: Vector2i in SIZES:
+		for high in [PLATE_HIGH, BRICK_HIGH]:
+			var size := Vector3(studs_of.x * Grid.STUD, high, studs_of.y * Grid.STUD)
+			MeshKit.rounded_box(size - Vector3.ONE * 0.01, 0.02)
+			studs(size, COLOURS[0]).free()
+	MeshKit.rounded_box(BrickWall.BRICK - Vector3.ONE * 0.01, 0.02)
+	studs(BrickWall.BRICK, COLOURS[0]).free()
 
 
 ## Throws every loose brick and wall brick within `reach` of `at` away from it,

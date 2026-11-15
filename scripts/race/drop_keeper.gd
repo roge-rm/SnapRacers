@@ -100,6 +100,10 @@ func _init() -> void:
 
 func _ready() -> void:
 	add_to_group("drop_keeper")
+	# Everything that can be dropped gets its looks made now, with the race's
+	# loading, so a drop doesn't stall the race.
+	BrickTrap.warm()
+	BrickPile.warm()
 
 
 ## Takes on an item that's just come into the world. A pile's bricks come one

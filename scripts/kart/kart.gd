@@ -556,6 +556,17 @@ var _steering: SteeringVisual
 var _rig: CharacterRig
 ## The baked meshes of the kart's body (see _bake_body()).
 var _body: Array[MeshInstance3D] = []
+## For each part on the kart, by index: its own nodes (collision shapes and
+## looks that aren't baked), and where its look is in the baked body, so a
+## part knocked off goes without building the kart again (see _drop_lost()).
+var _part_nodes := {}
+var _body_spans := {}
+## Where the headlight pool was made for, as (front, ground).
+var _pool_at := Vector2.ZERO
+## Which parts are joined to which (see KartDesign.links()), and the design
+## that's for.
+var _design_links := []
+var _links_for: KartDesign
 ## A kart driven on another device, or the host's AI seen on a player's device.
 ## It isn't simulated here. It's moved to where its updates say (see NetRace),
 ## and only its looks, sound and wreckage happen here.
@@ -634,11 +645,14 @@ func _init() -> void:
 func build(new_design: KartDesign, who: CharacterDesign = null) -> void:
 	driver = who
 	design = new_design
+	_links_for = null
 	lost.clear()
 	_impact.clear()
 	_breaking.clear()
 	_full = KartStats.compute(design, {}, null, _driver_mass())
 	_wheel_setup.clear()
+	# Ready for when parts break off.
+	_links()
 
 	var com := _full.center_of_mass
 	var steered := []
@@ -767,6 +781,8 @@ func _assemble() -> void:
 	_steering = null
 	_rig = null
 	_turning.clear()
+	_part_nodes.clear()
+	_body_spans.clear()
 	# Everything you see goes in here, so a bike can lean it.
 	_looks = Node3D.new()
 	add_child(_looks)
@@ -783,6 +799,7 @@ func _assemble() -> void:
 
 	# Everything but the wheels and steering is drawn as one mesh.
 	var looks: Array[Node3D] = []
+	var look_parts: Array[int] = []
 	for info in stats.parts:
 		if info.def.kind == "wheel":
 			var w := Wheel.new()
@@ -811,6 +828,7 @@ func _assemble() -> void:
 			body.shape = ball
 			body.position = info.centre
 			add_child(body)
+			_part_nodes[info.index] = [w.visual, body]
 			continue
 		_add_bodies(info)
 		var look := PartVisuals.make_turned(info.def, info.extent, info.basis)
@@ -818,15 +836,18 @@ func _assemble() -> void:
 		if info.def.get("steers", false) and _beside_steered_wheel(info):
 			_looks.add_child(look)
 			_turning.append([look, look.basis])
+			_part_nodes[info.index].append(look)
 		elif look is SteeringVisual:
 			_looks.add_child(look)
+			_part_nodes[info.index].append(look)
 			if _steering == null:
 				_steering = look
 		else:
 			looks.append(look)
+			look_parts.append(info.index)
 	_lamps = null
 	_body.clear()
-	_bake_body(looks)
+	_bake_body(looks, look_parts)
 	# Lamps on the parts that turn, like a bike's fork, which aren't baked in.
 	for lamp in _looks.find_children("*", "MeshInstance3D", true, false):
 		if lamp.has_meta("light"):
@@ -858,7 +879,8 @@ func _assemble() -> void:
 	# Headlights throw light on the road ahead.
 	_pool = null
 	if stats.parts.any(func(info: KartStats.PartInfo) -> bool: return info.def.get("light", "") == "head"):
-		_pool = HeadlightPool.new(bumper_point().z, _ground_y)
+		_pool_at = Vector2(bumper_point().z, _ground_y)
+		_pool = HeadlightPool.new(_pool_at.x, _pool_at.y)
 		_looks.add_child(_pool)
 		_show_lights()
 	sound.refit(stats)
@@ -875,14 +897,18 @@ func _assemble() -> void:
 		_find_ghost_looks()
 
 
-## Bakes these part looks into the kart's body and frees them.
-func _bake_body(looks: Array[Node3D]) -> void:
+## Bakes these part looks, of these parts, into the kart's body and frees
+## them.
+func _bake_body(looks: Array[Node3D], parts: Array[int]) -> void:
 	for node in _body:
 		node.queue_free()
 	_body.clear()
 	if looks.is_empty():
 		return
-	var baked := KartMesh.bake(looks)
+	var spans := []
+	var baked := KartMesh.bake(looks, spans)
+	for i in parts.size():
+		_body_spans[parts[i]] = spans[i]
 	_looks.add_child(baked)
 	_body.append(baked)
 	# Its own lamp lenses, so its lights go on and off by themselves.
@@ -909,6 +935,7 @@ func _add_bodies(info: KartStats.PartInfo) -> void:
 		shape.shape = hull
 		shape.transform = Transform3D(info.basis, info.centre)
 		add_child(shape)
+		_part_nodes[info.index] = [shape]
 		return
 	var boxes: Array[AABB] = []
 	if info.def.has("solids"):
@@ -918,6 +945,7 @@ func _add_bodies(info: KartStats.PartInfo) -> void:
 			boxes.append(AABB(info.centre + b.position * Grid.FINE, b.size * Grid.FINE))
 	else:
 		boxes.append(AABB(info.centre - info.extent * 0.5, info.extent))
+	_part_nodes[info.index] = []
 	for b in boxes:
 		if b.size.x < 0.01 or b.size.y < 0.01 or b.size.z < 0.01:
 			continue
@@ -927,6 +955,7 @@ func _add_bodies(info: KartStats.PartInfo) -> void:
 		shape.shape = box
 		shape.position = b.get_center()
 		add_child(shape)
+		_part_nodes[info.index].append(shape)
 
 
 ## Whether the wheel nearest this part is one that steers, so a fork turns
@@ -1130,7 +1159,7 @@ func lose_parts(indices: Array[int]) -> void:
 		return
 	var seat := design.seat_index()
 	if seat != -1:
-		for i in design.detached_after(lost, seat):
+		for i in design.detached_after(lost, seat, _links()):
 			lost[i] = true
 			newly.append(i)
 
@@ -1148,12 +1177,103 @@ func lose_parts(indices: Array[int]) -> void:
 
 	var keep_linear := linear_velocity
 	var keep_angular := angular_velocity
-	_assemble()
+	if not _drop_lost(newly):
+		_assemble()
 	linear_velocity = keep_linear
 	angular_velocity = keep_angular
 	react("surprised", 1.2)
 	Sounds.play_at("fx/bricks", sound)
 	parts_lost.emit(newly)
+
+
+## Which parts of the design are joined to which, worked out once for it.
+func _links() -> Array:
+	if _links_for != design or _design_links.size() != design.parts.size():
+		_design_links = design.links()
+		_links_for = design
+	return _design_links
+
+
+## Takes these lost parts off as they are, without building the kart again:
+## their collision shapes and looks go and their bit of the baked body is
+## hidden, then everything worked out from the parts left is updated as
+## _assemble() does. False when it can't, and the kart has to be built again.
+func _drop_lost(newly: Array[int]) -> bool:
+	if _looks == null or stats == null or _body.size() > 1:
+		return false
+	for i in newly:
+		if not _part_nodes.has(i) and not _body_spans.has(i):
+			return false
+	var now := KartStats.compute(design, lost, _full.origin_cell, _driver_mass())
+	# The driver sits on the seat, which never comes off, so that stays put.
+	if now.has_seat != stats.has_seat or now.seat_top != stats.seat_top or now.recline != stats.recline or now.astride != stats.astride or now.feet_forward != stats.feet_forward:
+		return false
+	# The parts left have to be where they were built, for the baked body.
+	var was := {}
+	for info in stats.parts:
+		was[info.index] = info
+	for info in now.parts:
+		if not was.has(info.index) or was[info.index].centre != info.centre or was[info.index].basis != info.basis:
+			return false
+	stats = now
+	_width = -1.0
+	_nose = NAN
+	_tail = NAN
+	power = stats.power
+	max_force = stats.max_force
+	thrust = stats.thrust
+	drag_area = stats.drag_area
+	lift_area = stats.lift_area
+	var gone := {}
+	for i in newly:
+		for node: Node in _part_nodes.get(i, []):
+			gone[node] = true
+			node.get_parent().remove_child(node)
+			node.queue_free()
+		_part_nodes.erase(i)
+		for span: Array in _body_spans.get(i, []):
+			KartMesh.hide_span(_body[0].mesh, span[0], span[1], span[2])
+		_body_spans.erase(i)
+	for n in range(wheels.size() - 1, -1, -1):
+		if newly.has(wheels[n].index):
+			wheels.remove_at(n)
+	_turning = _turning.filter(func(turning: Array) -> bool: return not gone.has(turning[0]))
+	_ghost_looks = _ghost_looks.filter(func(look: Array) -> bool: return not gone.has(look[0]))
+	if gone.has(_steering):
+		# The next steering left takes over, as it would on a kart built
+		# without the lost one.
+		_steering = null
+		for info in stats.parts:
+			for node: Node in _part_nodes.get(info.index, []):
+				if _steering == null and node is SteeringVisual:
+					_steering = node
+	_ground_y = 0.0
+	for w in wheels:
+		_ground_y = minf(_ground_y, w.rest.y - w.radius)
+	var lit := stats.parts.any(func(info: KartStats.PartInfo) -> bool: return info.def.get("light", "") == "head")
+	var at := Vector2(bumper_point().z, _ground_y)
+	if _pool != null and (not lit or at != _pool_at):
+		_pool.get_parent().remove_child(_pool)
+		_pool.queue_free()
+		_pool = null
+	if lit and _pool == null:
+		_pool_at = at
+		_pool = HeadlightPool.new(at.x, at.y)
+		_looks.add_child(_pool)
+		if ghost_left > 0.0:
+			_add_ghost_looks(_pool)
+	_show_lights()
+	sound.refit(stats)
+	mass = maxf(stats.mass, 1.0)
+	center_of_mass = stats.center_of_mass
+	_driven_count = 0
+	_steered_count = 0
+	for w in wheels:
+		if w.driven:
+			_driven_count += 1
+		if w.steered:
+			_steered_count += 1
+	return true
 
 
 func _physics_process(delta: float) -> void:
@@ -2228,7 +2348,15 @@ func _set_ghostly(on: bool) -> void:
 ## while it's a ghost needs this again, since its meshes are new.
 func _find_ghost_looks() -> void:
 	_ghost_looks.clear()
-	for node in find_children("*", "MeshInstance3D", true, false) + find_children("*", "MultiMeshInstance3D", true, false):
+	_add_ghost_looks(self)
+
+
+## Every mesh under `root`, to be made see-through with the rest.
+func _add_ghost_looks(root: Node) -> void:
+	var found: Array[Node] = []
+	if root is GeometryInstance3D:
+		found.append(root)
+	for node in found + root.find_children("*", "MeshInstance3D", true, false) + root.find_children("*", "MultiMeshInstance3D", true, false):
 		if node.material_override != null:
 			_ghost_looks.append([node, -1, null, null])
 		elif node is MeshInstance3D and node.mesh != null:
@@ -2425,7 +2553,7 @@ func _takes_with_it_what_drives(index: int, already: Dictionary = {}) -> bool:
 		return false
 	var gone := already.duplicate() if not already.is_empty() else lost.duplicate()
 	gone[index] = true
-	for i in design.detached_after(gone, seat):
+	for i in design.detached_after(gone, seat, _links()):
 		if _needed_to_drive(i):
 			return true
 	return false

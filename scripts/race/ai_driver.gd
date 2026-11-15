@@ -367,6 +367,11 @@ const WANDER_LONG := 160.0
 const WANDER_SHORT := 70.0
 ## It drives every this many physics steps (see _physics_process()).
 const DRIVE_EVERY := 2
+## It plans through traffic every this many physics steps (see _dodge()).
+const PLAN_EVERY := 4
+var _since_plan := 0.0
+var _replan := false
+var _planned_for := 0
 var _index := -1
 var _steps := 0
 var _since_drive := 0.0
@@ -576,6 +581,7 @@ func knocked_by(other: Kart) -> void:
 	_knocks[key] = KNOCK_AGAIN
 	if not fresh:
 		return
+	_replan = true
 	if traits.aggression < 0.0:
 		shaken = maxf(shaken, 1.0 - traits.aggression * 1.5)
 	elif traits.aggression > 0.2 and racecraft >= 0.5:
@@ -961,6 +967,8 @@ func _dodge() -> float:
 		_eased = 0.0
 		traffic.speed_limit = INF
 		traffic.queueing = false
+		_since_plan = 0.0
+		_planned_for = -1
 		return 0.0
 	var wall := _dodge_wall(-kart.global_basis.z)
 	var trap := NAN if is_finite(wall) else _dodge_traps(-kart.global_basis.z)
@@ -970,7 +978,20 @@ func _dodge() -> float:
 	if is_nan(wall) and _tries > 0 and _stuck > 0.0 and is_instance_valid(_recover_from):
 		var lane := lane_at(_aim_or_here(), kart.width() * 0.5 + 0.8)
 		preferred = (lane.x if _away > 0.0 else lane.y) - line_at(_aim_or_here())
-	var want := traffic.plan(self, preferred, _since_drive, wall)
+	# It plans through traffic every PLAN_EVERY steps, a quarter of the
+	# karts on each step, and keeps the last plan between. A knock, getting
+	# stuck, a wall or trap coming into view, the road's edges moving or no
+	# plan yet plans at once.
+	_since_plan += _since_drive
+	var wall_trap := (1 if is_finite(wall) else 0) + (2 if is_finite(trap_band.x) else 0)
+	var want := NAN
+	if (_steps + maxi(_index, 0)) % PLAN_EVERY != 0 and not _replan and _tries == 0 and _stuck <= 0.0 and wall_trap == _planned_for and is_finite(traffic.target):
+		want = traffic.held(self)
+	if is_nan(want):
+		want = traffic.plan(self, preferred, _since_plan, wall)
+		_since_plan = 0.0
+		_replan = false
+		_planned_for = wall_trap
 	# The aim slides over at a rate to suit the speed instead of jumping.
 	# Getting clear of a kart it's stuck against, it goes at once, and round
 	# a wall or a trap twice as fast.
