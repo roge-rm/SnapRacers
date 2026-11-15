@@ -127,6 +127,12 @@ func _work_out_heights() -> void:
 				if ring.is_empty():
 					break
 				rings.append(Scenery.inside_grid(ring, origin, cols, rows, CELL))
+	# Beside a sea along one side the ground eases down to it the same way,
+	# going by how far inland each point is.
+	var side: Array = []
+	if Scenery.theme_named(track.theme).get("sea", false):
+		side = Scenery.sea_side(track)
+		sea = Scenery.sea_level(track, side) - 0.02
 	heights.resize(cols * rows)
 	for z in rows:
 		for x in cols:
@@ -145,6 +151,9 @@ func _work_out_heights() -> void:
 				while inside < rings.size() and rings[inside][i] == 1:
 					inside += 1
 				h = lerpf(sea, h, smoothstep(0.0, float(rings.size()), float(inside)))
+			elif not side.is_empty():
+				var from := Scenery.BEACH + 6.0
+				h = lerpf(sea, h, smoothstep(from, from + Scenery.ISLAND_RAMP, Scenery.inland_of(at, side)))
 			# Beside road on the ground, the ground comes up to meet its lower
 			# edge, which is the road's height unless it's starting to lean.
 			var k := nearest[i]
@@ -247,6 +256,7 @@ func _ready() -> void:
 	look.mesh = mesh
 	var theme := Scenery.theme_named(track.theme)
 	look.material_override = TrackBuilder.ground_material(theme)
+	Scenery.grass_patches(look.material_override, track)
 	add_child(look)
 	var shape := CollisionShape3D.new()
 	shape.shape = mesh.create_trimesh_shape()

@@ -72,9 +72,16 @@ const TIME_TOP := 26.0
 const TIME_GRIP := 9.0
 const TIME_ACCEL := 5.0
 const TIME_BRAKE := 8.0
-## How much top speed each unit of a surface's extra drag costs, and how much
-## of it a kart keeps over a jump.
+## How much of the road's top speed a kart keeps on each surface, measured on
+## the starter kart after 10 s on the gas from 22 m/s (road 25.8 m/s). Grip
+## matters as much as drag, so drag alone can't give these. A surface not
+## listed loses TIME_DRAG for each unit of its extra drag.
+const TIME_SURFACE := {
+	"asphalt": 1.0, "dirt": 0.98, "gravel": 1.0, "concrete": 1.0, "grass": 0.88,
+	"mud": 0.93, "sand": 0.8, "ice": 0.58, "shallows": 0.73,
+}
 const TIME_DRAG := 0.04
+## How much of its speed a kart keeps over a jump.
 const TIME_JUMP := 0.9
 
 
@@ -184,9 +191,10 @@ func _times(track: TrackPath, line: PackedFloat32Array, line_bends: PackedFloat3
 		var grip := 1.0
 		var top := TIME_TOP
 		if track.split_sample(k):
-			var feel: Array = track.grip_and_drag(track.branch_surface(k, side))
+			var surface := track.branch_surface(k, side)
+			var feel: Array = track.grip_and_drag(surface)
 			grip = feel[0]
-			top *= 1.0 - TIME_DRAG * (feel[1] - 1.0)
+			top *= TIME_SURFACE.get(surface, 1.0 - TIME_DRAG * (feel[1] - 1.0))
 			if track.branch_lift(k, side) > 0.01 or not track.branch_solid(k, side):
 				top *= TIME_JUMP
 		limits[k] = minf(top, sqrt(TIME_GRIP * grip / maxf(line_bends[k], 0.0001)))

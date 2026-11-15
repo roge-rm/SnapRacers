@@ -50,7 +50,7 @@ const COLOURS := {
 	"mud": Color("#6e5538"), # darker and browner than dirt
 	"sand": Color("#d9c38c"),
 	"ice": Color("#cfe8f2"),
-	"shallows": Color("#2f9aa0"), # the water's tint, over a sandy bed
+	"shallows": Color("#1592a0"), # the water's tint, over a sandy bed
 }
 const DECK_COLOUR := Color("#7a7f87")
 ## The low edge down a rough split's dirt branch, like timber.
@@ -237,6 +237,7 @@ func _add_grass() -> void:
 	mesh.mesh = plane
 	mesh.position = Vector3(centre.x, 0.0, centre.z)
 	mesh.material_override = ground_material(_theme)
+	Scenery.grass_patches(mesh.material_override, track)
 	body.add_child(mesh)
 	add_child(body)
 
@@ -876,6 +877,7 @@ func _add_islands() -> void:
 	var look := MeshInstance3D.new()
 	look.mesh = mesh
 	look.material_override = ground_material(_theme)
+	Scenery.grass_patches(look.material_override, track)
 	body.add_child(look)
 	var shape := CollisionShape3D.new()
 	shape.shape = mesh.create_trimesh_shape()

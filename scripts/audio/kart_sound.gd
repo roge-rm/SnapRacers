@@ -2,9 +2,10 @@ class_name KartSound
 extends Node3D
 
 ## What a kart sounds like as it drives: its engine, its tires squealing when
-## it slides, a rumble on grass and dirt, and (for the karts people drive)
-## the wind. It also plays the knocks and crashes, and any one shot sound
-## that should follow the kart around goes on it too (see Sounds.play_at).
+## it slides, a rumble on grass and dirt, a splash in water, and (for the
+## karts people drive) the wind. It also plays the knocks and crashes, and
+## any one shot sound that should follow the kart around goes on it too (see
+## Sounds.play_at).
 ##
 ## The engine is a loop of that kind of engine running (see sound/engine),
 ## pitched up as the kart speeds up. A kart with more than one engine sounds
@@ -23,6 +24,8 @@ const BUMP := 180.0
 const CRASH := 700.0
 ## Once a knock's made a sound, the next one waits this long.
 const KNOCK_GAP := 0.25
+## The splash of wheels rolling through water, at full.
+const SPLASH_LEVEL := -3.0
 ## A drift's tire sound: its level at full, seconds to fade in and out, and
 ## the surfaces' loops (anything else sounds like tarmac).
 const DRIFT_LEVEL := -6.0
@@ -30,7 +33,7 @@ const DRIFT_IN := 0.15
 const DRIFT_OUT := 0.3
 const WHOOSH_LEVEL := -13.0
 const DRIFT_SURFACE := {
-	"dirt": "dirt", "gravel": "dirt", "mud": "dirt", "grass": "dirt", "shallows": "dirt",
+	"dirt": "dirt", "gravel": "dirt", "mud": "dirt", "grass": "dirt", "shallows": "water",
 	"snow": "snow", "ice": "snow",
 }
 
@@ -41,6 +44,7 @@ var _engine: AudioStreamPlayer3D
 var _jet: AudioStreamPlayer3D
 var _skid: AudioStreamPlayer3D
 var _rumble: AudioStreamPlayer3D
+var _splash: AudioStreamPlayer3D
 var _wind: AudioStreamPlayer3D
 var _drift_soft: AudioStreamPlayer3D
 var _drift_hard: AudioStreamPlayer3D
@@ -67,6 +71,7 @@ func _ready() -> void:
 	_drift_hard = _loop(null, DRIFT_LEVEL)
 	_boosts_seen = kart.boost_count
 	_rumble = _loop(Sounds.stream("loop/rumble"), -4.0)
+	_splash = _loop(Sounds.stream("loop/splash"), SPLASH_LEVEL)
 	_wind = _loop(Sounds.stream("loop/wind"), -10.0)
 	if kart.stats != null:
 		refit(kart.stats)
@@ -134,8 +139,12 @@ func _process(delta: float) -> void:
 	var drifting := _drift(delta, velocity, speed, on_ground, hushed)
 	_set_level(_skid, 0.0 if hushed or drifting else skid, -6.0)
 	_skid.pitch_scale = 0.9 + skid * 0.2
-	var rumble := kart.rough * clampf(speed / 6.0, 0.0, 1.0) if on_ground else 0.0
+	# Wheels in water splash instead of rumbling.
+	var wet := _wet() if on_ground else 0.0
+	var rumble := kart.rough * (1.0 - wet) * clampf(speed / 6.0, 0.0, 1.0) if on_ground else 0.0
 	_set_level(_rumble, 0.0 if hushed else rumble, -4.0)
+	_set_level(_splash, 0.0 if hushed else wet * clampf(speed / 8.0, 0.0, 1.0), SPLASH_LEVEL)
+	_splash.pitch_scale = 0.9 + 0.2 * clampf(speed / 25.0, 0.0, 1.0)
 	var gust := clampf((speed - 8.0) / 20.0, 0.0, 1.0) if wind else 0.0
 	_set_level(_wind, 0.0 if hushed else gust, -10.0)
 	_run(_engine, not hushed)
@@ -188,12 +197,30 @@ func _drift(delta: float, velocity: Vector3, speed: float, on_ground: bool, hush
 	return true
 
 
+## How much the grounded wheels are in water, from 0 to 1: shallows or a
+## deep puddle are 1.
+func _wet() -> float:
+	var total := 0.0
+	var count := 0
+	for w in kart.wheels:
+		if w.grounded:
+			total += _wet_wheel(w)
+			count += 1
+	return total / count if count > 0 else 0.0
+
+
+func _wet_wheel(w: Kart.Wheel) -> float:
+	return clampf(maxf(w.wade / TrackBuilder.SHALLOWS_WADE, w.water), 0.0, 1.0)
+
+
 ## Which set of drift loops the drive wheels are on.
 func _drift_surface_now() -> String:
 	for w in kart.wheels:
 		if w.driven and w.grounded:
 			if w.snow > 0.05:
 				return "snow"
+			if _wet_wheel(w) > 0.3:
+				return "water"
 			return DRIFT_SURFACE.get(w.surface, "tarmac")
 	return _drift_surface if _drift_surface != "" else "tarmac"
 

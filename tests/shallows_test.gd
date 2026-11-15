@@ -51,7 +51,7 @@ func _run() -> void:
 
 	var feel: Array = TrackPath.SURFACES["shallows"]
 	var sand: Array = TrackPath.SURFACES["sand"]
-	check(feel[1] > sand[1] and feel[1] < TrackPath.SURFACES["grass"][1], "shallows drag a bit more than sand and less than grass (%.1f)" % feel[1])
+	check(feel[1] > sand[1] and feel[0] == sand[0], "shallows drag more than sand, with the same grip (%.1f)" % feel[1])
 	check(TrackBuilder.COLOURS.has("shallows"), "shallows have their own colour")
 
 	# Saved and loaded, and through a share code.
@@ -114,7 +114,10 @@ func _run() -> void:
 	var speeds := {}
 	for surface in karts:
 		speeds[surface] = karts[surface].forward_speed
-	check(speeds.shallows < speeds.sand and speeds.shallows > speeds.asphalt * 0.7, "on the gas, shallows are a little slower than sand and not a trap (road %.1f, sand %.1f, shallows %.1f m/s)" % [speeds.asphalt, speeds.sand, speeds.shallows])
+	var behind: float = speeds.sand - speeds.shallows
+	check(behind > 0.8 and behind < 2.5 and speeds.shallows > speeds.asphalt * 0.7, "on the gas, shallows are 1 to 2 m/s slower than sand and not a trap (road %.1f, sand %.1f, shallows %.1f m/s)" % [speeds.asphalt, speeds.sand, speeds.shallows])
+	var guess: Dictionary = RacingLine.TIME_SURFACE
+	check(guess.shallows < guess.sand and absf(guess.shallows / guess.sand - speeds.shallows / speeds.sand) < 0.05, "and the AI's split timing knows it (%.2f of sand, measured %.2f)" % [guess.shallows / guess.sand, speeds.shallows / speeds.sand])
 	check(wade > 0.0, "its wheels are in the water (%.2f)" % wade)
 	check(planing == 0.0, "and never hydroplane")
 

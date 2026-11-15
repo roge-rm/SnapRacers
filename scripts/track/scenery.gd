@@ -61,11 +61,16 @@ const BEACH := 16.0
 const SEA_OUT := 900.0
 ## On an island the land reaches ISLAND_LAND past the road, then there's
 ## BEACH of sand and the sea all round. Bays narrower than twice ISLAND_FILL
-## are filled in so the shore stays smooth. On a hilly island the ground
-## eases down to the sea over ISLAND_RAMP inside the beach.
+## are filled in so the shore stays smooth. On a hilly island, or beside a
+## sea along one side, the ground eases down to the sea over ISLAND_RAMP
+## inside the beach.
 const ISLAND_LAND := 45.0
 const ISLAND_FILL := 50.0
 const ISLAND_RAMP := 24.0
+## An island's grass patches start PATCH_RINGS rings in from the beach, one
+## every PATCH_CELL metres, with as much grass as there can be past the last.
+const PATCH_CELL := 8.0
+const PATCH_RINGS := 5
 ## How far apart the hall's roof beams and the lights along them are.
 const BEAM_EVERY := 16.0
 const LIGHT_EVERY := 12.0
@@ -100,6 +105,9 @@ const LAMP_EVERY := 20.0
 ## Terrain).
 ## "litter" draws the ground as a jungle floor with fallen leaves and bare
 ## dirt. It's only a look, the grip stays the floor's.
+## "grass" on an island draws patches of grass in that colour over the
+## ground, more of them further in from the shore (see grass_patches()).
+## It's only a look too.
 const THEMES := {
 	"orchard": {
 		"ground": "#4b9f4a", "curbs": ["#d8261c", "#f2f2f2"], "wall": "#c4281c",
@@ -295,8 +303,8 @@ const THEMES := {
 		"fillers": {"gum_tree": 3, "bush": 3, "penguins": 1, "rocks": 1, "fence": 1},
 	},
 	"island": {
-		"ground": "#6aaa4c", "curbs": ["#d8261c", "#f2f2f2"], "wall": "#f2f3f2",
-		"sky": ["#3e8fe0", "#f6ead2"], "island": true,
+		"ground": "#d7c599", "curbs": ["#d8261c", "#f2f2f2"], "wall": "#f2f3f2",
+		"sky": ["#3e8fe0", "#f6ead2"], "island": true, "floor": "sand", "grass": "#6aaa4c",
 		"landmarks": ["lighthouse", "sandcastle", "lifeguard_tower", "beach_hut"],
 		"fillers": {"palm": 6, "parasols": 2, "beach_hut": 2, "lifeguard_tower": 1, "bush": 2, "rocks": 1},
 	},
@@ -507,6 +515,11 @@ var ground: Callable = func(_x: float, _z: float) -> float: return 0.0
 var _hash := {} # 16 m cell -> track sample indices
 ## Whether the theme has no ground, with everything floating on islands.
 var _floating := false
+## The last course whose grass patches were worked out, and its map (see
+## grass_patches()).
+static var _patches_of: TrackPath
+static var _patch_map: ImageTexture
+static var _patch_area := Color()
 
 
 static func theme_named(id: String) -> Dictionary:
@@ -1021,27 +1034,65 @@ func _inside_hall(at: Vector3, room: float) -> bool:
 ## Which side the sea's on, picked from the course's name so it stays put,
 ## and where the shore is.
 func _plan_sea() -> void:
+	var side := sea_side(track)
+	_sea = side[0]
+	_out = side[1]
+
+
+## The sea along one side of a course, as [the sea seen from above as (x, z),
+## the way from the shore out to sea].
+static func sea_side(path: TrackPath) -> Array:
 	var low := Vector2(INF, INF)
 	var high := -Vector2(INF, INF)
-	for p in track.points:
+	for p in path.points:
 		low = low.min(Vector2(p.x, p.z))
 		high = high.max(Vector2(p.x, p.z))
-	var side := absi(hash(track.name + " sea")) % 4
+	var side := absi(hash(path.name + " sea")) % 4
 	var wide := SEA_OUT * 2.0 + (high - low).length()
 	var middle := (low + high) * 0.5
 	match side:
 		0:
-			_out = Vector2(0, 1)
-			_sea = Rect2(Vector2(middle.x - wide * 0.5, high.y + SHORE), Vector2(wide, SEA_OUT))
+			return [Rect2(Vector2(middle.x - wide * 0.5, high.y + SHORE), Vector2(wide, SEA_OUT)), Vector2(0, 1)]
 		1:
-			_out = Vector2(0, -1)
-			_sea = Rect2(Vector2(middle.x - wide * 0.5, low.y - SHORE - SEA_OUT), Vector2(wide, SEA_OUT))
+			return [Rect2(Vector2(middle.x - wide * 0.5, low.y - SHORE - SEA_OUT), Vector2(wide, SEA_OUT)), Vector2(0, -1)]
 		2:
-			_out = Vector2(1, 0)
-			_sea = Rect2(Vector2(high.x + SHORE, middle.y - wide * 0.5), Vector2(SEA_OUT, wide))
+			return [Rect2(Vector2(high.x + SHORE, middle.y - wide * 0.5), Vector2(SEA_OUT, wide)), Vector2(1, 0)]
 		_:
-			_out = Vector2(-1, 0)
-			_sea = Rect2(Vector2(low.x - SHORE - SEA_OUT, middle.y - wide * 0.5), Vector2(SEA_OUT, wide))
+			return [Rect2(Vector2(low.x - SHORE - SEA_OUT, middle.y - wide * 0.5), Vector2(SEA_OUT, wide)), Vector2(-1, 0)]
+
+
+## How far a spot (x, z) is inland from the shore of a sea_side(), in metres.
+## It's below 0 out at sea.
+static func inland_of(spot: Vector2, side: Array) -> float:
+	var sea: Rect2 = side[0]
+	var out: Vector2 = side[1]
+	var shore := sea.position if out.x + out.y > 0.0 else sea.end
+	return (shore - spot).dot(out)
+
+
+## How high the sea beside a hilly course is: as low as the hills get along
+## its shore past the course, so it never floods the land.
+static func sea_level(path: TrackPath, side: Array) -> float:
+	if path.hills <= 0.0:
+		return 0.0
+	var sea: Rect2 = side[0]
+	var out: Vector2 = side[1]
+	var along := Vector2(out.y, out.x).abs()
+	var shore := sea.position if out.x + out.y > 0.0 else sea.end
+	var low := INF
+	var high := -INF
+	for p in path.points:
+		var a := Vector2(p.x, p.z).dot(along)
+		low = minf(low, a)
+		high = maxf(high, a)
+	var reach := REACH + 45.0
+	var level := INF
+	var a := low - reach
+	while a <= high + reach:
+		var spot := shore * out.abs() + along * a
+		level = minf(level, path.ground_height(spot.x, spot.y))
+		a += 8.0
+	return level
 
 
 ## The sea and its beach, a pier out into it, waves breaking on the sand,
@@ -1136,6 +1187,51 @@ static func island_shore(path: TrackPath) -> PackedVector2Array:
 		shore = largest(Geometry2D.merge_polygons(shore, spit))
 	shore = largest(Geometry2D.offset_polygon(shore, ISLAND_FILL, Geometry2D.JOIN_ROUND))
 	return largest(Geometry2D.offset_polygon(shore, -ISLAND_FILL, Geometry2D.JOIN_ROUND))
+
+
+## Gives an island's ground its patches of grass (see "grass" in THEMES):
+## none on the sand by the shore, then more and more of them further in.
+## Which spots are how far in is a small map, worked out once per course.
+static func grass_patches(material: ShaderMaterial, path: TrackPath) -> void:
+	var theme := theme_named(path.theme)
+	if not theme.has("grass") or not theme.get("island", false):
+		return
+	if _patches_of != path:
+		_patches_of = path
+		_patch_map = null
+		var shore := island_shore(path)
+		if shore.is_empty():
+			return
+		var box := Rect2(shore[0], Vector2.ZERO)
+		for p in shore:
+			box = box.expand(p)
+		box = box.grow(PATCH_CELL)
+		var cols := int(box.size.x / PATCH_CELL) + 1
+		var rows := int(box.size.y / PATCH_CELL) + 1
+		var amount := PackedFloat32Array()
+		amount.resize(cols * rows)
+		amount.fill(0.0)
+		for j in PATCH_RINGS:
+			var ring := largest(Geometry2D.offset_polygon(shore, -(BEACH + 4.0 + j * PATCH_CELL)))
+			if ring.is_empty():
+				break
+			var inside := inside_grid(ring, box.position, cols, rows, PATCH_CELL)
+			for i in inside.size():
+				amount[i] += inside[i] / float(PATCH_RINGS)
+		var image := Image.create(cols, rows, false, Image.FORMAT_L8)
+		for z in rows:
+			for x in cols:
+				image.set_pixel(x, z, Color(amount[z * cols + x], 0.0, 0.0))
+		_patch_map = ImageTexture.create_from_image(image)
+		# Texel centres sit on the grid's points.
+		var corner := box.position - Vector2.ONE * PATCH_CELL * 0.5
+		_patch_area = Color(corner.x, corner.y, 1.0 / (cols * PATCH_CELL), 1.0 / (rows * PATCH_CELL))
+	if _patch_map == null:
+		return
+	material.set_shader_parameter("patches", 1.0)
+	material.set_shader_parameter("patch_colour", Color(theme.grass))
+	material.set_shader_parameter("patch_map", _patch_map)
+	material.set_shader_parameter("patch_area", _patch_area)
 
 
 ## How high the sea is round an island: as low as the hills get along the

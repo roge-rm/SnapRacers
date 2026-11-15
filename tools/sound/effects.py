@@ -271,7 +271,48 @@ def drift_snow(hard):
     return normalise(air * 0.5 + spray * 0.6 + crunch * 0.4, 0.6)
 
 
-DRIFTS = {"tarmac": drift_tarmac, "dirt": drift_dirt, "snow": drift_snow}
+def _bubbles(total, seed, count, low, high, ring=(0.01, 0.04), loud=(0.2, 1.0)):
+    """Little bubbles popping round a loop: short sines that rise in pitch as
+    they die away, like water plinking."""
+    r = rng(seed)
+    out = np.zeros(total)
+    for _ in range(count):
+        at = r.integers(0, total)
+        time = r.uniform(*ring)
+        n = seconds(time * 2.0)
+        f = r.uniform(low, high)
+        bubble = sine(f * (1.0 + 0.6 * times(n) / time), n) * decay(n, time) * r.uniform(*loud)
+        idx = (at + np.arange(n)) % total
+        np.add.at(out, idx, bubble)
+    return out
+
+
+def drift_water(hard):
+    """Tires sliding through shallow water: a hiss of spray with bubbles
+    plinking, and on a hard drift a fuller rush of water and a low slosh."""
+    total = seconds(DRIFT_LOOP)
+    spray = normalise(circular_filter(noise(total, 121), low=900.0, high=7000.0, tilt=-1.0)) * _wobble(total, 122, 7.0, 0.4)
+    drops = normalise(_bubbles(total, 123, 140 if hard else 70, 900.0, 2600.0))
+    out = spray * 0.6 + drops * 0.4
+    if hard:
+        rush = normalise(circular_filter(noise(total, 124), low=250.0, high=2500.0)) * _wobble(total, 125, 4.0, 0.5)
+        slosh = normalise(circular_filter(noise(total, 126), low=60.0, high=400.0)) * _wobble(total, 127, 3.0, 0.7)
+        out += rush * 0.5 + slosh * 0.35
+    return normalise(out, 0.6 if hard else 0.4)
+
+
+def splash():
+    """Rolling through shallow water: a churning wash with bubbles plinking
+    and the odd slosh, which the game turns up with speed."""
+    total = seconds(DRIFT_LOOP)
+    wash = normalise(circular_filter(noise(total, 131), low=300.0, high=3500.0)) * _wobble(total, 132, 6.0, 0.45)
+    hiss = normalise(circular_filter(noise(total, 133), low=2500.0, high=8000.0)) * _wobble(total, 134, 9.0, 0.3)
+    drops = normalise(_bubbles(total, 135, 110, 700.0, 2200.0, (0.015, 0.05)))
+    slosh = normalise(circular_filter(noise(total, 136), low=70.0, high=350.0)) * _wobble(total, 137, 2.5, 0.8)
+    return normalise(wash * 0.55 + hiss * 0.2 + drops * 0.45 + slosh * 0.4, 0.6)
+
+
+DRIFTS = {"tarmac": drift_tarmac, "dirt": drift_dirt, "snow": drift_snow, "water": drift_water}
 
 
 def drift_whoosh(level):
@@ -290,7 +331,7 @@ def drift_whoosh(level):
     return normalise(out, 0.45 + 0.12 * level)
 
 
-LOOPS = {"skid": skid,"rumble": rumble, "wind": wind, "rain": rain, "storm": storm, "gale": gale}
+LOOPS = {"skid": skid, "rumble": rumble, "splash": splash, "wind": wind, "rain": rain, "storm": storm, "gale": gale}
 for _surface, _make in DRIFTS.items():
     LOOPS["drift_%s_soft" % _surface] = lambda m=_make: m(False)
     LOOPS["drift_%s_hard" % _surface] = lambda m=_make: m(True)

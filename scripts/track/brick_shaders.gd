@@ -122,20 +122,28 @@ void fragment() {
 	float rough = 0.8;
 	float spec = mix(0.25, 0.5, wet);
 	if (kind > 6.5) {
-		// Shallows: a rippled sand bed under clear water tinted by COLOR, with
-		// moving light on the bottom and the sky in it at a glance.
-		vec3 bed = pow(vec3(0.78, 0.68, 0.48), vec3(2.2));
-		float ridges = sin(p.x * 2.4 + 1.5 * sin(p.y * 0.35));
-		bed *= 0.85 + 0.15 * ridges + 0.1 * blotches(p * 0.3);
+		// Shallows: turquoise water tinted by COLOR over a rippled sand bed.
+		// The ripples' crests come up near the top and show as pale sand, the
+		// troughs and deeper patches as the water's colour, with moving light
+		// on the bottom and the sky in it at a glance.
+		vec3 sand = pow(vec3(0.86, 0.77, 0.58), vec3(2.2));
+		float fade = clamp(1.0 - length(fwidth(p)) * 4.0, 0.0, 1.0);
+		float ridges = sin(p.x * 5.0 + 2.2 * sin(p.y * 0.45) + 4.0 * blotches(p * 0.25));
+		float crest = smoothstep(0.1, 0.9, ridges) * (0.4 + 0.6 * blotches(p * 0.5 + 7.3)) * fade;
+		float shallow = blotches(p * 0.18) * 0.6 + blotches(p * 0.7 + 3.1) * 0.4;
+		// How much sand shows: a little everywhere, more where it's shallow,
+		// and mostly sand on a crest. Far off it settles to the average.
+		float show = mix(0.25, 0.15 + 0.2 * shallow, fade) + 0.65 * crest;
+		vec3 water = col * 0.6 + sand * vec3(0.08, 0.1, 0.08);
+		col = mix(water, sand * vec3(0.92, 0.96, 0.95), clamp(show, 0.0, 0.9));
 		vec2 q = world.xz * 0.6;
 		float light = sin(q.x * 1.3 + TIME * 0.9 + sin(q.y * 1.1 + TIME * 0.7)) * sin(q.y * 1.4 - TIME * 0.8 + sin(q.x * 0.9));
-		bed *= 1.0 + 0.25 * smoothstep(0.55, 0.95, light);
-		col = mix(bed, col, 0.45);
+		col += vec3(0.18, 0.2, 0.17) * smoothstep(0.55, 0.95, light) * mix(0.3, 1.0, fade);
 		float glance = pow(1.0 - clamp(dot(NORMAL, VIEW), 0.0, 1.0), 3.0);
-		col = mix(col, pow(vec3(0.5, 0.64, 0.74), vec3(2.2)), 0.25 * glance);
-		// Not too glassy, or the sky's reflection washes it out white.
-		rough = 0.45;
-		spec = 0.3;
+		col = mix(col, pow(vec3(0.55, 0.72, 0.85), vec3(2.2)), 0.3 * glance);
+		// Not too shiny, or the sky's reflection washes it out pale.
+		rough = 0.5;
+		spec = 0.18;
 		col = mix(col, SNOW, snow * 0.03);
 	} else if (kind > 5.5) {
 		// Mud, with two faint wheel ruts each side that wander a little.
@@ -215,6 +223,13 @@ uniform float mud_floor = 0.0;
 // 1 for a jungle floor: darker earthy green with fallen leaves and patches
 // of bare dirt.
 uniform float litter = 0.0;
+// 1 for patches of grass in patch_colour over sandy ground, as much as
+// patch_map says (0 none, 1 the most). patch_area is the map's corner x and
+// z, then one over its width and depth.
+uniform float patches = 0.0;
+uniform vec4 patch_colour = vec4(0.42, 0.67, 0.3, 1.0);
+uniform sampler2D patch_map : filter_linear, repeat_disable, hint_default_black;
+uniform vec4 patch_area = vec4(0.0, 0.0, 1.0, 1.0);
 varying vec3 world;
 """ + COMMON + """
 void vertex() {
@@ -237,6 +252,16 @@ void fragment() {
 		float tone = blotches(p * 1.3 + 9.7);
 		vec3 leaf = mix(pow(vec3(0.46, 0.24, 0.1), vec3(2.2)), pow(vec3(0.36, 0.32, 0.14), vec3(2.2)), tone);
 		col = mix(col, leaf, leaves * 0.75 + 0.06 * (1.0 - fade));
+	}
+	if (patches > 0.5) {
+		vec2 p = world.xz;
+		float inland = texture(patch_map, (p - patch_area.xy) * patch_area.zw).r;
+		float n = blotches(p * 0.04) * 0.7 + blotches(p * 0.15 + 2.3) * 0.3;
+		// Further in, a lower bar, so more of the ground is grass.
+		float bar = mix(1.05, 0.5, inland);
+		float grass = smoothstep(bar, bar + 0.04, n);
+		vec3 green = pow(patch_colour.rgb, vec3(2.2)) * (0.92 + 0.16 * blotches(p * 0.6 + 4.1));
+		col = mix(col, green, grass);
 	}
 	col = studs(world.xz, col);
 	float s = max(seam(world.x, 8.0, 0.025), seam(world.z, 8.0, 0.025));

@@ -3,8 +3,9 @@ extends Node
 ## Pictures of a kart driven through a stretch of shallows on a course, from
 ## behind and to the side, low down. Give it the course file after --, with
 ## the shallows starting at the piece given after it. It needs a screen and
-## saves in /srv/downloads/temp/debug/snapracers/beach as shallows_*.png.
-##   DISPLAY=:0 tools/godot/Godot_v4.7.2-stable_linux.x86_64 --path . res://tools/shots/shallows_shots.tscn -- course.json 24
+## saves in /srv/downloads/temp/debug/snapracers/beach as shallows_race_*.png,
+## or under the name given third.
+##   DISPLAY=:0 tools/godot/Godot_v4.7.2-stable_linux.x86_64 --path . res://tools/shots/shallows_shots.tscn -- course.json 24 shallows_v2
 
 const OUT := "/srv/downloads/temp/debug/snapracers/beach"
 ## How many physics steps apart the pictures are.
@@ -15,6 +16,7 @@ func _ready() -> void:
 	var args := OS.get_cmdline_user_args()
 	var course: String = args[0]
 	var first := int(args[1]) if args.size() > 1 else 0
+	var title: String = args[2] if args.size() > 2 else "shallows_race"
 	DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_WINDOWED)
 	DisplayServer.window_set_size(Vector2i(1280, 720))
 	seed(1)
@@ -81,6 +83,6 @@ func _ready() -> void:
 		if wading > 0 and step % EVERY == EVERY - 1 and shot < 6:
 			await RenderingServer.frame_post_draw
 			shot += 1
-			get_viewport().get_texture().get_image().save_png("%s/shallows_race_%02d.png" % [OUT, shot])
+			get_viewport().get_texture().get_image().save_png("%s/%s_%02d.png" % [OUT, title, shot])
 			print("  %02d: %.1f m/s, %d wheels in, planing %.2f, %d drops" % [shot, kart.linear_velocity.length(), wading, kart.wheels.map(func(w: Kart.Wheel) -> float: return w.planing).max(), kart.fx._smoke.count])
 	get_tree().quit()
