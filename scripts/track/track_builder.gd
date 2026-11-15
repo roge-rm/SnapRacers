@@ -147,11 +147,22 @@ static func piece_mesh(spec: Dictionary, width: float, theme_id: String) -> Arra
 
 
 func _ready() -> void:
+	_build()
+	# Drawing the shadows the cheap way, only the karts cast them, so nothing
+	# here does. Everything here is built by now.
+	if sky and Graphics.cheap_shadows():
+		for node in find_children("*", "GeometryInstance3D", true, false):
+			(node as GeometryInstance3D).cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+
+
+func _build() -> void:
 	_prepare()
 	if sky:
 		# Indoors you see the dark of the hall behind everything, not the sky.
 		var indoor: bool = _theme.get("indoor", false)
 		lights = SkyAndSun.add_to(self, 80.0, Color(_theme.get("backdrop", "#00000000")), _theme.get("sky", []), Color(_theme.lights) if indoor else Color.TRANSPARENT, conditions)
+		if Graphics.cheap_shadows():
+			SkyAndSun.cheapen(lights.sun)
 		add_child(WeatherEffects.new(conditions, lights))
 	_add_grass()
 	if conditions.weather in ["rain", "storm"] and not conditions.indoor:

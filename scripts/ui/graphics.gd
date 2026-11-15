@@ -43,6 +43,14 @@ static func shadows() -> float:
 	return value("shadows")
 
 
+## Whether races draw the sun's shadows the cheap way: on a phone at High,
+## only the karts cast them, in one shadow map over the 30 m around the
+## camera (see SkyAndSun.cheapen() and TrackBuilder). Splits and the whole
+## course casting cost a phone about 20 fps.
+static func cheap_shadows() -> bool:
+	return OS.has_feature("mobile") and shadows() >= 1.0
+
+
 ## How far off, in metres, far-off scenery and the crowd have faded out. They
 ## fade in over the last stretch before it (see BrickShaders.fading()).
 static func far() -> float:

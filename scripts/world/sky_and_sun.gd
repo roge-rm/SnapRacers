@@ -39,6 +39,10 @@ class Lights:
 	var ambient_energy := 0.6
 
 
+## How far a race's sun shadows reach when they're drawn the cheap way.
+const CHEAP_REACH := 30.0
+
+
 ## Pass a backdrop colour for an indoor scene like the garage. The sky still
 ## lights things, but you see the plain colour behind them. A track's theme
 ## can pass its own sky colours, top and horizon, as colour strings. Indoors,
@@ -147,3 +151,10 @@ static func add_to(parent: Node, shadow_distance := 60.0, backdrop := Color.TRAN
 	made.sun_energy = sun.light_energy
 	made.ambient_energy = env.ambient_light_energy
 	return made
+
+
+## Draws this sun's shadows the cheap way (see Graphics.cheap_shadows()):
+## one shadow map, no splits, over a short reach.
+static func cheapen(sun: DirectionalLight3D) -> void:
+	sun.directional_shadow_mode = DirectionalLight3D.SHADOW_ORTHOGONAL
+	sun.directional_shadow_max_distance = minf(sun.directional_shadow_max_distance, CHEAP_REACH)
