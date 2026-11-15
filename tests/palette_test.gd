@@ -165,7 +165,7 @@ func _tiles() -> void:
 			all_match = all_match and chosen == specs[i]
 	check(all_match, "switching tabs immediately leaves only current tiles, each choosing its own spec")
 	ui._show_category(0)
-	check(not ui._landmark_filter.visible, "the landmark filter stays out of road tabs")
+	check(not ui._group_row.visible, "the landmark group pills stay out of road tabs")
 
 
 func _focus() -> void:
@@ -197,16 +197,25 @@ func _landmarks() -> void:
 	for prop in all:
 		complete = complete and grouped.count(prop) == 1
 	check(complete, "every landmark belongs to exactly one named group (%d)" % all.size())
+	ui._choose_landmark_group(0)
 	ui._show_category(TrackEditorUI.CATEGORIES.size())
-	check(ui._landmark_filter.visible and ui._landmark_filter.item_count == TrackEditorUI.LANDMARK_GROUPS.size() + 1, "Landmarks offers All and its named groups")
-	var shown := _shown_props()
-	check(shown.size() == all.size() - Props.BELOW_ROAD.size() and not shown.any(func(prop): return prop in Props.BELOW_ROAD), "All keeps below-road scenery out of ground courses")
+	await frames(3)
+	check(ui._group_row.visible and ui._group_pills.size() == TrackEditorUI.LANDMARK_GROUPS.size(), "Landmarks has a pill for each group")
+	var pill_rect := ui._group_row.get_global_rect()
+	check(ui._group_pills.all(func(p): return p.size.y >= 48.0) and pill_rect.size.y >= 48.0 and pill_rect.end.x <= ui._drawer.get_global_rect().end.x + 0.5, "the group pills are touch sized and the row stays inside the drawer")
+	var marked := true
+	for i in ui._group_pills.size():
+		marked = marked and (ui._group_pills[i].get_theme_color("font_color") == MenuStyle.ACCENT) == (i == 0)
+	check(marked, "only the chosen group's pill is lit")
+	check(TrackEditorUI.LANDMARK_GROUPS.any(func(g): return g[0] == "Trees & plants"), "there's a Trees & plants group")
+	var shown: Array
 	var groups_match := true
 	var width_matches := true
 	for i in TrackEditorUI.LANDMARK_GROUPS.size():
-		ui._landmark_filter.item_selected.emit(i + 1)
+		ui._group_pills[i].tapped.emit()
 		await frames(3)
-		width_matches = width_matches and ui._drawer.size.x <= parts_width and is_equal_approx(ui._landmark_filter.size.x, ui._tiles.size.x)
+		width_matches = width_matches and ui._drawer.size.x <= parts_width and is_equal_approx(ui._group_row.size.x, ui._tiles.get_parent().size.x)
+		width_matches = width_matches and ui._group_row.get_global_rect().encloses(ui._group_pills[i].get_global_rect().grow(-0.5))
 		shown = _shown_props()
 		var expected: Array = TrackEditorUI.LANDMARK_GROUPS[i][1].filter(func(prop): return not prop in Props.BELOW_ROAD)
 		groups_match = groups_match and shown.size() == expected.size()
@@ -216,8 +225,9 @@ func _landmarks() -> void:
 			landmark = ""
 			ui._tiles.get_child(0).pressed.emit()
 			groups_match = groups_match and landmark == shown[0]
-	check(groups_match, "each filter offers only its available landmarks and chooses the shown prop")
-	check(width_matches, "every landmark group keeps the filter and drawer aligned with the two-column parts grid")
+	check(groups_match, "each group pill offers only its available landmarks and chooses the shown prop")
+	check(width_matches, "every landmark group keeps the pills and drawer aligned with the two-column parts grid, with its pill scrolled into view")
+	check(ui._saved_landmark_group() == TrackEditorUI.LANDMARK_GROUPS.size() - 1, "the last group used is kept in the settings")
 	ui._choose_landmark_group(1)
 	ui._tiles.get_child(3).grab_focus()
 	ui._choose_landmark_group(2)
@@ -228,9 +238,9 @@ func _landmarks() -> void:
 	var sky_course := CourseDesign.starter()
 	sky_course.theme = "sky"
 	ui.show_course(sky_course, 0.0, [], false)
-	ui._choose_landmark_group(0)
-	check(_shown_props().size() == all.size(), "All includes every landmark in sky courses")
-	var sky_group := TrackEditorUI.LANDMARK_GROUPS.size()
+	var sky_group := TrackEditorUI.LANDMARK_GROUPS.size() - 1
+	ui._choose_landmark_group(sky_group)
+	check(_shown_props().size() == TrackEditorUI.LANDMARK_GROUPS[sky_group][1].size(), "Sky offers every one of its landmarks in sky courses")
 	ui._choose_landmark_group(sky_group)
 	var below := ui._tiles.get_children().filter(func(tile): return tile.get_meta("prop") in Props.BELOW_ROAD)
 	below[0].grab_focus()

@@ -196,8 +196,9 @@ func _controller(editor: TrackEditor) -> void:
 	await frames(2)
 	check(get_viewport().gui_get_focus_owner() == editor.ui._tiles.get_child(3), "LB returns to the tile last used on that tab")
 	editor.ui._show_category(TrackEditorUI.CATEGORIES.size())
-	editor.ui._landmark_filter.grab_focus()
-	check(not pad._button(JOY_BUTTON_DPAD_DOWN) and get_viewport().gui_get_focus_owner() == editor.ui._landmark_filter, "the d-pad leaves the landmark filter's navigation to its control")
+	var pill: Button = editor.ui._group_pills[editor.ui._landmark_group]
+	pill.grab_focus()
+	check(not pad._button(JOY_BUTTON_DPAD_DOWN) and get_viewport().gui_get_focus_owner() == pill, "the d-pad leaves the group pills' navigation to the drawer")
 	pad._button(JOY_BUTTON_RIGHT_SHOULDER)
 	await frames(2)
 	check(editor.ui._category == 0 and get_viewport().gui_get_focus_owner() == editor.ui._tiles.get_child(3), "RB wraps from Landmarks onto the remembered straight tile")

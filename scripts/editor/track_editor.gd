@@ -653,8 +653,11 @@ func _landmark_node(mark: Dictionary, index: int) -> Node3D:
 	var kit := SceneryKit.new()
 	var rng := RandomNumberGenerator.new()
 	rng.seed = hash(course.name) + index
-	Props.add(kit, str(mark.prop), Vector3.ZERO, rng, int(mark.get("facing", 0)))
+	# Built where it stands, then moved back onto the body, so props seeded
+	# by their spot look the same as in the race.
+	Props.add(kit, str(mark.prop), at, rng, int(mark.get("facing", 0)))
 	var look := Node3D.new()
+	look.position = -at
 	node.add_child(look)
 	kit.build(look)
 	var shape := CollisionShape3D.new()
@@ -663,7 +666,7 @@ func _landmark_node(mark: Dictionary, index: int) -> Node3D:
 	shape.shape = ball
 	shape.position.y = ball.radius * 0.5
 	if mark.prop in Props.OFF_THE_GROUND:
-		shape.position = kit.bounds().get_center()
+		shape.position = kit.bounds().get_center() - at
 	node.add_child(shape)
 	return node
 

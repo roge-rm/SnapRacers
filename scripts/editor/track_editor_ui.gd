@@ -79,12 +79,18 @@ const LANDMARKS := [
 	["Floating island", "sky_isle"], ["Cloud", "cloud_puff"],
 	["Beach hotel", "beach_hotel"], ["Beach hut", "beach_hut"], ["Lifeguard tower", "lifeguard_tower"], ["Sandcastle", "sandcastle"],
 	["Watchtower", "watchtower"], ["Harbour fort", "harbour_fort"], ["Penguins", "penguins"],
+	["Tree", "broadleaf"], ["Maple", "maple"], ["Cherry blossom", "sakura"], ["Gum tree", "gum_tree"],
+	["Peach tree", "peach"], ["Lemon tree", "lemon"], ["Birch", "birch"], ["Pine", "pine"], ["Snowy pine", "snowy_pine"],
+	["Cypress", "cypress"], ["Palm", "palm"], ["Olive tree", "olive"], ["Stone pine", "stone_pine"],
+	["Jungle tree", "jungle_tree"], ["Sapling", "jungle_sapling"], ["Cactus", "cactus"], ["Jungle bush", "jungle_bush"],
+	["Fern", "fern"], ["Reeds", "reeds"], ["Bush", "bush"], ["Clump of trees", "tree_clump"], ["Hedge row", "hedge_row"],
 ]
 const LANDMARK_GROUPS := [
 	["Countryside", ["barn", "silo", "big_windmill", "church", "villa", "cottage", "cabin", "trullo", "stilt_hut", "oast_house", "red_roof"]],
 	["Castles", ["castle", "tower", "castle_wall", "lighthouse", "ruins", "pagoda", "standing_stones"]],
 	["Industry", ["rocket", "radar", "factory", "crane", "tanks", "chimney", "headframe", "excavator", "wind_turbine", "slag_heap"]],
 	["Nature", ["volcano", "mountain", "lake", "pond", "lava_pool"]],
+	["Trees & plants", ["broadleaf", "maple", "sakura", "gum_tree", "peach", "lemon", "birch", "pine", "snowy_pine", "cypress", "palm", "olive", "stone_pine", "jungle_tree", "jungle_sapling", "cactus", "jungle_bush", "fern", "reeds", "bush", "tree_clump", "hedge_row"]],
 	["Trackside & parks", ["station", "ferris_wheel", "old_banking", "control_tower", "spectator_bank", "viewing_deck", "kart_office", "kart_row", "carousel", "drop_tower"]],
 	["Alpine", ["chalet", "alpine_church", "cable_car", "ski_jump", "snowy_peak"]],
 	["Desert", ["dune", "mesa", "butte", "saloon", "water_tower", "saguaro", "mine_carts", "windpump"]],
@@ -135,7 +141,9 @@ var _heading: Label
 var _tiles: GridContainer
 var _drawer_clearance: Control
 var _category := 0
-var _landmark_filter: OptionButton
+var _group_row: ScrollContainer
+var _group_pills: Array[Button] = []
+## Which of LANDMARK_GROUPS the landmark tab shows.
 var _landmark_group := 0
 var _tile_memory: Dictionary = {}
 var _pictures: LandmarkThumbnails
@@ -452,18 +460,23 @@ func _build_drawer() -> void:
 	_heading.custom_minimum_size.y = 40.0
 	_heading.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	column.add_child(_heading)
-	_landmark_filter = OptionButton.new()
-	_landmark_filter.focus_mode = FOCUS_ALL
-	_landmark_filter.fit_to_longest_item = false
-	_landmark_filter.clip_text = true
-	_landmark_filter.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
-	_landmark_filter.add_item("All landmarks")
-	for group in LANDMARK_GROUPS:
-		_landmark_filter.add_item(group[0])
-	_landmark_filter.custom_minimum_size.y = 44.0
-	_landmark_filter.item_selected.connect(_choose_landmark_group)
-	PadFocus.close_on_b(_landmark_filter.get_popup())
-	column.add_child(_landmark_filter)
+	# One pill per landmark group, in a row you can drag or step along.
+	_group_row = ScrollContainer.new()
+	_group_row.follow_focus = true
+	_group_row.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_SHOW_NEVER
+	_group_row.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	column.add_child(_group_row)
+	_group_row.resized.connect(func() -> void: _show_group_pill.call_deferred())
+	var pills := HBoxContainer.new()
+	pills.add_theme_constant_override("separation", 4)
+	_group_row.add_child(pills)
+	for i in LANDMARK_GROUPS.size():
+		var pill := MenuStyle.button(LANDMARK_GROUPS[i][0], _choose_landmark_group.bind(i))
+		pill.theme_type_variation = "ChoiceButton"
+		pill.custom_minimum_size = Vector2(0, 48)
+		pills.add_child(pill)
+		_group_pills.append(pill)
+	_landmark_group = _saved_landmark_group()
 	var scroll := ScrollContainer.new()
 	scroll.follow_focus = true
 	scroll.size_flags_vertical = SIZE_EXPAND_FILL
@@ -488,7 +501,7 @@ func _show_category(index: int) -> void:
 	for child in _tiles.get_children():
 		_tiles.remove_child(child)
 		child.queue_free()
-	_landmark_filter.visible = index >= CATEGORIES.size()
+	_group_row.visible = index >= CATEGORIES.size()
 	if index < CATEGORIES.size():
 		_heading.text = CATEGORIES[index][0].to_upper()
 		for row in CATEGORIES[index][2]:
@@ -496,10 +509,12 @@ func _show_category(index: int) -> void:
 				_add_piece_tile(entry)
 	else:
 		_heading.text = "LANDMARKS"
-		_landmark_filter.select(_landmark_group)
+		for i in _group_pills.size():
+			MenuStyle.mark(_group_pills[i], i == _landmark_group)
+		_show_group_pill.call_deferred()
+		var group: Array = LANDMARK_GROUPS[_landmark_group][1]
 		var offered := LANDMARKS.filter(func(l):
-			return (_in_sky or not l[1] in Props.BELOW_ROAD) and (
-				_landmark_group == 0 or l[1] in LANDMARK_GROUPS[_landmark_group - 1][1]))
+			return (_in_sky or not l[1] in Props.BELOW_ROAD) and l[1] in group)
 		_pictures.take(offered.map(func(l): return l[1]))
 		for entry in offered:
 			var prop: String = entry[1]
@@ -514,16 +529,34 @@ func _show_category(index: int) -> void:
 
 func _choose_landmark_group(index: int) -> void:
 	_landmark_group = index
+	Game.settings.set_value("editor", "landmark_group", LANDMARK_GROUPS[index][0])
+	Game.save_settings()
 	_show_category(_category)
+
+
+## The group used last time, kept by name so adding groups doesn't move it.
+func _saved_landmark_group() -> int:
+	var name := str(Game.settings.get_value("editor", "landmark_group", ""))
+	for i in LANDMARK_GROUPS.size():
+		if LANDMARK_GROUPS[i][0] == name:
+			return i
+	return 0
+
+
+## Scrolls the pill row so the chosen group's pill shows.
+func _show_group_pill() -> void:
+	if _group_row.visible and _landmark_group < _group_pills.size():
+		_group_row.ensure_control_visible(_group_pills[_landmark_group])
 
 
 func palette_has_focus() -> bool:
 	var focused := get_viewport().gui_get_focus_owner()
-	return focused != null and (_tiles.is_ancestor_of(focused) or focused == _landmark_filter)
+	return focused != null and (_tiles.is_ancestor_of(focused) or _group_row.is_ancestor_of(focused))
 
 
+## The drawer has no popups, so the pad can always steer it.
 func palette_popup_open() -> bool:
-	return _landmark_filter.get_popup().visible
+	return false
 
 
 func _add_piece_tile(entry: Array) -> void:
@@ -554,7 +587,7 @@ func _add_piece_tile(entry: Array) -> void:
 
 
 func _palette_key() -> String:
-	return "%d:%d" % [_category, _landmark_group if _category >= CATEGORIES.size() else 0]
+	return "%d:%d" % [_category, _landmark_group if _category >= CATEGORIES.size() else -1]
 
 
 func _add_palette_tile(tile: ScrollButton, id: String) -> void:
@@ -581,8 +614,8 @@ func focus_palette() -> bool:
 	if first != null:
 		first.grab_focus()
 		return true
-	if _landmark_filter.visible:
-		_landmark_filter.grab_focus()
+	if _group_row.visible and _landmark_group < _group_pills.size():
+		_group_pills[_landmark_group].grab_focus()
 		return true
 	return false
 

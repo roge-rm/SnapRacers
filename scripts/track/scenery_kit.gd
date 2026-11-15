@@ -85,6 +85,11 @@ func done() -> void:
 	_group = -1
 
 
+## Whether a breakable prop is being added, between begin() and done().
+func breaking() -> bool:
+	return _group >= 0
+
+
 ## Starts a moving part, turning or bobbing about `pivot`. Everything added
 ## until end_mover() moves with it, and none of it is solid.
 func begin_mover(pivot: Transform3D, motion: Dictionary) -> void:

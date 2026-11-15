@@ -164,10 +164,8 @@ func _controller() -> void:
 	await frames(3)
 	check(get_viewport().gui_get_focus_owner() == ui._tiles.get_child(27) and hill_scroll.scroll_vertical > 0, "returning from Banked restores the last hill and its scroll position")
 	ui._show_category(TrackEditorUI.CATEGORIES.size())
-	ui._landmark_filter.grab_focus()
-	ui._landmark_filter.show_popup()
-	check(not pad._button(JOY_BUTTON_DPAD_DOWN) and not pad._button(JOY_BUTTON_B), "landmark dropdown navigation and popup dismissal stay with the control")
-	ui._landmark_filter.get_popup().hide()
+	ui._group_pills[ui._landmark_group].grab_focus()
+	check(not pad._button(JOY_BUTTON_DPAD_DOWN), "the d-pad leaves the landmark group pills' navigation to the drawer")
 
 
 func _dpad(button: JoyButton) -> void:

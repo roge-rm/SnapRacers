@@ -43,7 +43,7 @@ const GLASS := Color("#8fd3f4")
 ## How much room each prop takes, by name. Anything not listed takes 3 m.
 const ROOM := {
 	"broadleaf": 2.5, "pine": 2.5, "cypress": 1.2, "palm": 2.0, "olive": 2.5, "peach": 2.5, "lemon": 2.5,
-	"snowy_pine": 2.5, "maple": 2.8, "birch": 2.0, "bush": 1.2, "rocks": 2.0, "reeds": 1.5, "snowman": 1.0,
+	"snowy_pine": 2.5, "maple": 2.8, "birch": 2.0, "bush": 1.2, "tree_clump": 5.0, "hedge_row": 4.8, "rocks": 2.0, "reeds": 1.5, "snowman": 1.0,
 	"hay": 1.2, "house": 5.0, "barn": 7.5, "silo": 3.0, "villa": 6.0, "trullo": 3.5, "cottage": 5.0,
 	"cabin": 4.5, "factory": 12.0, "chimney": 2.5, "containers": 5.5, "tanks": 6.0, "crane": 5.0,
 	"skyscraper": 9.0, "dune": 9.0, "tower": 4.0, "castle_wall": 8.0, "church": 7.0, "stilt_hut": 4.0,
@@ -96,11 +96,13 @@ static func add(kit: SceneryKit, prop: String, at: Vector3, rng: RandomNumberGen
 		"palm": palm(kit, at_grid, rng)
 		"olive": olive(kit, at_grid, rng)
 		"cactus": cactus(kit, at_grid, rng)
-		"bush": kit.box(at_grid, Vector3(1.5, 1.2, 1.5), [GREEN, BRIGHT_GREEN, OLIVE][rng.randi() % 3], SceneryKit.BRICK, false)
+		"bush": bush(kit, at_grid, rng)
 		"rocks": rocks(kit, at_grid, rng)
 		"reeds": reeds(kit, at_grid, rng)
 		"snowman": snowman(kit, at_grid)
-		"hay": kit.turned_cylinder(at_grid + Vector3.UP * 0.6, 0.6, 1.2, Basis(Vector3.BACK, PI * 0.5), TAN, SceneryKit.BRICK)
+		"hay": hay(kit, at_grid)
+		"tree_clump": tree_clump(kit, at_grid)
+		"hedge_row": hedge_row(kit, at_grid, facing, rng)
 		"fence": fence(kit, at_grid, facing)
 		"house": house(kit, at_grid, facing, [WHITE, TAN, YELLOW, NOUGAT][rng.randi() % 4], [RED, DARK_GREY, BLUE, BROWN][rng.randi() % 4])
 		"cottage": house(kit, at_grid, facing, DARK_RED, DARK_GREY, true)
@@ -333,6 +335,52 @@ static func olive(kit: SceneryKit, at: Vector3, rng: RandomNumberGenerator) -> v
 	var size := 3.0 + rng.randf()
 	kit.box(at + Vector3(0.2, 1.5, 0.1), Vector3(size, 0.9, size * 0.9), SAND_GREEN, SceneryKit.BRICK, false)
 	kit.box(at + Vector3(0.2, 2.4, 0.1), Vector3(size * 0.6, 0.6, size * 0.6), SAND_GREEN.lightened(0.1), SceneryKit.BRICK, false)
+
+
+static func bush(kit: SceneryKit, at: Vector3, rng: RandomNumberGenerator) -> void:
+	kit.box(at, Vector3(1.5, 1.2, 1.5), [GREEN, BRIGHT_GREEN, OLIVE][rng.randi() % 3], SceneryKit.BRICK, false)
+
+
+static func hay(kit: SceneryKit, at: Vector3) -> void:
+	kit.turned_cylinder(at + Vector3.UP * 0.6, 0.6, 1.2, Basis(Vector3.BACK, PI * 0.5), TAN, SceneryKit.BRICK)
+
+
+## The trees a clump can have, picked at random.
+const CLUMP_TREES := ["broadleaf", "broadleaf", "birch", "pine", "maple"]
+
+
+## Three to five mixed trees close together. Its own seed comes from where
+## it stands, so a clump looks the same every time and for everyone online.
+## When it's breakable each tree comes down on its own. The trees sit a
+## little low so they don't float on a slope.
+static func tree_clump(kit: SceneryKit, at: Vector3) -> void:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = int(roundf(at.x * 2.0)) * 73856093 ^ int(roundf(at.z * 2.0)) * 19349663
+	var count := 3 + rng.randi() % 3
+	var turn := rng.randf() * TAU
+	for k in count:
+		var a := turn + k * TAU / count + rng.randf_range(-0.4, 0.4)
+		var r := 0.0 if k == 0 and count > 3 else rng.randf_range(1.8, 3.2)
+		var spot := Vector3(snappedf(cos(a) * r, 0.5), -0.3, snappedf(sin(a) * r, 0.5)) + at
+		var tree: String = CLUMP_TREES[rng.randi() % CLUMP_TREES.size()]
+		if kit.breaking():
+			kit.begin(tree, true)
+		match tree:
+			"birch": birch(kit, spot, rng)
+			"pine": pine(kit, spot, rng, false)
+			"maple": broadleaf(kit, spot, rng, [RED, ORANGE][rng.randi() % 2])
+			_: broadleaf(kit, spot, rng, [GREEN, BRIGHT_GREEN][rng.randi() % 2])
+
+
+## A straight line of six bushes, running across its facing. When it's
+## breakable each bush comes down on its own.
+static func hedge_row(kit: SceneryKit, at: Vector3, facing: int, rng: RandomNumberGenerator) -> void:
+	for k in 6:
+		if kit.breaking():
+			kit.begin("bush", true)
+		var spot := at + _turn(Vector3((k - 2.5) * 1.45, 0.0, 0.0), facing)
+		var high := 1.2 + rng.randf() * 0.3
+		kit.box(spot, Vector3(1.5, high, 1.5), [GREEN, GREEN, BRIGHT_GREEN][rng.randi() % 3], SceneryKit.BRICK, false)
 
 
 static func cactus(kit: SceneryKit, at: Vector3, rng: RandomNumberGenerator) -> void:
