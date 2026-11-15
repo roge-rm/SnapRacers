@@ -1256,7 +1256,7 @@ static func grass_patches(material: ShaderMaterial, path: TrackPath) -> void:
 			var inside := inside_grid(ring, box.position, cols, rows, PATCH_CELL)
 			for i in inside.size():
 				amount[i] += inside[i] / float(PATCH_RINGS)
-		var image := Image.create(cols, rows, false, Image.FORMAT_L8)
+		var image := Image.create_empty(cols, rows, false, Image.FORMAT_L8)
 		for z in rows:
 			for x in cols:
 				image.set_pixel(x, z, Color(amount[z * cols + x], 0.0, 0.0))
