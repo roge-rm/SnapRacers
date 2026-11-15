@@ -28,6 +28,9 @@ var _lap_started := 0.0
 ## When the lap before this one started, so backing over the line can put it
 ## back.
 var _lap_before := 0.0
+## Whether it's been over the start line yet, so backing over it before lap
+## one's done and driving over again keeps lap one's start time.
+var _crossed := false
 
 
 func _init(length: float, laps_needed: int, start_offset: float) -> void:
@@ -57,6 +60,13 @@ func current_lap() -> int:
 	return clampi(laps + 1, 1, laps_to_win)
 
 
+## Whether going on to `new_offset` would finish the race.
+func would_finish(new_offset: float) -> bool:
+	if finished or new_offset - offset >= -track_length * 0.5:
+		return false
+	return laps + 1 >= laps_to_win and laps >= 0 and _quarters_seen.size() >= QUARTERS - 1
+
+
 func update(new_offset: float, time: float) -> void:
 	if finished:
 		return
@@ -68,8 +78,10 @@ func update(new_offset: float, time: float) -> void:
 			if laps >= 0:
 				lap_times.append(time - _lap_started)
 			laps += 1
-			_lap_before = _lap_started
-			_lap_started = time
+			if laps > 0 or not _crossed:
+				_lap_before = _lap_started
+				_lap_started = time
+			_crossed = true
 			_quarters_seen.clear()
 			if laps >= laps_to_win:
 				finished = true

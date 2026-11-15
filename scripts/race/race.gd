@@ -37,6 +37,11 @@ const RUN_UP := 110.0
 ## a jump's gap, to be put back past the gap (see _fell_in_gap()).
 const GAP_BELOW := 2.0
 const GAP_REACH := 12.0
+## How far past the kerb the runoff goes, in metres. Running wide onto it
+## isn't a cut, so a reset there puts you back about where you are.
+const RUNOFF := 8.0
+## How far above or below the road a kart in the runoff can be.
+const RUNOFF_HEIGHT := 3.0
 ## How far ahead on a loop's run in it looks for the climb (see _loop_coming()).
 const LOOP_FOOT := 30.0
 ## Karts in a race, you included.
@@ -52,6 +57,11 @@ class Racer:
 	var kart: Kart
 	var progress: RaceProgress
 	var offset := 0.0
+	## The last offset where it was properly on the road, or -1 before it's
+	## been on it, and how far right of the middle line it was there. A reset
+	## puts it back there (see _clear_spot()).
+	var road_offset := -1.0
+	var road_across := 0.0
 	var ai: AIDriver
 	var player := false
 	## Whether this entrant is CPU-controlled, including on another online host.
@@ -623,12 +633,21 @@ func _physics_process(delta: float) -> void:
 		AITrafficPlanner.share_offset(track, kart, racer.offset)
 		if racer.ai != null:
 			racer.ai.offset = racer.offset
+		var across := (kart.global_position - track.point_at(racer.offset)).dot(track.right_at(racer.offset))
+		var by_road := _by_the_road(racer, across)
+		if not kart.remote and (kart.on_road and track.on_road_across(racer.offset, across, -TrackPath.KERB) or by_road and kart.wheels.any(func(w: Kart.Wheel) -> bool: return w.grounded)):
+			racer.road_offset = racer.offset
+			racer.road_across = across
 		if started:
 			if boxes != null and not kart.remote:
 				boxes.collect(kart)
 			var was_done := racer.progress.finished
 			var was_lap := racer.progress.current_lap()
-			racer.progress.update(racer.offset, time)
+			# Over the finish it has to be on the road or its runoff, so a cut
+			# over the line can still be put back by a reset. Until then it
+			# waits short of the line.
+			if by_road or not racer.progress.would_finish(racer.offset):
+				racer.progress.update(racer.offset, time)
 			if racer.player and not racer.progress.finished and racer.progress.current_lap() > was_lap:
 				Sounds.play("fx/final_lap" if racer.progress.current_lap() == laps else "fx/lap")
 			if racer.progress.finished and not was_done:
@@ -689,17 +708,31 @@ func race_share() -> float:
 
 
 ## Somewhere on the track near this racer with no other kart in the way, so
-## a reset never drops one kart on top of another. It tries across the road
-## first, then a little further back.
+## a reset never drops one kart on top of another. It goes back to where the
+## kart left the road, so a cut across the grass is lost, and tries across
+## the road first, then a little further back.
 func _clear_spot(racer: Racer) -> Transform3D:
 	var room := 3.5
 	# How far right of the middle line it is, so on a split it goes back on
 	# the branch it was on (see TrackPath.reset_spots()).
 	var across_now := (racer.kart.global_position - track.point_at(racer.offset)).dot(track.right_at(racer.offset))
+	var start := racer.offset
+	# Back to where it was last on the road, if that's behind where it is now.
+	# One that's fallen into a jump's gap goes on to the landing instead, and
+	# one that's jumped a gap since isn't put back on the kicker.
+	if racer.road_offset >= 0.0 and not _fell_in_gap(racer, start):
+		var behind := fposmod(racer.offset - racer.road_offset + track.length * 0.5, track.length) - track.length * 0.5
+		var gap := false
+		var along := 0.0
+		while along < behind and not gap:
+			gap = not track.solid_at(racer.road_offset + along)
+			along += 1.0
+		if behind > 0.0 and not gap:
+			start = racer.offset - behind
+			across_now = racer.road_across
 	# A kart is never put back on a loop or a wall ride. It goes back to where
 	# the road lies flat before it, then RUN_UP further, so it has the speed
 	# for another go.
-	var start := racer.offset
 	var backed := false
 	for step in 80:
 		if track.up_at(start).y > 0.95 and not _loop_coming(start):
@@ -742,11 +775,22 @@ func _clear_spot(racer: Racer) -> Transform3D:
 				# The kart's been moved, so the race has to know where it is
 				# now, or it looks for it where it was and resets it again.
 				racer.offset = fposmod(start - back, track.length)
+				racer.road_offset = racer.offset
+				racer.road_across = side
 				return spot
 	racer.offset = fposmod(start, track.length)
+	racer.road_offset = racer.offset
+	racer.road_across = track.reset_spots(start, across_now)[0]
 	var fallback := track.place_at(start)
 	fallback.origin += fallback.basis.x * track.reset_spots(start, across_now)[0]
 	return fallback
+
+
+## Whether this kart is on the road or its runoff, `across` metres right of
+## the middle line at its offset.
+func _by_the_road(racer: Racer, across: float) -> bool:
+	var below := (racer.kart.global_position - track.point_at(racer.offset)).dot(track.up_at(racer.offset))
+	return absf(below) < RUNOFF_HEIGHT and track.on_road_across(racer.offset, across, -TrackPath.KERB - RUNOFF)
 
 
 ## Whether this kart is on a course up in the sky, below the road at `at`,

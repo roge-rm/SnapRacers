@@ -183,8 +183,10 @@ func _sky_resets() -> void:
 	var kart := racer.kart
 	var was := kart.global_transform
 	var was_offset := racer.offset
-	var put_back := func(offset: float, below: float) -> float:
+	var put_back := func(offset: float, below: float, road := -1.0) -> float:
 		racer.offset = offset
+		racer.road_offset = road
+		racer.road_across = 0.0
 		kart.global_position = track.point_at(offset) - track.up_at(offset) * below
 		race._clear_spot(racer)
 		return racer.offset
@@ -194,6 +196,10 @@ func _sky_resets() -> void:
 	check(fallen > gap_end, "one that falls into the gap goes past it (%.0f m, the gap ends at %.0f)" % [fallen, gap_end])
 	var short: float = put_back.call(gap - 5.0, 6.0)
 	check(short > gap_end, "and so does one that falls off just short of it (%.0f m)" % short)
+	var landed: float = put_back.call(gap_end + 10.0, -0.4, gap - 25.0)
+	check(landed > gap_end and landed <= gap_end + 10.5, "one last on the road before the jump is never put back on the kicker (%.0f m)" % landed)
+	var fell_after: float = put_back.call(gap + 3.0, 6.0, gap - 25.0)
+	check(fell_after > gap_end, "and one that falls in the gap after it goes past it (%.0f m)" % fell_after)
 	kart.global_transform = was
 	racer.offset = was_offset
 	kart.run_up_reset = false

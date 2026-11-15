@@ -569,7 +569,10 @@ func _process(delta: float) -> void:
 		_lost_shown = lost
 		_lost_for = 0.0
 	_lost_for += delta
-	if me.kart.slowdown_left > 0.0:
+	if me.kart.hold_left > 0.0:
+		status = "Reset hold"
+		left = me.kart.hold_left / Kart.RESET_HOLD
+	elif me.kart.slowdown_left > 0.0:
 		status = "Reset slowdown"
 		left = me.kart.slowdown_left / Kart.RESET_SLOWDOWN_TIME
 	elif lost > 0:

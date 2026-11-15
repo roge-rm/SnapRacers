@@ -116,6 +116,9 @@ const SLIDE_LEVELS := [0.6, 1.3, 2.1]
 const SLIDE_BOOSTS := [0.6, 1.0, 1.5]
 ## Scales every slide boost, for tools/stock-karts/slide_bench.gd.
 static var slide_boost := 1.0
+## After a reset the kart sits still for RESET_HOLD seconds, then drives at
+## RESET_SLOWDOWN power for RESET_SLOWDOWN_TIME more.
+const RESET_HOLD := 1.5
 const RESET_SLOWDOWN_TIME := 2.5
 const RESET_SLOWDOWN := 0.5
 
@@ -595,6 +598,11 @@ var off_road := 0.0
 var alongside: Kart
 var _rammed_wait := 0.0
 var slowdown_left := 0.0
+## Time left sitting still after a reset. The slowdown only counts down once
+## this is done, so slowdown_left is above 0 for the whole of both.
+var hold_left := 0.0
+## Whether every wheel was on the ground on the road (not off it) last step.
+var on_road := false
 ## Whether it's said a force or speed came out as nonsense (see _ok()).
 var _said_bad := false
 ## The render layer the driver's head is drawn on (see RaceCamera), or 0.
@@ -1421,7 +1429,12 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 		_reset_asked = false
 		_reset(state)
 	_reset_held = controls.reset
-	slowdown_left = maxf(slowdown_left - dt, 0.0)
+	if hold_left > 0.0:
+		hold_left = maxf(hold_left - dt, 0.0)
+	else:
+		slowdown_left = maxf(slowdown_left - dt, 0.0)
+	# Locked before the start or held after a reset, it brakes and won't drive.
+	var held := locked or hold_left > 0.0
 	_spike_wait = maxf(_spike_wait - dt, 0.0)
 	if _shove != Vector3.ZERO:
 		state.linear_velocity += _ok(_shove)
@@ -1473,8 +1486,8 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 	# Engine and brakes. Holding the brake once the kart has stopped reverses.
 	var drive := 0.0
 	var braking := false
-	if locked:
-		braking = forward_speed > 0.05
+	if held:
+		braking = absf(forward_speed) > 0.05
 	elif controls.throttle > 0.0:
 		drive = controls.throttle * minf(max_force, power / maxf(absf(forward_speed), 1.0)) * push
 	if slide_kick:
@@ -1482,7 +1495,7 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 		drive = 0.0
 	elif sliding:
 		pass
-	elif controls.brake > 0.0 and not locked:
+	elif controls.brake > 0.0 and not held:
 		if forward_speed > 0.5:
 			braking = true
 		elif forward_speed > -REVERSE_TOP_SPEED:
@@ -1632,7 +1645,7 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 		if off:
 			resist += load * maxf(drag_here - 1.0, 0.0) * OFFROAD_DRAG * absf(v_long)
 		if braking:
-			resist += BRAKE_FORCE * (1.0 if locked else controls.brake) / wheels.size()
+			resist += BRAKE_FORCE * (1.0 if held else controls.brake) / wheels.size()
 		elif slide_kick and not w.steered:
 			resist += BRAKE_FORCE * slide_brake / maxf(wheels.size() - _steered_count, 1)
 		f_long -= signf(v_long) * minf(resist, absf(v_long) * stop_force)
@@ -1697,6 +1710,7 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 		Sounds.play_at("fx/hit", sound)
 		lose_parts.call_deferred(popped)
 	rough = float(on_rough) / on_any if on_any > 0 else 0.0
+	on_road = on_any > 0 and on_any == wheels.size() and on_off == 0
 	if on_any > 0:
 		off_road = float(on_off) / on_any
 		if _driven_count == 0:
@@ -1771,10 +1785,18 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 	# so it doesn't use up the back tires' grip.
 	var on_ground := wheels.any(func(w: Wheel) -> bool: return w.grounded)
 	# A jet pushes the same way, whatever the tires are on.
-	if thrust > 0.0 and controls.throttle > 0.0 and not locked and on_ground:
+	if thrust > 0.0 and controls.throttle > 0.0 and not held and on_ground:
 		var jet := -basis.z * thrust * controls.throttle * push * (RESET_SLOWDOWN if slowdown_left > 0.0 else 1.0)
 		state.apply_central_force(_ok(jet))
 		applied += jet
+	# Held after a reset, it stays where it was put, even on a slope: no
+	# speed along the ground and nothing pulling it down the hill.
+	if hold_left > 0.0 and on_ground:
+		state.linear_velocity = up * state.linear_velocity.dot(up)
+		var fall := Vector3.DOWN * KartStats.gravity()
+		var stay := -(fall - up * fall.dot(up)) * mass
+		state.apply_central_force(_ok(stay))
+		applied += stay
 	# It cuts out while you brake, so it can't carry you off at a corner.
 	if boost_left > 0.0 and slowdown_left <= 0.0 and on_ground and controls.brake <= 0.0 and forward_speed < stats.top_speed() * TURBO_TOP_SPEED:
 		var push := -basis.z * TURBO_FORCE
@@ -1798,7 +1820,7 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 ## driven wheels are off it.
 func _update_slide(dt: float) -> void:
 	var on_road := not _drive_off_road if sliding else off_road <= 0.0
-	var can := not locked and stats.steering != null and forward_speed > (SLIDE_KEEP_SPEED if sliding else SLIDE_SPEED) and not sticking and on_road
+	var can := not locked and hold_left <= 0.0 and stats.steering != null and forward_speed > (SLIDE_KEEP_SPEED if sliding else SLIDE_SPEED) and not sticking and on_road
 	var into := controls.steer * slide_way
 	if not sliding:
 		if can and controls.throttle > 0.5 and controls.brake > 0.5 and absf(controls.steer) > 0.2:
@@ -2738,11 +2760,14 @@ func _reset(state: PhysicsDirectBodyState3D) -> void:
 		w.length = SUSPENSION_TRAVEL
 		w.grounded = false
 	# A kart put back before a loop has already lost time by starting further
-	# back, so it gets no slowdown.
+	# back, so it gets no hold or slowdown.
 	slowdown_left = 0.0 if run_up_reset else RESET_SLOWDOWN_TIME
+	hold_left = 0.0 if run_up_reset else RESET_HOLD
 	run_up_reset = false
+	on_road = false
 	_repair_pending = true
-	start_ghost(RESET_GHOST_TIME)
+	# A ghost through the hold and a bit after, so others drive through it.
+	start_ghost(RESET_GHOST_TIME + hold_left)
 	Sounds.play_at.call_deferred("fx/reset", sound)
 	was_reset.emit.call_deferred()
 
