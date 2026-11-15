@@ -67,7 +67,8 @@ const DEFEND_TIME := 2.5
 const FOLLOW_TIME := 0.08
 const SHAKEN_TIME := 0.25
 const SHAKEN_ROOM := 0.5
-## It plans every time it drives from this many metres before a split.
+## From this many metres before a split, it plans every time it drives
+## while it's outside its branch's side of the road.
 const SPLIT_SEE := 40.0
 ## What a line over a trap costs in score, more than lines ever differ by.
 const TRAP_COST := 200.0
@@ -123,6 +124,10 @@ var _cover_left := 0.0
 var _cover_line := NAN
 ## The road's edges from its line when it last planned (see held()).
 var _lane := Vector2(NAN, NAN)
+## On a split, how many lanes there were where it was and where it was
+## aiming, and its branches, when it last planned (see held()).
+var _parts := Vector2i.ZERO
+var _branches := PackedInt32Array()
 
 
 func plan(ai: AIDriver, preferred: float, delta: float, wall_line := NAN) -> float:
@@ -140,6 +145,8 @@ func plan(ai: AIDriver, preferred: float, delta: float, wall_line := NAN) -> flo
 	var low := minf(lane.x - mine, 0.0)
 	var high := maxf(lane.y - mine, 0.0)
 	_lane = Vector2(low, high)
+	_parts = _parts_now(ai)
+	_branches = ai.branches.duplicate()
 	preferred = clampf(preferred, low, high)
 	if is_finite(wall_line):
 		wall_line = clampf(wall_line, low, high)
@@ -296,13 +303,20 @@ func plan(ai: AIDriver, preferred: float, delta: float, wall_line := NAN) -> flo
 
 
 ## The last plan's line between plans, or NAN when it needs to plan again:
-## on or up to SPLIT_SEE metres before a split, or when the road's edges
+## on a split, when the lanes part or join where it is or where it's aiming
+## or it changes branch, on or up to SPLIT_SEE metres before a split while
+## it's outside its own branch's side, and anywhere when the road's edges
 ## where it's aiming have moved since.
 func held(ai: AIDriver) -> float:
 	var kart := ai.kart
 	var track := ai.track
-	if track.has_splits and (track.lanes_at(ai.offset).size() > 1 or track.lanes_at(ai.offset + SPLIT_SEE * 0.5).size() > 1 or track.lanes_at(ai.offset + SPLIT_SEE).size() > 1):
+	if track.has_splits and (_parts_now(ai) != _parts or ai.branches != _branches):
 		return NAN
+	if track.has_splits and (track.lanes_at(ai.offset).size() > 1 or track.lanes_at(ai.offset + SPLIT_SEE * 0.5).size() > 1 or track.lanes_at(ai.offset + SPLIT_SEE).size() > 1):
+		var own := ai.lane_at(ai.offset, kart.width() * 0.5)
+		var across := (kart.global_position - track.point_at(ai.offset)).dot(track.right_at(ai.offset))
+		if across < own.x or across > own.y:
+			return NAN
 	var margin := EDGE + (1.0 - minf(kart.stats.control, 1.0)) * 0.6 + (1.0 - kart.weather_grip) * 0.5
 	var mine := ai.line_at(ai._aim_or_here())
 	var lane := ai.lane_at(ai._aim_or_here(), kart.width() * 0.5 + margin)
@@ -311,6 +325,13 @@ func held(ai: AIDriver) -> float:
 	if not (absf(low - _lane.x) < 0.25 and absf(high - _lane.y) < 0.25):
 		return NAN
 	return clampf(target, low, high)
+
+
+## How many lanes there are where it is and where it's aiming.
+func _parts_now(ai: AIDriver) -> Vector2i:
+	if not ai.track.has_splits:
+		return Vector2i.ZERO
+	return Vector2i(ai.track.lanes_at(ai.offset).size(), ai.track.lanes_at(ai._aim_or_here()).size())
 
 
 ## How quickly the driver's own line moves right, in metres across for each
