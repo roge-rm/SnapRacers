@@ -110,7 +110,7 @@ func _write_course() -> Vector2:
 ## `skip` steps.
 func _drive(from: Vector3, towards: Vector3, title: String, skip := 25) -> void:
 	var kart := race.player.kart
-	await _wait(int((Kart.RESET_HOLD + Kart.RESET_SLOWDOWN_TIME) * 60.0))
+	await _wait(int(Kart.RESET_SLOWDOWN_TIME * 60.0))
 	# Where it is on the course, so it isn't put back for being far away.
 	race.player.offset = race.track.offset_of(from)
 	var aim := Vector3(towards.x - from.x, 0.0, towards.z - from.z).normalized()

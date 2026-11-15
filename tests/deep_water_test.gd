@@ -179,7 +179,7 @@ func _run() -> void:
 func _drive_in(offset: float, from: Vector3, towards: Vector3, what: String) -> void:
 	var track := race.track
 	var kart := human.kart
-	await frames(int((Kart.RESET_HOLD + Kart.RESET_SLOWDOWN_TIME) * 60.0))
+	await frames(int(Kart.RESET_SLOWDOWN_TIME * 60.0))
 	await _put(offset, 0.0, Vector3.ZERO)
 	var left := human.road_offset
 	var had := splashes
@@ -208,7 +208,7 @@ func _drive_in(offset: float, from: Vector3, towards: Vector3, what: String) -> 
 	var across := (kart.global_position - track.point_at(human.offset)).dot(track.right_at(human.offset))
 	var back := wrapf(human.offset - left, -track.length * 0.5, track.length * 0.5)
 	check(track.on_road_across(human.offset, across) and absf(back) < 30.0, "then it's put back on the road where it left it (%.0f m from %.0f, %.1f m across)" % [back, left, across])
-	check(kart.hold_left > 0.0 and kart.collision_mask & Kart.LAYER_WORLD != 0, "held, and on the ground again (%.2f s)" % kart.hold_left)
+	check(kart.slowdown_left > 0.0 and kart.collision_mask & Kart.LAYER_WORLD != 0, "slowed, and on the ground again (%.2f s)" % kart.slowdown_left)
 
 
 ## Puts the kart down at `offset`, `across` metres right of the middle,

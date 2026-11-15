@@ -72,12 +72,12 @@ class Runner:
 				c.reset = false
 			662:
 				check(kart.slowdown_left > 0.0, "reset starts the slowdown")
-				check(kart.hold_left > Kart.RESET_HOLD - 0.1, "and the hold (%.2f s left)" % kart.hold_left)
-				check(kart.ghost_left > Kart.RESET_HOLD + 0.8, "and a ghost through the hold and a second after (%.2f s left)" % kart.ghost_left)
+				check(kart.slowdown_left > Kart.RESET_SLOWDOWN_TIME - 0.1, "for the whole time (%.2f s left)" % kart.slowdown_left)
+				check(kart.ghost_left > Kart.RESET_GHOST_TIME - 0.1, "and a ghost (%.2f s left)" % kart.ghost_left)
 			720:
 				check(kart.global_basis.y.y > 0.98, "upright after a reset")
-			660 + int((Kart.RESET_HOLD + Kart.RESET_GHOST_TIME) * 60.0) + 2:
-				check(kart.ghost_left < 0.1, "the ghost is over a second after the hold (%.2f s left)" % kart.ghost_left)
+			660 + int(Kart.RESET_GHOST_TIME * 60.0) + 2:
+				check(kart.ghost_left < 0.1, "the ghost is over (%.2f s left)" % kart.ghost_left)
 				if failures.is_empty():
 					print("All drive checks passed.")
 				else:

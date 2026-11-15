@@ -118,10 +118,9 @@ const SLIDE_LEVELS := [0.6, 1.3, 2.1]
 const SLIDE_BOOSTS := [0.6, 1.0, 1.5]
 ## Scales every slide boost, for tools/stock-karts/slide_bench.gd.
 static var slide_boost := 1.0
-## After a reset the kart sits still for RESET_HOLD seconds, then drives at
-## RESET_SLOWDOWN power for RESET_SLOWDOWN_TIME more.
-const RESET_HOLD := 1.5
-const RESET_SLOWDOWN_TIME := 2.5
+## After a reset the kart drives at RESET_SLOWDOWN power for
+## RESET_SLOWDOWN_TIME seconds.
+const RESET_SLOWDOWN_TIME := 3.5
 const RESET_SLOWDOWN := 0.5
 ## In deep water it sinks for SINK_TIME seconds before it's reset, through
 ## the ground to SINK_DEPTH metres under the surface and at least SINK_SPEED
@@ -610,9 +609,6 @@ var off_road := 0.0
 var alongside: Kart
 var _rammed_wait := 0.0
 var slowdown_left := 0.0
-## Time left sitting still after a reset. The slowdown only counts down once
-## this is done, so slowdown_left is above 0 for the whole of both.
-var hold_left := 0.0
 ## Whether every wheel was on the ground on the road (not off it) last step.
 var on_road := false
 ## Time left sinking in deep water before it's reset (see sink()).
@@ -1461,12 +1457,9 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 		_reset_asked = false
 		_reset(state)
 	_reset_held = controls.reset
-	if hold_left > 0.0:
-		hold_left = maxf(hold_left - dt, 0.0)
-	else:
-		slowdown_left = maxf(slowdown_left - dt, 0.0)
-	# Locked before the start or held after a reset, it brakes and won't drive.
-	var held := locked or hold_left > 0.0
+	slowdown_left = maxf(slowdown_left - dt, 0.0)
+	# Locked before the start, it brakes and won't drive.
+	var held := locked
 	_spike_wait = maxf(_spike_wait - dt, 0.0)
 	if _shove != Vector3.ZERO:
 		state.linear_velocity += _ok(_shove)
@@ -1823,14 +1816,6 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 		var jet := -basis.z * thrust * controls.throttle * push * (RESET_SLOWDOWN if slowdown_left > 0.0 else 1.0)
 		state.apply_central_force(_ok(jet))
 		applied += jet
-	# Held after a reset, it stays where it was put, even on a slope: no
-	# speed along the ground and nothing pulling it down the hill.
-	if hold_left > 0.0 and on_ground:
-		state.linear_velocity = up * state.linear_velocity.dot(up)
-		var fall := Vector3.DOWN * KartStats.gravity()
-		var stay := -(fall - up * fall.dot(up)) * mass
-		state.apply_central_force(_ok(stay))
-		applied += stay
 	# It cuts out while you brake, so it can't carry you off at a corner.
 	if boost_left > 0.0 and slowdown_left <= 0.0 and on_ground and controls.brake <= 0.0 and forward_speed < stats.top_speed() * TURBO_TOP_SPEED:
 		var push := -basis.z * TURBO_FORCE
@@ -1854,7 +1839,7 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 ## driven wheels are off it.
 func _update_slide(dt: float) -> void:
 	var on_road := not _drive_off_road if sliding else off_road <= 0.0
-	var can := not locked and hold_left <= 0.0 and stats.steering != null and forward_speed > (SLIDE_KEEP_SPEED if sliding else SLIDE_SPEED) and not sticking and on_road
+	var can := not locked and stats.steering != null and forward_speed > (SLIDE_KEEP_SPEED if sliding else SLIDE_SPEED) and not sticking and on_road
 	var into := controls.steer * slide_way
 	if not sliding:
 		if can and controls.throttle > 0.5 and controls.brake > 0.5 and absf(controls.steer) > 0.2:
@@ -2833,14 +2818,12 @@ func _reset(state: PhysicsDirectBodyState3D) -> void:
 		w.length = SUSPENSION_TRAVEL
 		w.grounded = false
 	# A kart put back before a loop has already lost time by starting further
-	# back, so it gets no hold or slowdown.
+	# back, so it gets no slowdown.
 	slowdown_left = 0.0 if run_up_reset else RESET_SLOWDOWN_TIME
-	hold_left = 0.0 if run_up_reset else RESET_HOLD
 	run_up_reset = false
 	on_road = false
 	_repair_pending = true
-	# A ghost through the hold and a bit after, so others drive through it.
-	start_ghost(RESET_GHOST_TIME + hold_left)
+	start_ghost(RESET_GHOST_TIME)
 	Sounds.play_at.call_deferred("fx/reset", sound)
 	was_reset.emit.call_deferred()
 

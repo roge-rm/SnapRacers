@@ -222,7 +222,7 @@ func got_event(sender: int, slot: int, kind: String, data: Variant) -> void:
 			kart.repair_now()
 		"reset":
 			Sounds.play_at("fx/reset", kart.sound)
-			kart.start_ghost(clampf(float(data), 0.0, Kart.RESET_GHOST_TIME + Kart.RESET_HOLD) if data is float else Kart.RESET_GHOST_TIME)
+			kart.start_ghost(clampf(float(data), 0.0, Kart.RESET_GHOST_TIME) if data is float else Kart.RESET_GHOST_TIME)
 		"splash":
 			kart.show_splash()
 		"tow":

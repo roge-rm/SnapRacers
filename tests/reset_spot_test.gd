@@ -83,7 +83,7 @@ func _run() -> void:
 	await frames(2)
 	var short_of := wrapf(wide - human.offset, -length * 0.5, length * 0.5)
 	check(short_of >= -0.5 and short_of < 25.0, "a reset from the runoff puts it back about where it is (%.1f m, it was at %.0f)" % [human.offset, wide])
-	await frames(int((Kart.RESET_HOLD + Kart.RESET_SLOWDOWN_TIME) * 60.0))
+	await frames(int(Kart.RESET_SLOWDOWN_TIME * 60.0))
 
 	# On the road at 300 m, then dropped on the grass 60 m further on.
 	var left_at := 300.0
@@ -100,17 +100,12 @@ func _run() -> void:
 	var across := (human.kart.global_position - track.point_at(human.offset)).dot(track.right_at(human.offset))
 	check(track.on_road_across(human.offset, across), "on the road (%.1f m across)" % across)
 
-	# The hold: throttle down the whole time, and it doesn't go anywhere.
+	# The slowdown starts at once and counts down with the throttle down.
 	human.input.controls.throttle = 1.0
-	check(human.kart.hold_left > 1.0 and human.kart.slowdown_left >= Kart.RESET_SLOWDOWN_TIME - 0.01, "it's held, with the slowdown waiting (%.2f s, %.2f s)" % [human.kart.hold_left, human.kart.slowdown_left])
-	check(human.kart.ghost_left > human.kart.hold_left + 0.5, "a ghost for the hold and a bit after (%.2f s)" % human.kart.ghost_left)
-	await frames(30)
-	var landed := human.kart.global_position
-	await frames(45)
-	var crept := human.kart.global_position.distance_to(landed)
-	check(human.kart.hold_left > 0.0 and crept < 0.3 and absf(human.kart.forward_speed) < 0.5, "with the throttle down it sits still in the hold (moved %.2f m, %.2f m/s)" % [crept, human.kart.forward_speed])
-	await frames(int(Kart.RESET_HOLD * 60.0) - 75 + 60)
-	check(human.kart.hold_left <= 0.0 and human.kart.slowdown_left > 0.0 and human.kart.slowdown_left < Kart.RESET_SLOWDOWN_TIME, "then the slowdown counts down (%.2f s)" % human.kart.slowdown_left)
+	check(human.kart.slowdown_left >= Kart.RESET_SLOWDOWN_TIME - 0.1, "the slowdown starts right away (%.2f s)" % human.kart.slowdown_left)
+	check(human.kart.ghost_left > 0.5, "with a ghost (%.2f s)" % human.kart.ghost_left)
+	await frames(60)
+	check(human.kart.slowdown_left > 0.0 and human.kart.slowdown_left < Kart.RESET_SLOWDOWN_TIME - 0.5, "and it counts down (%.2f s)" % human.kart.slowdown_left)
 	check(human.kart.forward_speed > 1.0, "and it drives off (%.1f m/s)" % human.kart.forward_speed)
 	check(human.progress.laps == laps, "no lap gained or lost (%d)" % human.progress.laps)
 	human.input.controls.throttle = 0.0
@@ -146,7 +141,7 @@ func _run() -> void:
 
 	# The last lap: cutting over the finish off the road doesn't finish it
 	# yet, the reset puts it back, and driving over the line on the road does.
-	await frames(int((Kart.RESET_HOLD + Kart.RESET_SLOWDOWN_TIME) * 60.0))
+	await frames(int(Kart.RESET_SLOWDOWN_TIME * 60.0))
 	human.progress = RaceProgress.new(length, race.laps, length - 30.0)
 	human.progress.laps = race.laps - 1
 	human.progress._quarters_seen = {1: true, 2: true, 3: true}
@@ -191,13 +186,9 @@ func _slope() -> void:
 	# Once it's landed and the springs have settled, it doesn't slide down.
 	await frames(50)
 	var was := kart.global_position
-	await frames(int(Kart.RESET_HOLD * 60.0) - 55)
-	var crept := (kart.global_position - was).slide(kart.global_basis.y).length()
-	check(kart.hold_left > 0.0 and crept < 0.03, "held on a 15 degree slope it stays put (%.3f m)" % crept)
-	was = kart.global_position
 	await frames(90)
 	var rolled := kart.global_position.distance_to(was)
-	check(rolled > 0.5, "and after the hold it rolls down (%.1f m)" % rolled)
+	check(rolled > 0.5, "on a 15 degree slope it rolls down (%.1f m)" % rolled)
 	kart.queue_free()
 	body.queue_free()
 
