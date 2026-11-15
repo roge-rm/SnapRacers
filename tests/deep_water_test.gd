@@ -1,9 +1,9 @@
 extends Node
 
 ## Deep water: on an island course with a lake put down by hand, a kart
-## driven into the lake or the sea splashes, sinks below the surface and is
-## put back on the road where it left it. One driving along shallows road
-## is never reset.
+## driven into the lake, or off the road into the sea, splashes, sinks below
+## the surface and is put back on the road where it left it. One driving
+## along shallows road is never reset.
 ##
 ##   tools/godot/Godot_v4.7.2-stable_linux.x86_64 --headless --fixed-fps 60 --path . tests/deep_water_test.tscn
 
@@ -144,24 +144,33 @@ func _run() -> void:
 	if grass != Vector3.INF:
 		await _drive_in(track.offset_of(lake_at), grass, lake_at, "the lake")
 
-	# Into the sea. It's further out than a kart can wander before it's put
-	# back anyway, so it starts at the water's edge, going out.
-	var k := 0
+	# Into the sea, driven off the road, across the sand and on out, from a
+	# straight bit with the sea close by and nothing in the way.
+	var sea_from := -1.0
 	var sea_at := Vector3.INF
 	var out := Vector3.ZERO
-	for side in [1.0, -1.0]:
-		for far in range(30, 300):
-			var at: Vector3 = track.points[k] + track.rights[k] * float(far) * side
-			at.y = race.builder.ground_at(at.x, at.z)
-			if is_finite(water.level_at(at + Vector3.UP * 0.5)):
-				sea_at = at
-				out = track.rights[k] * side
-				break
-		if sea_at != Vector3.INF:
-			break
-	check(sea_at != Vector3.INF, "there's sea beside the island (%.0f m out)" % sea_at.distance_to(track.points[k]))
+	var nearest := INF
+	for k in range(0, track.points.size(), 6):
+		if absf(track.bend_at(track.distances[k])) > 0.004:
+			continue
+		for side in [1.0, -1.0]:
+			for far in range(10, int(Race.LOST)):
+				var at: Vector3 = track.points[k] + track.rights[k] * float(far) * side
+				at.y = race.builder.ground_at(at.x, at.z)
+				if is_finite(water.level_at(at + Vector3.UP * 0.5)):
+					var low := track.points[k] + Vector3.UP * 0.8
+					var aim := at + track.forwards[k] * 12.0 + Vector3.UP * 0.8
+					var clear := space.intersect_ray(PhysicsRayQueryParameters3D.create(low, aim, Kart.LAYER_WORLD)).is_empty()
+					if clear and far < nearest:
+						nearest = far
+						sea_from = track.distances[k]
+						sea_at = at
+						out = track.rights[k] * side
+					break
+	check(sea_at != Vector3.INF and nearest < Race.LOST - 10.0, "there's sea close by the road (%.0f m from the middle)" % nearest)
 	if sea_at != Vector3.INF:
-		await _drive_in(track.offset_of(track.points[k]), sea_at, sea_at + out * 10.0, "the sea")
+		var from := track.point_at(sea_from)
+		await _drive_in(sea_from, from, sea_at + track.forward_at(sea_from) * 12.0 + out * 10.0, "the sea")
 
 
 ## Puts the kart on the road at `offset`, so it knows where it left it, then

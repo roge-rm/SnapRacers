@@ -39,7 +39,7 @@ const ALL := [
 	"fx/pick", "fx/nope", "fx/podium", "fx/cheer",
 	"engine/engine_small", "engine/engine_micro", "engine/engine_big", "engine/engine_twin",
 	"engine/engine_diesel", "engine/engine_v8", "engine/electric_motor", "engine/jet",
-	"loop/skid", "loop/drift_tarmac_soft", "loop/drift_tarmac_hard", "loop/drift_dirt_soft", "loop/drift_dirt_hard", "loop/drift_snow_soft", "loop/drift_snow_hard", "fx/drift_whoosh_1", "fx/drift_whoosh_2", "fx/drift_whoosh_3", "loop/rumble", "loop/wind", "loop/rain", "loop/storm", "loop/gale",
+	"loop/skid", "loop/drift_tarmac_soft", "loop/drift_tarmac_hard", "loop/drift_dirt_soft", "loop/drift_dirt_hard", "loop/drift_snow_soft", "loop/drift_snow_hard", "loop/drift_water_soft", "loop/drift_water_hard", "fx/drift_whoosh_1", "fx/drift_whoosh_2", "fx/drift_whoosh_3", "loop/rumble", "loop/wind", "loop/rain", "loop/storm", "loop/gale",
 ]
 const TUNES := ["menu", "race_one", "race_two", "race_three", "race_four", "race_indoor", "race_rally", "race_coaster", "race_legends", "race_beach", "race_alpine", "race_canyon", "race_jungle", "race_city", "race_sky"]
 

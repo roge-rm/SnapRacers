@@ -59,12 +59,17 @@ const SKY_CLOUDS := 40
 const SHORE := 55.0
 const BEACH := 16.0
 const SEA_OUT := 900.0
-## On an island the land reaches ISLAND_LAND past the road, then there's
-## BEACH of sand and the sea all round. Bays narrower than twice ISLAND_FILL
-## are filled in so the shore stays smooth. On a hilly island, or beside a
-## sea along one side, the ground eases down to the sea over ISLAND_RAMP
-## inside the beach.
-const ISLAND_LAND := 45.0
+## On an island the sea comes in ISLAND_SHORE past the kerbs, past the
+## runoff (Race.RUNOFF) and well before a kart's too far off to be put back
+## (Race.LOST), so running wide ends in a splash. The last ISLAND_BEACH of
+## the land is beach. Bays narrower than twice ISLAND_FILL are filled in so
+## the shore stays smooth. On a hilly island the ground is at sea level for
+## ISLAND_WET inside the shore and eases up to the road from there. Beside a
+## sea along one side it eases down to the sea over ISLAND_RAMP inside the
+## beach.
+const ISLAND_SHORE := 16.0
+const ISLAND_BEACH := 10.0
+const ISLAND_WET := 6.0
 const ISLAND_FILL := 50.0
 const ISLAND_RAMP := 24.0
 ## An island's grass patches start PATCH_RINGS rings in from the beach, one
@@ -517,9 +522,9 @@ var ground: Callable = func(_x: float, _z: float) -> float: return 0.0
 var _hash := {} # 16 m cell -> track sample indices
 ## Whether the theme has no ground, with everything floating on islands.
 var _floating := false
-## The last course whose grass patches were worked out, and its map (see
-## grass_patches()).
-static var _patches_of: TrackPath
+## The last course whose grass patches were worked out, held weakly so it
+## can go when the race does, and its map (see grass_patches()).
+static var _patches_of: WeakRef
 static var _patch_map: ImageTexture
 static var _patch_area := Color()
 
@@ -546,17 +551,30 @@ func _ready() -> void:
 		_plan_sea()
 	if theme.get("island", false):
 		_shore = island_shore(track)
-		var dry := largest(Geometry2D.offset_polygon(_shore, -BEACH * 0.5))
+		var dry := largest(Geometry2D.offset_polygon(_shore, -ISLAND_BEACH * 0.5))
 		_dry = inside_grid(dry, _origin + Vector2.ONE * CELL * 0.5, _cols, _rows, CELL)
 		_sea_level = island_level(track, _shore)
 		water.set_island(_shore, _sea_level + 0.05)
-	if only_sea:
-		if _sea.size != Vector2.ZERO:
-			_build_sea()
-		if not _shore.is_empty():
-			_build_island()
-		_kit.build(self)
-		return
+	if not only_sea:
+		_dress(indoor)
+	# The sea's waves and boats have their own random numbers, so they sit
+	# the same in the track editor's sea-only build as in the race.
+	_rng.seed = hash(track.name + " sea")
+	if _sea.size != Vector2.ZERO:
+		_build_sea()
+	if not _shore.is_empty():
+		_build_island()
+	# Only things near the road need to be solid. And nothing that ended up on
+	# the road itself may be, or karts would pile into it (the walls keep
+	# them off everything else).
+	var road_edge := track.width * 0.5 + TrackPath.KERB
+	_kit.solids = _kit.solids.filter(func(s): return _distance_at(s[0].origin) < SOLID_REACH and not _near_other_road(s[0].origin, road_edge, 0, 0.0))
+	_kit.build(self)
+
+
+## Everything but the sea: trackside, landmarks, fillers and the theme's
+## far scenery.
+func _dress(indoor: bool) -> void:
 	if not only_landmarks:
 		_trackside()
 		if not _floating:
@@ -587,16 +605,6 @@ func _ready() -> void:
 			_far_karsts()
 		if theme.get("skyline", false):
 			_far_skyline()
-	if _sea.size != Vector2.ZERO:
-		_build_sea()
-	if not _shore.is_empty():
-		_build_island()
-	# Only things near the road need to be solid. And nothing that ended up on
-	# the road itself may be, or karts would pile into it (the walls keep
-	# them off everything else).
-	var road_edge := track.width * 0.5 + TrackPath.KERB
-	_kit.solids = _kit.solids.filter(func(s): return _distance_at(s[0].origin) < SOLID_REACH and not _near_other_road(s[0].origin, road_edge, 0, 0.0))
-	_kit.build(self)
 
 
 # How far the ground is from the road.
@@ -1171,28 +1179,44 @@ func _boat(at: Vector3, heading: float) -> void:
 
 # On an island.
 
-## The island's shore seen from above, as (x, z): the road and the landmarks
-## put down by hand grown out by ISLAND_LAND and the beach, with the bays
-## filled in. Empty if there's no road.
+## The island's shore seen from above, as (x, z): the road grown out by
+## ISLAND_SHORE past its kerbs and the landmarks put down by hand by their
+## room and the beach, with the bays filled in. Empty if there's no road.
 static func island_shore(path: TrackPath) -> PackedVector2Array:
 	var line := PackedVector2Array()
+	# On a split the road's outer edges are further out, so each side gets
+	# its own line, the middle one moved out to where its edge is.
+	var lefts := PackedVector2Array()
+	var rights := PackedVector2Array()
 	# Road going up a loop or a wall ride is left out, since doubling back
 	# over itself confuses Clipper, and the road either side covers it.
 	var step := maxi(1, path.points.size() / 400)
 	for k in range(0, path.points.size(), step):
 		if path.ups[k].y > 0.7:
-			line.append(Vector2(path.points[k].x, path.points[k].z))
+			var p := Vector2(path.points[k].x, path.points[k].z)
+			line.append(p)
+			if path.has_splits:
+				var lanes := path.lanes_of(k)
+				var right := Vector2(path.rights[k].x, path.rights[k].z)
+				lefts.append(p + right * (lanes[0].x + path.width * 0.5))
+				rights.append(p + right * (lanes[lanes.size() - 1].y - path.width * 0.5))
 	if line.size() < 2:
 		return PackedVector2Array()
 	if path.closes:
 		line.append(line[0])
-	var reach := path.width * 0.5 + ISLAND_LAND + BEACH
+		if path.has_splits:
+			lefts.append(lefts[0])
+			rights.append(rights[0])
+	var reach := path.width * 0.5 + TrackPath.KERB + ISLAND_SHORE
 	var shore := largest(Geometry2D.offset_polyline(line, reach, Geometry2D.JOIN_ROUND, Geometry2D.END_ROUND))
+	for edge in [lefts, rights]:
+		if edge.size() >= 2:
+			shore = largest(Geometry2D.merge_polygons(shore, largest(Geometry2D.offset_polyline(edge, reach, Geometry2D.JOIN_ROUND, Geometry2D.END_ROUND))))
 	# Each landmark joins on by a spit of land to the nearest road.
 	for mark in path.landmarks:
 		var at_list: Array = mark.get("at", [0.0, 0.0])
 		var at := Vector2(float(at_list[0]), float(at_list[1]))
-		var room: float = Props.ROOM.get(str(mark.get("prop", "")), 3.0) + RUNOFF + BEACH
+		var room: float = Props.ROOM.get(str(mark.get("prop", "")), 3.0) + RUNOFF + ISLAND_BEACH
 		var nearest := line[0]
 		for p in line:
 			if p.distance_squared_to(at) < nearest.distance_squared_to(at):
@@ -1210,8 +1234,8 @@ static func grass_patches(material: ShaderMaterial, path: TrackPath) -> void:
 	var theme := theme_named(path.theme)
 	if not theme.has("grass") or not theme.get("island", false):
 		return
-	if _patches_of != path:
-		_patches_of = path
+	if _patches_of == null or _patches_of.get_ref() != path:
+		_patches_of = weakref(path)
 		_patch_map = null
 		var shore := island_shore(path)
 		if shore.is_empty():
@@ -1226,7 +1250,7 @@ static func grass_patches(material: ShaderMaterial, path: TrackPath) -> void:
 		amount.resize(cols * rows)
 		amount.fill(0.0)
 		for j in PATCH_RINGS:
-			var ring := largest(Geometry2D.offset_polygon(shore, -(BEACH + 4.0 + j * PATCH_CELL)))
+			var ring := largest(Geometry2D.offset_polygon(shore, -(ISLAND_BEACH + 4.0 + j * PATCH_CELL)))
 			if ring.is_empty():
 				break
 			var inside := inside_grid(ring, box.position, cols, rows, PATCH_CELL)
@@ -1328,8 +1352,10 @@ static func _area(polygon: PackedVector2Array) -> float:
 
 ## Triangles covering `outer` but not `hole`, as a flat list of corners.
 ## Clipper can't triangulate a polygon with a hole, so it's cut into four
-## around `centre`, a spot inside the hole: each quarter less the hole has
-## no hole of its own, since every bit of the hole reaches the cuts.
+## around `centre`, a spot that's usually inside the hole. Any quarter that
+## still has a hole of its own, which happens when the hole curls round or
+## the spot isn't in it, is cut in two through that hole again and again
+## until none is left.
 static func _ring_triangles(outer: PackedVector2Array, hole: PackedVector2Array, centre: Vector2) -> PackedVector2Array:
 	var box := Rect2(outer[0], Vector2.ZERO)
 	for p in outer:
@@ -1346,12 +1372,41 @@ static func _ring_triangles(outer: PackedVector2Array, hole: PackedVector2Array,
 	for corner in corners:
 		var quarter := PackedVector2Array([centre, Vector2(corner.x, centre.y), corner, Vector2(centre.x, corner.y)])
 		for piece in Geometry2D.intersect_polygons(quarter, outer):
-			if Geometry2D.is_polygon_clockwise(piece) != outline_way:
-				continue
-			for part in Geometry2D.clip_polygons(piece, hole):
-				if Geometry2D.is_polygon_clockwise(part) != outline_way:
-					continue
+			if Geometry2D.is_polygon_clockwise(piece) == outline_way:
+				out.append_array(_less_hole(piece, hole, outline_way))
+	return out
+
+
+## Triangles covering `piece`, which has no hole, less `hole`. If what's left
+## has a hole, the piece is cut in two across the middle of it, so each half
+## of the hole reaches the cut.
+static func _less_hole(piece: PackedVector2Array, hole: PackedVector2Array, outline_way: bool, depth := 0) -> PackedVector2Array:
+	var out := PackedVector2Array()
+	var parts := Geometry2D.clip_polygons(piece, hole)
+	var holes := parts.filter(func(part): return Geometry2D.is_polygon_clockwise(part) != outline_way)
+	if holes.is_empty() or depth >= 8:
+		for part in parts:
+			if Geometry2D.is_polygon_clockwise(part) == outline_way:
 				out.append_array(_triangles_of(part))
+		return out
+	var inner := Rect2(holes[0][0], Vector2.ZERO)
+	for p in holes[0]:
+		inner = inner.expand(p)
+	var box := Rect2(piece[0], Vector2.ZERO)
+	for p in piece:
+		box = box.expand(p)
+	box = box.grow(1.0)
+	var middle := inner.get_center()
+	var halves: Array[Rect2] = []
+	if inner.size.x > inner.size.y:
+		halves = [Rect2(box.position, Vector2(middle.x - box.position.x, box.size.y)), Rect2(Vector2(middle.x, box.position.y), Vector2(box.end.x - middle.x, box.size.y))]
+	else:
+		halves = [Rect2(box.position, Vector2(box.size.x, middle.y - box.position.y)), Rect2(Vector2(box.position.x, middle.y), Vector2(box.size.x, box.end.y - middle.y))]
+	for half in halves:
+		var cut := PackedVector2Array([half.position, Vector2(half.end.x, half.position.y), half.end, Vector2(half.position.x, half.end.y)])
+		for bit in Geometry2D.intersect_polygons(cut, piece):
+			if Geometry2D.is_polygon_clockwise(bit) == outline_way:
+				out.append_array(_less_hole(bit, hole, outline_way, depth + 1))
 	return out
 
 
@@ -1433,7 +1488,7 @@ func _build_island() -> void:
 	var far := box.grow(SEA_OUT)
 	var sea_outline := PackedVector2Array([far.position, Vector2(far.end.x, far.position.y), far.end, Vector2(far.position.x, far.end.y)])
 	_flat_draw(_flat_mesh(_ring_triangles(sea_outline, _shore, centre), level + 0.05), Color("#1e6fb5"), SceneryKit.WATER)
-	var inland := largest(Geometry2D.offset_polygon(_shore, -BEACH, Geometry2D.JOIN_ROUND))
+	var inland := largest(Geometry2D.offset_polygon(_shore, -ISLAND_BEACH, Geometry2D.JOIN_ROUND))
 	if not inland.is_empty():
 		_flat_draw(_flat_mesh(_ring_triangles(_shore, inland, centre), level + 0.04), Props.TAN, SceneryKit.SMOOTH)
 	# Waves breaking just off the sand, one every so often round the shore.
