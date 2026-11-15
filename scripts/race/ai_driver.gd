@@ -269,6 +269,10 @@ var _loop_at := INF
 var _loop_looked := -1
 var _has_jump := -1
 var _jump_run_in := false
+## See _find_jumps(), and the racing line of the track it was worked out
+## for, as a track that's built again gets a new one.
+var _to_jump := PackedFloat32Array()
+var _jumps_for: RacingLine
 ## Where the jump it's running in to starts, along the track, or -INF.
 var _jump_at := -INF
 ## The brick walls in the race, fetched once a step for every driver.
@@ -365,6 +369,28 @@ var _line_bends := PackedFloat64Array()
 ## start line.
 const WANDER_LONG := 160.0
 const WANDER_SHORT := 70.0
+## How many of each wave go round the lap, for the track length they were
+## worked out for.
+var _wander_waves := Vector2.ONE
+var _wander_for := -1.0
+## The racing line and the track's tables line_at() works from (see
+## _line_ready()), and the side of the line it takes round each split.
+var _line_of: RacingLine
+var _line_ok := false
+var _samples := 0
+var _pair_offsets := PackedFloat32Array()
+var _pair_lows := PackedFloat32Array()
+var _pair_highs := PackedFloat32Array()
+var _zones := PackedInt32Array()
+var _zone_side := PackedInt32Array()
+var _sides_for := PackedInt32Array()
+var _points := PackedVector3Array()
+var _rights := PackedVector3Array()
+var _distances := PackedFloat32Array()
+var _length := 0.0
+var _split_road := false
+var _lefts := PackedVector2Array()
+var _rights_b := PackedVector2Array()
 ## It drives every this many physics steps (see _physics_process()).
 const DRIVE_EVERY := 2
 ## It plans through traffic every this many physics steps (see _dodge()).
@@ -398,15 +424,30 @@ func seed_line(seed: int) -> void:
 ## its share of the racing line plus its wander, kept KEEP_IN further in
 ## than the line may go, plus `line`.
 func line_at(at: float) -> float:
-	var racing := track.racing_line()
-	if racing.offsets.size() != track.points.size() or track.points.size() < 2:
+	if not _line_ready():
 		return line
 	var i := track._index_before(at)
-	var j := (i + 1) % track.points.size()
-	var side_i := racing.side_of(i, branches)
-	var side_j := racing.side_of(j, branches)
-	var low := minf(racing.side_lows[side_i][i], racing.side_lows[side_j][j])
-	var high := maxf(racing.side_highs[side_i][i], racing.side_highs[side_j][j])
+	var j := (i + 1) % _samples
+	return _line_between(at, i, j, _blend_at(at, i, j))
+
+
+## Its own line here (see line_at()), on the road, `shift` metres to the right.
+func _line_point(at: float, shift := 0.0) -> Vector3:
+	if not _line_ready():
+		return track.point_at(at) + track.right_at(at) * (line + shift)
+	var i := track._index_before(at)
+	var j := (i + 1) % _samples
+	var blend := _blend_at(at, i, j)
+	return _points[i].lerp(_points[j], blend) + _rights[i].lerp(_rights[j], blend).normalized() * (_line_between(at, i, j, blend) + shift)
+
+
+## line_at() between samples i and j, `blend` of the way from i, the same
+## as TrackPath._blend() gives.
+func _line_between(at: float, i: int, j: int, blend: float) -> float:
+	var side_i := 0 if _zones.is_empty() else _zone_side[_zones[i]]
+	var side_j := 0 if _zones.is_empty() else _zone_side[_zones[j]]
+	var low := minf(_pair_lows[i * 2 + side_i], _pair_lows[j * 2 + side_j])
+	var high := maxf(_pair_highs[i * 2 + side_i], _pair_highs[j * 2 + side_j])
 	# It keeps to the middle where the line may, or on a split the middle of
 	# its branch.
 	var keep := 0.0 if low <= 0.0 and high >= 0.0 else (low + high) * 0.5
@@ -414,9 +455,14 @@ func line_at(at: float) -> float:
 	var hi := maxf(high - KEEP_IN, keep)
 	# Taking only some of the line, it goes by the middle of its branch.
 	var middle := 0.0
-	if track.has_splits:
-		middle = track.branch_centre_at(at, racing.side_of(i, branches))
-	var want := middle + (track.line_offset_at(at - line_late, branches) - middle) * line_follow + _wander_at(at)
+	if _split_road:
+		middle = lerpf(_lefts[i].x, _lefts[j].x, blend) if side_i == 0 else lerpf(_rights_b[i].x, _rights_b[j].x, blend)
+	var racing_here := 0.0
+	if line_late == 0.0:
+		racing_here = lerpf(_pair_offsets[i * 2 + side_i], _pair_offsets[j * 2 + side_j], blend)
+	else:
+		racing_here = track.line_offset_at(at - line_late, branches)
+	var want := middle + (racing_here - middle) * line_follow + _wander_at(at)
 	# Coming up to a jump it eases over to the middle of the road and takes
 	# the last bend before it round the middle, which keeps more speed for
 	# the jump than the line's late tight turn onto it.
@@ -425,9 +471,43 @@ func line_at(at: float) -> float:
 	return clampf(want, lo, hi) + line
 
 
-## Its own line here (see line_at()), on the road, `shift` metres to the right.
-func _line_point(at: float, shift := 0.0) -> Vector3:
-	return track.point_at(at) + track.right_at(at) * (line_at(at) + shift)
+## TrackPath._blend(), with the track's tables kept here.
+func _blend_at(at: float, i: int, j: int) -> float:
+	var span := (_distances[j] if j != 0 else _length) - _distances[i]
+	return clampf((fposmod(at, _length) - _distances[i]) / maxf(span, 0.0001), 0.0, 1.0)
+
+
+## Keeps its own references to the track's tables and the racing line for
+## line_at(), which is asked for dozens of times a step, and which side of
+## each split's line it takes for its branches. False when there's no
+## racing line to follow.
+func _line_ready() -> bool:
+	var racing := track.racing_line()
+	if racing != _line_of:
+		_line_of = racing
+		_samples = track.points.size()
+		_line_ok = racing.offsets.size() == _samples and _samples >= 2
+		_pair_offsets = racing.pair_offsets
+		_pair_lows = racing.pair_lows
+		_pair_highs = racing.pair_highs
+		_zones = racing.zones
+		_points = track.points
+		_rights = track.rights
+		_distances = track.distances
+		_length = track.length
+		_split_road = track.has_splits
+		_lefts = track.branch_lefts
+		_rights_b = track.branch_rights
+		_sides_for = PackedInt32Array([-2])
+	if _line_ok and not _zones.is_empty() and branches != _sides_for:
+		_sides_for = branches.duplicate()
+		_zone_side.resize(maxi(racing.split_mids.size(), 1))
+		for zone in _zone_side.size():
+			if zone < branches.size() and branches[zone] >= 0:
+				_zone_side[zone] = branches[zone]
+			else:
+				_zone_side[zone] = racing.quicker[zone] if zone < racing.quicker.size() else 1
+	return _line_ok
 
 
 ## Which way its own line runs here, flat to `up`.
@@ -440,10 +520,11 @@ func _line_heading(at: float, up: Vector3) -> Vector3:
 func _wander_at(at: float) -> float:
 	if line_wander <= 0.0 or track.length <= 0.0:
 		return 0.0
+	if _wander_for != track.length:
+		_wander_for = track.length
+		_wander_waves = Vector2(maxf(roundf(track.length / WANDER_LONG), 1.0), maxf(roundf(track.length / WANDER_SHORT), 2.0))
 	var turn := TAU * at / track.length
-	var long := maxf(roundf(track.length / WANDER_LONG), 1.0)
-	var short := maxf(roundf(track.length / WANDER_SHORT), 2.0)
-	return line_wander * (0.7 * sin(long * turn + _wander_phase.x) + 0.3 * sin(short * turn + _wander_phase.y))
+	return line_wander * (0.7 * sin(_wander_waves.x * turn + _wander_phase.x) + 0.3 * sin(_wander_waves.y * turn + _wander_phase.y))
 
 
 ## The road it may use here, as Vector2(from, to) right of the middle line,
@@ -923,6 +1004,13 @@ func _jump_within(distance: float) -> bool:
 				break
 	if _has_jump == 0:
 		return false
+	# With no jump sample starting within reach it needn't look.
+	if _jumps_for != track.racing_line():
+		_find_jumps()
+	var i := track._index_before(offset)
+	if _to_jump[i] - (fposmod(offset, track.length) - track.distances[i]) > distance + 0.1:
+		_jump_at = -INF
+		return false
 	var ahead := 0.0
 	while ahead <= distance:
 		var kind := track.piece_type_at(offset + ahead)
@@ -940,6 +1028,27 @@ func _jump_within(distance: float) -> bool:
 		ahead += 4.0
 	_jump_at = -INF
 	return false
+
+
+## How far each sample is from the start of the next sample on a jump or a
+## jump split, round the lap, 0 on one.
+func _find_jumps() -> void:
+	_jumps_for = track.racing_line()
+	var count := track.points.size()
+	_to_jump.resize(count)
+	_to_jump.fill(INF)
+	if track.piece_of.size() != count:
+		_to_jump.fill(0.0)
+		return
+	var next := INF
+	# Twice round from the end, so the samples near the end see the jumps
+	# early in the lap.
+	for n in count * 2:
+		var k := count - 1 - n % count
+		if track.pieces[track.piece_of[k]].type in ["jump", "jump_split"]:
+			next = track.distances[k]
+		var gap := fposmod(next - track.distances[k], track.length) if is_finite(next) else INF
+		_to_jump[k] = minf(_to_jump[k], gap)
 
 
 ## As each bend comes up, it might get it wrong (see `mistakes`). Going in

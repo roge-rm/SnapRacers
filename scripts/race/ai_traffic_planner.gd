@@ -72,6 +72,10 @@ const SHAKEN_ROOM := 0.5
 const SPLIT_SEE := 40.0
 ## What a line over a trap costs in score, more than lines ever differ by.
 const TRAP_COST := 200.0
+## Karts behind within this many metres, plus as far as they could close up
+## over a plan, count as traffic (see _traffic()). It's more than any gap
+## the plan, defending or contact checks look back over.
+const KEEP_BEHIND := 20.0
 var target := NAN
 var speed_limit := INF
 var queueing := false
@@ -355,6 +359,8 @@ func _traffic(ai: AIDriver, reach: float) -> Array[Dictionary]:
 	var own_forward := track.forward_at(ai.offset)
 	var own_height := (ai.kart.global_position - origin).dot(track.up_at(ai.offset))
 	var own_speed := ai.kart.linear_velocity.length()
+	var own_along := ai.kart.linear_velocity.dot(own_forward)
+	var looks := maxf(3.0, ai.traffic_planning)
 	for other in ai.others:
 		if not is_instance_valid(other) or other == ai.kart or other.ghost_left > 0.0:
 			continue
@@ -366,6 +372,11 @@ func _traffic(ai: AIDriver, reach: float) -> Array[Dictionary]:
 		var at: float = info.at
 		var ahead := fposmod(at - ai.offset + track.length * 0.5, track.length) - track.length * 0.5
 		if absf(ahead) > reach:
+			continue
+		# A kart further behind than it could close up in a plan, and too far
+		# back to defend against or touch, changes nothing.
+		var closing := maxf(info.along - maxf(own_along, 0.0), absf(info.along - own_along))
+		if ahead < -(KEEP_BEHIND + closing * looks):
 			continue
 		# Nearby hairpins and bridges are different pieces of road. Check both
 		# their projection and the actual world separation before predicting.

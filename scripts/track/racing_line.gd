@@ -65,6 +65,11 @@ var quicker := PackedInt32Array()
 var gains := PackedFloat32Array()
 ## How long it took to work out, in microseconds.
 var build_usec := 0
+## side_offsets, side_lows and side_highs as one list each, sample k's
+## left branch at k * 2 and right at k * 2 + 1, for the AI's quick lookups.
+var pair_offsets := PackedFloat32Array()
+var pair_lows := PackedFloat32Array()
+var pair_highs := PackedFloat32Array()
 
 ## The rough lap the branches are timed on: top speed and how hard it
 ## corners, speeds up and brakes, in m/s and m/s².
@@ -118,6 +123,14 @@ func _init(track: TrackPath) -> void:
 		bends[k] = side_bends[side][k]
 		lows[k] = side_lows[side][k]
 		highs[k] = side_highs[side][k]
+	pair_offsets.resize(count * 2)
+	pair_lows.resize(count * 2)
+	pair_highs.resize(count * 2)
+	for k in count:
+		for side in 2:
+			pair_offsets[k * 2 + side] = side_offsets[side][k]
+			pair_lows[k * 2 + side] = side_lows[side][k]
+			pair_highs[k * 2 + side] = side_highs[side][k]
 	build_usec = Time.get_ticks_usec() - started
 
 
