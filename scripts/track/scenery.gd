@@ -1163,18 +1163,7 @@ func _build_sea() -> void:
 
 ## A little boat: a hull, a deck and, for most, a mast and sail.
 func _boat(at: Vector3, heading: float) -> void:
-	var turn := Basis(Vector3.UP, heading)
-	# It rocks gently on the water.
-	_kit.begin_mover(Transform3D(Basis.IDENTITY, at), { "swing": turn * Vector3.BACK, "angle": 0.06, "rate": 1.1 })
-	var hull: Color = [Props.WHITE, Props.RED, Props.BLUE, Props.YELLOW][_rng.randi() % 4]
-	_kit.turned_box(at + Vector3.UP * 0.4, Vector3(2.4, 1.0, 7.0), turn, hull, SceneryKit.SMOOTH)
-	_kit.turned_box(at + Vector3.UP * 0.95 + turn * Vector3(0.0, 0.0, 2.6), Vector3(1.6, 0.4, 2.0), turn, hull.lightened(0.2), SceneryKit.SMOOTH)
-	if _rng.randf() < 0.7:
-		_kit.turned_cylinder(at + Vector3.UP * 4.5, 0.08, 7.0, turn, Props.WHITE)
-		_kit.turned_box(at + Vector3.UP * 4.0 + turn * Vector3(0.0, 0.0, -1.2), Vector3(0.05, 5.5, 2.6), turn, Props.WHITE, SceneryKit.SMOOTH)
-	else:
-		_kit.turned_box(at + Vector3.UP * 1.5 + turn * Vector3(0.0, 0.0, -1.0), Vector3(1.8, 1.2, 2.4), turn, Props.WHITE, SceneryKit.SMOOTH)
-	_kit.end_mover()
+	Props.boat(_kit, at, heading, _rng)
 
 
 # On an island.

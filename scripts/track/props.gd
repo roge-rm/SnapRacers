@@ -57,7 +57,8 @@ const ROOM := {
 	"carousel": 7.0, "drop_tower": 5.0, "red_roof": 40.0,
 	"parasols": 2.8, "beach_hut": 2.2, "lifeguard_tower": 2.4, "windsurf": 1.6, "beach_hotel": 10.0,
 	"sandcastle": 7.0, "harbour_fort": 12.0, "penguins": 1.6, "stone_pine": 3.0, "gum_tree": 2.6,
-	"watchtower": 3.0, "lamp_post": 1.0,
+	"watchtower": 3.0, "lamp_post": 1.0, "grandstand": 14.0, "pit_building": 14.0, "billboard": 3.2, "marshal_post": 2.0,
+	"flag": 1.0, "fans": 3.0, "tire_stack": 1.0, "barrier_stack": 1.0, "boats": 6.0,
 	"chalet": 6.0, "snowy_chalet": 6.0, "alpine_church": 8.0, "cows": 2.8, "snowy_peak": 40.0,
 	"cable_car": 35.0, "ski_jump": 33.0,
 	"mesa": 38.0, "butte": 16.0, "saloon": 8.0, "water_tower": 3.5, "saguaro": 1.6, "mine_carts": 8.0,
@@ -221,6 +222,18 @@ static func add(kit: SceneryKit, prop: String, at: Vector3, rng: RandomNumberGen
 		"sky_dock": sky_dock(kit, at_grid, facing, rng)
 		"sky_isle": sky_isle(kit, at_grid, rng)
 		"cloud_puff": cloud_puff(kit, at_grid, rng)
+		"grandstand": grandstand(kit, at_grid, 24.0, facing, rng)
+		"pit_building": pit_building(kit, at_grid, 24.0, facing)
+		"billboard": billboard(kit, at_grid, facing, [RED, BLUE, YELLOW, GREEN, WHITE][rng.randi() % 5])
+		"marshal_post": marshal_post(kit, at_grid, facing)
+		"flag": flag(kit, at_grid, [RED, YELLOW, BLUE, GREEN][rng.randi() % 4])
+		"lamp_post": lamp_post(kit, at_grid, facing)
+		"fans": fan_line(kit, at_grid, facing, rng)
+		"tire_stack": tire_stack(kit, at_grid, [RED, WHITE, BLUE][rng.randi() % 3])
+		"barrier_stack": barrier_stack(kit, at_grid, [RED, WHITE, BLUE][rng.randi() % 3])
+		"boats":
+			boat(kit, at_grid + _turn(Vector3(-2.2, 0.0, 0.0), facing), facing * PI * 0.5, rng)
+			boat(kit, at_grid + _turn(Vector3(2.2, 0.0, 1.0), facing), facing * PI * 0.5 + 0.2, rng)
 
 
 ## Turns an offset from a prop's middle by its facing.
@@ -1210,6 +1223,21 @@ static func flag(kit: SceneryKit, at: Vector3, colour: Color) -> void:
 	# The flag flaps about the pole.
 	kit.begin_mover(Transform3D(Basis.IDENTITY, at + Vector3.UP * 5.3), { "swing": Vector3.UP, "angle": 0.35, "rate": 2.2 })
 	kit.box(at + Vector3(0.8, 4.8, 0.0), Vector3(1.6, 1.0, 0.06), colour, SceneryKit.SMOOTH, false)
+	kit.end_mover()
+
+
+## A little boat that rocks gently, pointing along `heading`.
+static func boat(kit: SceneryKit, at: Vector3, heading: float, rng: RandomNumberGenerator) -> void:
+	var turn := Basis(Vector3.UP, heading)
+	kit.begin_mover(Transform3D(Basis.IDENTITY, at), { "swing": turn * Vector3.BACK, "angle": 0.06, "rate": 1.1 })
+	var hull: Color = [WHITE, RED, BLUE, YELLOW][rng.randi() % 4]
+	kit.turned_box(at + Vector3.UP * 0.4, Vector3(2.4, 1.0, 7.0), turn, hull, SceneryKit.SMOOTH)
+	kit.turned_box(at + Vector3.UP * 0.95 + turn * Vector3(0.0, 0.0, 2.6), Vector3(1.6, 0.4, 2.0), turn, hull.lightened(0.2), SceneryKit.SMOOTH)
+	if rng.randf() < 0.7:
+		kit.turned_cylinder(at + Vector3.UP * 4.5, 0.08, 7.0, turn, WHITE)
+		kit.turned_box(at + Vector3.UP * 4.0 + turn * Vector3(0.0, 0.0, -1.2), Vector3(0.05, 5.5, 2.6), turn, WHITE, SceneryKit.SMOOTH)
+	else:
+		kit.turned_box(at + Vector3.UP * 1.5 + turn * Vector3(0.0, 0.0, -1.0), Vector3(1.8, 1.2, 2.4), turn, WHITE, SceneryKit.SMOOTH)
 	kit.end_mover()
 
 
