@@ -6,7 +6,8 @@ extends Node
 ## profile:
 ##   XDG_DATA_HOME=build/creations/shots DISPLAY=:0 tools/godot/Godot_v4.7.2-stable_linux.x86_64 --path . --resolution 1600x720 res://tools/shots/beach_shots.tscn -- res://data/tracks/coral_cove.json
 ## They're saved in /srv/downloads/temp/debug/snapracers/beach, named after
-## the file.
+## the file. A piece number after the file adds one more with that piece
+## picked, showing its surface and edges.
 
 const OUT := "/srv/downloads/temp/debug/snapracers/beach"
 var host: Node
@@ -39,6 +40,10 @@ func _ready() -> void:
 	editor._yaw = deg_to_rad(215.0)
 	editor._place_camera()
 	await _shot(name + "_low_back")
+	if args.size() > 1:
+		editor.fit_view()
+		editor._select(int(args[1]))
+		await _shot(name + "_picked")
 	get_tree().quit()
 
 

@@ -30,7 +30,7 @@ const DRIFT_IN := 0.15
 const DRIFT_OUT := 0.3
 const WHOOSH_LEVEL := -13.0
 const DRIFT_SURFACE := {
-	"dirt": "dirt", "gravel": "dirt", "mud": "dirt", "grass": "dirt",
+	"dirt": "dirt", "gravel": "dirt", "mud": "dirt", "grass": "dirt", "shallows": "dirt",
 	"snow": "snow", "ice": "snow",
 }
 

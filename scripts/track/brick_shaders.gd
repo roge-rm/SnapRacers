@@ -121,7 +121,23 @@ void fragment() {
 	// It has to be rough, or the sky's reflection turns everything blue.
 	float rough = 0.8;
 	float spec = mix(0.25, 0.5, wet);
-	if (kind > 5.5) {
+	if (kind > 6.5) {
+		// Shallows: a rippled sand bed under clear water tinted by COLOR, with
+		// moving light on the bottom and the sky in it at a glance.
+		vec3 bed = pow(vec3(0.78, 0.68, 0.48), vec3(2.2));
+		float ridges = sin(p.x * 2.4 + 1.5 * sin(p.y * 0.35));
+		bed *= 0.85 + 0.15 * ridges + 0.1 * blotches(p * 0.3);
+		vec2 q = world.xz * 0.6;
+		float light = sin(q.x * 1.3 + TIME * 0.9 + sin(q.y * 1.1 + TIME * 0.7)) * sin(q.y * 1.4 - TIME * 0.8 + sin(q.x * 0.9));
+		bed *= 1.0 + 0.25 * smoothstep(0.55, 0.95, light);
+		col = mix(bed, col, 0.45);
+		float glance = pow(1.0 - clamp(dot(NORMAL, VIEW), 0.0, 1.0), 3.0);
+		col = mix(col, pow(vec3(0.5, 0.64, 0.74), vec3(2.2)), 0.25 * glance);
+		// Not too glassy, or the sky's reflection washes it out white.
+		rough = 0.45;
+		spec = 0.3;
+		col = mix(col, SNOW, snow * 0.03);
+	} else if (kind > 5.5) {
 		// Mud, with two faint wheel ruts each side that wander a little.
 		float w;
 		col = mud(p, col, w);

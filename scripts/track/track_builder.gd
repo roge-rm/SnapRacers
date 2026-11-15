@@ -50,6 +50,7 @@ const COLOURS := {
 	"mud": Color("#6e5538"), # darker and browner than dirt
 	"sand": Color("#d9c38c"),
 	"ice": Color("#cfe8f2"),
+	"shallows": Color("#2f9aa0"), # the water's tint, over a sandy bed
 }
 const DECK_COLOUR := Color("#7a7f87")
 ## The low edge down a rough split's dirt branch, like timber.
@@ -63,7 +64,9 @@ const BRACE_EVERY := 3.0
 ## How far apart the blocks of a rock ridge under raised road are.
 const ROCK_EVERY := 4.0
 ## Which surface each edge of the outline is, for the shader.
-const KIND := {"road": 0.0, "kerb": 1.0, "deck": 2.0, "wall": 3.0, "walltop": 4.0, "line": 5.0, "mud": 6.0}
+const KIND := {"road": 0.0, "kerb": 1.0, "deck": 2.0, "wall": 3.0, "walltop": 4.0, "line": 5.0, "mud": 6.0, "shallows": 7.0}
+## How deep a wheel on shallows is, as a puddle's depth, for the spray.
+const SHALLOWS_WADE := 0.5
 
 var track: TrackPath
 ## How much scenery to put around it: "all", "landmarks" (only the ones put
@@ -333,6 +336,11 @@ func _add_piece(index: int) -> void:
 		_add_cut(index, piece)
 
 
+## Which look the shader gives a road of this surface.
+static func road_kind_of(surface: String) -> float:
+	return KIND.get(surface, KIND["road"]) if surface in ["mud", "shallows"] else KIND["road"]
+
+
 ## A static body for a piece's road on this surface, or null with no mesh.
 func _road_body(index: int, mesh: ArrayMesh, surface: String) -> StaticBody3D:
 	if mesh == null:
@@ -344,6 +352,8 @@ func _road_body(index: int, mesh: ArrayMesh, surface: String) -> StaticBody3D:
 	body.set_meta("grip", feel[0])
 	body.set_meta("drag", feel[1])
 	body.set_meta("surface", surface)
+	if surface == "shallows":
+		body.set_meta("wade", SHALLOWS_WADE)
 	body.set_meta("sticky", piece.sticky)
 	# Which piece it is, so the track editor can tell which one was tapped.
 	body.set_meta("piece", index)
@@ -377,8 +387,8 @@ func _piece_mesh(index: int, sides := [0, 1]) -> ArrayMesh:
 	var tool := SurfaceTool.new()
 	tool.begin(Mesh.PRIMITIVE_TRIANGLES)
 	var surface_colour: Color = COLOURS.get(piece.surface, COLOURS["asphalt"])
-	# Mud has its own look in the shader, with no tile seams.
-	var road_kind: float = KIND["mud"] if piece.surface == "mud" else KIND["road"]
+	# Mud and shallows have their own looks in the shader, with no tile seams.
+	var road_kind: float = road_kind_of(piece.surface)
 	if piece.is_split():
 		var count := track.points.size()
 		for n in samples.size() - 1:
@@ -540,8 +550,7 @@ func _split_segment(tool: SurfaceTool, around: Array, piece: TrackPiece, sides: 
 			continue
 		var surface := piece.branch_surface(side)
 		var colour: Color = COLOURS.get(surface, COLOURS["asphalt"])
-		# Mud has its own look in the shader, with no tile seams.
-		var road_kind: float = KIND["mud"] if surface == "mud" else KIND["road"]
+		var road_kind: float = road_kind_of(surface)
 		var ya := track.branch_lift(a, side)
 		var yb := track.branch_lift(b, side)
 		var sa: Vector2 = at_a[side]

@@ -373,6 +373,9 @@ class Wheel:
 	## up on it, 0 to 1 (see HYDRO_RISE).
 	var water := 0.0
 	var planing := 0.0
+	## How deep it's in shallows, which only throws spray: their grip and
+	## drag come from the surface, and they never hydroplane.
+	var wade := 0.0
 	## Whether it was on ground tagged off the road last step.
 	var off := false
 	var visual: Node3D
@@ -1537,6 +1540,7 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 			w.load = 0.0
 			w.off = false
 			w.water = 0.0
+			w.wade = 0.0
 			w.planing = 0.0
 			# A driven wheel in the air counts as off the road for the slide.
 			if w.driven:
@@ -1611,6 +1615,7 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 		w.off = off
 		w.contact = contact
 		w.surface = ground.get_meta("surface", "dirt" if off else "asphalt") if ground != null else "asphalt"
+		w.wade = ground.get_meta("wade", 0.0) if ground != null else 0.0
 		# The weather makes any ground slippier, and a puddle more so. A trap
 		# is the same whatever the weather. It never takes a tire below
 		# LEAST_GRIP, unless it was already below that in the dry, like
@@ -2753,6 +2758,7 @@ func _reset(state: PhysicsDirectBodyState3D) -> void:
 	steer_angle = 0.0
 	for w: Wheel in wheels:
 		w.water = 0.0
+		w.wade = 0.0
 		w.planing = 0.0
 		w.snow = 0.0
 		w.spin = 0.0

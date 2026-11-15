@@ -29,7 +29,7 @@ const STEEPEST := 0.07
 
 ## Grip and drag for each surface, as multiples of plain road. These are for
 ## the road itself. The ground beside it uses OFFROAD. Mud sits between dirt
-## and grass.
+## and grass. Shallows is clear water over sand, a little slower than sand.
 const SURFACES := {
 	"asphalt": [1.0, 1.0],
 	"dirt": [0.8, 2.0],
@@ -39,6 +39,7 @@ const SURFACES := {
 	"mud": [0.75, 3.5],
 	"sand": [0.6, 4.0],
 	"ice": [0.35, 0.8],
+	"shallows": [0.6, 4.9],
 }
 ## The ground beside the road: slower and slipperier than the same surface as
 ## a road piece, so running wide costs you. Sand is worse than grass, snow is

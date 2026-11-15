@@ -47,10 +47,11 @@ const SMOKE := {
 	"brown": Color(0.52, 0.4, 0.26, 0.65),
 	"sand": Color(0.86, 0.77, 0.56, 0.6),
 	"white": Color(0.97, 0.98, 1.0, 0.8),
+	"spray": SPRAY,
 }
 const SURFACE_SMOKE := {
 	"dirt": "brown", "gravel": "brown", "mud": "brown", "grass": "brown",
-	"sand": "sand", "snow": "white", "ice": "white",
+	"sand": "sand", "snow": "white", "ice": "white", "shallows": "spray",
 }
 
 ## One shader for every kind, so there's only the one to compile. Smoke has
@@ -318,7 +319,7 @@ func _spray(delta: float, going: Vector3, speed: float, share: float) -> void:
 	var wet := 0.0
 	for w: Kart.Wheel in _kart.wheels:
 		if w.grounded:
-			wet += minf(w.water * 2.0, 1.0)
+			wet += minf(maxf(w.water, w.wade) * 2.0, 1.0)
 	if wet <= 0.0:
 		_spray_due = 0.0
 		return
@@ -331,15 +332,16 @@ func _spray(delta: float, going: Vector3, speed: float, share: float) -> void:
 		# A wheel in water, picked by how deep it is.
 		var pick := _rng.randf() * wet
 		for w: Kart.Wheel in _kart.wheels:
-			if not w.grounded or w.water <= 0.0:
+			var water := maxf(w.water, w.wade)
+			if not w.grounded or water <= 0.0:
 				continue
-			pick -= minf(w.water * 2.0, 1.0)
+			pick -= minf(water * 2.0, 1.0)
 			if pick > 0.0:
 				continue
 			var out := w.contact - middle
 			out -= up * out.dot(up)
 			out = out.normalized() if out.length() > 0.01 else _kart.global_basis.x
-			var deep := minf(w.water * 2.0, 1.0)
+			var deep := minf(water * 2.0, 1.0)
 			# Mostly along with the kart, fanned out sideways and up.
 			var fling := going * _rng.randf_range(0.7, 0.9) + out * _rng.randf_range(2.0, 4.5) * fast + up * _rng.randf_range(3.0, 6.0) * (0.5 + 0.5 * deep) * fast
 			var size := w.radius * _rng.randf_range(0.9, 1.3) * (0.6 + 0.4 * deep)

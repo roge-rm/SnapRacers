@@ -93,7 +93,7 @@ const LANDMARK_GROUPS := [
 	["Beach", ["beach_hotel", "beach_hut", "lifeguard_tower", "sandcastle", "watchtower", "harbour_fort", "penguins"]],
 	["Sky", ["hot_air_balloon", "airship", "sky_dock", "falls_isle", "rainbow", "weather_vane", "windmill_isle", "sky_lighthouse", "sky_isle", "cloud_puff"]],
 ]
-const SURFACES := [["Road", "asphalt"], ["Concrete", "concrete"], ["Dirt", "dirt"], ["Gravel", "gravel"], ["Grass", "grass"], ["Mud", "mud"], ["Sand", "sand"], ["Ice", "ice"]]
+const SURFACES := [["Road", "asphalt"], ["Concrete", "concrete"], ["Dirt", "dirt"], ["Gravel", "gravel"], ["Grass", "grass"], ["Mud", "mud"], ["Sand", "sand"], ["Shallows", "shallows"], ["Ice", "ice"]]
 ## "Auto" has walls only where you'd fall off, and grass runoff everywhere
 ## else (see TrackPiece.edges).
 const EDGES := [["Auto", "auto"], ["Walls", "walls"], ["Left open", "left_open"], ["Right open", "right_open"], ["Open", "open"]]
