@@ -666,10 +666,18 @@ func _physics_process(delta: float) -> void:
 		if racer.ai != null:
 			racer.ai.lap = racer.progress.laps
 
+		# Off the road in deep water, it sinks and is then put back (see
+		# Kart.sink()). Its own device decides, and tells the others.
+		if not kart.remote and kart.sinking_left <= 0.0 and kart.hold_left <= 0.0 and not kart.on_road and not track.on_road_across(racer.offset, across, -TrackPath.KERB):
+			var level := builder.water.level_at(kart.global_position)
+			if is_finite(level):
+				kart.sink(level)
+				if racer.hud != null:
+					racer.hud.flash("Back on the track")
 		# If it's fallen off or wandered far away, put it back.
 		var middle := track.point_at(racer.offset)
 		var below := (kart.global_position - middle).dot(track.up_at(racer.offset))
-		if kart.slowdown_left <= 0.0 and (below < -FALLEN or kart.global_position.distance_to(middle) > LOST):
+		if kart.slowdown_left <= 0.0 and kart.sinking_left <= 0.0 and (below < -FALLEN or kart.global_position.distance_to(middle) > LOST):
 			if OS.has_environment("RACE_DEBUG"):
 				var truly := track.offset_of(kart.global_position)
 				print("OFF %s at %.0f m: below %.1f, away %.1f, height %.1f, speed %.1f, really at %.0f m %.1f away" % [racer.name, racer.offset, below, kart.global_position.distance_to(middle), kart.global_position.y, kart.linear_velocity.length(), truly, kart.global_position.distance_to(track.point_at(truly))])

@@ -72,6 +72,7 @@ func add(slot: int, racer: Race.Racer, owner: int) -> void:
 	# It sends how long it's a ghost for, so it's one on every screen through
 	# its hold.
 	kart.was_reset.connect(func() -> void: session.kart_event.rpc(slot, "reset", kart.ghost_left))
+	kart.splashed.connect(func() -> void: session.kart_event.rpc(slot, "splash", null))
 	kart.gadget_used.connect(func(kind: String) -> void: session.kart_event.rpc(slot, "gadget", kind))
 	kart.towed.connect(func(to: Kart) -> void: session.kart_event.rpc(slot, "tow", _slot_of_kart(to)))
 	kart.broke_barrier.connect(func(crossing: int, arm: int, velocity: Vector3) -> void:
@@ -222,6 +223,8 @@ func got_event(sender: int, slot: int, kind: String, data: Variant) -> void:
 		"reset":
 			Sounds.play_at("fx/reset", kart.sound)
 			kart.start_ghost(clampf(float(data), 0.0, Kart.RESET_GHOST_TIME + Kart.RESET_HOLD) if data is float else Kart.RESET_GHOST_TIME)
+		"splash":
+			kart.show_splash()
 		"tow":
 			var to := _kart_in(int(data))
 			if to != null:

@@ -1291,7 +1291,7 @@ func _stuck_check(delta: float, speed: float, up: Vector3) -> void:
 	var pulling_away := kart.slowdown_left > 0.0 and not upside_down
 	# Nor is waiting for a train.
 	var waiting := (_waiting or traffic.queueing) and not upside_down
-	var excused := kart.locked or pulling_away or waiting
+	var excused := kart.locked or pulling_away or waiting or kart.sinking_left > 0.0
 	if waiting:
 		_stuck = 0.0
 		_tries = 0

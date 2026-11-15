@@ -501,6 +501,8 @@ var _dry := PackedByteArray()
 var _sea_level := 0.0
 ## Only the sea and beach, for the track editor.
 var only_sea := false
+## Where the water's too deep to drive, filled in as it builds.
+var water := DeepWater.new()
 var _origin := Vector2.ZERO
 var _cols := 0
 var _rows := 0
@@ -547,6 +549,7 @@ func _ready() -> void:
 		var dry := largest(Geometry2D.offset_polygon(_shore, -BEACH * 0.5))
 		_dry = inside_grid(dry, _origin + Vector2.ONE * CELL * 0.5, _cols, _rows, CELL)
 		_sea_level = island_level(track, _shore)
+		water.set_island(_shore, _sea_level + 0.05)
 	if only_sea:
 		if _sea.size != Vector2.ZERO:
 			_build_sea()
@@ -767,8 +770,17 @@ func _add(prop: String, at: Vector3, facing := -1) -> void:
 	var f := facing if facing >= 0 else _facing_road(at)
 	if not UNBREAKABLE.has(prop):
 		_kit.begin(prop, Props.ROOM.get(prop, 3.0) <= SMALL)
+	var had := _kit.boxes.size()
 	Props.add(_kit, prop, at, _rng, f)
 	_kit.done()
+	# A lake or pond's water tiles are deep water.
+	if prop == "lake" or prop == "pond":
+		for k in range(had, _kit.boxes.size()):
+			var box: Array = _kit.boxes[k]
+			if box[2] == SceneryKit.WATER:
+				var shape: Transform3D = box[0]
+				var size := shape.basis.get_scale()
+				water.add_pool(shape.origin, Vector2(size.x, size.z), shape.origin.y + size.y * 0.5)
 	if Props.DEPTH.has(prop):
 		_placed.append([at, Props.ROOM.get(prop, 3.0), Props.DEPTH[prop]])
 	else:
@@ -1108,6 +1120,8 @@ func _build_sea() -> void:
 			var spot: Vector2 = shore_mid + along * k * 20.0 + _out * d
 			level = maxf(level, ground.call(spot.x, spot.y))
 	var centre := _sea.get_center()
+	water.sea = _sea
+	water.sea_level = level + 0.05
 	var sea_size := Vector3(_sea.size.x, 0.2, _sea.size.y)
 	_kit.box(Vector3(centre.x, level - 0.05, centre.y), sea_size, Color("#1e6fb5"), SceneryKit.WATER, false)
 	# The beach, a band of sand along the shore on the land side.

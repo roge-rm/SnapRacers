@@ -23,6 +23,8 @@ signal broke_scenery(group: int, at: Vector3, velocity: Vector3)
 signal broke_barrier(crossing: int, arm: int, velocity: Vector3)
 ## Its lost parts are back on, after a reset or from a repair kit.
 signal repaired
+## It drove into deep water (see sink()), so others can see the splash.
+signal splashed
 
 const SUSPENSION_TRAVEL := 0.12 # metres up or down from where the wheel was built
 const SUSPENSION_DAMPING := 0.55 # fraction of critical damping
@@ -121,6 +123,13 @@ static var slide_boost := 1.0
 const RESET_HOLD := 1.5
 const RESET_SLOWDOWN_TIME := 2.5
 const RESET_SLOWDOWN := 0.5
+## In deep water it sinks for SINK_TIME seconds before it's reset, through
+## the ground to SINK_DEPTH metres under the surface and at least SINK_SPEED
+## m/s, while SINK_DRAG (per second) slows it.
+const SINK_TIME := 0.8
+const SINK_DEPTH := 1.6
+const SINK_SPEED := 1.0
+const SINK_DRAG := 3.0
 
 const LAYER_WORLD := 1
 const LAYER_KARTS := 2
@@ -606,6 +615,10 @@ var slowdown_left := 0.0
 var hold_left := 0.0
 ## Whether every wheel was on the ground on the road (not off it) last step.
 var on_road := false
+## Time left sinking in deep water before it's reset (see sink()).
+var sinking_left := 0.0
+var _sunk := false
+var _sink_to := 0.0
 ## Whether it's said a force or speed came out as nonsense (see _ok()).
 var _said_bad := false
 ## The render layer the driver's head is drawn on (see RaceCamera), or 0.
@@ -1428,6 +1441,22 @@ func _physics_process(delta: float) -> void:
 func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 	var dt := state.step
 	var applied := Vector3.ZERO
+	# Sinking, it only slows and drops, then it's reset.
+	if sinking_left > 0.0 and not _reset_asked:
+		sinking_left = maxf(sinking_left - dt, 0.0)
+		if sinking_left > 0.0:
+			var flat := state.linear_velocity
+			flat.y = 0.0
+			var drop := maxf(SINK_SPEED, (state.transform.origin.y - _sink_to) / sinking_left)
+			state.linear_velocity = flat * exp(-SINK_DRAG * dt) + Vector3.DOWN * drop
+			state.angular_velocity *= exp(-SINK_DRAG * dt)
+			# Gravity's added after this, so it's taken back off to hold the
+			# sinking speed steady.
+			state.apply_central_force(Vector3.UP * KartStats.gravity() * mass)
+			_last_velocity = state.linear_velocity
+			_last_applied = Vector3.ZERO
+			return
+		_reset_asked = true
 	if (controls.reset and not _reset_held) or _reset_asked:
 		_reset_asked = false
 		_reset(state)
@@ -2344,6 +2373,41 @@ func start_ghost(seconds := GHOST_TIME) -> void:
 	ghost_left = maxf(ghost_left, seconds)
 
 
+## What it hits: everything, only the world as a ghost, and nothing at all
+## while it sinks, so it drops through the ground under the water.
+func _set_collisions(ghostly: bool) -> void:
+	collision_layer = 0 if ghostly or sinking_left > 0.0 else LAYER_KARTS
+	if sinking_left > 0.0:
+		collision_mask = 0
+	else:
+		collision_mask = LAYER_WORLD if ghostly else LAYER_WORLD | LAYER_KARTS | LAYER_HAZARD | LAYER_RUBBLE
+
+
+## Drives into deep water with its surface `level` metres up: it splashes,
+## sinks for SINK_TIME and is then reset like any other kart that's left the
+## track. Only the kart's own device calls this; others see the splash from
+## the splashed signal.
+func sink(level: float) -> void:
+	if sinking_left > 0.0 or remote:
+		return
+	sinking_left = SINK_TIME
+	_sink_to = level - SINK_DEPTH
+	_sunk = true
+	sliding = false
+	for w: Wheel in wheels:
+		w.grounded = false
+	_set_collisions(ghost_left > 0.0)
+	show_splash()
+	splashed.emit()
+
+
+## The splash of a kart going into deep water: a sound and a burst of spray.
+func show_splash() -> void:
+	Sounds.play_at("fx/splash", sound)
+	if fx != null:
+		fx.splash(global_position, remote_velocity if remote else linear_velocity)
+
+
 ## Shoved by a shockwave from `from`, harder the closer it is, and knocked
 ## about if it's very close.
 func shoved_from(from: Vector3) -> void:
@@ -2459,8 +2523,7 @@ func _ghost_tick(delta: float) -> void:
 
 
 func _set_ghostly(on: bool) -> void:
-	collision_layer = 0 if on else LAYER_KARTS
-	collision_mask = LAYER_WORLD if on else LAYER_WORLD | LAYER_KARTS | LAYER_HAZARD | LAYER_RUBBLE
+	_set_collisions(on)
 	if on:
 		_find_ghost_looks()
 	else:
@@ -2756,6 +2819,10 @@ func _reset(state: PhysicsDirectBodyState3D) -> void:
 	state.linear_velocity = Vector3.ZERO
 	state.angular_velocity = Vector3.ZERO
 	steer_angle = 0.0
+	if _sunk:
+		_sunk = false
+		sinking_left = 0.0
+		_set_collisions(ghost_left > 0.0)
 	for w: Wheel in wheels:
 		w.water = 0.0
 		w.wade = 0.0

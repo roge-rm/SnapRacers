@@ -83,6 +83,8 @@ var lights: SkyAndSun.Lights
 var puddles: Puddles
 ## The snow drifts on the road when it snows, or null.
 var drifts: Drifts
+## Where the water's too deep to drive (see Scenery).
+var water := DeepWater.new()
 var _material: ShaderMaterial
 ## The rolling ground, on a course with hills.
 var terrain: Terrain
@@ -181,6 +183,8 @@ func _ready() -> void:
 	dressing.ground = ground_at
 	dressing.only_landmarks = scenery == "landmarks"
 	dressing.only_sea = scenery == "sea"
+	dressing.water = water
+	water.ground = ground_at
 	# Keep the dirt inside cut bends clear, since you drive across it.
 	for i in track.pieces.size():
 		var piece := track.pieces[i]

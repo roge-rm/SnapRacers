@@ -38,6 +38,8 @@ const SPRAY_RATE := 26.0
 const SPRAY_SPEED := 20.0
 const SPRAY_LEAST := 4.0
 const SPRAY := Color(0.93, 0.96, 1.0, 0.8)
+## Drops in the burst going into deep water, at High.
+const SPLASH_DROPS := 18
 
 const LEVEL_COLOURS := [Color(0.35, 0.65, 1.0), Color(1.0, 0.55, 0.12), Color(0.78, 0.32, 1.0)]
 
@@ -347,6 +349,20 @@ func _spray(delta: float, going: Vector3, speed: float, share: float) -> void:
 			var size := w.radius * _rng.randf_range(0.9, 1.3) * (0.6 + 0.4 * deep)
 			_smoke.add(w.contact + up * w.radius * 0.8 + out * w.radius * 0.6, fling, _rng.randf_range(0.3, 0.45), size, size * 1.7, SPRAY, Color(SPRAY, 0.0), 9.0)
 			break
+
+
+## A burst of spray as the kart drops into deep water at `at`, thrown up
+## and out all round, a little more the way it was going. Low graphics gets
+## fewer drops.
+func splash(at: Vector3, going: Vector3) -> void:
+	var drops := maxi(roundi(SPLASH_DROPS * float(Graphics.value("drift_fx"))), 6)
+	var flat := Vector3(going.x, 0.0, going.z) * 0.3
+	for i in drops:
+		var a := i * TAU / drops + _rng.randf_range(-0.3, 0.3)
+		var out := Vector3(cos(a), 0.0, sin(a)) * _rng.randf_range(2.0, 4.5)
+		var fling := flat + out + Vector3.UP * _rng.randf_range(5.0, 9.0)
+		var size := _rng.randf_range(0.5, 0.9)
+		_smoke.add(at + out * 0.3 + Vector3.UP * 0.3, fling, _rng.randf_range(0.6, 0.9), size, size * 2.2, SPRAY, Color(SPRAY, 0.0), 12.0)
 
 
 ## Sparks off the back wheels in the colour of the level charged.
