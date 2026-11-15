@@ -24,6 +24,9 @@ func _ready() -> void:
 	host = Node.new()
 	add_child(host)
 	Game.start(host, false)
+	# GRAPHICS=ultra takes them at that graphics level.
+	if OS.has_environment("GRAPHICS"):
+		Game.set_graphics(OS.get_environment("GRAPHICS"))
 	Game.settings.set_value("race", "split", Game.SOLO)
 	Game.settings.set_value("controls", "player_1", "buttons")
 	Game.settings.set_value("race", "weather", weather)

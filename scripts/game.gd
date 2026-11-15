@@ -951,7 +951,7 @@ func set_mirrored(on: bool) -> void:
 	set_setting("race", "mirrored", on)
 
 
-## How much the game draws, "low", "medium" or "high" (see Graphics).
+## How much the game draws, "low", "medium", "high" or "ultra" (see Graphics).
 func graphics() -> String:
 	var level: String = settings.get_value("display", "graphics", Graphics.DEFAULT)
 	return level if Graphics.LEVELS.has(level) else Graphics.DEFAULT

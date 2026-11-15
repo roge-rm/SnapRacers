@@ -88,6 +88,10 @@ func _checks(holder: Node) -> void:
 	check(not Graphics.value("crowd") and Graphics.shadows() == 0.0 and Graphics.value("scale") < 1.0 and Graphics.beams() == 0.0, "and no crowd, no shadows, a lower resolution and only your own headlight beams")
 	Graphics.level = "high"
 	check(Graphics.value("crowd") and Graphics.shadows() == 1.0 and Graphics.value("scale") == 1.0 and Graphics.beams() > 0.0, "while High draws everything")
+	Graphics.level = "ultra"
+	check(Graphics.shadows() > 1.0 and not Graphics.cheap_shadows() and Graphics.far() > 180.0 and Graphics.value("msaa") == 4, "Ultra reaches further than High and never draws shadows the cheap way")
+	check(Graphics.LEVELS.back() == "ultra" and Graphics.NAMES["ultra"] == "Ultra", "Ultra comes last in the levels")
+	Graphics.level = "high"
 	var lit := SkyAndSun.add_to(holder)
 	check(lit.sun.directional_shadow_mode == DirectionalLight3D.SHADOW_PARALLEL_4_SPLITS, "High uses four shadow splits so close things stay sharp")
 	check(lit.sun.directional_shadow_split_1 <= 0.05, "with a tight first split for the kart (%.2f)" % lit.sun.directional_shadow_split_1)
