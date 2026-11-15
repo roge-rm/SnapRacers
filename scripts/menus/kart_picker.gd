@@ -28,6 +28,10 @@ const BARS := [["Speed", "speed"], ["Pull", "pull"], ["Grip", "grip"], ["Control
 ## Each player's colour, for their tag when two are picking.
 const PLAYER_COLOURS := UiKit.PLAYERS
 
+## The stock karts don't change while the game runs, so they're loaded and
+## measured once, as key -> [KartDesign, measures, weight].
+static var _stock := {}
+
 var _go: Callable
 var _back: Callable
 ## Each kart's card, as key -> card.
@@ -41,6 +45,9 @@ var _driver: CharacterDesign
 var _look := ""
 ## Each card's kart, as key -> KartDesign.
 var _designs := {}
+## How each card's kart measures up (see _measure()), and its weight in kg.
+var _measures := {}
+var _masses := {}
 ## The lowest and highest of each measure across every kart here.
 var _ranges := {}
 ## The stats panel's bars, as measure -> StatBar.
@@ -63,6 +70,8 @@ var _difficulty_row: HBoxContainer
 ## Which of two players on this phone is picking, 1 or 2, or 0 when it's one.
 var player := 0
 var _name: LineEdit
+## The scroll the cards are in, once they're laid out.
+var _scroll: ScrollContainer
 
 
 func _init(go: Callable, back: Callable, ai := false, for_player := 0) -> void:
@@ -83,9 +92,8 @@ func _ready() -> void:
 	var column := MenuStyle.page(self, title, go_back, DriverGrid.width())
 	_driver = CharacterDesign.for_key(Game.driver_choice(player == 2))
 	_look = "@" + DriverPortraits.key_of(_driver)
-	_pictures = KartThumbnails.new()
+	_pictures = Game.kart_pictures()
 	_pictures.ready_for.connect(_show_picture)
-	add_child(_pictures)
 
 	# Who's driving, the picked kart's bars and the button to go, which stay
 	# put above the cards as you scroll, in the page's outer column.
@@ -125,24 +133,17 @@ func _ready() -> void:
 	var back: Control = header.get_child(header.get_child_count() - 1)
 	_race.focus_neighbor_top = _race.get_path_to(back)
 
-	var entries := [[Game.OWN_KART, Game.design]]
-	# A saved kart that's the same as the one in the garage isn't shown twice,
-	# and picking it last time picks the garage card.
-	var garage_json := JSON.stringify(Game.design.to_dict())
 	var same_as_garage: Array[String] = []
-	for path in KartDesign.saved_paths():
-		var saved := KartDesign.load_file(path)
-		if saved != null and JSON.stringify(saved.to_dict()) == garage_json:
-			same_as_garage.append(KartDesign.key_for(path))
-			continue
-		entries.append([KartDesign.key_for(path), saved])
-	var stock_entries := []
-	for key in Game.stock_keys():
-		stock_entries.append([key, Game.stock_kart(key)])
-	_ranges = _ranges_of((entries + stock_entries).map(func(e): return _measure(e[1])))
-	# Your own karts change in the garage, so take their pictures again each time.
+	var entries := own_karts(same_as_garage)
+	var stock_entries := stock_karts()
 	for entry in entries:
-		KartThumbnails.forget(entry[0])
+		var stats := KartStats.compute(entry[1])
+		_measures[entry[0]] = _measure(entry[1], stats)
+		_masses[entry[0]] = stats.mass
+	for key in _stock:
+		_measures[key] = _stock[key][1]
+		_masses[key] = _stock[key][2]
+	_ranges = _ranges_of(_measures.values())
 	var sections := VBoxContainer.new()
 	sections.add_theme_constant_override("separation", 12)
 	column.add_child(sections)
@@ -164,6 +165,43 @@ func _ready() -> void:
 		last = Game.OWN_KART
 	_choose(last if _cards.has(last) and not _cards[last].disabled else Game.DEFAULT_STOCK)
 	_scroll_to_chosen()
+
+
+## Your karts, as [pick key, KartDesign]: the one in the garage, then the saved
+## ones. A saved kart that's the same as the one in the garage isn't shown
+## twice, and its key goes in `same_as_garage`, since picking it last time
+## picks the garage card.
+static func own_karts(same_as_garage: Array[String] = []) -> Array:
+	var entries := [[Game.OWN_KART, Game.design]]
+	var garage_json := JSON.stringify(Game.design.to_dict())
+	for path in KartDesign.saved_paths():
+		var saved := KartDesign.load_file(path)
+		if saved != null and JSON.stringify(saved.to_dict()) == garage_json:
+			same_as_garage.append(KartDesign.key_for(path))
+			continue
+		entries.append([KartDesign.key_for(path), saved])
+	return entries
+
+
+## The stock karts, as [pick key, KartDesign].
+static func stock_karts() -> Array:
+	var keys := Game.stock_keys()
+	if _stock.size() != keys.size() or not keys.all(func(key: String) -> bool: return _stock.has(key)):
+		_stock.clear()
+		for key in keys:
+			var design := Game.stock_kart(key)
+			var stats := KartStats.compute(design)
+			_stock[key] = [design, _measure(design, stats), stats.mass]
+	return _stock.keys().map(func(key: String) -> Array: return [key, _stock[key][0]])
+
+
+## Asks for every kart's picture with player 1's driver, so they're ready
+## before the picker opens. The splash does this.
+static func warm_pictures() -> void:
+	var driver := CharacterDesign.for_key(Game.driver_choice())
+	var look := "@" + DriverPortraits.key_of(driver)
+	for entry in own_karts() + stock_karts():
+		Game.kart_pictures().take(entry[0] + look, entry[1], driver)
 
 
 func go_back() -> void:
@@ -261,12 +299,29 @@ func _scroll_to_chosen() -> void:
 	while node != null and not node is ScrollContainer:
 		node = node.get_parent()
 	if node != null and is_instance_valid(card):
-		(node as ScrollContainer).ensure_control_visible(card)
+		var scroll := node as ScrollContainer
+		_scroll = scroll
+		scroll.ensure_control_visible(card)
+		_hurry_shown.call_deferred(scroll)
+		scroll.get_v_scroll_bar().value_changed.connect(_hurry_shown.bind(scroll).unbind(1))
+
+
+## Takes the pictures of the cards on the screen first.
+func _hurry_shown(scroll: ScrollContainer) -> void:
+	if not is_instance_valid(scroll):
+		return
+	var seen := scroll.get_global_rect()
+	var keys := []
+	for key in _cards:
+		if (_cards[key] as Control).get_global_rect().intersects(seen):
+			keys.append(key + _look)
+	_pictures.hurry(keys)
 
 
 ## How a kart measures up on each bar, before it's compared with the others.
-static func _measure(design: KartDesign) -> Dictionary:
-	var stats := KartStats.compute(design)
+static func _measure(design: KartDesign, stats: KartStats = null) -> Dictionary:
+	if stats == null:
+		stats = KartStats.compute(design)
 	return {
 		"speed": stats.top_speed(),
 		"pull": stats.pull(),
@@ -286,8 +341,9 @@ static func _ranges_of(all: Array) -> Dictionary:
 
 
 ## How full each bar is for this kart, 0.12 to 1, as measure -> amount.
-func amounts_for(design: KartDesign) -> Dictionary:
-	var measured := _measure(design)
+func amounts_for(design: KartDesign, measured := {}) -> Dictionary:
+	if measured.is_empty():
+		measured = _measure(design)
 	var out := {}
 	for bar in BARS:
 		var range: Vector2 = _ranges[bar[1]]
@@ -300,7 +356,7 @@ func amounts_for(design: KartDesign) -> Dictionary:
 func show_stats(key: String) -> void:
 	if _bars.is_empty() or not _designs.has(key) or not is_inside_tree():
 		return
-	var amounts := amounts_for(_designs[key])
+	var amounts := amounts_for(_designs[key], _measures.get(key, {}))
 	for bar in BARS:
 		_bars[bar[1]].amount = amounts[bar[1]]
 		_bars[bar[1]].queue_redraw()
@@ -366,12 +422,11 @@ func _grid() -> GridContainer:
 func _card(key: String, design: KartDesign) -> ScrollButton:
 	var card := _base_card(design.name)
 	card.set_meta("kart", key)
-	_set_picture(card, KartThumbnails.picture(key + _look))
 	var own := key == Game.OWN_KART or key.begins_with(KartDesign.SAVED_KEY)
 	var problems: Array[String] = design.problems() if own else ([] as Array[String])
 	var line := Label.new()
 	line.name = "Weight"
-	line.text = "%d kg" % roundi(KartStats.compute(design).mass) if problems.is_empty() else problems[0]
+	line.text = "%d kg" % roundi(_masses[key] if _masses.has(key) else KartStats.compute(design).mass) if problems.is_empty() else problems[0]
 	line.theme_type_variation = "SmallLabel" if problems.is_empty() else "DangerLabel"
 	line.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	line.custom_minimum_size.x = WORDS
@@ -384,7 +439,7 @@ func _card(key: String, design: KartDesign) -> ScrollButton:
 	card.focus_exited.connect(func() -> void: show_stats(_chosen))
 	_designs[key] = design
 	_cards[key] = card
-	_pictures.take(key + _look, design, _driver)
+	_set_picture(card, _pictures.take(key + _look, design, _driver))
 	return card
 
 
@@ -547,13 +602,17 @@ func open_drivers() -> DriverWindow:
 func pick_driver(key: String) -> void:
 	Game.set_driver_choice(key, player == 2)
 	_driver = CharacterDesign.for_key(key)
+	var old_look := _look
 	_look = "@" + DriverPortraits.key_of(_driver)
+	if old_look != _look:
+		_pictures.drop_look(old_look)
 	driver_card.show_driver(_driver)
 	for kart in _cards:
-		var picture := KartThumbnails.picture(kart + _look)
+		var picture := _pictures.take(kart + _look, _designs[kart], _driver)
 		if picture != null:
 			_set_picture(_cards[kart], picture)
-		_pictures.take(kart + _look, _designs[kart], _driver)
+	if _scroll != null:
+		_hurry_shown(_scroll)
 
 
 ## A short bar showing how a kart compares, filled from the left.

@@ -85,6 +85,7 @@ var online_two := false
 var cup_shown := ""
 var _part_pictures: PartThumbnails
 var _trophy_pictures: TrophyThumbnails
+var _kart_pictures: KartThumbnails
 var _loading: CanvasLayer
 ## The backdrop a new screen fades in over (see UiMotion), shown only while
 ## it does.
@@ -189,6 +190,14 @@ func part_pictures() -> PartThumbnails:
 		_part_pictures = PartThumbnails.new()
 		add_child(_part_pictures)
 	return _part_pictures
+
+
+## The pictures of the karts for the kart picker, kept for the whole game.
+func kart_pictures() -> KartThumbnails:
+	if _kart_pictures == null:
+		_kart_pictures = KartThumbnails.new()
+		add_child(_kart_pictures)
+	return _kart_pictures
 
 
 ## The pictures of the cups' trophies, the same way.
