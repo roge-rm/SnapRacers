@@ -34,6 +34,10 @@ var balls: Array = []
 ## Fillers added while this is on are marked far, so they can be skipped
 ## when the camera is a long way off.
 var far := false
+
+## Takes x and z and gives the ground height there. Props that spread over
+## the ground use it when it's set.
+var ground := Callable()
 ## [transform, size, prop] for the boxes karts can hit.
 var solids: Array = []
 ## The same for soft things like tire stacks, which karts bounce off instead

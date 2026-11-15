@@ -365,7 +365,8 @@ const CLUMP_TREES := ["broadleaf", "broadleaf", "birch", "pine", "maple"]
 ## Three to five mixed trees close together. Its own seed comes from where
 ## it stands, so a clump looks the same every time and for everyone online.
 ## When it's breakable each tree comes down on its own. The trees sit a
-## little low so they don't float on a slope.
+## little low so they don't float on a slope, and each stands on the ground
+## under it when the kit knows the ground.
 static func tree_clump(kit: SceneryKit, at: Vector3) -> void:
 	var rng := RandomNumberGenerator.new()
 	rng.seed = int(roundf(at.x * 2.0)) * 73856093 ^ int(roundf(at.z * 2.0)) * 19349663
@@ -375,6 +376,8 @@ static func tree_clump(kit: SceneryKit, at: Vector3) -> void:
 		var a := turn + k * TAU / count + rng.randf_range(-0.4, 0.4)
 		var r := 0.0 if k == 0 and count > 3 else rng.randf_range(1.8, 3.2)
 		var spot := Vector3(snappedf(cos(a) * r, 0.5), -0.3, snappedf(sin(a) * r, 0.5)) + at
+		if kit.ground.is_valid():
+			spot.y = kit.ground.call(spot.x, spot.z) - 0.3
 		var tree: String = CLUMP_TREES[rng.randi() % CLUMP_TREES.size()]
 		if kit.breaking():
 			kit.begin(tree, true)

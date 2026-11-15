@@ -776,10 +776,17 @@ func _grounded(at: Vector3) -> Vector3:
 func _add(prop: String, at: Vector3, facing := -1) -> void:
 	at = _grounded(at)
 	var f := facing if facing >= 0 else _facing_road(at)
-	if not UNBREAKABLE.has(prop):
+	var stack := prop == "tire_stack" or prop == "barrier_stack"
+	if stack:
+		_kit.begin("tires", false, true)
+	elif not UNBREAKABLE.has(prop):
 		_kit.begin(prop, Props.ROOM.get(prop, 3.0) <= SMALL)
 	var had := _kit.boxes.size()
-	Props.add(_kit, prop, at, _rng, f)
+	_kit.ground = ground
+	if prop == "lamp_post":
+		lamps.append(Props.lamp_post(_kit, at, f))
+	else:
+		Props.add(_kit, prop, at, _rng, f)
 	_kit.done()
 	# A lake or pond's water tiles are deep water.
 	if prop == "lake" or prop == "pond":

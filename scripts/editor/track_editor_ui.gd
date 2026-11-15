@@ -470,9 +470,24 @@ func _build_drawer() -> void:
 	# One pill per landmark group, in a row you can drag or step along.
 	_group_row = ScrollContainer.new()
 	_group_row.follow_focus = true
-	_group_row.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_SHOW_NEVER
+	_group_row.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
 	_group_row.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	column.add_child(_group_row)
+	# A thin bar to drag, and the mouse wheel scrolls the row sideways.
+	var bar := _group_row.get_h_scroll_bar()
+	bar.custom_minimum_size.y = 8.0
+	_group_row.custom_minimum_size.y = 56.0
+	var rail_box := StyleBoxFlat.new()
+	rail_box.bg_color = Color(1, 1, 1, 0.12)
+	rail_box.set_corner_radius_all(4)
+	var grab_box := StyleBoxFlat.new()
+	grab_box.bg_color = Color(1, 1, 1, 0.5)
+	grab_box.set_corner_radius_all(4)
+	bar.add_theme_stylebox_override("scroll", rail_box)
+	bar.add_theme_stylebox_override("grabber", grab_box)
+	bar.add_theme_stylebox_override("grabber_highlight", grab_box)
+	bar.add_theme_stylebox_override("grabber_pressed", grab_box)
+	_group_row.gui_input.connect(_group_row_input)
 	_group_row.resized.connect(func() -> void: _show_group_pill.call_deferred())
 	var pills := HBoxContainer.new()
 	pills.add_theme_constant_override("separation", 4)
@@ -551,6 +566,17 @@ func _saved_landmark_group() -> int:
 
 
 ## Scrolls the pill row so the chosen group's pill shows.
+func _group_row_input(event: InputEvent) -> void:
+	if event is InputEventMouseButton and event.pressed:
+		var step := 0
+		match event.button_index:
+			MOUSE_BUTTON_WHEEL_DOWN, MOUSE_BUTTON_WHEEL_RIGHT: step = 1
+			MOUSE_BUTTON_WHEEL_UP, MOUSE_BUTTON_WHEEL_LEFT: step = -1
+		if step != 0:
+			_group_row.scroll_horizontal += step * 120
+			_group_row.accept_event()
+
+
 func _show_group_pill() -> void:
 	if _group_row.visible and _landmark_group < _group_pills.size():
 		_group_row.ensure_control_visible(_group_pills[_landmark_group])
