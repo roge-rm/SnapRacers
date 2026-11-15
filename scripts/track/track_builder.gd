@@ -67,7 +67,8 @@ const KIND := {"road": 0.0, "kerb": 1.0, "deck": 2.0, "wall": 3.0, "walltop": 4.
 
 var track: TrackPath
 ## How much scenery to put around it: "all", "landmarks" (only the ones put
-## down by hand, which the track editor uses to stay quick) or "none".
+## down by hand), "sea" (only the sea and beach of a seaside theme, which the
+## track editor uses to stay quick) or "none".
 var scenery := "all"
 ## Whether it brings its own sky and sun. The track editor has its own.
 var sky := true
@@ -171,9 +172,12 @@ func _ready() -> void:
 		return
 	if scenery == "none":
 		return
+	if scenery == "sea" and not (_theme.get("sea", false) or _theme.get("island", false)):
+		return
 	var dressing := Scenery.new(track, track.theme)
 	dressing.ground = ground_at
 	dressing.only_landmarks = scenery == "landmarks"
+	dressing.only_sea = scenery == "sea"
 	# Keep the dirt inside cut bends clear, since you drive across it.
 	for i in track.pieces.size():
 		var piece := track.pieces[i]

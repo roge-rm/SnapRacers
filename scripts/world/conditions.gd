@@ -38,7 +38,7 @@ const CLIMATE_OF := {
 	"city_tokyo": "city", "city_dubai": "city", "city_london": "city", "city_bangkok": "city",
 	"sky": "sky", "sky_isles": "sky", "sky_falls": "sky", "sky_port": "sky", "sky_balloons": "sky",
 	"golden_hills": "dry", "mine": "dry",
-	"gran_canaria": "beach", "sardinia": "beach", "malta": "beach", "trulli": "beach",
+	"gran_canaria": "beach", "sardinia": "beach", "malta": "beach", "trulli": "beach", "island": "beach",
 	"brittany": "coastal", "phillip_island": "coastal", "delta": "coastal", "kent_downs": "coastal",
 	"volcano": "volcanic",
 	"space": "space",

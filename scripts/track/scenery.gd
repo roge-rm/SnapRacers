@@ -59,6 +59,13 @@ const SKY_CLOUDS := 40
 const SHORE := 55.0
 const BEACH := 16.0
 const SEA_OUT := 900.0
+## On an island the land reaches ISLAND_LAND past the road, then there's
+## BEACH of sand and the sea all round. Bays narrower than twice ISLAND_FILL
+## are filled in so the shore stays smooth. On a hilly island the ground
+## eases down to the sea over ISLAND_RAMP inside the beach.
+const ISLAND_LAND := 45.0
+const ISLAND_FILL := 50.0
+const ISLAND_RAMP := 24.0
 ## How far apart the hall's roof beams and the lights along them are.
 const BEAM_EVERY := 16.0
 const LIGHT_EVERY := 12.0
@@ -69,7 +76,9 @@ const LAMP_EVERY := 20.0
 ## Each theme: ground colour, curb and wall colours, the sky, its landmarks
 ## (placed first, biggest first) and its fillers with how often each turns
 ## up. A theme by the sea has "sea", and the sea runs along one side of the
-## course with a sandy beach, a pier and boats. "floor" is what you drive on
+## course with a sandy beach, a pier and boats. One with "island" has the
+## sea all round instead, with the shore following the course's outline (see
+## island_shore()). "floor" is what you drive on
 ## beside the road (grass, sand, snow, dirt, mud, hall). An indoor theme also has
 ## the colour behind everything, and the colours of the hall and its lights.
 ## A theme up in the sky has "void": there's no ground, and floating islands
@@ -285,6 +294,12 @@ const THEMES := {
 		"landmarks": ["lighthouse", "spectator_bank", "control_tower", "penguins"],
 		"fillers": {"gum_tree": 3, "bush": 3, "penguins": 1, "rocks": 1, "fence": 1},
 	},
+	"island": {
+		"ground": "#6aaa4c", "curbs": ["#d8261c", "#f2f2f2"], "wall": "#f2f3f2",
+		"sky": ["#3e8fe0", "#f6ead2"], "island": true,
+		"landmarks": ["lighthouse", "sandcastle", "lifeguard_tower", "beach_hut"],
+		"fillers": {"palm": 6, "parasols": 2, "beach_hut": 2, "lifeguard_tower": 1, "bush": 2, "rocks": 1},
+	},
 	"park_desert": {
 		"ground": "#d9c38c", "curbs": ["#c4281c", "#f2f3f2"], "wall": "#c4281c",
 		"supports": "lattice", "supports_colour": "#c4281c", "sky": ["#3f86d6", "#f4e9d0"],
@@ -470,6 +485,14 @@ var _placed: Array = [] # [position, radius], and how far down it reaches for sk
 ## shore out to sea.
 var _sea := Rect2()
 var _out := Vector2.ZERO
+## On an island, the shore seen from above, which cells of the distance map
+## are dry land a little inside it where things can stand, and how high the
+## sea is.
+var _shore := PackedVector2Array()
+var _dry := PackedByteArray()
+var _sea_level := 0.0
+## Only the sea and beach, for the track editor.
+var only_sea := false
 var _origin := Vector2.ZERO
 var _cols := 0
 var _rows := 0
@@ -506,6 +529,18 @@ func _ready() -> void:
 		_hall = _hall_floor()
 	if theme.get("sea", false):
 		_plan_sea()
+	if theme.get("island", false):
+		_shore = island_shore(track)
+		var dry := largest(Geometry2D.offset_polygon(_shore, -BEACH * 0.5))
+		_dry = inside_grid(dry, _origin + Vector2.ONE * CELL * 0.5, _cols, _rows, CELL)
+		_sea_level = island_level(track, _shore)
+	if only_sea:
+		if _sea.size != Vector2.ZERO:
+			_build_sea()
+		if not _shore.is_empty():
+			_build_island()
+		_kit.build(self)
+		return
 	if not only_landmarks:
 		_trackside()
 		if not _floating:
@@ -538,6 +573,8 @@ func _ready() -> void:
 			_far_skyline()
 	if _sea.size != Vector2.ZERO:
 		_build_sea()
+	if not _shore.is_empty():
+		_build_island()
 	# Only things near the road need to be solid. And nothing that ended up on
 	# the road itself may be, or karts would pile into it (the walls keep
 	# them off everything else).
@@ -971,6 +1008,11 @@ func _hall_floor() -> Rect2:
 func _inside_hall(at: Vector3, room: float) -> bool:
 	if _sea.size != Vector2.ZERO and _sea.grow(BEACH * 0.5 + room).has_point(Vector2(at.x, at.z)):
 		return false
+	if not _dry.is_empty():
+		for spot in [Vector2(at.x, at.z), Vector2(at.x + room, at.z), Vector2(at.x - room, at.z), Vector2(at.x, at.z + room), Vector2(at.x, at.z - room)]:
+			var c := _cell_of(spot)
+			if c.x < 0 or c.y < 0 or c.x >= _cols or c.y >= _rows or _dry[c.y * _cols + c.x] == 0:
+				return false
 	return _hall.size == Vector2.ZERO or _hall.grow(-room - 2.0).has_point(Vector2(at.x, at.z))
 
 
@@ -1060,6 +1102,264 @@ func _boat(at: Vector3, heading: float) -> void:
 	else:
 		_kit.turned_box(at + Vector3.UP * 1.5 + turn * Vector3(0.0, 0.0, -1.0), Vector3(1.8, 1.2, 2.4), turn, Props.WHITE, SceneryKit.SMOOTH)
 	_kit.end_mover()
+
+
+# On an island.
+
+## The island's shore seen from above, as (x, z): the road and the landmarks
+## put down by hand grown out by ISLAND_LAND and the beach, with the bays
+## filled in. Empty if there's no road.
+static func island_shore(path: TrackPath) -> PackedVector2Array:
+	var line := PackedVector2Array()
+	# Road going up a loop or a wall ride is left out, since doubling back
+	# over itself confuses Clipper, and the road either side covers it.
+	var step := maxi(1, path.points.size() / 400)
+	for k in range(0, path.points.size(), step):
+		if path.ups[k].y > 0.7:
+			line.append(Vector2(path.points[k].x, path.points[k].z))
+	if line.size() < 2:
+		return PackedVector2Array()
+	if path.closes:
+		line.append(line[0])
+	var reach := path.width * 0.5 + ISLAND_LAND + BEACH
+	var shore := largest(Geometry2D.offset_polyline(line, reach, Geometry2D.JOIN_ROUND, Geometry2D.END_ROUND))
+	# Each landmark joins on by a spit of land to the nearest road.
+	for mark in path.landmarks:
+		var at_list: Array = mark.get("at", [0.0, 0.0])
+		var at := Vector2(float(at_list[0]), float(at_list[1]))
+		var room: float = Props.ROOM.get(str(mark.get("prop", "")), 3.0) + RUNOFF + BEACH
+		var nearest := line[0]
+		for p in line:
+			if p.distance_squared_to(at) < nearest.distance_squared_to(at):
+				nearest = p
+		var spit := largest(Geometry2D.offset_polyline(PackedVector2Array([nearest, at]), room, Geometry2D.JOIN_ROUND, Geometry2D.END_ROUND))
+		shore = largest(Geometry2D.merge_polygons(shore, spit))
+	shore = largest(Geometry2D.offset_polygon(shore, ISLAND_FILL, Geometry2D.JOIN_ROUND))
+	return largest(Geometry2D.offset_polygon(shore, -ISLAND_FILL, Geometry2D.JOIN_ROUND))
+
+
+## How high the sea is round an island: as low as the hills get along the
+## shore, so it never floods the land.
+static func island_level(path: TrackPath, shore: PackedVector2Array) -> float:
+	if path.hills <= 0.0 or shore.is_empty():
+		return 0.0
+	var level := INF
+	for p in shore:
+		level = minf(level, path.ground_height(p.x, p.y))
+	return level
+
+
+## Whether a point is inside a polygon, counting edges crossed going along
+## +x from it.
+static func inside(polygon: PackedVector2Array, point: Vector2) -> bool:
+	var crossed := false
+	for i in polygon.size():
+		var a := polygon[i]
+		var b := polygon[(i + 1) % polygon.size()]
+		if (a.y <= point.y) != (b.y <= point.y) and a.x + (point.y - a.y) / (b.y - a.y) * (b.x - a.x) > point.x:
+			crossed = not crossed
+	return crossed
+
+
+## Which points of a grid are inside a polygon, 1 for in and 0 for out, as
+## rows of `cols`. Point (x, y) is at origin + (x, y) * cell. Each row is
+## filled between the edges crossing it.
+static func inside_grid(polygon: PackedVector2Array, origin: Vector2, cols: int, rows: int, cell: float) -> PackedByteArray:
+	var grid := PackedByteArray()
+	grid.resize(cols * rows)
+	grid.fill(0)
+	var crossings := []
+	crossings.resize(rows)
+	for y in rows:
+		crossings[y] = []
+	for i in polygon.size():
+		var a := polygon[i]
+		var b := polygon[(i + 1) % polygon.size()]
+		if a.y == b.y:
+			continue
+		# The rows this edge crosses, counting its lower end and not its upper.
+		var first := maxi(0, ceili((minf(a.y, b.y) - origin.y) / cell))
+		var last := mini(rows - 1, ceili((maxf(a.y, b.y) - origin.y) / cell) - 1)
+		for y in range(first, last + 1):
+			var z := origin.y + y * cell
+			crossings[y].append(a.x + (z - a.y) / (b.y - a.y) * (b.x - a.x))
+	for y in rows:
+		var xs: Array = crossings[y]
+		xs.sort()
+		for j in range(0, xs.size() - 1, 2):
+			var from := maxi(0, ceili((xs[j] - origin.x) / cell))
+			var to := mini(cols - 1, floori((xs[j + 1] - origin.x) / cell))
+			for x in range(from, to + 1):
+				grid[y * cols + x] = 1
+	return grid
+
+
+## The biggest of some polygons, which is the outside one when Clipper hands
+## back an outline and its holes.
+static func largest(polygons: Array) -> PackedVector2Array:
+	var best := PackedVector2Array()
+	var most := -1.0
+	for polygon in polygons:
+		var area := absf(_area(polygon))
+		if area > most:
+			most = area
+			best = polygon
+	return best
+
+
+static func _area(polygon: PackedVector2Array) -> float:
+	var sum := 0.0
+	for i in polygon.size():
+		var a := polygon[i]
+		var b := polygon[(i + 1) % polygon.size()]
+		sum += a.x * b.y - b.x * a.y
+	return sum * 0.5
+
+
+## Triangles covering `outer` but not `hole`, as a flat list of corners.
+## Clipper can't triangulate a polygon with a hole, so it's cut into four
+## around `centre`, a spot inside the hole: each quarter less the hole has
+## no hole of its own, since every bit of the hole reaches the cuts.
+static func _ring_triangles(outer: PackedVector2Array, hole: PackedVector2Array, centre: Vector2) -> PackedVector2Array:
+	var box := Rect2(outer[0], Vector2.ZERO)
+	for p in outer:
+		box = box.expand(p)
+	box = box.expand(centre).grow(1.0)
+	var corners := []
+	for sx in [box.position.x, box.end.x]:
+		for sy in [box.position.y, box.end.y]:
+			corners.append(Vector2(sx, sy))
+	var out := PackedVector2Array()
+	# Clipper turns every outline it hands back the same way, and holes the
+	# other way.
+	var outline_way := Geometry2D.is_polygon_clockwise(largest(Geometry2D.intersect_polygons(outer, outer)))
+	for corner in corners:
+		var quarter := PackedVector2Array([centre, Vector2(corner.x, centre.y), corner, Vector2(centre.x, corner.y)])
+		for piece in Geometry2D.intersect_polygons(quarter, outer):
+			if Geometry2D.is_polygon_clockwise(piece) != outline_way:
+				continue
+			for part in Geometry2D.clip_polygons(piece, hole):
+				if Geometry2D.is_polygon_clockwise(part) != outline_way:
+					continue
+				out.append_array(_triangles_of(part))
+	return out
+
+
+## Triangles covering a polygon with no holes. Ear clipping now and then
+## gives up on an awkward one, which is cut in half and tried again.
+static func _triangles_of(polygon: PackedVector2Array, depth := 0) -> PackedVector2Array:
+	var out := PackedVector2Array()
+	var corners := Geometry2D.triangulate_polygon(polygon)
+	if not corners.is_empty() or depth >= 6:
+		for i in corners:
+			out.append(polygon[i])
+		return out
+	var box := Rect2(polygon[0], Vector2.ZERO)
+	for p in polygon:
+		box = box.expand(p)
+	var halves: Array[Rect2] = []
+	if box.size.x > box.size.y:
+		halves = [Rect2(box.position, Vector2(box.size.x * 0.5, box.size.y)), Rect2(box.position + Vector2(box.size.x * 0.5, 0.0), Vector2(box.size.x * 0.5, box.size.y))]
+	else:
+		halves = [Rect2(box.position, Vector2(box.size.x, box.size.y * 0.5)), Rect2(box.position + Vector2(0.0, box.size.y * 0.5), Vector2(box.size.x, box.size.y * 0.5))]
+	for half in halves:
+		var r := half.grow(0.01)
+		var cut := PackedVector2Array([r.position, Vector2(r.end.x, r.position.y), r.end, Vector2(r.position.x, r.end.y)])
+		for piece in Geometry2D.intersect_polygons(cut, polygon):
+			out.append_array(_triangles_of(piece, depth + 1))
+	return out
+
+
+## A flat mesh from triangles seen from above, at height `y`, with the same
+## kind of vertices as a box so it draws with the bricks' shader as it is.
+static func _flat_mesh(triangles: PackedVector2Array, y: float) -> ArrayMesh:
+	var tool := SurfaceTool.new()
+	tool.begin(Mesh.PRIMITIVE_TRIANGLES)
+	for i in range(0, triangles.size() - 2, 3):
+		var a := triangles[i]
+		var b := triangles[i + 1]
+		var c := triangles[i + 2]
+		# Facing up, whichever way round they came.
+		if (b - a).cross(c - a) < 0.0:
+			var swap := b
+			b = c
+			c = swap
+		for p in [a, b, c]:
+			tool.set_normal(Vector3.UP)
+			tool.set_uv(p * 0.01)
+			tool.add_vertex(Vector3(p.x, y, p.y))
+	tool.index()
+	tool.generate_tangents()
+	return tool.commit()
+
+
+## One flat mesh drawn as a single instance with the bricks' material, in a
+## colour and a surface (see SceneryKit), casting no shadow.
+func _flat_draw(mesh: ArrayMesh, colour: Color, surface: int) -> void:
+	var multi := MultiMesh.new()
+	multi.transform_format = MultiMesh.TRANSFORM_3D
+	multi.use_colors = true
+	multi.use_custom_data = true
+	multi.mesh = mesh
+	multi.instance_count = 1
+	multi.set_instance_transform(0, Transform3D.IDENTITY)
+	multi.set_instance_color(0, colour)
+	multi.set_instance_custom_data(0, Color(float(surface), 0.0, 0.0, 0.0))
+	var draw := MultiMeshInstance3D.new()
+	draw.multimesh = multi
+	draw.material_override = SceneryKit.material()
+	draw.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	add_child(draw)
+
+
+## The sea all round an island, the beach inside the shore, waves breaking
+## just off it and boats out on the water.
+func _build_island() -> void:
+	var level := _sea_level
+	var centre := Vector2(track.points[0].x, track.points[0].z)
+	var box := Rect2(_shore[0], Vector2.ZERO)
+	for p in _shore:
+		box = box.expand(p)
+	var far := box.grow(SEA_OUT)
+	var sea_outline := PackedVector2Array([far.position, Vector2(far.end.x, far.position.y), far.end, Vector2(far.position.x, far.end.y)])
+	_flat_draw(_flat_mesh(_ring_triangles(sea_outline, _shore, centre), level + 0.05), Color("#1e6fb5"), SceneryKit.WATER)
+	var inland := largest(Geometry2D.offset_polygon(_shore, -BEACH, Geometry2D.JOIN_ROUND))
+	if not inland.is_empty():
+		_flat_draw(_flat_mesh(_ring_triangles(_shore, inland, centre), level + 0.04), Props.TAN, SceneryKit.SMOOTH)
+	# Waves breaking just off the sand, one every so often round the shore.
+	# Clipper turns the shore the same way every time, so which side is out
+	# comes from which way round it goes.
+	var outward := signf(_area(_shore))
+	var next := 0.0
+	var gone := 0.0
+	for i in _shore.size():
+		var a := _shore[i]
+		var b := _shore[(i + 1) % _shore.size()]
+		var length := a.distance_to(b)
+		while next < gone + length:
+			var along := (b - a) / maxf(length, 0.001)
+			var out := Vector2(along.y, -along.x) * outward
+			var mid := a + along * (next - gone)
+			var spot := mid + out * _rng.randf_range(2.0, 8.0)
+			var size := Vector3(0.5, 0.12, _rng.randf_range(5.0, 10.0))
+			var turn := Basis.looking_at(Vector3(along.x, 0.0, along.y), Vector3.UP)
+			_kit.turned_box(Vector3(spot.x, level + 0.14, spot.y), size, turn, Props.WHITE, SceneryKit.SMOOTH)
+			next += _rng.randf_range(14.0, 22.0)
+		gone += length
+	# Boats out on the water, clear of the land.
+	var tries := 0
+	var boats := 0
+	while boats < 7 and tries < 60:
+		tries += 1
+		var from := _shore[_rng.randi() % _shore.size()]
+		var away := (from - box.get_center()).normalized()
+		var spot := from + away * _rng.randf_range(40.0, 260.0)
+		var clear := true
+		for check in [spot, spot + Vector2(8, 0), spot - Vector2(8, 0), spot + Vector2(0, 8), spot - Vector2(0, 8)]:
+			clear = clear and not inside(_shore, check)
+		if clear:
+			_boat(Vector3(spot.x, level, spot.y), _rng.randf() * TAU)
+			boats += 1
 
 
 ## The hall around an indoor course: its walls with a coloured band round

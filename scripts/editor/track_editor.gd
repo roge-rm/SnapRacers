@@ -803,7 +803,7 @@ func _build_full() -> void:
 	if _full != null or track.pieces.is_empty():
 		return
 	_full = TrackBuilder.new(track)
-	_full.scenery = "none"
+	_full.scenery = "sea"
 	_full.sky = false
 	add_child(_full)
 	_quick.visible = false

@@ -113,6 +113,20 @@ func _work_out_heights() -> void:
 	var tilted_gap: PackedFloat32Array = leaning[1]
 	var drop: float = Scenery.theme_named(track.theme).get("drop", 0.0)
 	var high: Array = _spread(_up_high) if drop > 0.0 else []
+	# On an island the ground is just under the beach from a little inside it
+	# out, and eases up from there. The rings inside the shore, CELL apart,
+	# say how far in each point is.
+	var rings: Array[PackedByteArray] = []
+	var sea := 0.0
+	if Scenery.theme_named(track.theme).get("island", false):
+		var shore := Scenery.island_shore(track)
+		sea = Scenery.island_level(track, shore) - 0.02
+		if not shore.is_empty():
+			for j in int(ceilf(Scenery.ISLAND_RAMP / CELL)) + 1:
+				var ring := Scenery.largest(Geometry2D.offset_polygon(shore, -(Scenery.BEACH + 6.0 + j * CELL)))
+				if ring.is_empty():
+					break
+				rings.append(Scenery.inside_grid(ring, origin, cols, rows, CELL))
 	heights.resize(cols * rows)
 	for z in rows:
 		for x in cols:
@@ -126,6 +140,11 @@ func _work_out_heights() -> void:
 				var away := smoothstep(edge + Scenery.RUNOFF, edge + Scenery.RUNOFF + DROP_BANK, gap[i])
 				var ridge := _low_edge(up, edge) - LEDGE - maxf(high[1][i] - edge, 0.0) * CLIFF
 				h = maxf(h - drop * lift * near * away, ridge)
+			if not rings.is_empty():
+				var inside := 0
+				while inside < rings.size() and rings[inside][i] == 1:
+					inside += 1
+				h = lerpf(sea, h, smoothstep(0.0, float(rings.size()), float(inside)))
 			# Beside road on the ground, the ground comes up to meet its lower
 			# edge, which is the road's height unless it's starting to lean.
 			var k := nearest[i]

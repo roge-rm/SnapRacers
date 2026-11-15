@@ -77,6 +77,8 @@ const LANDMARKS := [
 	["Hot air balloon", "hot_air_balloon"], ["Airship", "airship"], ["Airship dock", "sky_dock"], ["Waterfall island", "falls_isle"],
 	["Rainbow", "rainbow"], ["Weather vane", "weather_vane"], ["Windmill island", "windmill_isle"], ["Sky lighthouse", "sky_lighthouse"],
 	["Floating island", "sky_isle"], ["Cloud", "cloud_puff"],
+	["Beach hotel", "beach_hotel"], ["Beach hut", "beach_hut"], ["Lifeguard tower", "lifeguard_tower"], ["Sandcastle", "sandcastle"],
+	["Watchtower", "watchtower"], ["Harbour fort", "harbour_fort"], ["Penguins", "penguins"],
 ]
 const LANDMARK_GROUPS := [
 	["Countryside", ["barn", "silo", "big_windmill", "church", "villa", "cottage", "cabin", "trullo", "stilt_hut", "oast_house", "red_roof"]],
@@ -88,6 +90,7 @@ const LANDMARK_GROUPS := [
 	["Desert", ["dune", "mesa", "butte", "saloon", "water_tower", "saguaro", "mine_carts", "windpump"]],
 	["Jungle", ["stepped_pyramid", "stone_head", "waterfall", "rope_bridge", "canopy_walk", "karst", "jungle_hut", "parrots"]],
 	["City", ["skyscraper", "neon_tower", "lantern_gate", "tunnel_mouth", "spire_tower", "clock_tower", "overpass", "chedi", "city_block", "townhouses", "double_decker", "tuk_tuk", "traffic_light", "neon_sign", "phone_box"]],
+	["Beach", ["beach_hotel", "beach_hut", "lifeguard_tower", "sandcastle", "watchtower", "harbour_fort", "penguins"]],
 	["Sky", ["hot_air_balloon", "airship", "sky_dock", "falls_isle", "rainbow", "weather_vane", "windmill_isle", "sky_lighthouse", "sky_isle", "cloud_puff"]],
 ]
 const SURFACES := [["Road", "asphalt"], ["Concrete", "concrete"], ["Dirt", "dirt"], ["Gravel", "gravel"], ["Grass", "grass"], ["Mud", "mud"], ["Sand", "sand"], ["Ice", "ice"]]
@@ -104,7 +107,8 @@ const THEME_NAMES := {
 	"timber": "Mountains", "frost": "Snow", "desert": "Desert city", "railway": "Railway",
 	"windmill": "Windmills", "space": "Space centre", "volcano": "Volcano", "castle": "Castle",
 	"sakura": "Cherry blossom", "ardennes": "Forest hills", "royal_park": "Royal park", "golden_hills": "Golden hills",
-	"kent_downs": "Kent downs", "brittany": "Brittany", "varmland": "Swedish pines", "trondelag": "Norway",
+	"gran_canaria": "Beach", "sardinia": "Rocky coast", "malta": "Harbour", "phillip_island": "Penguin coast",
+	"island": "Island", "kent_downs": "Kent downs", "brittany": "Brittany", "varmland": "Swedish pines", "trondelag": "Norway",
 	"hall_red": "Red hall", "hall_green": "Green hall", "hall_blue": "Blue hall", "hall_neon": "Neon hall",
 	"park_wonder": "Theme park", "park_lake": "Lakeside park", "park_carolina": "Pine park", "park_desert": "Desert park",
 	"alps_meadow": "Alpine meadow", "alps_snow": "Ski resort", "alps_lake": "Alpine lake", "alps_pass": "Mountain pass",
