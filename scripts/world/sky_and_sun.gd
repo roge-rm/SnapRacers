@@ -112,7 +112,7 @@ static func add_to(parent: Node, shadow_distance := 60.0, backdrop := Color.TRAN
 		sun.light_color = sun.light_color.lerp(Color("#ffb070"), 0.5)
 	sun.light_energy = look.energy * SUN_THROUGH.get(weather, 1.0)
 	# Heavy cloud leaves no real shadows, which saves drawing them too.
-	sun.shadow_enabled = weather not in ["rain", "storm"] and Graphics.shadows() > 0.0
+	sun.shadow_enabled = weather not in ["rain", "storm", "snow"] and Graphics.shadows() > 0.0
 	sun.shadow_opacity = look.get("shadow_opacity", 1.0) * (0.6 if cloudy > 0.0 or weather in ["fog", "dust"] else 1.0)
 	sun.directional_shadow_max_distance = minf(shadow_distance, look.get("shadow_reach", shadow_distance)) * maxf(Graphics.shadows(), 0.1)
 	# A tight first split keeps shadows sharp on close things like the

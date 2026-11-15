@@ -132,6 +132,10 @@ func _warm_race(weather: String, time: String) -> Node:
 		drift.rotation.y = PI
 		kart.add_child(drift)
 		_clear_later = race
+		# Snow has no sun shadows, but fog and dust do, so shadows go on here
+		# to warm them with fog, then without it once the fog clears.
+		for sun in race.find_children("*", "DirectionalLight3D", true, false):
+			(sun as DirectionalLight3D).shadow_enabled = Graphics.shadows() > 0.0
 	# A puddle, with its own shaders, just ahead and off to the side, in
 	# both races so it's warmed with fog on and off.
 	var puddle := Puddles.water_sample(1.5)
