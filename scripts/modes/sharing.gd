@@ -154,6 +154,8 @@ static func _validate(kind: String, data: Dictionary, saved := false) -> Diction
 			if not data.get("races") is Array or data.races.size() < (0 if saved else CupDesign.FEWEST) or data.races.size() > CupDesign.MOST:
 				return {"why": "A cup needs 2 to 8 races."}
 			var cup := {"name": data.get("name", "My cup"), "made_by": data.get("made_by", ""), "races": []}
+			if data.get("trophy") is String and _text(data.trophy, MOST_NAME):
+				cup["trophy"] = data.trophy
 			for race in data.races:
 				if not race is Dictionary or not race.get("course") is Dictionary or not _text(race.get("from", ""), 4096):
 					return {"why": "That cup has an invalid race."}
@@ -435,7 +437,10 @@ static func cup_from_online(cup: Dictionary) -> Dictionary:
 		if course is Dictionary:
 			var found := _validate(COURSE, course)
 			races.append({"from": game_path_of(found.data) if not found.has("why") else "", "course": course})
-	return {"name": str(cup.get("name", "A cup")), "made_by": str(cup.get("made_by", "")), "races": races}
+	var out := {"name": str(cup.get("name", "A cup")), "made_by": str(cup.get("made_by", "")), "races": races}
+	if cup.get("trophy") is String and cup.trophy != "":
+		out["trophy"] = cup.trophy
+	return out
 
 
 static func saved_paths(kind: String) -> Array[String]:

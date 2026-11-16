@@ -17,6 +17,9 @@ const MOST := 8
 
 var name := "My cup"
 var made_by := ""
+## The id of the game's cup whose trophy this cup awards, or "" for the one
+## picked from its name. An id that isn't one of the game's cups counts as "".
+var trophy := ""
 ## The races in order, each { "from": where the course came from, "course":
 ## the course itself }.
 var races: Array = []
@@ -26,6 +29,7 @@ static func from_dict(data: Dictionary) -> CupDesign:
 	var c := CupDesign.new()
 	c.name = str(data.get("name", "My cup"))
 	c.made_by = str(data.get("made_by", ""))
+	c.trophy = str(data.get("trophy", ""))
 	for race in data.get("races", []):
 		if race is Dictionary and race.get("course") is Dictionary:
 			c.races.append({"from": str(race.get("from", "")), "course": race.course.duplicate(true)})
@@ -33,7 +37,29 @@ static func from_dict(data: Dictionary) -> CupDesign:
 
 
 func to_dict() -> Dictionary:
-	return {"name": name, "made_by": made_by, "races": races.duplicate(true)}
+	var out := {"name": name, "made_by": made_by, "races": races.duplicate(true)}
+	if trophy != "":
+		out["trophy"] = trophy
+	return out
+
+
+## The trophy's top, like { "top": "gear" }, and its colour: the picked game
+## cup's, or the ones picked from the cup's name.
+func trophy_spec() -> Dictionary:
+	return trophy_of(trophy, name).spec
+
+
+func trophy_colour() -> Color:
+	return trophy_of(trophy, name).colour
+
+
+## { "spec", "colour" } for a cup's trophy pick, falling back to the one from
+## its name when there's no pick or it isn't one of the game's cups.
+static func trophy_of(pick: String, cup_name: String) -> Dictionary:
+	for game_cup in GrandPrix.cups():
+		if pick != "" and game_cup.id == pick:
+			return {"spec": game_cup.get("trophy", {}), "colour": Color(game_cup.get("colour", "#a3a2a4"))}
+	return {"spec": TrophyModel.spec_for(cup_name), "colour": TrophyModel.colour_for(cup_name)}
 
 
 static func load_file(path: String) -> CupDesign:
@@ -113,7 +139,19 @@ func to_cup(id: String) -> Dictionary:
 		if file != null:
 			file.store_string(JSON.stringify(races[i].course))
 		paths.append(to)
-	return {"id": id, "name": name, "paths": paths}
+	var out := {"id": id, "name": name, "paths": paths}
+	out.merge(award(trophy))
+	return out
+
+
+## The "trophy" and "colour" entries a Grand Prix cup takes for a pick, or
+## nothing if it isn't one of the game's cups, so the podium falls back to the
+## trophy from the cup's name.
+static func award(pick: String) -> Dictionary:
+	for game_cup in GrandPrix.cups():
+		if pick != "" and game_cup.id == pick:
+			return {"trophy": game_cup.get("trophy", {}), "colour": game_cup.get("colour", "#a3a2a4")}
+	return {}
 
 
 ## A cup's id for its trophies, which is "mine_" and its file name.

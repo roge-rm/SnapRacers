@@ -320,7 +320,7 @@ func _setup() -> Dictionary:
 	var time := Conditions.picked(str(settings.get("time", Conditions.RANDOM)), str(course.get("time", Conditions.RANDOM)), fixed)
 	var conditions := Conditions.resolve(str(course.get("theme", "orchard")), weather, time, randi())
 	conditions.time_fixed = fixed != ""
-	return {
+	var setup := {
 		"conditions": conditions.to_dict(),
 		"mode": settings.mode, "course": course, "laps": int(settings.laps) if settings.mode == SINGLE else int(course.get("laps", 3)),
 		"difficulty": settings.difficulty, "entries": entries, "round": cup_round,
@@ -329,6 +329,10 @@ func _setup() -> Dictionary:
 		"reversed": bool(settings.get("reversed", false)),
 		"mirrored": bool(settings.get("mirrored", false)),
 	}
+	# Only a cup with a trophy picked carries it, so older games see no change.
+	if settings.mode == CUP and str(settings.cup.get("trophy", "")) != "":
+		setup["cup_trophy"] = str(settings.cup.trophy)
+	return setup
 
 
 ## A device has its race loaded. Once everyone has, the countdown starts.
@@ -483,7 +487,9 @@ func _begin(race_setup: Dictionary) -> void:
 	if race_setup.mode == CUP:
 		Game.mode = Game.MODE_GRAND_PRIX
 		if Game.grand_prix == null or int(race_setup.round) == 0:
-			Game.grand_prix = GrandPrix.new({"id": "net", "name": race_setup.cup_name, "paths": []})
+			var cup := {"id": "net", "name": race_setup.cup_name, "paths": []}
+			cup.merge(CupDesign.award(str(race_setup.get("cup_trophy", ""))))
+			Game.grand_prix = GrandPrix.new(cup)
 		var gp := Game.grand_prix
 		gp.round = int(race_setup.round)
 		gp.difficulty = race_setup.difficulty

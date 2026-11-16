@@ -477,6 +477,10 @@ func _show_cup(cup: Dictionary) -> void:
 	var title := str(cup.get("name", "No cup picked"))
 	var spec := TrophyModel.spec_for(title)
 	var colour := TrophyModel.colour_for(title)
+	var picked := CupDesign.award(str(cup.get("trophy", "")))
+	if not picked.is_empty():
+		spec = picked.trophy
+		colour = Color(picked.colour)
 	for game_cup in GrandPrix.cups():
 		if game_cup.name == title:
 			spec = game_cup.get("trophy", {})
@@ -638,7 +642,7 @@ func _pick() -> void:
 			for path in yours:
 				var mine := CupDesign.load_file(path)
 				if mine != null and mine.problem() == "":
-					_picker_list.add_child(_choice(mine.name, {"cup": {"name": mine.name, "made_by": mine.made_by, "courses": mine.races.map(func(r): return r.course)}}))
+					_picker_list.add_child(_choice(mine.name, {"cup": _your_cup(mine)}))
 	else:
 		for cup in GrandPrix.cups():
 			_picker_list.add_child(MenuStyle.heading(cup.name))
@@ -664,6 +668,13 @@ func _choice(label: String, changes: Dictionary) -> Button:
 
 
 ## One of the game's cups, with its courses in it, to send to everyone.
+static func _your_cup(mine: CupDesign) -> Dictionary:
+	var out := {"name": mine.name, "made_by": mine.made_by, "courses": mine.races.map(func(r): return r.course)}
+	if mine.trophy != "":
+		out["trophy"] = mine.trophy
+	return out
+
+
 static func _game_cup(cup: Dictionary) -> Dictionary:
 	return {"name": cup.name, "courses": cup.tracks.map(func(id): return JSON.parse_string(FileAccess.get_file_as_string(Tracks.path_of(id))))}
 

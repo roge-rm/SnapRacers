@@ -225,7 +225,7 @@ func _cup_card(id: String, cup_name: String, spec: Dictionary, colour: Color, pa
 func _your_cup(mine: CupDesign, path: String) -> void:
 	var id := CupDesign.id_of(path)
 	var paths := mine.races.map(func(r): return str(r.from))
-	var card := _cup_card(id, mine.name, TrophyModel.spec_for(mine.name), TrophyModel.colour_for(mine.name), paths)
+	var card := _cup_card(id, mine.name, mine.trophy_spec(), mine.trophy_colour(), paths)
 	card.tapped.connect(func() -> void:
 		Game.mode = Game.MODE_GRAND_PRIX
 		Game.show_race_setup(_starter(mine, id, Game.cups_for_two), Game.show_your_cups, true, Game.cups_for_two))

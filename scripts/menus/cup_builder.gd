@@ -4,10 +4,16 @@ extends Control
 ## Make a Grand Prix cup of your own or change one, with a name and its races
 ## in order, from the game's courses and the ones you've built.
 
+## A trophy tile's size.
+const TILE := Vector2(96.0, 120.0)
+
 var path := ""
 var back := Callable()
 var cup: CupDesign
 var _name: LineEdit
+var _trophies: HFlowContainer
+## The trophy tiles' pictures by their key, filled in as they're taken.
+var _tiles := {}
 var _list: VBoxContainer
 var _problem: Label
 var _save: Button
@@ -37,6 +43,14 @@ func _ready() -> void:
 		cup.name = text.strip_edges()
 		_show())
 	column.add_child(_name)
+
+	column.add_child(MenuStyle.heading("Trophy"))
+	_trophies = HFlowContainer.new()
+	_trophies.add_theme_constant_override("h_separation", 8)
+	_trophies.add_theme_constant_override("v_separation", 8)
+	column.add_child(_trophies)
+	Game.trophy_pictures().ready_for.connect(_on_picture)
+	_show_trophies()
 
 	column.add_child(MenuStyle.heading("Races"))
 	_list = VBoxContainer.new()
@@ -83,6 +97,48 @@ func _ready() -> void:
 			go_back())
 	add_child(_delete_dialog)
 	_show()
+
+
+## One tile for each trophy the game's cups use, and one for the trophy
+## picked from the cup's name. The one the cup awards is lit.
+func _show_trophies() -> void:
+	for child in _trophies.get_children():
+		child.queue_free()
+	_tiles.clear()
+	var by_name := Button.new()
+	by_name.text = "From its name"
+	by_name.set_meta("trophy", "")
+	by_name.custom_minimum_size = TILE
+	by_name.pressed.connect(_pick_trophy.bind(""))
+	BuilderStyle.dress_tile(by_name, cup.trophy == "")
+	_trophies.add_child(by_name)
+	for game_cup in GrandPrix.cups():
+		var spec: Dictionary = game_cup.get("trophy", {})
+		var colour := Color(game_cup.get("colour", "#a3a2a4"))
+		var key := TrophyThumbnails.key_of(spec, colour, "gold")
+		var tile := Button.new()
+		tile.set_meta("trophy", game_cup.id)
+		tile.tooltip_text = str(game_cup.name)
+		tile.custom_minimum_size = TILE
+		tile.icon = TrophyThumbnails.picture(key)
+		tile.expand_icon = true
+		tile.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		tile.pressed.connect(_pick_trophy.bind(game_cup.id))
+		BuilderStyle.dress_tile(tile, cup.trophy == game_cup.id)
+		_trophies.add_child(tile)
+		_tiles[key] = _tiles.get(key, []) + [tile]
+		Game.trophy_pictures().take(spec, colour, "gold")
+
+
+func _pick_trophy(id: String) -> void:
+	cup.trophy = id
+	_show_trophies()
+
+
+func _on_picture(key: String, picture: Texture2D) -> void:
+	for tile in _tiles.get(key, []):
+		if is_instance_valid(tile):
+			tile.icon = picture
 
 
 func _course_button(course_path: String) -> Button:
