@@ -80,7 +80,7 @@ const TROPHY_IN := 5.6
 ## head, and how big it can be next to the full size one.
 const TROPHY_HIGH := 3.0
 const TROPHY_TALL := 0.45
-const TROPHY_WIDE := 0.25
+const TROPHY_WIDE := 0.2
 const TROPHY_MOST := 0.26
 ## The bar under the trophy's plinth that sits in the winner's hand, in
 ## metres: its radius, a little under the hand's hole, its length and how
