@@ -44,6 +44,11 @@ func _initialize() -> void:
 		var partial := mixed.duplicate_design()
 		partial.pieces.resize(partial.pieces.size() - missing)
 		_check_return(partial, missing, "mixed-angle fixture missing %d pieces" % missing)
+	# Three-piece returns that need the search to reach past the 15 and 75 degree bends.
+	for missing in [5, 6]:
+		var partial := mixed.duplicate_design()
+		partial.pieces.resize(partial.pieces.size() - missing)
+		_check_return(partial, 7, "mixed-angle fixture missing %d pieces with up to 7 to add" % missing)
 	var diagonal := mixed.duplicate_design()
 	diagonal.start = Transform3D(TrackPath.heading_basis(5), Vector3(17.12345, 8, -63.56789))
 	diagonal.pieces.pop_back()

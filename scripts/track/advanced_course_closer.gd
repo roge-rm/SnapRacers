@@ -26,6 +26,9 @@ var _max_displacement := 0.0
 var _queries := 0
 var _limited := false
 var _heading := 0
+## Per heading, the exact moves one choice makes, so a node knows whether a
+## single piece can finish it.
+var _finishers: Array[Dictionary] = []
 
 
 func _init(for_course: CourseDesign) -> void:
@@ -70,16 +73,24 @@ func find(most: int, budget: int) -> Array:
 		_samples.append(_sample(piece))
 		_lengths.append(piece.path_length())
 		_max_displacement = maxf(_max_displacement, piece.exit().origin.length())
+	_finishers.clear()
+	for h in 24:
+		var moves := {}
+		for piece in _pieces:
+			var move := ClosureCursor.advance(ClosureCursor.start(h), piece)
+			if not move.is_empty():
+				moves[ClosureCursor.key(move)] = true
+		_finishers.append(moves)
 	# Nodes keep only a parent and a choice. Occupancy is rebuilt for the
 	# expanded route, rather than copied into every queued child.
 	var root := {"cursor": cursor, "parent": null, "choice": -1, "depth": 0, "length": 0.0}
 	var heap := []
-	_push(heap, [_guess(cursor), 0.0, 0, root])
+	_push(heap, [_guess(cursor), _guess(cursor), 0.0, 0, root])
 	var seen := {ClosureCursor.key(cursor): 1}
 	var count := 0
 	var transitions := 0
 	while not heap.is_empty() and expanded_count < budget:
-		var node: Dictionary = _pop(heap)[3]
+		var node: Dictionary = _pop(heap)[4]
 		expanded_count += 1
 		if ClosureCursor.at_start(node.cursor, _heading):
 			var path := _path(node)
@@ -121,7 +132,7 @@ func find(most: int, budget: int) -> Array:
 				return []
 			seen[key] = seen.get(key, 0) + 1
 			count += 1
-			_push(heap, [depth + remaining, length, count, child])
+			_push(heap, [depth + remaining, remaining, length, count, child])
 	return []
 
 
@@ -129,7 +140,16 @@ func _guess(cursor: PackedInt64Array) -> int:
 	var p := ClosureCursor.pose(cursor).origin
 	var h := posmod(int(cursor[8]) - _heading, 24)
 	var turns := float(mini(h, 24 - h)) / 6.0
-	return ceili(maxf(p.length() / _max_displacement, maxf(turns, float(cursor[9]) / 2.0)) - 0.00000001)
+	var guess := ceili(maxf(p.length() / _max_displacement, maxf(turns, float(cursor[9]) / 2.0)) - 0.00000001)
+	if guess > 1 or ClosureCursor.at_start(cursor, _heading):
+		return guess
+	# One piece only if some choice makes exactly the move back to the start.
+	var back := PackedInt64Array()
+	for i in 8:
+		back.append(-cursor[i])
+	back.append(_heading)
+	back.append(-cursor[9])
+	return 1 if _finishers[int(cursor[8])].has(ClosureCursor.key(back)) else 2
 
 
 func _path(node: Dictionary) -> Array:
@@ -208,8 +228,12 @@ func _overlaps(a: Vector3, b: Vector3, c: Vector3, d: Vector3) -> bool:
 	return absf(lerpf(a.y, b.y, t) - lerpf(c.y, d.y, u)) < CLEARANCE
 
 
+## Orders by fewest pieces in all, then nearest to closing, then shortest road.
 func _less(a: Array, b: Array) -> bool:
-	return a[0] < b[0] or (a[0] == b[0] and (a[1] < b[1] or (a[1] == b[1] and a[2] < b[2])))
+	for i in 4:
+		if a[i] != b[i]:
+			return a[i] < b[i]
+	return false
 
 
 func _push(heap: Array, item: Array) -> void:
