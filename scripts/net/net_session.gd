@@ -29,11 +29,11 @@ signal race_over(order: Array)
 const VERSION := 22
 const PORT := 27280
 const MOST_KARTS := 8
-## How long in ms an ENet connection can go quiet before it's dropped, at
-## the least and at the most. Building a race holds up the whole game for
-## several seconds on a slow phone, longer than ENet's own 5 s minimum.
-const QUIET_LEAST := 20000
-const QUIET_MOST := 60000
+## How long in ms an ENet connection can go quiet before it's dropped.
+## Building a race holds up the whole game for several seconds on a slow
+## phone, longer than ENet's own 5 s minimum.
+const QUIET_LEAST := 15000
+const QUIET_MOST := 15000
 ## What a host can put on.
 const SINGLE := "race"
 const CUP := "cup"
