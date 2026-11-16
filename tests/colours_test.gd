@@ -3,10 +3,11 @@ extends Node
 ## Kart and driver colours: the old palette colours load as the same colour,
 ## a colour from anywhere survives saving, loading and share codes, a bad one
 ## falls back, Recent keeps the last 6 newest first, and the garage and driver
-## screen palettes show Recent and open More colours.
+## screen palettes show Recent and open More colours and the custom picker, whose
+## colour maths round trips.
 ##
 ## Saves settings, so run it with XDG_DATA_HOME inside build/:
-##   XDG_DATA_HOME=build/colours-profile tools/godot/Godot_v4.7.2-stable_linux.x86_64 --headless --fixed-fps 60 --path . res://tests/colours_test.tscn
+##   XDG_DATA_HOME=$PWD/build/colours-profile tools/godot/Godot_v4.7.2-stable_linux.x86_64 --headless --fixed-fps 60 --path . res://tests/colours_test.tscn
 
 var failures := 0
 var checks := 0
@@ -29,7 +30,9 @@ func _ready() -> void:
 	_new_colours()
 	_bad_colours()
 	_recent()
+	_picker_maths()
 	await _palettes()
+	await _screens()
 	Game.set_setting("paint", "recent", saved_recent)
 	print("%d colour checks, %d failed." % [checks, failures])
 	get_tree().quit(1 if failures > 0 else 0)
@@ -126,7 +129,7 @@ func _palettes() -> void:
 	var main: Array[Color] = [Color("#c4281c"), Color("#0d69ab")]
 	palette.show_colours(main, 8, main[0])
 	await get_tree().process_frame
-	check(not palette._recent_row.visible, "Recent is hidden while it's empty")
+	check(palette._recent_row.visible and palette._plus.visible and not palette._recent[0].visible, "Recent shows just the + while it's empty")
 	var got: Array = []
 	palette.picked.connect(func(colour: Color) -> void: got.append(colour))
 	palette.open_more()
@@ -136,7 +139,7 @@ func _palettes() -> void:
 	await get_tree().process_frame
 	check(got == [Color(Paints.MORE[13])], "picking in More colours picks that colour")
 	check(not palette.more_open(), "and closes the grid")
-	check(palette._recent_row.visible and palette._recent[0].visible and palette._recent[0].get_meta("colour") == Color(Paints.MORE[13]) and not palette._recent[1].visible, "and puts it in Recent")
+	check(palette._recent[0].visible and palette._recent[0].get_meta("colour") == Color(Paints.MORE[13]) and not palette._recent[1].visible, "and puts it in Recent")
 	palette._grid.get_child(1).pressed.emit()
 	check(got.back() == main[1] and palette._recent[0].get_meta("colour") == main[1] and palette._recent[1].get_meta("colour") == Color(Paints.MORE[13]), "a main colour goes first in Recent")
 	palette._recent[1].pressed.emit()
@@ -144,6 +147,22 @@ func _palettes() -> void:
 	palette.open_more()
 	palette.close_more()
 	check(not palette.more_open(), "More colours closes without a pick")
+	# The custom picker.
+	palette.set_current(Color("#3a8dde"))
+	palette.open_picker()
+	check(palette.picker_open() and palette.more_open(), "the custom picker opens")
+	check(palette._picker.colour().is_equal_approx(Color("#3a8dde")), "starting from the colour that's picked")
+	palette._picker._square.changed.emit(Vector2(0.5, 0.25))
+	var want := ColourPicker.colour_of(palette._picker.hue, 0.5, 0.75)
+	got.clear()
+	palette.use_picker()
+	await get_tree().process_frame
+	check(got.size() == 1 and got[0].is_equal_approx(want) and not palette.picker_open(), "Use picks the colour and closes it")
+	check(Paints.code(palette._recent[0].get_meta("colour")) == Paints.code(want), "and puts it first in Recent")
+	palette.open_picker()
+	palette._picker._strip.changed.emit(Vector2(0.0, 0.5))
+	palette.close_picker()
+	check(not palette.picker_open() and got.size() == 1 and Paints.code(ColourPalette.recent_colours()[0]) == Paints.code(want), "closing the picker picks nothing")
 	palette.queue_free()
 	var skin := CharacterDesign.colours_for("head")
 	var hair := CharacterDesign.colours_for("hair")
@@ -154,3 +173,84 @@ func _palettes() -> void:
 		bright_ok = bright_ok and hex in Paints.MORE
 	check(bright_ok, "the bright skin and hair colours that left are in More colours")
 	Game.set_setting("paint", "recent", [])
+
+
+func _picker_maths() -> void:
+	print("-- Custom picker")
+	var ok := true
+	for h in [0.0, 0.08, 0.33, 0.5, 0.71, 0.95]:
+		for sv in [Vector2(1, 1), Vector2(0.5, 0.75), Vector2(0.2, 0.3), Vector2(0.9, 0.6)]:
+			var c := ColourPicker.colour_of(h, sv.x, sv.y)
+			ok = ok and absf(c.h - h) < 0.002 and absf(c.s - sv.x) < 0.002 and absf(c.v - sv.y) < 0.002
+	check(ok, "hue, saturation and value come back from the colour they made")
+	check(ColourPicker.colour_of(0.0, 1.0, 1.0) == Color("#ff0000") and ColourPicker.colour_of(0.5, 0.0, 1.0) == Color.WHITE and ColourPicker.colour_of(0.3, 1.0, 0.0) == Color.BLACK, "red, white and black are where they should be")
+	check(ColourPicker.colour_of(-1.0, 2.0, 5.0) == ColourPicker.colour_of(0.0, 1.0, 1.0), "values off the ends are held to them")
+	var picker := ColourPicker.new()
+	add_child(picker)
+	picker.set_colour(Color("#0d69ab"))
+	check(picker.colour().is_equal_approx(Color("#0d69ab")), "the picker starts from a colour and shows it")
+	picker._square.changed.emit(Vector2(0.0, 1.0))
+	check(picker.colour() == Color.BLACK, "the bottom of the square is black")
+	picker._square.changed.emit(Vector2(0.0, 0.0))
+	check(picker.colour() == Color.WHITE, "the top left is white")
+	picker._strip.changed.emit(Vector2(0.0, 0.0))
+	picker._square.changed.emit(Vector2(1.0, 0.0))
+	check(picker.colour() == Color("#ff0000"), "the top right is the strip's hue")
+	var seen: Array = []
+	picker.used.connect(func(colour: Color) -> void: seen.append(colour))
+	picker._square.accepted.emit()
+	check(seen == [Color("#ff0000")], "A uses the colour")
+	picker.queue_free()
+
+
+func _screens() -> void:
+	print("-- Garage and driver screen pickers")
+	Game.set_setting("paint", "recent", [])
+	var host := Node.new()
+	add_child(host)
+	Game.start(host, false)
+	Game.show_garage()
+	var garage: Garage = await _find(host, "Garage")
+	garage.set_painting(true)
+	await get_tree().process_frame
+	var ui: GarageUI = garage.ui
+	ui.open_more_colours()
+	check(ui._palette.more_open() and ui.is_over_ui(Vector2(1, 1)), "the garage opens More colours")
+	ui._palette.close_more()
+	check(not ui._palette.more_open(), "and closes it")
+	ui._palette.open_picker()
+	check(ui._palette.picker_open() and ui.is_over_ui(Vector2(1, 1)), "the garage opens the custom picker")
+	ui._palette.use_picker()
+	check(not ui._palette.picker_open() and ui.paint_colour().is_equal_approx(ui._palette._picker.colour()), "and Use paints with it")
+	ui.next_colour(1)
+	var first := ui.paint_colour()
+	ui.next_colour(1)
+	ui.next_colour(-1)
+	check(ui.paint_colour() == first, "LB and RB step through the colours, Recent first")
+	Game.set_setting("paint", "recent", [])
+	ColourPalette.remember(Color("#12ab9e"))
+	ui._paint_colour = Color("#12ab9e")
+	ui.next_colour(1)
+	check(ui.paint_colour() == Color(GarageUI.PAINTS[0]), "after the last of Recent comes the first main colour")
+	ui.next_colour(-1)
+	check(ui.paint_colour() == Color("#12ab9e"), "and back again")
+	Game.show_driver()
+	var builder: Node = await _find(host, "DriverBuilder")
+	builder.ui.show_slot("torso")
+	await get_tree().process_frame
+	var swatches: ColourPalette = builder.ui._swatches
+	swatches.open_picker()
+	check(swatches.picker_open() and builder.ui.is_over_ui(Vector2(1, 1)), "the driver screen opens the custom picker")
+	swatches.close_more()
+	check(not swatches.more_open(), "and close_more closes it")
+	host.queue_free()
+	Game.set_setting("paint", "recent", [])
+
+
+func _find(host: Node, type: String) -> Node:
+	for i in 600:
+		await get_tree().process_frame
+		for child in host.get_children():
+			if child.get_script() != null and child.get_script().get_global_name() == type:
+				return child
+	return null

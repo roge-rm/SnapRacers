@@ -1,9 +1,10 @@
 extends Node
 
 ## Pictures of the colour palettes: the garage's with Recent, its More colours
-## grid, and the driver screen's skin and hair. Needs a screen, and sets
+## grid and custom picker, the same in a 960x540 window, and the driver
+## screen's skin and hair and its picker. Needs a screen, and sets
 ## Recent, so run it with its own XDG_DATA_HOME. Saved where the argument says.
-##   XDG_DATA_HOME=build/colours-profile DISPLAY=:0 tools/godot/Godot_v4.7.2-stable_linux.x86_64 --path . res://tools/shots/colour_shots.tscn -- /some/folder
+##   XDG_DATA_HOME=$PWD/build/colours-profile DISPLAY=:0 tools/godot/Godot_v4.7.2-stable_linux.x86_64 --path . res://tools/shots/colour_shots.tscn -- /some/folder
 
 var OUT := "res://build/shots"
 
@@ -27,6 +28,20 @@ func _ready() -> void:
 	garage.ui._palette.open_more()
 	await _save("garage_more_colours")
 	garage.ui._palette.close_more()
+	garage.ui._palette.open_picker()
+	await _save("garage_picker")
+	garage.ui._palette.close_picker()
+	var window := get_window()
+	var big := window.size
+	window.mode = Window.MODE_WINDOWED
+	window.size = Vector2i(960, 540)
+	await get_tree().create_timer(1.0).timeout
+	await _save("garage_palette_small")
+	garage.ui._palette.open_picker()
+	await _save("garage_picker_small")
+	garage.ui._palette.close_picker()
+	window.size = big
+	await get_tree().create_timer(1.0).timeout
 	Game.show_driver()
 	var builder: Node = await _screen(host, "DriverBuilder")
 	await get_tree().create_timer(2.0).timeout
@@ -38,6 +53,9 @@ func _ready() -> void:
 	await _save("driver_clothes")
 	builder.ui._swatches.open_more()
 	await _save("driver_more_colours")
+	builder.ui._swatches.close_more()
+	builder.ui._swatches.open_picker()
+	await _save("driver_picker")
 	get_tree().quit()
 
 

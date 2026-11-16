@@ -754,10 +754,17 @@ func _build_painting() -> void:
 	_show_swatches()
 
 
-## The paint colour before or after, for a controller's LB and RB.
+## The paint colour before or after, for a controller's LB and RB: Recent
+## first, then the main colours.
 func next_colour(by: int) -> void:
-	var at := PAINTS.find("#" + _paint_colour.to_html(false))
-	_paint_colour = Color(PAINTS[posmod(at + by, PAINTS.size())])
+	var all: Array[Color] = ColourPalette.recent_colours()
+	for hex in PAINTS:
+		if not Color(hex) in all:
+			all.append(Color(hex))
+	var at := all.find(_paint_colour)
+	if at == -1:
+		at = -1 if by > 0 else 0
+	_paint_colour = all[posmod(at + by, all.size())]
 	_show_swatches()
 	colour_chosen.emit(_paint_colour)
 

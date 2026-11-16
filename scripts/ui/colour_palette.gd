@@ -3,7 +3,8 @@ extends VBoxContainer
 
 ## Colour swatches for the garage and the driver screen: the colours used last
 ## along the top (once there are some), the main colours under them, and a
-## More colours button that opens a bigger grid, which closes after a pick.
+## More colours button that opens a bigger grid, which closes after a pick. A
+## + at the end of the Recent row opens the custom picker (ColourPicker).
 ## Every pick goes into Recent (see Paints).
 
 signal picked(colour: Color)
@@ -18,6 +19,9 @@ var _grid: GridContainer
 var _more_button: Button
 var _more: PopupPanel
 var _more_grid: GridContainer
+var _plus: Button
+var _custom: PopupPanel
+var _picker: ColourPicker
 
 
 ## The colours used last, newest first, from the settings.
@@ -54,6 +58,15 @@ func _init(size := 42.0) -> void:
 		var swatch := _swatch(Color.WHITE)
 		_recent_row.add_child(swatch)
 		_recent.append(swatch)
+	_plus = Button.new()
+	_plus.text = "+"
+	_plus.custom_minimum_size = Vector2(swatch_size, swatch_size)
+	_plus.focus_mode = FOCUS_ALL
+	_plus.add_theme_font_size_override("font_size", UiKit.BODY)
+	for state in ["font_color", "font_hover_color", "font_pressed_color", "font_focus_color"]:
+		_plus.add_theme_color_override(state, UiKit.WHITE)
+	_plus.pressed.connect(open_picker)
+	_recent_row.add_child(_plus)
 	_grid = GridContainer.new()
 	_grid.add_theme_constant_override("h_separation", 6)
 	_grid.add_theme_constant_override("v_separation", 6)
@@ -61,6 +74,7 @@ func _init(size := 42.0) -> void:
 	_more_button = BuilderStyle.pill("More colours", Color(0, 0, 0, 0.45), UiKit.WHITE, open_more, 36.0)
 	add_child(_more_button)
 	_build_more()
+	_build_picker()
 
 
 ## Shows these as the main colours, `columns` to a row, with `current` picked
@@ -92,11 +106,34 @@ func open_more() -> void:
 
 
 func more_open() -> bool:
-	return _more.visible
+	return _more.visible or _custom.visible
 
 
 func close_more() -> void:
 	_more.hide()
+	_custom.hide()
+
+
+## Opens the custom picker, starting from the colour that's picked now.
+func open_picker() -> void:
+	_picker.set_colour(_current if _current != null else Color.WHITE)
+	_custom.popup_centered()
+	_keep_clear(_custom)
+	if PadFocus.using_pad:
+		_picker.focus_square()
+
+
+func picker_open() -> bool:
+	return _custom.visible
+
+
+func close_picker() -> void:
+	_custom.hide()
+
+
+## Uses the colour the picker shows, as if it was picked.
+func use_picker() -> void:
+	_picker.used.emit(_picker.colour())
 
 
 func _build_more() -> void:
@@ -120,6 +157,33 @@ func _build_more() -> void:
 		_more_grid.add_child(_swatch(colour))
 
 
+func _build_picker() -> void:
+	_custom = PopupPanel.new()
+	PadFocus.close_on_b(_custom)
+	_custom.theme = MenuStyle.theme()
+	add_child(_custom)
+	var box := VBoxContainer.new()
+	box.add_theme_constant_override("separation", 10)
+	_custom.add_child(box)
+	var title := Label.new()
+	title.text = "Pick a colour"
+	title.theme_type_variation = "LeadLabel"
+	box.add_child(title)
+	_picker = ColourPicker.new()
+	_picker.used.connect(func(colour: Color) -> void: _pick(colour))
+	box.add_child(_picker)
+
+
+## Moves a popup off the camera holes.
+func _keep_clear(popup: Window) -> void:
+	for hole in SafeArea.holes_in(get_viewport()):
+		var rect := Rect2(popup.position, popup.size)
+		if rect.intersects(hole.grow(SafeArea.CLEAR)):
+			var right := hole.end.x + SafeArea.CLEAR
+			var left := hole.position.x - SafeArea.CLEAR - rect.size.x
+			popup.position.x = int(right if rect.get_center().x > hole.get_center().x or left < 0.0 else left)
+
+
 func _swatch(colour: Color) -> Button:
 	var swatch := Button.new()
 	swatch.custom_minimum_size = Vector2(swatch_size, swatch_size)
@@ -131,6 +195,7 @@ func _swatch(colour: Color) -> Button:
 
 func _pick(colour: Color) -> void:
 	_more.hide()
+	_custom.hide()
 	_current = colour
 	remember(colour)
 	_refresh()
@@ -139,7 +204,7 @@ func _pick(colour: Color) -> void:
 
 func _refresh() -> void:
 	var recent := recent_colours()
-	_recent_row.visible = not recent.is_empty()
+	BuilderStyle.show_swatch(_plus, Color(0, 0, 0, 0.45), false)
 	for i in _recent.size():
 		_recent[i].visible = i < recent.size()
 		if i < recent.size():
