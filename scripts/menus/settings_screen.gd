@@ -168,7 +168,7 @@ func _sound_page() -> Control:
 func _display_page() -> Control:
 	var page := VBoxContainer.new()
 	page.add_theme_constant_override("separation", 10)
-	if WindowMode.available():
+	if WindowMode.available() and not SteamDeck.game_mode():
 		page.add_child(MenuStyle.heading("Screen"))
 		var shapes := HBoxContainer.new()
 		shapes.add_theme_constant_override("separation", 10)

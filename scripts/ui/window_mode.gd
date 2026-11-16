@@ -19,10 +19,13 @@ const MIN_SIZE := Vector2i(320, 240)
 const SETTLE_FRAMES := 2
 ## Seconds the window has to stay put before its place is saved.
 const SAVE_AFTER := 0.5
+## Room for the decorations when they can't be measured: left, top, right, bottom.
+const DEFAULT_BORDER := Rect2i(8, 40, 0, 8)
 
 var _last := Rect2i()
 var _still := 0.0
 var _fullscreen_pending := false
+var _retried := false
 
 
 ## Whether the Display choice applies: computers with a screen, not phones or the web.
@@ -43,9 +46,16 @@ static func saved_rect() -> Rect2i:
 	return value if value is Rect2i else Rect2i()
 
 
-## RECT moved and shrunk to sit on one of SCREENS (usable areas). A window
-## that is on none of them goes to the middle of the first.
-static func fit_rect(rect: Rect2i, screens: Array) -> Rect2i:
+## Whether the window was maximized when it was last saved.
+static func saved_maximized() -> bool:
+	return Game.settings.get_value("display", "window_maximized", false) == true
+
+
+## RECT (the client area) moved and shrunk to sit on one of SCREENS (usable
+## areas), leaving room for the title bar and borders: BORDER is how much the
+## decorations add on the left, top, right and bottom. A window that is on
+## none of the screens goes to the middle of the first.
+static func fit_rect(rect: Rect2i, screens: Array, border := DEFAULT_BORDER) -> Rect2i:
 	if screens.is_empty():
 		return rect
 	var size := Vector2i(maxi(rect.size.x, MIN_SIZE.x), maxi(rect.size.y, MIN_SIZE.y))
@@ -56,13 +66,30 @@ static func fit_rect(rect: Rect2i, screens: Array) -> Rect2i:
 		if overlap.get_area() > best:
 			best = overlap.get_area()
 			home = screen
-	size = Vector2i(mini(size.x, home.size.x), mini(size.y, home.size.y))
+	var low := Vector2i(border.position.x, border.position.y)
+	var extra := Vector2i(border.position.x + border.size.x, border.position.y + border.size.y)
+	size = Vector2i(mini(size.x, home.size.x - extra.x), mini(size.y, home.size.y - extra.y))
 	var position := rect.position
 	if best == 0:
-		position = home.position + (home.size - size) / 2
-	position.x = clampi(position.x, home.position.x, home.end.x - size.x)
-	position.y = clampi(position.y, home.position.y, home.end.y - size.y)
+		position = home.position + low + (home.size - extra - size) / 2
+	position.x = clampi(position.x, home.position.x + low.x, home.end.x - border.size.x - size.x)
+	position.y = clampi(position.y, home.position.y + low.y, home.end.y - border.size.y - size.y)
 	return Rect2i(position, size)
+
+
+## What the decorations add around the client area: position is the left and
+## top, size the right and bottom. A fixed guess when the window has none yet.
+func _border() -> Rect2i:
+	var window := get_window()
+	var outer_pos := window.get_position_with_decorations()
+	var outer_size := window.get_size_with_decorations()
+	var left := window.position.x - outer_pos.x
+	var top := window.position.y - outer_pos.y
+	var right := outer_size.x - window.size.x - left
+	var bottom := outer_size.y - window.size.y - top
+	if window.borderless or top <= 0 or left < 0 or right < 0 or bottom < 0:
+		return DEFAULT_BORDER
+	return Rect2i(left, top, right, bottom)
 
 
 func _ready() -> void:
@@ -89,6 +116,8 @@ func apply(soon := true) -> void:
 			if not (SteamDeck.game_mode() or mode() == FULLSCREEN):
 				return
 		window.mode = Window.MODE_FULLSCREEN
+		if soon and not _retried:
+			_check_fullscreen()
 		return
 	_fullscreen_pending = false
 	if window.mode != Window.MODE_WINDOWED:
@@ -100,12 +129,29 @@ func apply(soon := true) -> void:
 		var screen := DisplayServer.screen_get_usable_rect(window.current_screen)
 		var size := default_size()
 		rect = Rect2i(screen.position + (screen.size - size) / 2, size)
-	rect = fit_rect(rect, _screens())
+	rect = fit_rect(rect, _screens(), _border())
 	window.size = rect.size
 	window.position = rect.position
+	if saved_maximized():
+		window.mode = Window.MODE_MAXIMIZED
 	_last = Rect2i(window.position, window.size)
 	_still = 0.0
 	set_process(true)
+
+
+## A frame or two after going fullscreen, sets the mode again, once, if the
+## window isn't the size of its screen.
+func _check_fullscreen() -> void:
+	var window := get_window()
+	for i in SETTLE_FRAMES:
+		await get_tree().process_frame
+	if window.mode != Window.MODE_FULLSCREEN or window.size == DisplayServer.screen_get_size(window.current_screen):
+		return
+	_retried = true
+	window.mode = Window.MODE_WINDOWED
+	await get_tree().process_frame
+	if SteamDeck.game_mode() or mode() == FULLSCREEN:
+		window.mode = Window.MODE_FULLSCREEN
 
 
 static func default_size() -> Vector2i:
@@ -127,10 +173,17 @@ func _screens() -> Array:
 
 
 ## While in a window, saves its size and place once they've stopped changing.
+## A maximized window saves that, and keeps the plain rect from before.
 func _process(delta: float) -> void:
 	var window := get_window()
+	if window.mode == Window.MODE_MAXIMIZED:
+		if not saved_maximized():
+			Game.set_setting("display", "window_maximized", true)
+		return
 	if window.mode != Window.MODE_WINDOWED:
 		return
+	if saved_maximized():
+		Game.set_setting("display", "window_maximized", false)
 	var now := Rect2i(window.position, window.size)
 	if now != _last:
 		_last = now

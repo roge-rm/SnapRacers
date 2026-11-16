@@ -48,20 +48,5 @@ static func game_mode_from(env: Dictionary) -> bool:
 	return env.get("XDG_CURRENT_DESKTOP", "") == "gamescope" or env.get("GAMESCOPE_WAYLAND_DISPLAY", "") != "" or (ui != "" and ui != "0")
 
 
-## Full screen in Game Mode, and a window the size of the Deck's screen on
-## its desktop. Anywhere else the window's left as it is. Goes through the
-## Window, so the game's view follows the new size.
-static func fit_window(window: Window) -> void:
-	if not OS.has_feature("pc") or DisplayServer.get_name() == "headless":
-		return
-	if game_mode():
-		window.mode = Window.MODE_FULLSCREEN
-	elif is_deck():
-		window.mode = Window.MODE_WINDOWED
-		window.size = DECK_SCREEN
-		var screen := DisplayServer.screen_get_usable_rect(window.current_screen)
-		window.position = screen.position + ((screen.size - DECK_SCREEN) / 2).max(Vector2i.ZERO)
-
-
 static func _read(path: String) -> String:
 	return FileAccess.get_file_as_string(path) if FileAccess.file_exists(path) else ""
