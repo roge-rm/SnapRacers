@@ -30,6 +30,11 @@ func _ready() -> void:
 	Game._screen._show_tab(0)
 	await get_tree().create_timer(1.0).timeout
 	await _shoot(folder + "/tag_settings.png")
+	for node in Game._screen.find_children("*", "Button", true, false):
+		if node.has_meta("pick") and node.get_meta("pick") == (int(args[1]) + 1) % 8 if args.size() > 1 else node.has_meta("pick") and node.get_meta("pick") == 3:
+			node.grab_focus()
+	await get_tree().create_timer(0.5).timeout
+	await _shoot(folder + "/tag_settings_focus.png")
 	Game._swap(KartPicker.new(Game.show_menu, Game.show_menu, true, 1))
 	await get_tree().create_timer(1.0).timeout
 	await _shoot(folder + "/tag_kart_picker.png")

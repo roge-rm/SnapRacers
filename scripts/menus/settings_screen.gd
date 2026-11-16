@@ -109,7 +109,7 @@ func _player_page() -> Control:
 	return page
 
 
-## A tag colour swatch, with a white outline on the picked one.
+## A tag colour swatch, with a white outline on the picked one and a yellow ring round the focused one.
 func _style_swatch(swatch: Button) -> void:
 	var pick: int = swatch.get_meta("pick")
 	var box := StyleBoxFlat.new()
@@ -118,8 +118,15 @@ func _style_swatch(swatch: Button) -> void:
 	if pick == Game.tag_pick():
 		box.set_border_width_all(4)
 		box.border_color = Color.WHITE
-	for state in ["normal", "hover", "pressed", "focus"]:
+	for state in ["normal", "hover", "pressed"]:
 		swatch.add_theme_stylebox_override(state, box)
+	var ring := StyleBoxFlat.new()
+	ring.bg_color = Color.TRANSPARENT
+	ring.set_corner_radius_all(10)
+	ring.set_border_width_all(4)
+	ring.border_color = UiKit.ACCENT
+	ring.set_expand_margin_all(4.0)
+	swatch.add_theme_stylebox_override("focus", ring)
 
 
 func _controls_page() -> Control:
