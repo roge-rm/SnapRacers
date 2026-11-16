@@ -23,7 +23,7 @@ func _initialize() -> void:
 
 
 func _arcs() -> void:
-	for angle in [30, 45, 60, 90]:
+	for angle in TrackPiece.ARC_ANGLES:
 		for turn in ["left", "right"]:
 			for size in [1, 2, 3, 4]:
 				var spec := {"type": "arc", "angle": angle, "turn": turn, "size": size}
@@ -97,7 +97,7 @@ func _connections() -> void:
 	var meshes := true
 	var placements := true
 	for degrees in [15, 30, 45, 60]:
-		for angle in [30, 45, 60, 90]:
+		for angle in TrackPiece.ARC_ANGLES:
 			var spec := {"type": "arc", "angle": angle, "turn": "right", "size": 2, "bank": 22, "rise": 1}
 			var track := TrackPath.from_dict({"grid": 32, "start": [10, 0, 20, degrees / 90.0], "pieces": [{"type": "straight"}, spec, {"type": "straight"}]})
 			var course := CourseDesign.from_dict({"grid": 32, "start": [10, 0, 20, degrees / 90.0], "pieces": [{"type": "straight"}, spec, {"type": "straight"}]})
@@ -130,7 +130,7 @@ func _connections() -> void:
 
 
 func _open_endpoints() -> void:
-	for angle in [30, 45, 60, 90]:
+	for angle in TrackPiece.ARC_ANGLES:
 		for turn in ["left", "right"]:
 			for size in [1, 2, 3, 4]:
 				var spec := {"type": "arc", "angle": angle, "turn": turn, "size": size}

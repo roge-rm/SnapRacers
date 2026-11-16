@@ -336,7 +336,7 @@ static func _piece(spec: Variant) -> bool:
 		if spec.has(key) and not spec[key] is bool:
 			return false
 	if spec.get("type") == "arc":
-		if not _integer(spec.get("angle", 90), 30, 90) or not int(spec.get("angle", 90)) in TrackPiece.ARC_ANGLES:
+		if not _integer(spec.get("angle", 90), 15, 90) or not int(spec.get("angle", 90)) in TrackPiece.ARC_ANGLES:
 			return false
 		if not _integer(spec.get("size", 2), 1, 4) or spec.get("cut", false):
 			return false

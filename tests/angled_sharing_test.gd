@@ -83,7 +83,7 @@ func _reject(data: Dictionary, what: String, cup: Dictionary) -> void:
 
 
 func _bad_inputs(cup: Dictionary) -> void:
-	for angle in [0, 15, 30.5, 31, 46, 91, NAN, INF, -INF, "45", true, [], null]:
+	for angle in [0, 14, 20, 30.5, 31, 46, 76, 91, NAN, INF, -INF, "45", true, [], null]:
 		var data := _course()
 		data.pieces[1].angle = angle
 		_reject(data, "angle " + str(angle), cup)

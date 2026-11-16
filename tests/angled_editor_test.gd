@@ -56,9 +56,9 @@ func _controls() -> void:
 	var pairs := true
 	var icons := true
 	ui._show_category(_category("Bends"))
-	check(ui._tiles.get_child_count() == 32, "Bends offers all 32 plain parts at once")
+	check(ui._tiles.get_child_count() == 48, "Bends offers all 48 plain parts at once")
 	var labels := true
-	for angle_index in 4:
+	for angle_index in 6:
 		for size_index in 4:
 			for side_index in 2:
 				var angle: int = TrackCatalogue.BEND_ANGLES[angle_index]
@@ -73,7 +73,7 @@ func _controls() -> void:
 				var label: Label = tile.get_child(0)
 				labels = labels and label.text == "%d° %s %s" % [angle, ["tight", "normal", "wide", "extra wide"][size_index], turn]
 				reached.append(chosen)
-	check(pairs, "32 unique plain parts run by angle, then tight to extra wide, each in a left/right row")
+	check(pairs, "48 unique plain parts run by angle, then tight to extra wide, each in a left/right row")
 	check(icons, "each bend preview uses its own angle, size and turn")
 	check(labels, "every plain bend is labelled with its angle, radius and direction")
 	for category in TrackEditorUI.CATEGORIES.size():
@@ -86,7 +86,7 @@ func _controls() -> void:
 			if not reached.has(chosen):
 				reached.append(chosen)
 	var catalogue := TrackCatalogue.specs()
-	check(reached.size() == 98 and catalogue.all(func(spec): return reached.has(spec)), "all 98 standard presets are reachable across the drawer")
+	check(reached.size() == 114 and catalogue.all(func(spec): return reached.has(spec)), "all 114 standard presets are reachable across the drawer")
 	var screen := Rect2(Vector2.ZERO, Vector2(viewport.size))
 	var fit := true
 	var clear := true
@@ -104,7 +104,7 @@ func _controls() -> void:
 		await frames(3)
 		var last: Control = ui._tiles.get_child(ui._tiles.get_child_count() - 1)
 		clear = clear and scroll.get_global_rect().encloses(last.get_global_rect()) and last.get_global_rect().end.y < ui._bottom.get_global_rect().position.y
-	check(fit, "all 98 captions fit their 104 px tiles at 800 by 450")
+	check(fit, "all 114 captions fit their 104 px tiles at 800 by 450")
 	check(clear, "the final row in every road tab scrolls fully above the race buttons on narrow screens")
 	check(screen.encloses(ui._drawer.get_global_rect()) and ui._drawer.find_children("*", "OptionButton", true, false).all(func(choice): return not choice.visible), "the parts drawer fits an 800 by 450 view without road dropdowns")
 	check(ui._rail.size() == 7 and ui._rail.all(func(tab): return screen.encloses(tab.get_global_rect())), "all seven rail tabs fit the narrow landscape screen")
@@ -133,11 +133,11 @@ func _controller() -> void:
 	await frames()
 	ui._tiles.get_child(0).grab_focus()
 	var navigation := true
-	for row in 15:
+	for row in 23:
 		await _dpad(JOY_BUTTON_DPAD_DOWN)
 		navigation = navigation and get_viewport().gui_get_focus_owner() == ui._tiles.get_child((row + 1) * 2)
 	await _dpad(JOY_BUTTON_DPAD_RIGHT)
-	check(navigation and get_viewport().gui_get_focus_owner() == ui._tiles.get_child(31), "d-pad moves through all 16 bend rows and across to the last part")
+	check(navigation and get_viewport().gui_get_focus_owner() == ui._tiles.get_child(47), "d-pad moves through all 24 bend rows and across to the last part")
 	var scroll: ScrollContainer = ui._tiles.get_parent()
 	var last: Control = ui._tiles.get_child(ui._tiles.get_child_count() - 1)
 	check(scroll.scroll_vertical > 0 and scroll.get_global_rect().encloses(last.get_global_rect()), "following controller focus scrolls the last bend fully into view")
@@ -146,7 +146,7 @@ func _controller() -> void:
 	await frames()
 	pad._button(JOY_BUTTON_LEFT_SHOULDER)
 	await frames(3)
-	check(get_viewport().gui_get_focus_owner() == ui._tiles.get_child(31) and scroll.scroll_vertical > 0, "LB/RB restore the last bend part and its scroll position")
+	check(get_viewport().gui_get_focus_owner() == ui._tiles.get_child(47) and scroll.scroll_vertical > 0, "LB/RB restore the last bend part and its scroll position")
 	ui._show_category(_category("Hills"))
 	await frames(3)
 	ui._tiles.get_child(0).grab_focus()

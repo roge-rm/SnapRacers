@@ -47,7 +47,7 @@ func _ready() -> void:
 	check(editor.course.pieces.size() == 2 and editor.course.pieces[1].length == 2, "tapping a piece clicks it onto the end")
 	editor.ui._show_category(1)
 	await frames(1)
-	editor.ui._tiles.get_children()[27].pressed.emit()
+	editor.ui._tiles.get_children()[43].pressed.emit()
 	check(editor.course.pieces[2].type == "curve" and editor.course.pieces[2].turn == "right", "and a bend after that")
 	await frames(2)
 	check(editor._quick.get_child_count() == 3, "each piece is laid out straight away (%d)" % editor._quick.get_child_count())

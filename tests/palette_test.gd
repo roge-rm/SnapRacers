@@ -67,7 +67,7 @@ func _shapes() -> void:
 			for entry in row:
 				all.append(entry[1])
 	check(paired, "each mirrored pair has a complete left/right row")
-	check(all.size() == 109, "109 useful parts are offered (%d)" % all.size())
+	check(all.size() == 125, "125 useful parts are offered (%d)" % all.size())
 	var unique: Array = []
 	var finite := true
 	var round_trip := true
@@ -83,7 +83,7 @@ func _shapes() -> void:
 		round_trip = round_trip and piece.exit().is_equal_approx(back.exit())
 	check(unique.size() == all.size(), "every preset has a distinct spec")
 	var choice_order := PackedStringArray(TrackCatalogue.closer_choices().map(func(spec): return TrackCatalogue._spec_key(spec)))
-	check(choice_order.size() == 55 and "\n".join(choice_order.slice(0, 54)).sha256_text() == "bffdefaf9a8703dd0d121f2aa393bd3c3eff140006d08eacb3b3493ef52e33d7", "reorganising the drawer preserves the existing closer order before the quarter straight")
+	check(choice_order.size() == 71 and "\n".join(choice_order.slice(0, 54)).sha256_text() == "bffdefaf9a8703dd0d121f2aa393bd3c3eff140006d08eacb3b3493ef52e33d7", "reorganising the drawer preserves the existing closer order before the quarter straight")
 	check(finite and round_trip, "every offered shape samples and round-trips through the existing parser")
 	check(TrackCatalogue.dimensions({"type": "straight", "length": 2.5}) == "64 m long" and TrackCatalogue.dimensions({"type": "slant", "length": 2.5, "across": 1.5}) == "64 m along · 32 m across", "legacy fractional straight and offset captions match their built integer geometry")
 	var fractional_bend := {"type": "curve", "size": 2.5, "angle": 45, "rise": 0.5}
@@ -123,7 +123,7 @@ func _shapes() -> void:
 	check(TrackEditorUI.SURFACES.has(["Concrete", "concrete"]), "concrete is offered as a surface")
 	check(specials.size() == 8 and specials.has({"type": "curve", "turn": "right", "size": 2, "cut": true}), "shortcuts sit with the eight Specials")
 	check(TrackCatalogue.CATEGORIES.map(func(c): return c[0]) == ["Straights", "Bends", "Offsets", "Hills", "Banked", "Specials", "Splits"], "seven road tabs keep the agreed family order")
-	check(TrackCatalogue.CATEGORIES.map(func(c): return _specs(_category(c[0])).size()) == [6, 32, 16, 28, 8, 8, 11], "every family has its complete directly pickable parts")
+	check(TrackCatalogue.CATEGORIES.map(func(c): return _specs(_category(c[0])).size()) == [6, 48, 16, 28, 8, 8, 11], "every family has its complete directly pickable parts")
 	var straight_lengths := _specs(_category("Straights")).map(func(spec): return TrackPiece.from_spec(spec).run_length())
 	check(straight_lengths == [8.0, 16.0, 32.0, 64.0, 96.0, 128.0], "straights run from the quarter tile through four tiles")
 	var ramp_order := hills.filter(func(spec): return spec.type == "ramp").map(func(spec): return [spec.length, spec.rise])

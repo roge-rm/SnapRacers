@@ -16,7 +16,7 @@ const TILE := 32.0
 ## without a "grid" in it was made with these.
 const OLD_TILE := 16.0
 const LEVEL := 3.0
-const ARC_ANGLES := [30, 45, 60, 90]
+const ARC_ANGLES := [15, 30, 45, 60, 75, 90]
 const ADJUSTABLE_TYPES := ["adjustable_straight", "adjustable_offset", "connector", "adjustable_split"]
 const MAX_METRES := 512.0
 const MAX_SHIFT := 256.0
@@ -177,7 +177,7 @@ static func from_spec(spec: Dictionary) -> TrackPiece:
 			piece.bank = deg_to_rad(float(spec.get("bank", 0.0)))
 			if piece.type == "arc":
 				piece.angle = int(spec.get("angle", 90))
-				assert(piece.angle in ARC_ANGLES, "Arc angles must be 30, 45, 60 or 90 degrees")
+				assert(piece.angle in ARC_ANGLES, "Arc angles must be 15, 30, 45, 60, 75 or 90 degrees")
 				assert(size >= 1 and size <= 4, "Arc sizes must be 1 to 4")
 				assert(not bool(spec.get("cut", false)), "Only legacy curves can have a shortcut")
 			else:

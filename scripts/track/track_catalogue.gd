@@ -9,6 +9,10 @@ const CATEGORIES := [
 		[["96 m straight", {"type": "straight", "length": 3}], ["128 m straight", {"type": "straight", "length": 4}]],
 	]],
 	["Bends", "bends", [
+		[["15° tight left", {"type": "arc", "turn": "left", "size": 1, "angle": 15}], ["15° tight right", {"type": "arc", "turn": "right", "size": 1, "angle": 15}]],
+		[["15° normal left", {"type": "arc", "turn": "left", "size": 2, "angle": 15}], ["15° normal right", {"type": "arc", "turn": "right", "size": 2, "angle": 15}]],
+		[["15° wide left", {"type": "arc", "turn": "left", "size": 3, "angle": 15}], ["15° wide right", {"type": "arc", "turn": "right", "size": 3, "angle": 15}]],
+		[["15° extra wide left", {"type": "arc", "turn": "left", "size": 4, "angle": 15}], ["15° extra wide right", {"type": "arc", "turn": "right", "size": 4, "angle": 15}]],
 		[["30° tight left", {"type": "arc", "turn": "left", "size": 1, "angle": 30}], ["30° tight right", {"type": "arc", "turn": "right", "size": 1, "angle": 30}]],
 		[["30° normal left", {"type": "arc", "turn": "left", "size": 2, "angle": 30}], ["30° normal right", {"type": "arc", "turn": "right", "size": 2, "angle": 30}]],
 		[["30° wide left", {"type": "arc", "turn": "left", "size": 3, "angle": 30}], ["30° wide right", {"type": "arc", "turn": "right", "size": 3, "angle": 30}]],
@@ -21,6 +25,10 @@ const CATEGORIES := [
 		[["60° normal left", {"type": "arc", "turn": "left", "size": 2, "angle": 60}], ["60° normal right", {"type": "arc", "turn": "right", "size": 2, "angle": 60}]],
 		[["60° wide left", {"type": "arc", "turn": "left", "size": 3, "angle": 60}], ["60° wide right", {"type": "arc", "turn": "right", "size": 3, "angle": 60}]],
 		[["60° extra wide left", {"type": "arc", "turn": "left", "size": 4, "angle": 60}], ["60° extra wide right", {"type": "arc", "turn": "right", "size": 4, "angle": 60}]],
+		[["75° tight left", {"type": "arc", "turn": "left", "size": 1, "angle": 75}], ["75° tight right", {"type": "arc", "turn": "right", "size": 1, "angle": 75}]],
+		[["75° normal left", {"type": "arc", "turn": "left", "size": 2, "angle": 75}], ["75° normal right", {"type": "arc", "turn": "right", "size": 2, "angle": 75}]],
+		[["75° wide left", {"type": "arc", "turn": "left", "size": 3, "angle": 75}], ["75° wide right", {"type": "arc", "turn": "right", "size": 3, "angle": 75}]],
+		[["75° extra wide left", {"type": "arc", "turn": "left", "size": 4, "angle": 75}], ["75° extra wide right", {"type": "arc", "turn": "right", "size": 4, "angle": 75}]],
 		[["90° tight left", {"type": "curve", "turn": "left", "size": 1}], ["90° tight right", {"type": "curve", "turn": "right", "size": 1}]],
 		[["90° normal left", {"type": "curve", "turn": "left", "size": 2}], ["90° normal right", {"type": "curve", "turn": "right", "size": 2}]],
 		[["90° wide left", {"type": "curve", "turn": "left", "size": 3}], ["90° wide right", {"type": "curve", "turn": "right", "size": 3}]],
@@ -188,9 +196,25 @@ const _SPEC_ORDER := [
 	"type=rough_split|side=right",
 	"type=jump_split|side=left",
 	"type=jump_split|side=right",
+	"type=arc|angle=15|turn=left|size=1",
+	"type=arc|angle=15|turn=right|size=1",
+	"type=arc|angle=15|turn=left|size=2",
+	"type=arc|angle=15|turn=right|size=2",
+	"type=arc|angle=15|turn=left|size=3",
+	"type=arc|angle=15|turn=right|size=3",
+	"type=arc|angle=15|turn=left|size=4",
+	"type=arc|angle=15|turn=right|size=4",
+	"type=arc|angle=75|turn=left|size=1",
+	"type=arc|angle=75|turn=right|size=1",
+	"type=arc|angle=75|turn=left|size=2",
+	"type=arc|angle=75|turn=right|size=2",
+	"type=arc|angle=75|turn=left|size=3",
+	"type=arc|angle=75|turn=right|size=3",
+	"type=arc|angle=75|turn=left|size=4",
+	"type=arc|angle=75|turn=right|size=4",
 ]
 
-const BEND_ANGLES := [30, 45, 60, 90]
+const BEND_ANGLES := [15, 30, 45, 60, 75, 90]
 const BEND_SIZES := [1, 2, 3, 4]
 
 
