@@ -20,7 +20,7 @@ func _run() -> void:
 	var part := TrackPiece.from_spec(QUARTER)
 	check(part.type == "quarter_straight" and part.run_length() == 8.0 and part.path_length() == 8.0 and part.exit().origin == Vector3(0, 0, -8), "quarter straight is eight metres with an unchanged exit heading")
 	check(part.to_spec() == QUARTER and TrackCatalogue.dimensions(QUARTER) == "8 m long", "quarter straight round-trips and reports its actual length")
-	check(TrackCatalogue.specs().count(QUARTER) == 1 and TrackCatalogue.closer_choices().back() == QUARTER, "drawer and closing catalogue offer the quarter straight once")
+	check(TrackCatalogue.specs().count(QUARTER) == 1 and TrackCatalogue.closer_choices().count(QUARTER) == 1 and TrackCatalogue.closer_choices()[54] == QUARTER, "drawer and closing catalogue offer the quarter straight once")
 	var exact := true
 	var cursor_error := 0.0
 	for h in 24:
