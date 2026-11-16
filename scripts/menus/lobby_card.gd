@@ -14,17 +14,17 @@ var _person: Control
 
 ## A racer. `player` is 1 or 2 for one on this phone, 0 for anyone else.
 ## `ready` puts a Ready tag on someone else's card.
-func show_racer(who: String, design: CharacterDesign, kart: String, player: int, ready: bool) -> void:
-	var wanted := {"who": who, "driver": design.to_dict(), "kart": kart, "player": player, "ready": ready}
+func show_racer(who: String, design: CharacterDesign, kart: String, player: int, ready: bool, tint := Color.TRANSPARENT) -> void:
+	var wanted := {"who": who, "driver": design.to_dict(), "kart": kart, "player": player, "ready": ready, "tint": tint}
 	if wanted == _shown:
 		return
 	_shown = wanted
 	_clear()
 	modulate = Color.WHITE
 	content.alignment = BoxContainer.ALIGNMENT_BEGIN
-	set_stripe(UiKit.PLAYERS[player - 1] if player > 0 else Color.TRANSPARENT)
+	set_stripe(Game.tag_colour(player - 1) if player > 0 else tint)
 	if player > 0 or ready:
-		var tag := MenuStyle.tag("P%d" % player if player > 0 else "Ready", UiKit.PLAYERS[player - 1] if player > 0 else UiKit.GREEN, 22 if player > 0 else 18)
+		var tag := MenuStyle.tag("P%d" % player if player > 0 else "Ready", Game.tag_colour(player - 1) if player > 0 else UiKit.GREEN, 22 if player > 0 else 18)
 		tag.size_flags_horizontal = SIZE_SHRINK_END
 		content.add_child(tag)
 	else:

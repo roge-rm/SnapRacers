@@ -69,6 +69,23 @@ func _player_page() -> Control:
 	name_edit.text = Game.settings.get_value("player", "name", "")
 	name_edit.text_changed.connect(func(text: String) -> void: Game.set_setting("player", "name", text.strip_edges()))
 	page.add_child(name_edit)
+	page.add_child(MenuStyle.heading("Tag colour"))
+	var tags := HBoxContainer.new()
+	tags.add_theme_constant_override("separation", 8)
+	page.add_child(tags)
+	var swatches := []
+	for pick in Game.TAG_COLOURS.size():
+		var swatch := Button.new()
+		swatch.custom_minimum_size = Vector2(56.0, 44.0)
+		swatch.focus_mode = Control.FOCUS_ALL
+		swatch.set_meta("pick", pick)
+		swatch.pressed.connect(func() -> void:
+			Game.set_tag_pick(pick)
+			for other in swatches:
+				_style_swatch(other))
+		swatches.append(swatch)
+		tags.add_child(swatch)
+		_style_swatch(swatch)
 	var row := HBoxContainer.new()
 	page.add_child(row)
 	var heading := MenuStyle.heading("Driver picker before karts")
@@ -90,6 +107,19 @@ func _player_page() -> Control:
 	own_toggle.toggled.connect(func(on: bool) -> void: Game.set_setting("race", "ai_own_drivers", on))
 	own_row.add_child(own_toggle)
 	return page
+
+
+## A tag colour swatch, with a white outline on the picked one.
+func _style_swatch(swatch: Button) -> void:
+	var pick: int = swatch.get_meta("pick")
+	var box := StyleBoxFlat.new()
+	box.bg_color = Game.TAG_COLOURS[pick]
+	box.set_corner_radius_all(8)
+	if pick == Game.tag_pick():
+		box.set_border_width_all(4)
+		box.border_color = Color.WHITE
+	for state in ["normal", "hover", "pressed", "focus"]:
+		swatch.add_theme_stylebox_override(state, box)
 
 
 func _controls_page() -> Control:

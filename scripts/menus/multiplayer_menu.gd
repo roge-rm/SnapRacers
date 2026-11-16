@@ -75,7 +75,7 @@ func _chip(person: int) -> Button:
 	row.set_anchors_and_offsets_preset(PRESET_FULL_RECT)
 	row.offset_left = 14
 	row.offset_right = -14
-	row.add_child(MenuStyle.tag("P%d" % (person + 1), UiKit.PLAYERS[person]))
+	row.add_child(MenuStyle.tag("P%d" % (person + 1), Game.tag_colour(person)))
 	var label := Label.new()
 	label.theme_type_variation = "LeadLabel"
 	label.size_flags_vertical = SIZE_SHRINK_CENTER

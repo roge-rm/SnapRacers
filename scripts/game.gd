@@ -732,6 +732,42 @@ func player_name() -> String:
 
 
 ## Player 1's name with two on one phone, where "You" wouldn't say which.
+## The 8 colours to pick a player tag from, bright with white text on top.
+## The first is player 1's, the second player 2's.
+const TAG_COLOURS := [Color("#4fa8ff"), Color("#ffa63d"), Color("#e5484d"), Color("#3fb950"),
+	Color("#a371f7"), Color("#e8559f"), Color("#17b8b0"), Color("#d4a017")]
+
+
+## The saved tag colour pick, 0 to 7. A missing or bad one is the first.
+func tag_pick() -> int:
+	var pick: Variant = settings.get_value("player", "tag_colour", 0)
+	if typeof(pick) != TYPE_INT or pick < 0 or pick >= TAG_COLOURS.size():
+		return 0
+	return pick
+
+
+func set_tag_pick(pick: int) -> void:
+	set_setting("player", "tag_colour", clampi(pick, 0, TAG_COLOURS.size() - 1))
+
+
+## The tag colour of a player on this phone, 0 or 1. Player 2 keeps the second
+## colour, or the next one along if player 1 picked it.
+func tag_colour(person: int) -> Color:
+	if person <= 0:
+		return TAG_COLOURS[tag_pick()]
+	return TAG_COLOURS[1 if tag_pick() != 1 else 0]
+
+
+## A tag colour from someone's info, or `fallback` when they sent none or a bad one.
+static func tag_from_info(info: Dictionary, fallback: Color) -> Color:
+	var pick: Variant = info.get("tag", -1)
+	if typeof(pick) == TYPE_FLOAT and pick == floorf(pick):
+		pick = int(pick)
+	if typeof(pick) != TYPE_INT or pick < 0 or pick >= TAG_COLOURS.size():
+		return fallback
+	return TAG_COLOURS[pick]
+
+
 func player_one_name() -> String:
 	var name: String = str(settings.get_value("player", "name", "")).strip_edges()
 	return name if name != "" else "Player 1"

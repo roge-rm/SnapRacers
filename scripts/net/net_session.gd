@@ -150,6 +150,7 @@ func _me() -> Dictionary:
 		"name": Game.online_name(),
 		"driver": CharacterDesign.for_key(Game.driver_choice()).to_dict(),
 		"kart": Game.chosen_design().to_dict(),
+		"tag": Game.tag_pick(),
 	}]
 	# Two on one phone take two places.
 	if Game.split() != Game.SOLO and Game.online_two:
@@ -158,6 +159,7 @@ func _me() -> Dictionary:
 			"name": two if two != "Player 2" else "%s 2" % Game.online_name(),
 			"driver": CharacterDesign.for_key(Game.driver_choice(true)).to_dict(),
 			"kart": Game.player_two_design().to_dict(),
+			"tag": 1 if Game.tag_pick() != 1 else 0,
 		})
 	return {"name": Game.online_name(), "players": players, "ready": false}
 

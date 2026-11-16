@@ -347,7 +347,7 @@ func _show_places() -> void:
 			var design := CharacterDesign.from_dict(player.get("driver", {}))
 			var kart := str(player.get("kart", {}).get("name", "A kart"))
 			# The host's always ready, so only the others say so.
-			card.show_racer(str(player.name), design, kart, i + 1 if mine else 0, not mine and peer != 1 and bool(member.ready))
+			card.show_racer(str(player.name), design, kart, i + 1 if mine else 0, not mine and peer != 1 and bool(member.ready), Color.TRANSPARENT if mine else Game.tag_from_info(player, Color.TRANSPARENT))
 			if card.wants_portrait():
 				_portraits.take(design)
 			_let_tap(card, mine)

@@ -219,7 +219,7 @@ func on_start() -> void:
 ## A big tag in the player's colour saying whose turn it is to pick.
 func _player_tag() -> PanelContainer:
 	var tag := PanelContainer.new()
-	tag.add_theme_stylebox_override("panel", UiKit.pad(UiKit.slant(PLAYER_COLOURS[player - 1]), 22, 4, UiKit.LEAN, 48.0))
+	tag.add_theme_stylebox_override("panel", UiKit.pad(UiKit.slant(Game.tag_colour(player - 1)), 22, 4, UiKit.LEAN, 48.0))
 	tag.size_flags_vertical = SIZE_SHRINK_CENTER
 	var label := Label.new()
 	label.text = "PLAYER %d" % player

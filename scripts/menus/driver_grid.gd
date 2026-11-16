@@ -175,7 +175,7 @@ func _card(title: String) -> ScrollButton:
 ## A tag in player 1's colour on the card player 1 picked.
 func _p1_tag() -> PanelContainer:
 	var tag := PanelContainer.new()
-	tag.add_theme_stylebox_override("panel", UiKit.pad(UiKit.slant(UiKit.PLAYERS[0]), 12, 2, UiKit.LEAN, 32.0))
+	tag.add_theme_stylebox_override("panel", UiKit.pad(UiKit.slant(Game.tag_colour(0)), 12, 2, UiKit.LEAN, 32.0))
 	tag.mouse_filter = MOUSE_FILTER_IGNORE
 	tag.position = Vector2(CARD.x - 70.0, 8.0)
 	var label := Label.new()

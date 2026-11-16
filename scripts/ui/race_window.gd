@@ -242,7 +242,7 @@ func _draw_half(rect: Rect2, corners: PackedVector2Array, player: int, flip: boo
 		at.call(top - far * 0.5, horizon), at.call(top + far * 0.5, horizon),
 		at.call(bottom + near * 0.5, 1.0), at.call(bottom - near * 0.5, 1.0)]), Color("#3c4048"))
 	# The kart, a body with wheels under it and a white helmet.
-	var colour: Color = UiKit.PLAYERS[player]
+	var colour: Color = Game.tag_colour(player)
 	var kart_v := Vector2(0.15 * near / 0.7, 0.0)
 	kart_v.y = kart_v.x * rect.size.x / rect.size.y * 0.7
 	var foot := 0.92

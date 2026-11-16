@@ -134,7 +134,7 @@ func _build() -> void:
 			cell.theme_type_variation = "LeadLabel"
 			var person := people.find(standings[i][0])
 			if person >= 0 and grand_prix.two:
-				cell.add_theme_color_override("font_color", KartPicker.PLAYER_COLOURS[mini(person, KartPicker.PLAYER_COLOURS.size() - 1)])
+				cell.add_theme_color_override("font_color", Game.tag_colour(person))
 			elif person >= 0:
 				cell.theme_type_variation = "LeadAccentLabel"
 			table.add_child(cell)

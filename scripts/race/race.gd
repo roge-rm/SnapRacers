@@ -546,7 +546,7 @@ func _add_shared_map(root: Control) -> void:
 	map.karts.assign(racers.map(func(r): return r.kart))
 	map.cpu_karts.assign(racers.filter(func(r): return r.cpu).map(func(r): return r.kart))
 	for i in humans.size():
-		map.players.append([humans[i].kart, KartPicker.PLAYER_COLOURS[mini(i, KartPicker.PLAYER_COLOURS.size() - 1)]])
+		map.players.append([humans[i].kart, Game.tag_colour(i)])
 	map.across = SHARED_MAP * (2.0 if split == Game.FACE_TO_FACE else 1.0)
 	map.mode = Game.map_view(0)
 	root.add_child(map)
@@ -961,7 +961,7 @@ func show_podium(gp: GrandPrix) -> Podium:
 	# The people playing here, in their colours from the standings.
 	var playing := {}
 	for i in humans.size():
-		playing[humans[i].name] = UiKit.PLAYERS[mini(i, UiKit.PLAYERS.size() - 1)] if humans.size() > 1 else UiKit.ACCENT
+		playing[humans[i].name] = Game.tag_colour(i) if humans.size() > 1 else UiKit.ACCENT
 	for racer in _menus.keys():
 		close_menu(racer)
 	for racer in racers:
