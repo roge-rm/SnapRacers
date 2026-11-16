@@ -5,9 +5,9 @@ extends Node
 ## the kart picker, with the picked driver in it. Each kart is set up in a small
 ## view off the screen and drawn once.
 ##
-## There's one of these for the whole game (Game.kart_pictures()). The splash
-## asks it for every kart with your driver, so they're there by the time the
-## picker opens. Each picture is saved under a name made from the kart and the
+## There's one of these for the whole game (Game.kart_pictures()). Once the
+## menu is up it takes every kart with your driver a few at a time (see
+## take_later()), so they're mostly there by the time the picker opens. Each picture is saved under a name made from the kart and the
 ## driver, so after the first time it loads straight away, even after the game
 ## restarts. They're all taken again when the game's version or LOOK changes.
 ## It doesn't take any during a race or a test drive.
@@ -28,6 +28,10 @@ const VIEWS := 2
 ## The most milliseconds a frame spends loading and setting up karts, past
 ## the first one.
 const BUDGET := 6
+## Frames between one background picture and the next. Each one costs a few
+## milliseconds of loading or setting up a kart, so one every 8 frames
+## (about 7 a second) is hardly felt on a phone that draws 15 frames a second.
+const LATER_GAP := 8
 
 ## Each picture, as key -> Texture2D, and the saved name it was taken for.
 static var _pictures := {}
@@ -49,6 +53,11 @@ var _used := {}
 var _used_changed := false
 var _used_written := 0
 var _headless := false
+## Jobs to start in the background, one every LATER_GAP frames.
+var _later: Array = []
+var _later_wait := 0
+## How many fingers are down, and whether the mouse is.
+var _fingers := {}
 
 
 ## The picture kept under `key`, or null if it hasn't been taken yet.
@@ -85,9 +94,29 @@ func take(key: String, design: KartDesign, driver: CharacterDesign = null) -> Te
 			job[2] = driver
 			job[3] = name
 			return null
+	_later = _later.filter(func(job: Array) -> bool: return job[0] != key)
 	_queue.append([key, design, driver, name])
 	set_process(true)
 	return null
+
+
+## Asks for a picture to be taken in the background, when nothing else is
+## waiting and no finger or mouse is down. `take()` for the same key brings it
+## forward.
+func take_later(key: String, design: KartDesign, driver: CharacterDesign = null) -> void:
+	if _headless:
+		return
+	var name := name_of(design, driver)
+	if _names.get(key) == name:
+		return
+	for job in _later:
+		if job[0] == key:
+			job[1] = design
+			job[2] = driver
+			job[3] = name
+			return
+	_later.append([key, design, driver, name])
+	set_process(true)
 
 
 ## Takes these pictures next, like the ones on the screen.
@@ -102,11 +131,12 @@ func hurry(keys: Array) -> void:
 ## that's no longer picked.
 func drop_look(look: String) -> void:
 	_queue = _queue.filter(func(job: Array) -> bool: return not job[0].ends_with(look))
+	_later = _later.filter(func(job: Array) -> bool: return not job[0].ends_with(look))
 
 
 ## Whether it's still taking pictures.
 func busy() -> bool:
-	return not _queue.is_empty() or _taking.any(func(job: Array) -> bool: return not job.is_empty())
+	return not _queue.is_empty() or not _later.is_empty() or _taking.any(func(job: Array) -> bool: return not job.is_empty())
 
 
 func _ready() -> void:
@@ -119,6 +149,16 @@ func _ready() -> void:
 	for i in VIEWS:
 		_add_view()
 	_open_saved()
+
+
+func _input(event: InputEvent) -> void:
+	if event is InputEventScreenTouch:
+		if event.pressed:
+			_fingers[event.index] = true
+		else:
+			_fingers.erase(event.index)
+	elif event is InputEventScreenDrag:
+		_fingers[event.index] = true
 
 
 func _add_view() -> void:
@@ -261,6 +301,13 @@ func _process(_delta: float) -> void:
 		_queue.pop_front()
 		_set_up(free, job)
 		started = true
+	# One background picture at a time, only while nothing else is waiting.
+	if not racing and _queue.is_empty() and not _later.is_empty():
+		_later_wait -= 1
+		var touching := not _fingers.is_empty() or Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT)
+		if _later_wait <= 0 and not touching:
+			_queue.append(_later.pop_front())
+			_later_wait = LATER_GAP
 	if not racing and not busy():
 		set_process(false)
 		if _used_changed:

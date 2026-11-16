@@ -195,13 +195,14 @@ static func stock_karts() -> Array:
 	return _stock.keys().map(func(key: String) -> Array: return [key, _stock[key][0]])
 
 
-## Asks for every kart's picture with player 1's driver, so they're ready
-## before the picker opens. The splash does this.
+## Asks for every kart's picture with player 1's driver, in the background, so
+## they're mostly ready before the picker opens. The splash does this as it
+## hands over to the menu.
 static func warm_pictures() -> void:
 	var driver := CharacterDesign.for_key(Game.driver_choice())
 	var look := "@" + DriverPortraits.key_of(driver)
 	for entry in own_karts() + stock_karts():
-		Game.kart_pictures().take(entry[0] + look, entry[1], driver)
+		Game.kart_pictures().take_later(entry[0] + look, entry[1], driver)
 
 
 func go_back() -> void:

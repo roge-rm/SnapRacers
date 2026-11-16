@@ -19,8 +19,6 @@ extends Control
 ## It has to draw on the real screen, which uses different versions of the same
 ## shaders than views off the screen do.
 ##
-## It asks for the kart picker's pictures too (see KartThumbnails).
-##
 ## Last it opens the cup screen, so its course layouts get drawn into
 ## pictures (see CourseOutlineView) and opening it later is quick.
 ##
@@ -86,8 +84,6 @@ func _ready() -> void:
 		for id in cup.tracks:
 			_outlines.append(Tracks.path_of(id))
 		Game.trophy_pictures().take(cup.get("trophy", {}), Color(cup.get("colour", "#a3a2a4")), TrophyModel.finish_for(CupGrid.best_place(cup.id)))
-	# The kart picker's pictures, which load or get taken from here on.
-	KartPicker.warm_pictures()
 	_began = Time.get_ticks_msec()
 	# The race and the rest are only here to get things ready, so nobody should
 	# hear them.
@@ -282,6 +278,8 @@ func _process(delta: float) -> void:
 		print("Warm-up took %d ms, with %d ms of course layouts" % [Time.get_ticks_msec() - _began, _outlines_took])
 		Sounds.hushed = false
 		Game.show_menu()
+		# The kart picker's pictures are taken in the background from here.
+		KartPicker.warm_pictures()
 
 
 ## Whether the cup screen's still drawing its pictures, for up to
