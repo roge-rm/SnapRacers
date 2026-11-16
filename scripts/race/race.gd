@@ -322,6 +322,19 @@ func _finish_setting_up(people: int) -> void:
 		player.kart.controls = driver.controls
 
 
+## Takes a racer out of the race, and their kart out of every AI driver's view
+## before it's freed, since the AI's gadget checks take karts as typed
+## arguments and fail on a freed one.
+func drop_racer(racer: Racer) -> void:
+	racers.erase(racer)
+	for node in get_children():
+		if node is AIDriver:
+			node.others.erase(racer.kart)
+	for other in racers:
+		if other.ai != null:
+			other.ai.others.erase(racer.kart)
+
+
 ## A race over the network, set up from the host's list of who's in it
 ## (see NetSession). Everyone's karts are made the same way on every device.
 ## Ours are driven here, the host drives the AI, and the rest are remote

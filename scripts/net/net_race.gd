@@ -289,7 +289,7 @@ func forget(peer: int) -> void:
 		if owners[slot] != peer:
 			continue
 		var racer: Race.Racer = racers[slot]
-		race.racers.erase(racer)
+		race.drop_racer(racer)
 		if is_instance_valid(racer.kart):
 			racer.kart.queue_free()
 		racers.erase(slot)

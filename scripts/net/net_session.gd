@@ -29,6 +29,11 @@ signal race_over(order: Array)
 const VERSION := 22
 const PORT := 27280
 const MOST_KARTS := 8
+## How long in ms an ENet connection can go quiet before it's dropped, at
+## the least and at the most. Building a race holds up the whole game for
+## several seconds on a slow phone, longer than ENet's own 5 s minimum.
+const QUIET_LEAST := 20000
+const QUIET_MOST := 60000
 ## What a host can put on.
 const SINGLE := "race"
 const CUP := "cup"
@@ -173,8 +178,19 @@ func player_count() -> int:
 
 # The host.
 
-func _on_peer_connected(_peer: int) -> void:
-	pass
+## Gives a new ENet connection room for the other end to load a race. Each
+## end sets its own side, the host for each joiner and a joiner for the host.
+## (A joiner hears of the other joiners too, but only talks to the host.)
+func _on_peer_connected(peer: int) -> void:
+	var transport := multiplayer.multiplayer_peer
+	if transport is MergedPeer:
+		transport = transport._owner.get(peer)
+	elif not multiplayer.is_server() and peer != 1:
+		return
+	if transport is ENetMultiplayerPeer:
+		var link: ENetPacketPeer = transport.get_peer(peer)
+		if link != null:
+			link.set_timeout(32, QUIET_LEAST, QUIET_MOST)
 
 
 func _on_peer_disconnected(peer: int) -> void:

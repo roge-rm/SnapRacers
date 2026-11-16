@@ -9,8 +9,13 @@
 set -uo pipefail
 cd "$(dirname "$0")/.."
 GODOT="tools/godot/Godot_v4.7.2-stable_linux.x86_64"
+# Each run gets its own empty game data folder, deleted at the end.
+mkdir -p build/creations
+export XDG_DATA_HOME
+XDG_DATA_HOME=$(mktemp -d "$PWD/build/creations/net-profile.XXXXXX")
 CONFIG=/tmp/snapracers-server-test
 SERVER=""
+trap '[ -n "$SERVER" ] && kill "$SERVER" 2>/dev/null; rm -rf -- "$XDG_DATA_HOME"' EXIT
 # With --running it races on a server that's already up, like the Docker one.
 if [ "${1:-}" != "--running" ]; then
 	rm -rf "$CONFIG" && mkdir -p "$CONFIG"
@@ -18,7 +23,7 @@ if [ "${1:-}" != "--running" ]; then
 	SERVER=$!
 	sleep 3
 fi
-"$GODOT" --headless --path . res://tests/server_test.tscn -- enet > /tmp/snapracers-server-enet.log 2>&1 &
+timeout 360 "$GODOT" --headless --path . res://tests/server_test.tscn -- enet > /tmp/snapracers-server-enet.log 2>&1 &
 PHONE=$!
 timeout 300 "$GODOT" --headless --path . res://tests/server_test.tscn -- ws > /tmp/snapracers-server-ws.log 2>&1
 WEB=$?

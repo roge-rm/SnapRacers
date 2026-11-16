@@ -7,11 +7,22 @@
 set -uo pipefail
 cd "$(dirname "$0")/.."
 GODOT="tools/godot/Godot_v4.7.2-stable_linux.x86_64"
-"$GODOT" --headless --path . res://tests/net_test.tscn -- host > /tmp/snapracers-net-host.log 2>&1 &
+# Each run gets its own empty game data folder, deleted at the end.
+mkdir -p build/creations
+export XDG_DATA_HOME
+XDG_DATA_HOME=$(mktemp -d "$PWD/build/creations/net-profile.XXXXXX")
+HOST=""
+trap '[ -n "$HOST" ] && kill "$HOST" 2>/dev/null; rm -rf -- "$XDG_DATA_HOME"' EXIT
+# The host gives up after 11 minutes, so a joiner that fails early can't leave it hanging.
+timeout 660 "$GODOT" --headless --path . res://tests/net_test.tscn -- host > /tmp/snapracers-net-host.log 2>&1 &
 HOST=$!
 sleep 2
 timeout 600 "$GODOT" --headless --path . res://tests/net_test.tscn -- join > /tmp/snapracers-net-join.log 2>&1
 JOIN=$?
+# A joiner that's given up leaves the host nobody to race.
+if [ $JOIN -ne 0 ]; then
+	kill "$HOST" 2>/dev/null
+fi
 wait $HOST
 HOSTED=$?
 grep -hE "^  (ok|FAIL)|order:|passed|failed|SCRIPT ERROR" /tmp/snapracers-net-host.log /tmp/snapracers-net-join.log

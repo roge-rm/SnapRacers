@@ -107,6 +107,7 @@ func _ready() -> void:
 	await _inventory()
 	await _difficulty()
 	await _actual_shot()
+	await _dropped_racer()
 	DirAccess.remove_absolute(ProjectSettings.globalize_path(COURSE))
 	print("All AI gadget checks passed." if failures == 0 else "%d AI gadget checks failed." % failures)
 	get_tree().quit(1 if failures > 0 else 0)
@@ -431,3 +432,18 @@ func _actual_shot() -> void:
 		kart.use_gadget(0)
 	await frames(45)
 	check(target.lost.size() >= Kart.CANNON_PARTS, "the fixed cannon projectile reaches the chosen kart (%d lost)" % target.lost.size())
+
+
+## Someone leaving mid-race takes their kart out of every AI's view, so the
+## AI never weighs up a freed kart.
+func _dropped_racer() -> void:
+	var leaving: Race.Racer = race.racers.filter(func(r): return not r.kart in [kart, target, third] and r.ai != null)[0]
+	var gone := leaving.kart
+	ai.others.append(gone)
+	race.drop_racer(leaving)
+	var drivers := race.get_children().filter(func(n): return n is AIDriver)
+	check(not race.racers.has(leaving) and drivers.all(func(d): return not d.others.has(gone)), "a racer who leaves is gone from the race and every AI's view of it")
+	gone.queue_free()
+	await frames()
+	for kind in ["cannon", "shield", "shockwave", "dropper"]:
+		AIGadgetTactics.score(ai, kind, 10.0)

@@ -60,6 +60,7 @@ func _ready() -> void:
 	Game.settings.set_value("race", "kart", "kart_kid")
 	var net := Game.net
 	net.race_begun.connect(func() -> void: order.clear())
+	net.ended.connect(func(why: String) -> void: print("[%s] the game ended: %s" % [role, why]))
 
 	if role == "host":
 		var peer := Connections.host_enet(PORT)
@@ -82,6 +83,10 @@ func _ready() -> void:
 		net.set_ready(true)
 
 	check(await until(func(): return screen() is Race, 30.0), "the race starts")
+	if not screen() is Race:
+		print("[%s] on %s instead, last problem: %s" % [role, screen().get_script().resource_path, net.last_problem])
+		get_tree().quit(1)
+		return
 	var race: Race = screen()
 	check(race.racers.size() == 8, "with both of us and six AI karts (%d)" % race.racers.size())
 	check(race.racers.filter(func(r): return r.kart.driver.name == "Nova").size() == 1, "and only the joiner is Nova, no AI twin")
