@@ -168,6 +168,21 @@ func _sound_page() -> Control:
 func _display_page() -> Control:
 	var page := VBoxContainer.new()
 	page.add_theme_constant_override("separation", 10)
+	if WindowMode.available():
+		page.add_child(MenuStyle.heading("Screen"))
+		var shapes := HBoxContainer.new()
+		shapes.add_theme_constant_override("separation", 10)
+		page.add_child(shapes)
+		var picks := {}
+		for pick in WindowMode.MODES:
+			var button := MenuStyle.button(WindowMode.MODES[pick], func() -> void:
+				Game.window_mode.set_mode(pick)
+				for other in picks:
+					MenuStyle.mark(picks[other], other == pick))
+			button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			MenuStyle.mark(button, pick == WindowMode.mode())
+			picks[pick] = button
+			shapes.add_child(button)
 	page.add_child(MenuStyle.heading("Graphics"))
 	var levels := HBoxContainer.new()
 	levels.add_theme_constant_override("separation", 10)

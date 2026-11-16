@@ -37,6 +37,8 @@ var character: CharacterDesign
 ## The theme for every screen, the HUD and the garage (UiKit.theme()).
 var theme: Theme
 var settings := ConfigFile.new()
+## Fullscreen or a window, on computers.
+var window_mode: WindowMode
 ## The track the next race is on. Race again keeps it.
 var track_path := TRACKS + "/peach_pit.json"
 
@@ -129,6 +131,8 @@ func _ready() -> void:
 	controllers.settings = settings
 	controllers.changed.connect(save_settings)
 	add_child(controllers)
+	window_mode = WindowMode.new()
+	add_child(window_mode)
 	net = NetSession.new()
 	add_child(net)
 	# Wherever we are when an online game ends under us (the host left, say),
@@ -150,7 +154,6 @@ func start_server(host: Node) -> void:
 ## unless they pick otherwise, so they come out the same every time.
 func start(host: Node, splash := true) -> void:
 	_host = host
-	SteamDeck.fit_window(get_window())
 	_start_motion()
 	part_pictures()
 	if not splash:

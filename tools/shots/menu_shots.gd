@@ -90,7 +90,7 @@ func screen_of(kind: Variant) -> Node:
 
 func ready_pictures() -> void:
 	# Thumbnails need real render frames before their images reach the UI.
-	for i in 180:
+	for i in 3000:
 		await get_tree().process_frame
 		RenderingServer.force_draw.call_deferred()
 		await RenderingServer.frame_post_draw

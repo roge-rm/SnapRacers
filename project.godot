@@ -28,6 +28,7 @@ window/size/viewport_width=1280
 window/size/viewport_height=720
 window/size/mode=3
 window/size/mode.web=0
+window/size/mode.pc=0
 window/stretch/mode="canvas_items"
 window/stretch/aspect="expand"
 window/handheld/orientation=4
