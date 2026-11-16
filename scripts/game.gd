@@ -420,7 +420,9 @@ func start_grand_prix(which: Variant, two := false) -> void:
 		grand_prix.player_two_driver = driver_choice(true)
 		grand_prix.people = [player_one_name(), player_two_name()]
 	# Everyone keeps the same kart for the whole cup.
-	var leave_out := [grand_prix.player_kart, grand_prix.player_two_kart] if two else []
+	var leave_out := [grand_prix.player_kart]
+	if two:
+		leave_out.append(grand_prix.player_two_kart)
 	var field := ai_field(2 if two else 1)
 	grand_prix.drivers = field
 	grand_prix.karts = draw_karts(field, leave_out)
@@ -712,10 +714,17 @@ func refresh_grand_prix_field() -> void:
 		taken.append(race_driver_key(player).trim_prefix(CharacterDesign.STOCK_KEY))
 		looks.append(race_driver(player).to_dict())
 	# A saved kart that's gone or can't race any more becomes a stock one.
+	var used := [grand_prix.player_kart]
+	if grand_prix.two:
+		used.append(grand_prix.player_two_kart)
+	used.append_array(grand_prix.karts.values())
 	for driver in grand_prix.karts:
 		var kart: String = grand_prix.karts[driver]
 		if kart == OWN_KART and not design.problems().is_empty() or kart.begins_with(KartDesign.SAVED_KEY) and not _saved_kart_ok(kart):
-			grand_prix.karts[driver] = stock_keys().pick_random()
+			# A stock kart nobody has, or any stock one when they're all taken.
+			var free := stock_keys().filter(func(k): return not used.has(k))
+			grand_prix.karts[driver] = (free if not free.is_empty() else stock_keys()).pick_random()
+			used.append(grand_prix.karts[driver])
 	for i in grand_prix.drivers.size():
 		var key := grand_prix.drivers[i]
 		if not key.begins_with(CharacterDesign.SAVED_KEY) or _driver_there(key):

@@ -316,7 +316,11 @@ func _setup() -> Dictionary:
 			cup_drivers = drivers.duplicate()
 		var fill := mini(drivers.size(), maxi(MOST_KARTS - entries.size(), 0))
 		drivers.resize(fill)
-		var karts := Game.draw_karts(drivers)
+		# The host's own kart (or two) isn't dealt to an AI.
+		var mine := [Game.kart_choice()]
+		if Game.split() != Game.SOLO and Game.online_two:
+			mine.append(Game.player_two_kart())
+		var karts := Game.draw_karts(drivers, mine)
 		var ranks := Game.draw_ranks(drivers)
 		for i in fill:
 			var who := Game.roster_driver(drivers[i])

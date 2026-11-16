@@ -164,6 +164,25 @@ func _ready() -> void:
 	DirAccess.remove_absolute(made[made.size() - 2])
 	Game.refresh_grand_prix_field()
 	check(Game.stock_keys().has(Game.grand_prix.karts["fizz"]), "karts: a deleted saved kart becomes a stock one")
+	# The swap avoids the player's kart and the other AIs' karts.
+	var stocks := Game.stock_keys()
+	var swap_ok := true
+	for i in 30:
+		Game.grand_prix = GrandPrix.new("baseplate")
+		Game.grand_prix.player_kart = stocks[0]
+		Game.grand_prix.drivers = ["fizz", "maple"]
+		Game.grand_prix.karts = {"fizz": bad_key, "maple": stocks[1]}
+		Game.refresh_grand_prix_field()
+		var got: String = Game.grand_prix.karts["fizz"]
+		swap_ok = swap_ok and stocks.has(got) and got != stocks[0] and got != stocks[1]
+	check(swap_ok, "karts: a swapped kart isn't the player's or another AI's")
+	# A one-player Grand Prix never deals the player's own kart to an AI.
+	Game.set_setting("race", "kart", good_key)
+	var gp_ok := true
+	for i in 20:
+		Game.start_grand_prix("baseplate")
+		gp_ok = gp_ok and not Game.grand_prix.karts.values().has(good_key)
+	check(gp_ok, "karts: a one-player cup leaves out the player's kart")
 	Game.grand_prix = null
 	Game.set_setting("race", "ai_own_karts", false)
 
