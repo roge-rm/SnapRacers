@@ -320,7 +320,7 @@ func _setup() -> Dictionary:
 		var ranks := Game.draw_ranks(drivers)
 		for i in fill:
 			var who := Game.roster_driver(drivers[i])
-			entries.push_front({"identity": "ai:" + drivers[i], "owner": 1, "ai": true, "name": who.name, "driver": who.to_dict(), "kart": Game.stock_kart(karts.get(drivers[i], Game.DEFAULT_STOCK)).to_dict(), "rank": ranks.get(drivers[i], i)})
+			entries.push_front({"identity": "ai:" + drivers[i], "owner": 1, "ai": true, "name": who.name, "driver": who.to_dict(), "kart": Game.kart_design(karts.get(drivers[i], Game.DEFAULT_STOCK)).to_dict(), "rank": ranks.get(drivers[i], i)})
 	_race_names.assign(entries)
 	for entry in entries:
 		entry.erase("identity")

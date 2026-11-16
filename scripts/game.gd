@@ -674,6 +674,11 @@ func ai_own_drivers() -> bool:
 	return settings.get_value("race", "ai_own_drivers", false)
 
 
+## Whether the AI can race in your garage kart and saved karts (Settings).
+func ai_own_karts() -> bool:
+	return settings.get_value("race", "ai_own_karts", false)
+
+
 ## Every driver the AI can be, before the draw: the stock drivers, then with
 ## ai_own_drivers() the driver screen's one and the saved ones. Leaves out
 ## keys in `taken`, anyone who looks like one of `looks` (driver dicts) and
@@ -706,6 +711,11 @@ func refresh_grand_prix_field() -> void:
 	for player in people:
 		taken.append(race_driver_key(player).trim_prefix(CharacterDesign.STOCK_KEY))
 		looks.append(race_driver(player).to_dict())
+	# A saved kart that's gone or can't race any more becomes a stock one.
+	for driver in grand_prix.karts:
+		var kart: String = grand_prix.karts[driver]
+		if kart == OWN_KART and not design.problems().is_empty() or kart.begins_with(KartDesign.SAVED_KEY) and not _saved_kart_ok(kart):
+			grand_prix.karts[driver] = stock_keys().pick_random()
 	for i in grand_prix.drivers.size():
 		var key := grand_prix.drivers[i]
 		if not key.begins_with(CharacterDesign.SAVED_KEY) or _driver_there(key):
@@ -883,15 +893,30 @@ func ai_driver_keys() -> Array[String]:
 	return keys
 
 
-## Deals a random stock kart to each of these drivers, as { driver: kart }.
-## Nobody gets the same kart as anyone else while there are enough to go
-## around, and nobody gets one in `leave_out` (like player 2's).
+## Every kart the AI can be dealt: the stock ones, then with ai_own_karts()
+## the garage kart and saved karts that can race (the kart picker's list).
+func ai_kart_keys() -> Array[String]:
+	var keys := stock_keys()
+	if ai_own_karts():
+		for entry in KartPicker.own_karts():
+			if entry[1].problems().is_empty():
+				keys.append(entry[0])
+	return keys
+
+
+## Deals a random kart (see ai_kart_keys()) to each of these drivers, as
+## { driver: kart }. Nobody gets the same kart as anyone else while there are
+## enough to go around, and nobody gets one in `leave_out` (like the kart a
+## player picked).
 func draw_karts(drivers: Array, leave_out: Array = []) -> Dictionary:
+	var pool := ai_kart_keys()
 	var deck: Array[String] = []
 	var out := {}
 	for driver in drivers:
 		if deck.is_empty():
-			deck = stock_keys().filter(func(k): return not leave_out.has(k))
+			deck = pool.filter(func(k): return not leave_out.has(k))
+			if deck.is_empty():
+				deck = stock_keys()
 			deck.shuffle()
 		out[driver] = deck.pop_back()
 	return out

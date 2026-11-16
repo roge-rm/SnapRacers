@@ -106,8 +106,18 @@ func _player_page() -> Control:
 	own_toggle.button_pressed = Game.ai_own_drivers()
 	own_toggle.toggled.connect(func(on: bool) -> void: Game.set_setting("race", "ai_own_drivers", on))
 	own_row.add_child(own_toggle)
+	var karts_row := HBoxContainer.new()
+	page.add_child(karts_row)
+	var karts_heading := MenuStyle.heading("AI can use your karts")
+	karts_heading.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	karts_row.add_child(karts_heading)
+	var karts_toggle := CheckButton.new()
+	karts_toggle.focus_mode = Control.FOCUS_ALL
+	karts_toggle.button_pressed = Game.ai_own_karts()
+	karts_toggle.toggled.connect(func(on: bool) -> void: Game.set_setting("race", "ai_own_karts", on))
+	karts_row.add_child(karts_toggle)
 	# Neighbours set by hand: the swatch row is narrow and the toggles sit far right, so going by position misses them.
-	var column: Array[Control] = [name_edit, swatches[0], toggle, own_toggle]
+	var column: Array[Control] = [name_edit, swatches[0], toggle, own_toggle, karts_toggle]
 	for i in column.size() - 1:
 		column[i].focus_neighbor_bottom = column[i].get_path_to(column[i + 1])
 		column[i + 1].focus_neighbor_top = column[i + 1].get_path_to(column[i])

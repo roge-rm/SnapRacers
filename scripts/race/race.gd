@@ -201,7 +201,7 @@ func _ready() -> void:
 		# Each AI driver has a stock kart, drawn at random for this race, or
 		# for the whole cup in a Grand Prix.
 		var drivers := Game.ai_field(people)
-		var karts := Game.draw_karts(drivers, [Game.player_two_kart()] if people > 1 else [])
+		var karts := Game.draw_karts(drivers, [Game.kart_choice(), Game.player_two_kart()] if people > 1 else [Game.kart_choice()])
 		# And a pecking order, so a different driver's the quickest each time.
 		var ranks := Game.draw_ranks(drivers)
 		if mode == Game.MODE_GRAND_PRIX and Game.grand_prix != null and not Game.grand_prix.drivers.is_empty():
@@ -212,7 +212,7 @@ func _ready() -> void:
 		drivers.resize(mini(drivers.size(), KARTS - people))
 		for i in drivers.size():
 			var who := Game.roster_driver(drivers[i])
-			var design := Game.stock_kart(karts.get(drivers[i], Game.DEFAULT_STOCK))
+			var design := Game.kart_design(karts.get(drivers[i], Game.DEFAULT_STOCK))
 			entries.append({ "identity": "ai:" + drivers[i], "name": who.name, "design": design, "who": who, "rank": ranks.get(drivers[i], i) })
 		if people > 1:
 			entries.append({ "identity": "player:1", "name": Game.player_two_name(), "design": Game.player_two_design(), "who": Game.race_driver(1), "human": 1 })

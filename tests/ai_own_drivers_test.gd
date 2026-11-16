@@ -124,6 +124,49 @@ func _ready() -> void:
 		distinct[key] = true
 	check(distinct.size() == now.size() and not now.has("fizz") and not ai_names.has("Xan Test"), "nobody twice and not the player's driver %s" % [ai_names])
 
+	# AI karts: stock only when off, your saved karts that can race when on.
+	check(not Game.ai_own_karts(), "karts: off by default")
+	var good := Game.stock_kart(Game.stock_keys()[0]).duplicate_design()
+	good.name = "Zz Good Test"
+	made.append(good.save())
+	var bad := good.duplicate_design()
+	bad.name = "Zz Bad Test"
+	bad.parts.clear()
+	check(not bad.problems().is_empty(), "karts: the bad kart can't race")
+	made.append(bad.save())
+	var good_key := KartDesign.SAVED_KEY + "zz_good_test"
+	var bad_key := KartDesign.SAVED_KEY + "zz_bad_test"
+	var ai_drivers := Game.ai_field(1)
+	var off_ok := true
+	for i in 50:
+		off_ok = off_ok and Game.draw_karts(ai_drivers).values().all(func(k): return Game.stock_keys().has(k))
+	check(off_ok, "karts off: only stock karts")
+	Game.set_setting("race", "ai_own_karts", true)
+	var dealt := {}
+	var never_bad := true
+	var never_left_out := true
+	for i in 200:
+		for dealt_kart in Game.draw_karts(ai_drivers, [good_key]).values():
+			dealt[dealt_kart] = true
+			never_bad = never_bad and dealt_kart != bad_key
+			never_left_out = never_left_out and dealt_kart != good_key
+	check(dealt.has(Game.OWN_KART) == Game.design.problems().is_empty(), "karts on: the garage kart is dealt when it can race")
+	check(not dealt.has(good_key) and never_left_out, "karts on: a left out kart isn't dealt")
+	var dealt_good := false
+	for i in 200:
+		dealt_good = dealt_good or Game.draw_karts(ai_drivers).values().has(good_key)
+	check(dealt_good, "karts on: a saved kart gets dealt")
+	check(never_bad, "karts on: a kart that can't race is never dealt")
+	# A Grand Prix swaps a deleted saved kart for a stock one.
+	Game.grand_prix = GrandPrix.new("baseplate")
+	Game.grand_prix.drivers = ["fizz"]
+	Game.grand_prix.karts = {"fizz": good_key}
+	DirAccess.remove_absolute(made[made.size() - 2])
+	Game.refresh_grand_prix_field()
+	check(Game.stock_keys().has(Game.grand_prix.karts["fizz"]), "karts: a deleted saved kart becomes a stock one")
+	Game.grand_prix = null
+	Game.set_setting("race", "ai_own_karts", false)
+
 	for path in made:
 		DirAccess.remove_absolute(path)
 	Game.settings.clear()
