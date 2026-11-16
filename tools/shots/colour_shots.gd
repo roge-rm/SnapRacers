@@ -37,6 +37,9 @@ func _ready() -> void:
 	window.size = Vector2i(960, 540)
 	await get_tree().create_timer(1.0).timeout
 	await _save("garage_palette_small")
+	garage.ui._palette.open_more()
+	await _save("garage_more_colours_small")
+	garage.ui._palette.close_more()
 	garage.ui._palette.open_picker()
 	await _save("garage_picker_small")
 	garage.ui._palette.close_picker()

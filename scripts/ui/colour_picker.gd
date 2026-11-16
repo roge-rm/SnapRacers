@@ -13,6 +13,9 @@ const FIELD := 220.0
 const STRIP := 44.0
 ## How far a d-pad press moves a marker.
 const STEP := 0.03
+## Stick tilt that starts moving a marker, and how far a full tilt moves it in a second.
+const DEADZONE := 0.3
+const STICK_SPEED := 0.6
 
 const STRIP_SHADER := """
 shader_type canvas_item;
@@ -35,6 +38,10 @@ void fragment() {
 	COLOR = vec4(hsv(hue, UV.x, 1.0 - UV.y), 1.0);
 }
 """
+
+## One shader of each kind, shared by every picker.
+static var _strip_shader: Shader
+static var _square_shader: Shader
 
 var hue := 0.0
 var sat := 1.0
@@ -85,16 +92,33 @@ func _init() -> void:
 	_update()
 
 
-## Starts from this colour.
+static func shader_for(strip: bool) -> Shader:
+	if strip:
+		if _strip_shader == null:
+			_strip_shader = Shader.new()
+			_strip_shader.code = STRIP_SHADER
+		return _strip_shader
+	if _square_shader == null:
+		_square_shader = Shader.new()
+		_square_shader.code = SQUARE_SHADER
+	return _square_shader
+
+
+## Starts from this colour. A grey, black or white keeps the hue that was there.
 func set_colour(colour: Color) -> void:
-	hue = colour.h
+	if colour.s > 0.0 and colour.v > 0.0:
+		hue = colour.h
 	sat = colour.s
 	val = colour.v
+	_square.stop()
+	_strip.stop()
 	_update()
 
 
+## The colour shown, rounded to what is saved, so it matches Recent and the swatches.
 func colour() -> Color:
-	return colour_of(hue, sat, val)
+	var exact := colour_of(hue, sat, val)
+	return Paints.read(Paints.code(exact), exact)
 
 
 func focus_square() -> void:
@@ -127,9 +151,7 @@ class Field extends Control:
 		_tall = strip
 		focus_mode = FOCUS_ALL
 		mouse_filter = MOUSE_FILTER_STOP
-		var shader := Shader.new()
-		shader.code = ColourPicker.STRIP_SHADER if strip else ColourPicker.SQUARE_SHADER
-		shade.shader = shader
+		shade.shader = ColourPicker.shader_for(strip)
 		var face := ColorRect.new()
 		face.mouse_filter = MOUSE_FILTER_IGNORE
 		face.material = shade
@@ -140,8 +162,38 @@ class Field extends Control:
 		add_child(_marker)
 		_marker.set_anchors_and_offsets_preset(PRESET_FULL_RECT)
 		resized.connect(_marker.queue_redraw)
-		focus_entered.connect(_marker.queue_redraw)
-		focus_exited.connect(_marker.queue_redraw)
+		focus_entered.connect(func() -> void:
+			_marker.queue_redraw()
+			set_process(is_visible_in_tree()))
+		focus_exited.connect(func() -> void:
+			_marker.queue_redraw()
+			set_process(false))
+		set_process(false)
+
+	## Lets go of a drag, as when the popup closes mid-press.
+	func stop() -> void:
+		_drag = false
+
+	func _notification(what: int) -> void:
+		if what == NOTIFICATION_VISIBILITY_CHANGED and not is_visible_in_tree():
+			stop()
+			set_process(false)
+
+	## The stick moves the marker at a steady speed, only while this has focus.
+	func _process(delta: float) -> void:
+		var tilt := Vector2.ZERO
+		for pad in Input.get_connected_joypads():
+			var axes := Vector2(Input.get_joy_axis(pad, JOY_AXIS_LEFT_X), Input.get_joy_axis(pad, JOY_AXIS_LEFT_Y))
+			if axes.length() > maxf(tilt.length(), ColourPicker.DEADZONE):
+				tilt = axes
+		if tilt == Vector2.ZERO:
+			return
+		if _tall:
+			tilt.x = 0.0
+		var to := (at + tilt * ColourPicker.STICK_SPEED * delta).clamp(Vector2.ZERO, Vector2.ONE)
+		if not to.is_equal_approx(at):
+			set_at(to)
+			changed.emit(to)
 
 	func set_at(to: Vector2) -> void:
 		at = to
@@ -167,7 +219,9 @@ class Field extends Control:
 		changed.emit(to)
 
 	func _gui_input(event: InputEvent) -> void:
-		if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
+		if event is InputEventJoypadMotion:
+			accept_event() # the stick is read in _process
+		elif event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
 			_drag = event.pressed
 			if _drag:
 				_move_to(event.position)

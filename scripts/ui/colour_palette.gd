@@ -155,6 +155,10 @@ func _build_more() -> void:
 	box.add_child(_more_grid)
 	for colour in Paints.more():
 		_more_grid.add_child(_swatch(colour))
+	var custom := BuilderStyle.pill("+ Pick a colour", Color(0, 0, 0, 0.45), UiKit.WHITE, func() -> void:
+		_more.hide()
+		open_picker(), 36.0)
+	box.add_child(custom)
 
 
 func _build_picker() -> void:
