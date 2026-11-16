@@ -137,7 +137,7 @@ func _initialize() -> void:
 	_atomic_save(data)
 	for path in made:
 		if path != "" and not before.has(path):
-			DirAccess.remove_absolute(painted_path)
+			DirAccess.remove_absolute(path)
 	print("All %d sharing checks passed." % checks if failures == 0 else "%d of %d sharing checks failed." % [failures, checks])
 	quit(1 if failures > 0 else 0)
 
