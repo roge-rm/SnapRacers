@@ -54,6 +54,7 @@ func _initialize() -> void:
 	check(cup.to_cup("mine_x").has("trophy") == false, "a Grand Prix ignores it")
 	check(cup.trophy_spec() == TrophyModel.spec_for(cup.name), "and it shows the trophy from the name")
 	check(CupDesign.award("").is_empty() and CupDesign.award("nonsense").is_empty(), "no award for an empty or unknown pick")
+	check(CupDesign.from_dict({"name": "X", "trophy": null}).trophy == "", "a trophy that isn't text counts as no pick")
 
 	print("All cup trophy checks passed." if failures == 0 else "%d cup trophy checks failed." % failures)
 	quit(1 if failures > 0 else 0)

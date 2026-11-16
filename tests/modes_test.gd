@@ -148,6 +148,9 @@ func _grand_prix() -> void:
 	check(gp.standings().map(func(s): return s[0]) == ["A", "C", "B"], "and the standings go by points")
 	check(gp.grid_order() == ["B", "C", "A"], "and the leader starts at the back of the next race")
 
+	# Only stock drivers in the field, whatever the AI setting was.
+	var own_was: Variant = Game.settings.get_value("race", "ai_own_drivers") if Game.settings.has_section_key("race", "ai_own_drivers") else null
+	Game.settings.set_value("race", "ai_own_drivers", false)
 	Game.start_grand_prix("baseplate")
 	var me := Game.player_name()
 	var karts := {}
@@ -181,7 +184,9 @@ func _grand_prix() -> void:
 		if round == 0:
 			karts = now
 			var ai: Array = race.racers.filter(func(r): return not r.player)
-			check(ai.all(func(r): return Game.ai_driver_keys().has(r.name.to_lower())), "the AI are the roster's drivers %s" % [ai.map(func(r): return r.name)])
+			# The Racer can stand in for a roster driver the player is.
+			var roster := Game.ai_driver_keys() + ["racer"]
+			check(ai.all(func(r): return roster.has(r.name.to_lower())), "the AI are the roster's drivers %s" % [ai.map(func(r): return r.name)])
 			var kinds := {}
 			for r in ai:
 				kinds[r.kart.design.name] = true
@@ -216,6 +221,10 @@ func _grand_prix() -> void:
 	check(Records.best_cup_place("baseplate") == place, "which is kept as your best in the cup")
 	var labels := _standings().find_children("*", "Label", true, false).map(func(l): return l.text)
 	check(labels.any(func(t): return t.contains("trophy")), "and the last screen gives you a trophy")
+	if own_was == null:
+		Game.settings.erase_section_key("race", "ai_own_drivers")
+	else:
+		Game.settings.set_value("race", "ai_own_drivers", own_was)
 
 
 ## A Grand Prix for two from the Multiplayer menu: both people race every round

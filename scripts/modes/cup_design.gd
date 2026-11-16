@@ -29,7 +29,7 @@ static func from_dict(data: Dictionary) -> CupDesign:
 	var c := CupDesign.new()
 	c.name = str(data.get("name", "My cup"))
 	c.made_by = str(data.get("made_by", ""))
-	c.trophy = str(data.get("trophy", ""))
+	c.trophy = data.trophy if data.get("trophy") is String else ""
 	for race in data.get("races", []):
 		if race is Dictionary and race.get("course") is Dictionary:
 			c.races.append({"from": str(race.get("from", "")), "course": race.course.duplicate(true)})

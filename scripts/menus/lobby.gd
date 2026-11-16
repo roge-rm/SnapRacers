@@ -477,14 +477,15 @@ func _show_cup(cup: Dictionary) -> void:
 	var title := str(cup.get("name", "No cup picked"))
 	var spec := TrophyModel.spec_for(title)
 	var colour := TrophyModel.colour_for(title)
-	var picked := CupDesign.award(str(cup.get("trophy", "")))
-	if not picked.is_empty():
-		spec = picked.trophy
-		colour = Color(picked.colour)
 	for game_cup in GrandPrix.cups():
 		if game_cup.name == title:
 			spec = game_cup.get("trophy", {})
 			colour = Color(game_cup.get("colour", "#a3a2a4"))
+	# A picked trophy wins over a game cup with the same name.
+	var picked := CupDesign.award(str(cup.get("trophy", "")) if cup.get("trophy") is String else "")
+	if not picked.is_empty():
+		spec = picked.trophy
+		colour = Color(picked.colour)
 	var finish := TrophyModel.finish_for(1)
 	_trophy_key = TrophyThumbnails.key_of(spec, colour, finish)
 	_window.show_picture(TrophyThumbnails.picture(_trophy_key), title, true)
