@@ -331,9 +331,13 @@ func command(words: PackedStringArray) -> Dictionary:
 		"ping":
 			return {"ok": true}
 		"courses":
+			# Only the names are read, since building every course would hold up
+			# the server for seconds and time out web players joining meanwhile.
 			var list := []
-			for id in courses():
-				list.append({"id": id, "name": TrackPath.load_file(courses()[id]).name})
+			var all := courses()
+			for id in all:
+				var data = JSON.parse_string(FileAccess.get_file_as_string(all[id]))
+				list.append({"id": id, "name": str(data.get("name", "Track")) if data is Dictionary else "Track"})
 			return {"ok": true, "courses": list}
 		"cups":
 			var list := []

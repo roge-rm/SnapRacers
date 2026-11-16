@@ -81,7 +81,7 @@ func _ready() -> void:
 	Game.show_lobby()
 	check(await until(func(): return not net.members.is_empty(), 20.0), "it joins the server's lobby")
 	check(await until(func(): return net.members.size() == 2, 20.0), "and sees the other player there too")
-	check(int(net.settings.laps) == 1, "with the laps the admin set")
+	check(int(net.settings.get("laps", 0)) == 1, "with the laps the admin set")
 	if how == "enet":
 		var status := await control(["status"])
 		check(status.get("players", []).size() == 2, "the server's status lists both players (%d)" % status.get("players", []).size())
