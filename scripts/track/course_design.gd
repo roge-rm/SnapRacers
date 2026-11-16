@@ -20,6 +20,8 @@ const GRID_TILES := 2
 
 var name := "My course"
 var theme := "orchard"
+## The tarmac's colour (see TrackPath.ROAD_COLOURS).
+var road_colour := TrackPath.STOCK_ROAD
 var laps := 3
 var width := TrackPath.WIDTH
 ## How much the ground rises and falls around it (see TrackPath.hills).
@@ -47,6 +49,8 @@ static func from_dict(data: Dictionary) -> CourseDesign:
 	var c := CourseDesign.new()
 	c.name = str(data.get("name", "My course"))
 	c.theme = str(data.get("theme", "orchard"))
+	var road_pick := str(data.get("road_colour", TrackPath.STOCK_ROAD))
+	c.road_colour = road_pick if TrackPath.ROAD_COLOURS.has(road_pick) else TrackPath.STOCK_ROAD
 	c.laps = clampi(int(data.get("laps", 3)), 1, 9)
 	c.width = float(data.get("width", TrackPath.WIDTH))
 	c.hills = float(data.get("hills", 0.0))
@@ -85,6 +89,8 @@ func to_dict() -> Dictionary:
 		"start": position + [turns],
 		"pieces": pieces.duplicate(true), "landmarks": landmarks.duplicate(true), "hills": hills,
 	}
+	if road_colour != TrackPath.STOCK_ROAD:
+		out.road_colour = road_colour
 	if map_rotation != 0.0:
 		out.map_rotation = map_rotation
 	if weather != Conditions.RANDOM:

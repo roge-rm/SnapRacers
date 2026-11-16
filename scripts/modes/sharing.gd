@@ -223,7 +223,7 @@ static func _kart_work_bounded(design: KartDesign) -> bool:
 static func _read_course(data: Dictionary, saved := false) -> Dictionary:
 	if not data.get("pieces") is Array or (not saved and data.pieces.is_empty()) or (not saved and data.pieces.size() > MOST_PIECES):
 		return {"why": "That course needs 1 to %d road pieces." % MOST_PIECES}
-	for key in ["theme", "weather", "time"]:
+	for key in ["theme", "weather", "time", "road_colour"]:
 		if not _text(data.get(key, ""), MOST_NAME):
 			return {"why": "That course has an invalid setting."}
 	for key in ["width", "hills", "grid", "laps"]:

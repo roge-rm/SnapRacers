@@ -66,6 +66,23 @@ func _initialize() -> void:
 
 	_splits()
 
+	print("-- Road colour")
+	check(not data.has("road_colour") and CourseDesign.from_dict(data).road_colour == "grey", "a course with no road colour is grey and saves no field")
+	var painted := course.duplicate_design()
+	painted.road_colour = "teal"
+	var painted_data := painted.to_dict()
+	check(painted_data.get("road_colour") == "teal", "a coloured course saves its road colour")
+	check(Sharing.read(Sharing.code_for(painted_data)).get("data", {}).get("road_colour") == "teal", "the road colour survives a share code")
+	check(Sharing.read(Sharing.file_for(painted_data)).get("data", {}).get("road_colour") == "teal", "and a shared file")
+	check(TrackPath.from_dict(painted_data).road_colour == "teal", "and reaches the track")
+	check(Sharing.read(Sharing.code_for(data)).get("data", {}).get("road_colour", "grey") == "grey", "an old code loads with grey")
+	var plaid := painted_data.duplicate(true)
+	plaid.road_colour = "plaid"
+	check(Sharing.read(JSON.stringify(plaid)).get("data", {}).get("road_colour", "grey") == "grey", "an unknown road colour loads as grey")
+	var painted_path := painted.save(CourseDesign.FOLDER + "/road_colour_" + tag + ".json")
+	check(CourseDesign.load_file(painted_path).road_colour == "teal", "the course file keeps its road colour")
+	DirAccess.remove_absolute(painted_path)
+
 	print("-- Adding")
 	var first := Sharing.add(back)
 	made.append(first.path)
@@ -120,7 +137,7 @@ func _initialize() -> void:
 	_atomic_save(data)
 	for path in made:
 		if path != "" and not before.has(path):
-			DirAccess.remove_absolute(path)
+			DirAccess.remove_absolute(painted_path)
 	print("All %d sharing checks passed." % checks if failures == 0 else "%d of %d sharing checks failed." % [failures, checks])
 	quit(1 if failures > 0 else 0)
 

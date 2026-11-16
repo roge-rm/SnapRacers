@@ -57,9 +57,27 @@ const OFFROAD := {
 	"ice": [0.28, 3.0],
 }
 
+## The road colours a course can have, by id: the name on its tile and the
+## colour of the tarmac. The first is the stock grey.
+const ROAD_COLOURS := {
+	"grey": ["Grey", Color("#6c6e68")],
+	"black": ["Black", Color("#3b3c3e")],
+	"red": ["Red", Color("#a14a44")],
+	"orange": ["Orange", Color("#b87a3e")],
+	"yellow": ["Yellow", Color("#b9a54a")],
+	"green": ["Green", Color("#4f7f58")],
+	"teal": ["Teal", Color("#3f8a8a")],
+	"blue": ["Blue", Color("#4a6fa5")],
+	"purple": ["Purple", Color("#7d5a9e")],
+	"pink": ["Pink", Color("#b5688a")],
+}
+const STOCK_ROAD := "grey"
+
 var name := "Track"
 ## Which scenery the course has (see Scenery.THEMES).
 var theme := "orchard"
+## The tarmac's colour, a key of ROAD_COLOURS.
+var road_colour := STOCK_ROAD
 ## A line about it.
 var about := ""
 var laps := 3
@@ -135,6 +153,8 @@ static func from_dict(data: Dictionary) -> TrackPath:
 	var track := TrackPath.new()
 	track.name = str(data.get("name", "Track"))
 	track.theme = str(data.get("theme", "orchard"))
+	var road_pick := str(data.get("road_colour", STOCK_ROAD))
+	track.road_colour = road_pick if ROAD_COLOURS.has(road_pick) else STOCK_ROAD
 	track.about = str(data.get("about", ""))
 	track.laps = int(data.get("laps", 3))
 	track.width = float(data.get("width", WIDTH))
@@ -200,6 +220,8 @@ func to_dict() -> Dictionary:
 	var out := { "name": name, "theme": theme, "about": about, "laps": laps, "width": width, "grid": TrackPiece.TILE, "pieces": specs }
 	if hills > 0.0:
 		out.hills = hills
+	if road_colour != STOCK_ROAD:
+		out.road_colour = road_colour
 	if map_rotation != 0.0:
 		out.map_rotation = map_rotation
 	if weather != Conditions.RANDOM:

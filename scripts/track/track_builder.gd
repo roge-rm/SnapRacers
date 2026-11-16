@@ -134,11 +134,19 @@ static func road_material() -> ShaderMaterial:
 	return _shared_material
 
 
+## What a surface is drawn as. Tarmac takes the course's road colour, which is
+## baked into the road's vertices so the shared material stays the same.
+func _surface_colour(surface: String) -> Color:
+	if surface == "asphalt":
+		return TrackPath.ROAD_COLOURS[track.road_colour][1]
+	return COLOURS.get(surface, COLOURS["asphalt"])
+
+
 ## One piece of road on its own, in its own space, as it would be built into
 ## a course of this width and theme. The track editor keeps these, so it can
 ## lay a course out again instantly after every change.
-static func piece_mesh(spec: Dictionary, width: float, theme_id: String) -> ArrayMesh:
-	var one := TrackPath.from_dict({"theme": theme_id, "width": width, "pieces": [spec]})
+static func piece_mesh(spec: Dictionary, width: float, theme_id: String, road_colour := TrackPath.STOCK_ROAD) -> ArrayMesh:
+	var one := TrackPath.from_dict({"theme": theme_id, "width": width, "road_colour": road_colour, "pieces": [spec]})
 	var builder := TrackBuilder.new(one)
 	builder._prepare()
 	var mesh := builder._piece_mesh(0)
@@ -402,7 +410,7 @@ func _piece_mesh(index: int, sides := [0, 1]) -> ArrayMesh:
 
 	var tool := SurfaceTool.new()
 	tool.begin(Mesh.PRIMITIVE_TRIANGLES)
-	var surface_colour: Color = COLOURS.get(piece.surface, COLOURS["asphalt"])
+	var surface_colour := _surface_colour(piece.surface)
 	# Mud and shallows have their own looks in the shader, with no tile seams.
 	var road_kind: float = road_kind_of(piece.surface)
 	if piece.is_split():
@@ -565,7 +573,7 @@ func _split_segment(tool: SurfaceTool, around: Array, piece: TrackPiece, sides: 
 		if not track.branch_solid(a, side) or not track.branch_solid(b, side):
 			continue
 		var surface := piece.branch_surface(side)
-		var colour: Color = COLOURS.get(surface, COLOURS["asphalt"])
+		var colour := _surface_colour(surface)
 		var road_kind: float = road_kind_of(surface)
 		var ya := track.branch_lift(a, side)
 		var yb := track.branch_lift(b, side)

@@ -28,6 +28,7 @@ signal name_changed(text: String)
 signal laps_changed(laps: int)
 signal map_rotation_changed(degrees: float)
 signal theme_chosen(theme: String)
+signal road_colour_chosen(id: String)
 signal hills_chosen(hills: float)
 signal weather_chosen(weather: String)
 signal time_chosen(time: String)
@@ -163,6 +164,7 @@ var _problems_label: Label
 var _laps_label: Label
 var _map_rotation_label: Label
 var _map_preview: CourseOutlineView
+var _road_colours: Dictionary = {}
 var _hills: Dictionary = {}
 var _weathers: Dictionary = {}
 var _times: Dictionary = {}
@@ -291,6 +293,8 @@ func show_course(course: CourseDesign, length: float, problems: Array[String], c
 	_map_preview.show_track(outline_track if outline_track != null else course.track())
 	for id in _themes:
 		BuilderStyle.show_swatch(_themes[id], Color(Scenery.theme_named(id).ground).darkened(0.35), id == course.theme, UiKit.LEAN)
+	for id in _road_colours:
+		BuilderStyle.show_swatch(_road_colours[id], TrackPath.ROAD_COLOURS[id][1], id == course.road_colour, UiKit.LEAN)
 	for id in _hills:
 		MenuStyle.mark(_hills[id], is_equal_approx(float(id), course.hills))
 	for id in _weathers:
@@ -770,6 +774,23 @@ func _build_card() -> void:
 	right.custom_minimum_size = Vector2(40, 40)
 	ScrollButton.let_scroll(right, func() -> void: map_rotation_changed.emit(15.0))
 	rotation.add_child(right)
+
+	var road_heading := Label.new()
+	road_heading.text = "Road colour"
+	road_heading.theme_type_variation = "SmallLabel"
+	box.add_child(road_heading)
+	var road_grid := GridContainer.new()
+	road_grid.columns = 3
+	road_grid.add_theme_constant_override("h_separation", 6)
+	road_grid.add_theme_constant_override("v_separation", 4)
+	box.add_child(road_grid)
+	for id in TrackPath.ROAD_COLOURS:
+		var road: Color = TrackPath.ROAD_COLOURS[id][1]
+		var road_ink := UiKit.INK if road.get_luminance() > 0.5 else UiKit.WHITE
+		var tile := BuilderStyle.pill(TrackPath.ROAD_COLOURS[id][0], road, road_ink, func() -> void: road_colour_chosen.emit(id), 36.0, true)
+		tile.custom_minimum_size.x = 98.0
+		road_grid.add_child(tile)
+		_road_colours[id] = tile
 
 	var theme_heading := Label.new()
 	theme_heading.text = "Theme"

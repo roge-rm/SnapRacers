@@ -172,6 +172,10 @@ func _ready() -> void:
 		_remember()
 		course.theme = id
 		_refresh())
+	ui.road_colour_chosen.connect(func(id: String) -> void:
+		_remember()
+		course.road_colour = id
+		_refresh())
 	ui.hills_chosen.connect(func(hills: float) -> void:
 		_remember()
 		course.hills = hills
@@ -325,7 +329,7 @@ func join_ends() -> void:
 	_join_spec = spec
 	_join_source = course.to_dict().duplicate(true)
 	_join_preview = MeshInstance3D.new()
-	_join_preview.mesh = TrackBuilder.piece_mesh(spec, course.width, course.theme)
+	_join_preview.mesh = TrackBuilder.piece_mesh(spec, course.width, course.theme, course.road_colour)
 	var look := StandardMaterial3D.new()
 	look.albedo_color = Color(0.25, 0.85, 1.0, 0.65)
 	look.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
@@ -730,10 +734,10 @@ func _lay_out() -> void:
 	var nodes := _quick.get_children()
 	for i in track.pieces.size():
 		var spec: Dictionary = course.pieces[i]
-		var key := "%s %s %s" % [JSON.stringify(spec), course.width, course.theme]
+		var key := "%s %s %s %s" % [JSON.stringify(spec), course.width, course.theme, course.road_colour]
 		var adjustable: bool = spec.get("type") in TrackPiece.ADJUSTABLE_TYPES
 		if not adjustable and not _meshes.has(key):
-			var mesh := TrackBuilder.piece_mesh(spec, course.width, course.theme)
+			var mesh := TrackBuilder.piece_mesh(spec, course.width, course.theme, course.road_colour)
 			_meshes[key] = [mesh, mesh.create_trimesh_shape() if mesh != null else null]
 		var body: StaticBody3D
 		if i < nodes.size():
@@ -750,7 +754,7 @@ func _lay_out() -> void:
 		if adjustable:
 			# Metric edits keep only the current mesh, rather than every prior value.
 			if body.get_meta("mesh_key", "") != key:
-				var mesh := TrackBuilder.piece_mesh(spec, course.width, course.theme)
+				var mesh := TrackBuilder.piece_mesh(spec, course.width, course.theme, course.road_colour)
 				(body.get_child(0) as MeshInstance3D).mesh = mesh
 				(body.get_child(1) as CollisionShape3D).shape = mesh.create_trimesh_shape() if mesh != null else null
 		else:
