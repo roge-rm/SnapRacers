@@ -151,6 +151,11 @@ func _ready() -> void:
 	_open_saved()
 
 
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_APPLICATION_FOCUS_OUT:
+		_fingers.clear()
+
+
 func _input(event: InputEvent) -> void:
 	if event is InputEventScreenTouch:
 		if event.pressed:
@@ -159,6 +164,16 @@ func _input(event: InputEvent) -> void:
 			_fingers.erase(event.index)
 	elif event is InputEventScreenDrag:
 		_fingers[event.index] = true
+
+
+## Drops the waiting jobs at the front that aren't for either player's driver
+## now, so a driver changed outside the picker costs nothing.
+func _skip_stale() -> void:
+	var looks := []
+	for second in [false, true]:
+		looks.append("@" + DriverPortraits.key_of(CharacterDesign.for_key(Game.driver_choice(second))))
+	while not _later.is_empty() and not looks.any(func(look: String) -> bool: return _later[0][0].ends_with(look)):
+		_later.pop_front()
 
 
 func _add_view() -> void:
@@ -304,10 +319,15 @@ func _process(_delta: float) -> void:
 	# One background picture at a time, only while nothing else is waiting.
 	if not racing and _queue.is_empty() and not _later.is_empty():
 		_later_wait -= 1
+		# A lifted finger can go unseen, say under a popup, so nothing down means none.
+		if not Input.is_anything_pressed():
+			_fingers.clear()
 		var touching := not _fingers.is_empty() or Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT)
 		if _later_wait <= 0 and not touching:
-			_queue.append(_later.pop_front())
-			_later_wait = LATER_GAP
+			_skip_stale()
+			if not _later.is_empty():
+				_queue.append(_later.pop_front())
+				_later_wait = LATER_GAP
 	if not racing and not busy():
 		set_process(false)
 		if _used_changed:
