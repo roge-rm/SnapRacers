@@ -9,7 +9,9 @@ extends RefCounted
 ## balloon. The extra tops, which only the cup editor offers, are a steering
 ## wheel, a tire, a star, a crown, a rocket, a snowflake, a summit with a
 ## flag, a wrench, a lidded cup with tall handles, a racing helmet, a little
-## kart and an anchor.
+## kart, an anchor, a lighthouse, a sailboat, a penguin, a dinosaur, a pine
+## tree, a mushroom, a heart, a sun, a crescent moon with a star, a rainbow, a
+## traffic cone, a stopwatch, a gem and a bell.
 ##
 ## It comes in plain light grey, for a cup you haven't won yet, or in gold,
 ## silver or bronze for your best finish. The plinth keeps its colours either
@@ -38,6 +40,20 @@ const EXTRAS := {
 	"extra:helmet": {"name": "Racing helmet", "top": "helmet", "colour": "#ff8fb0"},
 	"extra:kart": {"name": "Little kart", "top": "kart", "colour": "#93c47d"},
 	"extra:anchor": {"name": "Anchor", "top": "anchor", "colour": "#004d66"},
+	"extra:lighthouse": {"name": "Lighthouse", "top": "lighthouse", "colour": "#e63946"},
+	"extra:sailboat": {"name": "Sailboat", "top": "sailboat", "colour": "#48cae4"},
+	"extra:penguin": {"name": "Penguin", "top": "penguin", "colour": "#90a4c8"},
+	"extra:dinosaur": {"name": "Dinosaur", "top": "dinosaur", "colour": "#52b788"},
+	"extra:pine": {"name": "Pine tree", "top": "pine", "colour": "#3a5a40"},
+	"extra:mushroom": {"name": "Mushroom", "top": "mushroom", "colour": "#ffb4a2"},
+	"extra:heart": {"name": "Heart", "top": "heart", "colour": "#ff4d6d"},
+	"extra:sun": {"name": "Sun", "top": "sun", "colour": "#fff3b0"},
+	"extra:moon": {"name": "Moon and star", "top": "moon", "colour": "#14213d"},
+	"extra:rainbow": {"name": "Rainbow", "top": "rainbow", "colour": "#a2d2ff"},
+	"extra:cone": {"name": "Traffic cone", "top": "cone", "colour": "#ff7b00"},
+	"extra:stopwatch": {"name": "Stopwatch", "top": "stopwatch", "colour": "#495057"},
+	"extra:gem": {"name": "Gem", "top": "gem", "colour": "#7209b7"},
+	"extra:bell": {"name": "Bell", "top": "bell", "colour": "#b56576"},
 }
 const FINISHES := ["grey", "gold", "silver", "bronze"]
 const GOLD := Color("#f2b632")
@@ -135,6 +151,34 @@ static func pieces(spec: Dictionary, colour: Color, finish := "grey") -> Array:
 			_kart(add, metal)
 		"anchor":
 			_anchor(add, metal)
+		"lighthouse":
+			_lighthouse(add, metal, finish)
+		"sailboat":
+			_sailboat(add, metal)
+		"penguin":
+			_penguin(add, metal, finish)
+		"dinosaur":
+			_dinosaur(add, metal, finish)
+		"pine":
+			_pine(add, metal)
+		"mushroom":
+			_mushroom(add, metal, finish)
+		"heart":
+			_heart(add, metal)
+		"sun":
+			_sun(add, metal, finish)
+		"moon":
+			_moon(add, metal)
+		"rainbow":
+			_rainbow(add, metal)
+		"cone":
+			_cone(add, metal, finish)
+		"stopwatch":
+			_stopwatch(add, metal, finish)
+		"gem":
+			_gem(add, metal)
+		"bell":
+			_bell(add, metal)
 		_:
 			_cup(add, metal)
 	return out
@@ -667,3 +711,399 @@ static func _anchor(add: Callable, metal: Material) -> void:
 		var shape: Array = _front(fluke, 0.08, bend + Vector3(cos(a), sin(a), 0.0) * 0.34, -side * deg_to_rad(20.0))
 		add.call(shape[0], shape[1], metal)
 	add.call(MeshKit.rounded_cylinder(0.08, 0.1, 0.03, 16), _up(TOP_AT + 0.1), metal)
+
+
+## The dark material for eyes, windows and markings, like the flag's dark
+## squares, softer on a grey trophy.
+static func _tint(finish: String) -> StandardMaterial3D:
+	return PartVisuals.material(DARK) if finish != "grey" else PartVisuals.material(Color("#635f61"))
+
+
+## A ball, with its middle at the origin.
+static func _ball(radius: float, sides := 20) -> Mesh:
+	var outline := PackedVector2Array()
+	var rings := maxi(4, sides / 2)
+	for i in rings + 1:
+		var a := -PI * 0.5 + PI * i / rings
+		outline.append(Vector2(cos(a) * radius, sin(a) * radius))
+	outline[0].x = 0.0
+	outline[rings].x = 0.0
+	return MeshKit.lathe(outline, sides)
+
+
+## A shape turned on a lathe with flat faces, like a cut gem.
+static func _faceted(profile: PackedVector2Array, sides: int) -> Mesh:
+	var tool := SurfaceTool.new()
+	tool.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var middle := 0.0
+	for p in profile:
+		middle += p.y / profile.size()
+	for k in sides:
+		var a0 := TAU * k / sides
+		var a1 := TAU * (k + 1) / sides
+		for i in profile.size() - 1:
+			var quad := []
+			for corner in [[i, a0], [i + 1, a0], [i + 1, a1], [i, a1]]:
+				var p := profile[corner[0]]
+				quad.append(Vector3(sin(corner[1]) * p.x, p.y, -cos(corner[1]) * p.x))
+			for tri in [[quad[0], quad[1], quad[2]], [quad[0], quad[2], quad[3]]]:
+				var normal: Vector3 = (tri[1] - tri[0]).cross(tri[2] - tri[0])
+				if normal.length() < 0.000001:
+					continue
+				normal = normal.normalized()
+				var centre: Vector3 = (tri[0] + tri[1] + tri[2]) / 3.0
+				if normal.dot(centre - Vector3(0.0, middle, 0.0)) < 0.0:
+					normal = -normal
+				for v in tri:
+					tool.set_normal(normal)
+					tool.add_vertex(v)
+	tool.index()
+	var mesh := tool.commit()
+	MeshKit.fix_winding(mesh)
+	return mesh
+
+
+## Turned so a shape's up (+Y) points along `along`.
+static func _pointing(along: Vector3, at: Vector3) -> Transform3D:
+	return Transform3D(Basis(Quaternion(Vector3.UP, along.normalized())), at)
+
+
+## A five pointed star outline, `r` to the points.
+static func _star_outline(r: float, centre := Vector2.ZERO) -> PackedVector2Array:
+	var out := PackedVector2Array()
+	for i in 10:
+		var a := PI * 0.5 + PI * i / 5.0
+		out.append(centre + Vector2(cos(a), sin(a)) * (r if i % 2 == 0 else r * 0.42))
+	return out
+
+
+## A striped lighthouse on rocks: a tapering tower with a door, a balcony
+## with a railing, a lamp room with dark windows and a domed roof.
+static func _lighthouse(add: Callable, metal: Material, finish: String) -> void:
+	add.call(_brick(Vector3(0.6, 0.08, 0.52)), _up(TOP_AT + 0.04), metal)
+	for rock in [[0.24, -0.14, 0.18, 0.4], [-0.24, 0.1, 0.15, -0.3], [-0.16, -0.18, 0.12, 0.8]]:
+		add.call(_small(Vector3(rock[2], rock[2] * 0.6, rock[2])), Transform3D(Basis(Vector3.UP, rock[3]), Vector3(rock[0], TOP_AT + 0.08 + rock[2] * 0.25, rock[1])), metal)
+	var low := TOP_AT + 0.08
+	var tall := 0.72
+	var tower := PackedVector2Array([Vector2(0.0, 0.0), Vector2(0.21, 0.0), Vector2(0.15, tall), Vector2(0.0, tall)])
+	add.call(MeshKit.lathe(tower, 28), _up(low), metal)
+	# Raised stripes round the tower.
+	for band in [[0.14, 0.26], [0.42, 0.54]]:
+		var r0: float = 0.21 - 0.06 * band[0] / tall
+		var r1: float = 0.21 - 0.06 * band[1] / tall
+		var ring := PackedVector2Array([Vector2(r0 - 0.01, band[0]), Vector2(r0 + 0.014, band[0]), Vector2(r1 + 0.014, band[1]), Vector2(r1 - 0.01, band[1])])
+		add.call(MeshKit.lathe(ring, 28), _up(low), _tint(finish))
+	add.call(_small(Vector3(0.09, 0.14, 0.04)), _up(low + 0.07, 0.0, -0.205), metal)
+	var deck := low + tall
+	add.call(MeshKit.rounded_cylinder(0.23, 0.04, 0.012, 24), _up(deck + 0.02), metal)
+	for k in 10:
+		var a := TAU * k / 10.0
+		add.call(MeshKit.rounded_cylinder(0.012, 0.09, 0.004, 6), _up(deck + 0.085, cos(a) * 0.21, sin(a) * 0.21), metal)
+	add.call(MeshKit.arc_tube(0.21, 0.012, 0.0, TAU, 28, 6), Transform3D(Basis(Vector3.RIGHT, PI * 0.5), Vector3(0.0, deck + 0.13, 0.0)), metal)
+	add.call(MeshKit.rounded_cylinder(0.12, 0.16, 0.01, 16), _up(deck + 0.12), _tint(finish))
+	for k in 4:
+		var a := TAU * k / 4.0 + PI * 0.25
+		add.call(MeshKit.rounded_cylinder(0.018, 0.16, 0.005, 6), _up(deck + 0.12, cos(a) * 0.12, sin(a) * 0.12), metal)
+	var roof := PackedVector2Array([Vector2(0.0, 0.0), Vector2(0.16, 0.0), Vector2(0.15, 0.03), Vector2(0.11, 0.08), Vector2(0.05, 0.12), Vector2(0.0, 0.13)])
+	add.call(MeshKit.lathe(roof, 24), _up(deck + 0.2), metal)
+	add.call(_ball(0.035, 12), _up(deck + 0.35), metal)
+
+
+## A sailboat on a cradle, side on and sailing right: a hull with a cabin,
+## a mast with a mainsail on a boom, a jib to the bow and a pennant on top.
+static func _sailboat(add: Callable, metal: Material) -> void:
+	add.call(_brick(Vector3(0.34, 0.1, 0.2)), _up(TOP_AT + 0.05), metal)
+	var keel := TOP_AT + 0.1
+	var hull := PackedVector2Array([
+		Vector2(-0.4, 0.22), Vector2(-0.39, 0.12), Vector2(-0.34, 0.05), Vector2(-0.24, 0.0), Vector2(0.18, 0.0),
+		Vector2(0.32, 0.05), Vector2(0.44, 0.14), Vector2(0.52, 0.25),
+	])
+	var shape: Array = _front(hull, 0.26, Vector3(0.0, keel, 0.0))
+	add.call(shape[0], shape[1], metal)
+	add.call(_small(Vector3(0.88, 0.03, 0.2)), Transform3D(Basis(Vector3.BACK, 0.03), Vector3(0.05, keel + 0.235, 0.0)), metal)
+	add.call(_small(Vector3(0.22, 0.09, 0.16)), _up(keel + 0.29, -0.2), metal)
+	for z in [-0.081, 0.081]:
+		add.call(_small(Vector3(0.12, 0.035, 0.01)), _up(keel + 0.3, -0.2, z), metal)
+	var mast_x := 0.04
+	var deck := keel + 0.24
+	add.call(MeshKit.rounded_cylinder(0.025, 0.96, 0.01, 10), _up(deck + 0.48, mast_x), metal)
+	add.call(MeshKit.rounded_cylinder(0.018, 0.42, 0.008, 8), Transform3D(Basis(Vector3.BACK, PI * 0.5), Vector3(mast_x - 0.19, deck + 0.12, 0.0)), metal)
+	var main := PackedVector2Array([Vector2(-0.01, 0.0), Vector2(-0.01, 0.8), Vector2(-0.1, 0.56), Vector2(-0.2, 0.32), Vector2(-0.36, 0.0)])
+	shape = _front(main, 0.025, Vector3(mast_x, deck + 0.14, 0.0))
+	add.call(shape[0], shape[1], metal)
+	var jib := PackedVector2Array([Vector2(0.015, 0.0), Vector2(0.015, 0.7), Vector2(0.38, 0.0)])
+	shape = _front(jib, 0.025, Vector3(mast_x, deck + 0.02, 0.0))
+	add.call(shape[0], shape[1], metal)
+	var pennant := PackedVector2Array([Vector2(0.0, 0.0), Vector2(-0.18, 0.04), Vector2(0.0, 0.09)])
+	shape = _front(pennant, 0.02, Vector3(mast_x - 0.02, deck + 0.86, 0.0))
+	add.call(shape[0], shape[1], metal)
+
+
+## A round little penguin: a big head on an egg shaped body with a belly,
+## dark eyes, a beak, flippers out, feet poking forward and a scarf.
+static func _penguin(add: Callable, metal: Material, finish: String) -> void:
+	for x in [-0.1, 0.1]:
+		add.call(MeshKit.rounded_box(Vector3(0.12, 0.05, 0.18), 0.02, 1.0, 3), Transform3D(Basis(Vector3.UP, x * 2.0), Vector3(x, TOP_AT + 0.025, -0.06)), metal)
+	var low := TOP_AT + 0.03
+	var body := PackedVector2Array([
+		Vector2(0.0, 0.0), Vector2(0.14, 0.0), Vector2(0.21, 0.04), Vector2(0.26, 0.13), Vector2(0.27, 0.24),
+		Vector2(0.25, 0.35), Vector2(0.2, 0.44), Vector2(0.12, 0.5), Vector2(0.0, 0.52),
+	])
+	add.call(MeshKit.lathe(body, 28), _up(low), metal)
+	var belly := PackedVector2Array([
+		Vector2(0.15, 0.03), Vector2(0.22, 0.07), Vector2(0.265, 0.15), Vector2(0.28, 0.24),
+		Vector2(0.265, 0.34), Vector2(0.22, 0.42),
+	])
+	add.call(MeshKit.lathe(belly, 28, -0.8, 0.8), _up(low), metal)
+	for side in [-1.0, 1.0]:
+		var flipper := Transform3D(Basis(Vector3.BACK, side * 0.5), Vector3(side * 0.27, low + 0.24, 0.02))
+		add.call(MeshKit.rounded_box(Vector3(0.07, 0.26, 0.14), 0.03, 0.7, 3), flipper, metal)
+	var neck := low + 0.5
+	add.call(MeshKit.arc_tube(0.15, 0.04, 0.0, TAU, 24, 8), Transform3D(Basis(Vector3.RIGHT, PI * 0.5), Vector3(0.0, neck, 0.0)), metal)
+	add.call(_small(Vector3(0.08, 0.18, 0.03)), Transform3D(Basis(Vector3.BACK, 0.2), Vector3(0.1, neck - 0.08, -0.16)), metal)
+	var head := Vector3(0.0, neck + 0.17, 0.0)
+	add.call(_ball(0.21, 28), Transform3D(Basis.IDENTITY, head), metal)
+	for x in [-0.075, 0.075]:
+		add.call(MeshKit.rounded_cylinder(0.042, 0.04, 0.015, 16), _toward_front(head + Vector3(x, 0.04, -0.19)), _tint(finish))
+		add.call(MeshKit.rounded_cylinder(0.014, 0.02, 0.006, 8), _toward_front(head + Vector3(x + 0.012, 0.055, -0.21)), metal)
+	var beak := PackedVector2Array([Vector2(0.0, 0.0), Vector2(0.055, 0.0), Vector2(0.03, 0.06), Vector2(0.0, 0.1)])
+	add.call(MeshKit.lathe(beak, 12), Transform3D(Basis(Vector3.RIGHT, -PI * 0.5), head + Vector3(0.0, -0.04, -0.18)), metal)
+
+
+## A toy dinosaur with a long neck, side on and facing right: a round body
+## on four stubby legs, spikes along its back, a tail and a smiley head.
+static func _dinosaur(add: Callable, metal: Material, finish: String) -> void:
+	for x in [-0.15, 0.15]:
+		for z in [-0.11, 0.11]:
+			add.call(MeshKit.rounded_cylinder(0.075, 0.22, 0.03, 16), _up(TOP_AT + 0.11, x, z), metal)
+	var body := Vector3(0.0, TOP_AT + 0.34, 0.0)
+	add.call(_ball(0.22, 28), Transform3D(Basis.from_scale(Vector3(1.4, 1.0, 0.95)), body), metal)
+	# Neck and tail are balls close enough together to look smooth.
+	for k in 10:
+		var t := k / 9.0
+		var at := body + Vector3(lerpf(0.22, 0.42, t) - 0.04 * sin(t * PI), lerpf(0.08, 0.48, t), 0.0)
+		add.call(_ball(lerpf(0.1, 0.075, t), 14), Transform3D(Basis.IDENTITY, at), metal)
+	var head := body + Vector3(0.48, 0.54, 0.0)
+	add.call(_ball(0.12, 20), Transform3D(Basis.from_scale(Vector3(1.35, 1.0, 1.05)), head), metal)
+	for z in [-1.0, 1.0]:
+		add.call(MeshKit.rounded_cylinder(0.03, 0.03, 0.012, 12), _toward_front(head + Vector3(0.04, 0.035, z * 0.115)), _tint(finish))
+	add.call(MeshKit.arc_tube(0.06, 0.012, deg_to_rad(200.0), deg_to_rad(320.0), 8, 6), Transform3D(Basis.IDENTITY, head + Vector3(0.1, 0.0, -0.105)), _tint(finish))
+	for k in 12:
+		var t := k / 11.0
+		var at := body + Vector3(lerpf(-0.26, -0.6, t), lerpf(-0.02, -0.17, t) + 0.03 * sin(t * PI), 0.0)
+		add.call(_ball(lerpf(0.11, 0.035, t), 12), Transform3D(Basis.IDENTITY, at), metal)
+	var spike := PackedVector2Array([Vector2(-0.06, 0.0), Vector2(0.06, 0.0), Vector2(0.0, 0.1)])
+	for degrees in [55.0, 80.0, 105.0, 130.0, 155.0]:
+		var a := deg_to_rad(degrees)
+		var shape: Array = _front(spike, 0.04, body + Vector3(cos(a) * 0.3, sin(a) * 0.21, 0.0), a - PI * 0.5)
+		add.call(shape[0], shape[1], metal)
+
+
+## A pine tree: tiers of branches getting smaller up a short trunk, to a
+## point.
+static func _pine(add: Callable, metal: Material) -> void:
+	add.call(MeshKit.rounded_cylinder(0.08, 0.16, 0.02, 16), _up(TOP_AT + 0.08), metal)
+	for k in 4:
+		var r := 0.46 - k * 0.09
+		var tall := 0.38 - k * 0.04
+		var tier := PackedVector2Array([
+			Vector2(0.0, 0.0), Vector2(r * 0.7, 0.0), Vector2(r, -0.03), Vector2(r * 1.01, 0.0),
+			Vector2(r * 0.55, tall * 0.5), Vector2(0.06, tall), Vector2(0.0, tall),
+		])
+		add.call(MeshKit.lathe(tier, 14), Transform3D(Basis(Vector3.UP, k * 0.4), Vector3(0.0, TOP_AT + 0.16 + k * 0.2, 0.0)), metal)
+	var tip := PackedVector2Array([Vector2(0.0, 0.0), Vector2(0.07, 0.0), Vector2(0.0, 0.16)])
+	add.call(MeshKit.lathe(tip, 14), _up(TOP_AT + 0.16 + 3 * 0.2 + 0.24), metal)
+
+
+## A toadstool with a fat stem and a ring round it, under a wide domed cap
+## with spots.
+static func _mushroom(add: Callable, metal: Material, finish: String) -> void:
+	var stem := PackedVector2Array([
+		Vector2(0.0, 0.0), Vector2(0.14, 0.0), Vector2(0.16, 0.03), Vector2(0.155, 0.12), Vector2(0.135, 0.26),
+		Vector2(0.12, 0.4), Vector2(0.0, 0.4),
+	])
+	add.call(MeshKit.lathe(stem, 24), _up(TOP_AT), metal)
+	var ring := PackedVector2Array([Vector2(0.12, 0.0), Vector2(0.19, -0.05), Vector2(0.2, -0.035), Vector2(0.125, 0.03)])
+	add.call(MeshKit.lathe(ring, 24), _up(TOP_AT + 0.3), metal)
+	var low := TOP_AT + 0.36
+	var cap := PackedVector2Array()
+	cap.append(Vector2(0.0, 0.0))
+	cap.append(Vector2(0.4, 0.0))
+	for i in 9:
+		var e := PI * 0.5 * i / 8.0
+		cap.append(Vector2(cos(e) * 0.45, sin(e) * 0.34))
+	cap[cap.size() - 1].x = 0.0
+	add.call(MeshKit.lathe(cap, 28), _up(low), metal)
+	var spot := MeshKit.rounded_cylinder(0.06, 0.03, 0.01, 14)
+	for at in [[90.0, 0.0], [40.0, 0.3], [40.0, 1.55], [40.0, 2.8], [40.0, 4.05], [40.0, 5.3], [12.0, 1.0], [12.0, 2.6], [12.0, 4.2], [12.0, 5.8]]:
+		var e := deg_to_rad(at[0])
+		var around: float = at[1]
+		var flat := Vector3(sin(around), 0.0, -cos(around))
+		var where := flat * cos(e) * 0.45 + Vector3.UP * sin(e) * 0.34
+		var normal := (flat * cos(e) / 0.45 + Vector3.UP * sin(e) / 0.34).normalized()
+		add.call(spot, _pointing(normal, Vector3(0.0, low, 0.0) + where), _tint(finish))
+
+
+## The points of a heart outline, `width` across, with its middle at the
+## origin.
+static func _heart_outline(width: float) -> PackedVector2Array:
+	var out := PackedVector2Array()
+	for i in 40:
+		var t := TAU * i / 40.0
+		var x := 16.0 * pow(sin(t), 3.0)
+		var y := 13.0 * cos(t) - 5.0 * cos(2.0 * t) - 2.0 * cos(3.0 * t) - cos(4.0 * t)
+		out.append(Vector2(x, y + 2.5) * width / 32.0)
+	return out
+
+
+## A puffy heart on a post, built up in layers.
+static func _heart(add: Callable, metal: Material) -> void:
+	add.call(MeshKit.rounded_cylinder(0.07, 0.2, 0.02, 16), _up(TOP_AT + 0.1), metal)
+	var middle := Vector3(0.0, TOP_AT + 0.15 + 0.82 * 0.5 * 0.9 + 0.025, 0.0)
+	for layer in [[0.9, 0.14], [0.76, 0.22], [0.56, 0.28]]:
+		var shape: Array = _front(_heart_outline(layer[0]), layer[1], middle)
+		add.call(shape[0], shape[1], metal)
+
+
+## A smiling sun on a post, with long and short rays all round.
+static func _sun(add: Callable, metal: Material, finish: String) -> void:
+	add.call(MeshKit.rounded_cylinder(0.07, 0.2, 0.02, 16), _up(TOP_AT + 0.1), metal)
+	var centre := Vector3(0.0, TOP_AT + 0.62, 0.0)
+	add.call(MeshKit.rounded_cylinder(0.25, 0.14, 0.05, 36), _toward_front(centre), metal)
+	var rays := PackedVector2Array()
+	for k in 12:
+		var a := TAU * k / 12.0 + PI / 12.0
+		var tip := 0.47 if k % 2 == 0 else 0.39
+		var side := Vector2(-sin(a), cos(a)) * 0.065
+		var out := Vector2(cos(a), sin(a))
+		var ray := PackedVector2Array([out * 0.2 - side, out * tip, out * 0.2 + side])
+		var shape: Array = _front(ray, 0.07, centre)
+		add.call(shape[0], shape[1], metal)
+	for x in [-0.085, 0.085]:
+		add.call(MeshKit.arc_tube(0.035, 0.012, deg_to_rad(20.0), deg_to_rad(160.0), 8, 6), Transform3D(Basis.IDENTITY, centre + Vector3(x, 0.03, -0.075)), _tint(finish))
+		add.call(MeshKit.rounded_cylinder(0.035, 0.02, 0.008, 14), _toward_front(centre + Vector3(x * 1.7, -0.06, -0.07)), metal)
+	add.call(MeshKit.arc_tube(0.1, 0.015, deg_to_rad(210.0), deg_to_rad(330.0), 12, 6), Transform3D(Basis.IDENTITY, centre + Vector3(0.0, 0.02, -0.075)), _tint(finish))
+
+
+## A crescent moon on a post, its horns up to the right, with a star
+## hanging off its top horn.
+static func _moon(add: Callable, metal: Material) -> void:
+	var big := 0.42
+	var small := 0.36
+	var shift := 0.2
+	var cross := (shift * shift + big * big - small * small) / (2.0 * shift)
+	var high := sqrt(big * big - cross * cross)
+	var outer_from := atan2(high, cross)
+	var inner_from := atan2(high, cross - shift)
+	var outline := PackedVector2Array()
+	for i in 25:
+		var a := lerpf(outer_from, TAU - outer_from, i / 24.0)
+		outline.append(Vector2(cos(a), sin(a)) * big)
+	for i in range(1, 24):
+		var a := lerpf(TAU - inner_from, inner_from, i / 24.0)
+		outline.append(Vector2(shift, 0.0) + Vector2(cos(a), sin(a)) * small)
+	var tilt := -0.35
+	var centre := Vector3(-0.06, TOP_AT + 0.16 + big, 0.0)
+	add.call(MeshKit.rounded_cylinder(0.07, 0.2, 0.02, 16), _up(TOP_AT + 0.1, -0.06), metal)
+	var shape: Array = _front(outline, 0.16, centre, tilt)
+	add.call(shape[0], shape[1], metal)
+	var horn := Vector2(cross, high).rotated(tilt)
+	var star_at := centre + Vector3(horn.x + 0.08, horn.y - 0.03, 0.0)
+	shape = _front(_star_outline(0.15), 0.1, star_at, -0.15)
+	add.call(shape[0], shape[1], metal)
+
+
+## A rainbow of round bands arching between two clouds.
+static func _rainbow(add: Callable, metal: Material) -> void:
+	add.call(_brick(Vector3(0.9, 0.06, 0.26)), _up(TOP_AT + 0.03), metal)
+	var foot := Vector3(0.0, TOP_AT + 0.16, 0.0)
+	for k in 5:
+		add.call(MeshKit.arc_tube(0.24 + k * 0.05, 0.026, 0.0, PI, 36, 8), Transform3D(Basis.IDENTITY, foot), metal)
+	for side in [-1.0, 1.0]:
+		var at := Vector3(side * 0.34, TOP_AT + 0.06, 0.0)
+		for puff in [[0.0, 0.08, 0.0, 0.11], [0.11, 0.05, 0.02, 0.08], [-0.11, 0.05, 0.02, 0.08], [0.04, 0.16, -0.01, 0.08], [-0.05, 0.13, 0.04, 0.07]]:
+			add.call(_ball(puff[3], 18), Transform3D(Basis.IDENTITY, at + Vector3(puff[0], puff[1], puff[2])), metal)
+
+
+## A traffic cone on its square base, with two dark bands.
+static func _cone(add: Callable, metal: Material, finish: String) -> void:
+	add.call(MeshKit.rounded_box(Vector3(0.6, 0.07, 0.6), 0.03, 1.0, 3), _up(TOP_AT + 0.035), metal)
+	var low := TOP_AT + 0.07
+	var tall := 0.86
+	var radius := func(h: float) -> float: return 0.25 - 0.19 * h / tall
+	var cone := PackedVector2Array([Vector2(0.0, 0.0), Vector2(0.25, 0.0), Vector2(0.06, tall), Vector2(0.05, tall + 0.015), Vector2(0.0, tall + 0.015)])
+	add.call(MeshKit.lathe(cone, 32), _up(low), metal)
+	for band in [[0.26, 0.38], [0.5, 0.6]]:
+		var r0: float = radius.call(band[0])
+		var r1: float = radius.call(band[1])
+		var ring := PackedVector2Array([Vector2(r0 - 0.02, band[0]), Vector2(r0 + 0.008, band[0]), Vector2(r1 + 0.008, band[1]), Vector2(r1 - 0.02, band[1])])
+		add.call(MeshKit.lathe(ring, 32), _up(low), _tint(finish))
+
+
+## A stopwatch on little feet, facing out: a round case with a ring round
+## a dark face, hour marks, two hands, a crown with a loop on top and a
+## button to one side.
+static func _stopwatch(add: Callable, metal: Material, finish: String) -> void:
+	add.call(_brick(Vector3(0.28, 0.08, 0.16)), _up(TOP_AT + 0.04), metal)
+	var r := 0.34
+	var centre := Vector3(0.0, TOP_AT + 0.06 + r, 0.0)
+	add.call(MeshKit.rounded_cylinder(r, 0.14, 0.05, 32), _toward_front(centre), metal)
+	add.call(MeshKit.rounded_cylinder(0.27, 0.02, 0.006, 28), _toward_front(centre + Vector3(0.0, 0.0, -0.07)), _tint(finish))
+	add.call(MeshKit.arc_tube(0.29, 0.028, 0.0, TAU, 32, 8), Transform3D(Basis.IDENTITY, centre + Vector3(0.0, 0.0, -0.07)), metal)
+	for k in 12:
+		var a := TAU * k / 12.0
+		var long := 0.06 if k % 3 == 0 else 0.035
+		add.call(MeshKit.rounded_box(Vector3(0.02, long, 0.02), 0.005, 1.0, 1), Transform3D(Basis(Vector3.BACK, a - PI * 0.5), centre + Vector3(cos(a) * (0.23 - long * 0.5), sin(a) * (0.23 - long * 0.5), -0.085)), metal)
+	for hand in [[0.2, 0.6], [0.13, -0.9]]:
+		var turn: float = hand[1]
+		var length: float = hand[0]
+		var along := Vector3(-sin(turn), cos(turn), 0.0)
+		add.call(_small(Vector3(0.025, length, 0.016)), Transform3D(Basis(Vector3.BACK, turn), centre + along * length * 0.5 + Vector3(0.0, 0.0, -0.09)), metal)
+	add.call(MeshKit.rounded_cylinder(0.035, 0.03, 0.01, 14), _toward_front(centre + Vector3(0.0, 0.0, -0.1)), metal)
+	add.call(MeshKit.rounded_cylinder(0.04, 0.08, 0.01, 12), _up(centre.y + r + 0.03), metal)
+	add.call(MeshKit.rounded_cylinder(0.07, 0.06, 0.02, 12), _up(centre.y + r + 0.09), metal)
+	add.call(MeshKit.arc_tube(0.07, 0.018, 0.0, TAU, 20, 6), Transform3D(Basis.IDENTITY, centre + Vector3(0.0, r + 0.19, 0.0)), metal)
+	var button := Vector3(cos(PI * 0.25), sin(PI * 0.25), 0.0)
+	add.call(MeshKit.rounded_cylinder(0.035, 0.1, 0.01, 12), _pointing(button, centre + button * (r + 0.02)), metal)
+	add.call(MeshKit.rounded_cylinder(0.05, 0.04, 0.012, 12), _pointing(button, centre + button * (r + 0.08)), metal)
+
+
+## A cut gem standing on its point in a holder with four claws.
+static func _gem(add: Callable, metal: Material) -> void:
+	add.call(MeshKit.rounded_cylinder(0.12, 0.08, 0.02, 20), _up(TOP_AT + 0.04), metal)
+	var socket := PackedVector2Array([Vector2(0.0, 0.0), Vector2(0.09, 0.0), Vector2(0.12, 0.1), Vector2(0.11, 0.11), Vector2(0.0, 0.11)])
+	add.call(MeshKit.lathe(socket, 20), _up(TOP_AT + 0.08), metal)
+	var tip := TOP_AT + 0.12
+	var gem := PackedVector2Array([
+		Vector2(0.0, 0.0), Vector2(0.36, 0.38), Vector2(0.38, 0.42), Vector2(0.3, 0.5), Vector2(0.2, 0.56), Vector2(0.0, 0.56),
+	])
+	add.call(_faceted(gem, 8), Transform3D(Basis(Vector3.UP, PI / 8.0), Vector3(0.0, tip, 0.0)), metal)
+	for k in 4:
+		var a := TAU * k / 4.0 + PI * 0.25
+		var out := Vector3(cos(a), 0.0, sin(a))
+		var from := out * 0.1 + Vector3.UP * (TOP_AT + 0.18)
+		var to := out * 0.37 + Vector3.UP * (tip + 0.42)
+		add.call(MeshKit.rounded_cylinder(0.025, from.distance_to(to), 0.01, 8), _pointing(to - from, (from + to) * 0.5), metal)
+
+
+## A bell hanging in a frame of two posts and a bar, with its clapper
+## showing under the rim.
+static func _bell(add: Callable, metal: Material) -> void:
+	add.call(_brick(Vector3(0.88, 0.06, 0.24)), _up(TOP_AT + 0.03), metal)
+	var top := TOP_AT + 1.0
+	for x in [-0.38, 0.38]:
+		add.call(MeshKit.rounded_cylinder(0.045, top - TOP_AT - 0.06, 0.015, 14), _up((TOP_AT + 0.06 + top) * 0.5, x), metal)
+		add.call(_ball(0.06, 14), _up(top + 0.04, x), metal)
+	add.call(MeshKit.rounded_cylinder(0.05, 0.86, 0.015, 14), Transform3D(Basis(Vector3.BACK, PI * 0.5), Vector3(0.0, top, 0.0)), metal)
+	var low := TOP_AT + 0.36
+	var shape := PackedVector2Array([
+		Vector2(0.0, 0.3), Vector2(0.14, 0.28), Vector2(0.19, 0.14), Vector2(0.22, 0.04), Vector2(0.27, 0.0),
+		Vector2(0.285, 0.03), Vector2(0.25, 0.1), Vector2(0.2, 0.2), Vector2(0.175, 0.3), Vector2(0.16, 0.38),
+		Vector2(0.12, 0.44), Vector2(0.0, 0.46),
+	])
+	add.call(MeshKit.lathe(shape, 32), _up(low), metal)
+	add.call(MeshKit.rounded_cylinder(0.29, 0.03, 0.01, 32), _up(low + 0.02), metal)
+	add.call(_small(Vector3(0.14, 0.1, 0.1)), _up(low + 0.49), metal)
+	add.call(MeshKit.rounded_cylinder(0.03, top - low - 0.5, 0.01, 10), _up((low + 0.5 + top) * 0.5), metal)
+	add.call(MeshKit.rounded_cylinder(0.015, 0.2, 0.005, 8), _up(low + 0.12), metal)
+	add.call(_ball(0.06, 14), _up(low - 0.03), metal)

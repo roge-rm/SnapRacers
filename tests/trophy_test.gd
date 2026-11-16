@@ -54,6 +54,8 @@ func _init() -> void:
 			var loose := _loose(pieces)
 			if finish == "grey" or not fits or loose > 0:
 				check(fits and loose == 0 and tris < 30000, "  in %s it's a sensible size (%.2f by %.2f by %.2f m) with nothing loose (%d) and %d triangles" % [finish, all.size.x, all.size.y, all.size.z, loose, tris])
+	check(TrophyModel.EXTRAS.size() == 26 and GrandPrix.cups().size() + TrophyModel.EXTRAS.size() == 40, "there are 26 extra trophies, 40 to pick from with the game cups' ones (%d)" % TrophyModel.EXTRAS.size())
+	check(TrophyModel.EXTRAS.keys().find("extra:lighthouse") == 12 and TrophyModel.EXTRAS.keys()[-1] == "extra:bell", "the newest ones come after the first twelve")
 	check(TrophyModel.extra("extra:star").trophy == {"top": "star"} and TrophyModel.extra("extra:nope").is_empty() and TrophyModel.extra("baseplate").is_empty(), "an extra trophy is found by its id and nothing else")
 	var mine := TrophyModel.spec_for("My Cup")
 	check(mine == TrophyModel.spec_for("My Cup") and TrophyModel.colour_for("My Cup") == TrophyModel.colour_for("My Cup"), "your own cup gets a trophy from its name, the same every time")

@@ -61,6 +61,9 @@ func _initialize() -> void:
 	check(extra_gp.get("trophy") == {"top": "rocket"} and Color(extra_gp.get("colour", "#000000")) == Color(extra.colour), "a Grand Prix of it awards the rocket")
 	check(Sharing.cup_from_online({"name": "X", "courses": [], "trophy": "extra:rocket"}).get("trophy") == "extra:rocket", "a cup sent online keeps it")
 	check(CupDesign.award("extra:rocket").trophy == {"top": "rocket"}, "and the online setup resolves it")
+	cup.trophy = "extra:moon"
+	var moon_back := CupDesign.from_dict(JSON.parse_string(JSON.stringify(Sharing.read(Sharing.code_for(cup.to_dict())).data)))
+	check(moon_back.trophy_spec() == {"top": "moon"} and cup.to_cup("mine_x").get("trophy") == {"top": "moon"}, "one of the newer extras goes through a share code and awards its trophy too")
 	cup.trophy = "extra:teapot"
 	check(not cup.to_cup("mine_x").has("trophy") and cup.trophy_spec() == TrophyModel.spec_for(cup.name) and cup.trophy_colour() == TrophyModel.colour_for(cup.name), "an extra id this game doesn't know falls back to the trophy from the name")
 	check(CupDesign.award("extra:teapot").is_empty(), "with no award")
