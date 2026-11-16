@@ -1,5 +1,5 @@
 # Godot
-.godot/
+/.godot
 /android/
 *.import.tmp
 
