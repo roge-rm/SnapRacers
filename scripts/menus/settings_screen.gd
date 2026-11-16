@@ -106,6 +106,17 @@ func _player_page() -> Control:
 	own_toggle.button_pressed = Game.ai_own_drivers()
 	own_toggle.toggled.connect(func(on: bool) -> void: Game.set_setting("race", "ai_own_drivers", on))
 	own_row.add_child(own_toggle)
+	# Neighbours set by hand: the swatch row is narrow and the toggles sit far right, so going by position misses them.
+	var column: Array[Control] = [name_edit, swatches[0], toggle, own_toggle]
+	for i in column.size() - 1:
+		column[i].focus_neighbor_bottom = column[i].get_path_to(column[i + 1])
+		column[i + 1].focus_neighbor_top = column[i + 1].get_path_to(column[i])
+	for swatch in swatches:
+		swatch.focus_neighbor_top = swatch.get_path_to(name_edit)
+		swatch.focus_neighbor_bottom = swatch.get_path_to(toggle)
+	for i in swatches.size():
+		swatches[i].focus_neighbor_left = swatches[i].get_path_to(swatches[maxi(i - 1, 0)])
+		swatches[i].focus_neighbor_right = swatches[i].get_path_to(swatches[mini(i + 1, swatches.size() - 1)])
 	return page
 
 
