@@ -57,8 +57,9 @@ static func palette(for_skin := false) -> Array[Color]:
 	return _colours("skin" if for_skin else "palette")
 
 
-## The colours a slot can be: skin tones for the face, hair colours for hair
-## and facial hair, and the usual palette for everything else.
+## The colours a slot shows first: natural skin tones for the face, natural
+## shades for hair and facial hair, and the usual palette for everything else.
+## Any other colour comes from More colours.
 static func colours_for(slot: String) -> Array[Color]:
 	match slot:
 		"head":
@@ -84,11 +85,11 @@ static func from_dict(data: Dictionary) -> CharacterDesign:
 		var style := str(entry.get("style", fallback[0]))
 		if piece(slot, style).is_empty() and not styles(slot).is_empty():
 			style = fallback[0] if not piece(slot, fallback[0]).is_empty() else styles(slot)[0]
-		design.pieces[slot] = { "style": style, "color": Color(str(entry.get("color", fallback[1]))) }
+		design.pieces[slot] = { "style": style, "color": Paints.read(entry.get("color", fallback[1]), Color(fallback[1])) }
 	# Spiky hair and the ponytail move from headgear to hair.
 	var old_gear := str(data.get("headgear", {}).get("style", ""))
 	if HAIR_THAT_WAS_HEADGEAR.has(old_gear) and not data.has("hair"):
-		design.pieces["hair"] = { "style": HAIR_THAT_WAS_HEADGEAR[old_gear], "color": Color(str(data.headgear.get("color", "#6b4430"))) }
+		design.pieces["hair"] = { "style": HAIR_THAT_WAS_HEADGEAR[old_gear], "color": Paints.read(data.headgear.get("color", "#6b4430"), Color("#6b4430")) }
 		design.pieces["headgear"] = { "style": "none", "color": design.color_of("headgear") }
 	return design
 

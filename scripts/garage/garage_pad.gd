@@ -14,7 +14,7 @@ extends Node
 ##   out, X turns it, Y copies it and Back deletes it. B goes back to the
 ##   drawer. LB and RB change a picked out wheel's suspension.
 ## - Painting, the d-pad hops from part to part, A paints it, and LB and RB
-##   pick the colour. B stops.
+##   pick the colour, and Y opens More colours. B stops.
 ##
 ## The right stick turns the camera round the kart. Pressing it in fits the
 ## kart in view, and pressing the left stick goes round the views. Start opens
@@ -106,6 +106,8 @@ func _button(button: JoyButton) -> bool:
 					garage.flip()
 				GarageUI.Mode.SELECTED:
 					garage.copy_selected()
+				GarageUI.Mode.PAINTING:
+					garage.ui.open_more_colours()
 				_:
 					on_kart = true
 					_release_focus()

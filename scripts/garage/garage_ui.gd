@@ -133,7 +133,7 @@ var _suspension: HBoxContainer
 var _suspension_buttons: Array[Button] = []
 var _anchor := Vector2.ZERO
 var _painting: PanelContainer
-var _swatches: Array[Button] = []
+var _palette: ColourPalette
 var _paint_colour := Color(PAINTS[0])
 
 var _bottom: VBoxContainer
@@ -183,7 +183,7 @@ func _ready() -> void:
 
 ## Whether this screen position is on one of the panels instead of the kart.
 func is_over_ui(pos: Vector2) -> bool:
-	if _load_popup.visible or _new_dialog.visible or _name_dialog.visible or _views_menu.visible or _file_menu.visible:
+	if _load_popup.visible or _new_dialog.visible or _name_dialog.visible or _views_menu.visible or _file_menu.visible or _palette.more_open():
 		return true
 	for panel in [_toolbar, _drawer, _drawer_handle, _stats_chip, _stats_card, _held_chip, _placing, _actions, _painting, _bottom]:
 		if panel.visible and panel.get_global_rect().has_point(pos):
@@ -742,25 +742,14 @@ func _build_painting() -> void:
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 8)
 	_painting.add_child(row)
-	var swatches := GridContainer.new()
-	swatches.columns = 8
-	swatches.add_theme_constant_override("h_separation", 6)
-	swatches.add_theme_constant_override("v_separation", 6)
-	row.add_child(swatches)
-	for hex in PAINTS:
-		var swatch := Button.new()
-		swatch.custom_minimum_size = Vector2(42, 42)
-		swatch.focus_mode = FOCUS_ALL
-		var colour := Color(hex)
-		swatch.set_meta("colour", colour)
-		swatch.pressed.connect(func() -> void:
-			_paint_colour = colour
-			_show_swatches()
-			colour_chosen.emit(colour))
-		swatches.add_child(swatch)
-		_swatches.append(swatch)
+	_palette = ColourPalette.new()
+	_palette.picked.connect(func(colour: Color) -> void:
+		_paint_colour = colour
+		colour_chosen.emit(colour))
+	row.add_child(_palette)
 	var done := IconButton.new("close", "Stop painting")
 	done.pressed.connect(func() -> void: paint_toggled.emit(false))
+	done.size_flags_vertical = SIZE_SHRINK_END
 	row.add_child(done)
 	_show_swatches()
 
@@ -774,9 +763,15 @@ func next_colour(by: int) -> void:
 
 
 func _show_swatches() -> void:
-	for swatch in _swatches:
-		var colour: Color = swatch.get_meta("colour")
-		BuilderStyle.show_swatch(swatch, colour, colour.is_equal_approx(_paint_colour))
+	var main: Array[Color] = []
+	for hex in PAINTS:
+		main.append(Color(hex))
+	_palette.show_colours(main, 8, _paint_colour)
+
+
+## Opens the More colours grid, for a controller's Y while painting.
+func open_more_colours() -> void:
+	_palette.open_more()
 
 
 ## A line of news, then test drive and a big race button, along the bottom.

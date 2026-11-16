@@ -56,7 +56,8 @@ static func from_dict(data: Dictionary) -> KartDesign:
 		if PartCatalog.get_part(str(entry.get("id", ""))).is_empty():
 			continue
 		var id := str(entry.get("id", ""))
-		var color: Variant = Color(str(entry.color)) if entry.has("color") else null
+		# A colour that isn't a colour code leaves the part its own colour.
+		var color: Variant = Paints.read(entry.get("color"))
 		if entry.has("pos"):
 			var pos: Array = entry.pos
 			var basis: Basis = Grid.turns()[clampi(int(entry.get("turn", 0)), 0, 23)]

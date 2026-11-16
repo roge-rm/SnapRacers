@@ -56,7 +56,7 @@ var _status_panel: PanelContainer
 var _toast_left := 0.0
 var _weight: Label
 var _colours: PanelContainer
-var _swatches: GridContainer
+var _swatches: ColourPalette
 var _bottom: VBoxContainer
 var _pose: Button
 var _driving := false
@@ -88,7 +88,7 @@ func _ready() -> void:
 
 ## Whether this screen position is on one of the panels instead of the scene.
 func is_over_ui(pos: Vector2) -> bool:
-	if _load_popup.visible or _new_dialog.visible or _name_dialog.visible or _file_menu.visible:
+	if _load_popup.visible or _new_dialog.visible or _name_dialog.visible or _file_menu.visible or _swatches.more_open():
 		return true
 	for panel in [_toolbar, _drawer, _chip, _card, _colours, _bottom]:
 		if panel.is_visible_in_tree() and panel.get_global_rect().has_point(pos):
@@ -150,19 +150,12 @@ func _show_picture(key: String, picture: Texture2D) -> void:
 
 
 func _show_swatches() -> void:
-	for child in _swatches.get_children():
-		child.queue_free()
 	var colours := CharacterDesign.colours_for(slot)
 	# Nothing has no colour to pick.
 	_colours.visible = design.style_of(slot) != "none"
-	_swatches.columns = mini(colours.size(), 10)
-	for colour in colours:
-		var swatch := Button.new()
-		swatch.custom_minimum_size = Vector2(SWATCH, SWATCH)
-		swatch.focus_mode = FOCUS_ALL
-		BuilderStyle.show_swatch(swatch, colour, colour.is_equal_approx(design.color_of(slot)))
-		swatch.pressed.connect(func() -> void: colour_chosen.emit(slot, colour))
-		_swatches.add_child(swatch)
+	if not _colours.visible:
+		_swatches.close_more()
+	_swatches.show_colours(colours, 10 if colours.size() > 12 else 6, design.color_of(slot))
 
 
 # Building the panels.
@@ -381,9 +374,8 @@ func _build_colours() -> void:
 	_colours.grow_vertical = GROW_DIRECTION_BEGIN
 	_colours.offset_right = -8.0
 	_colours.offset_bottom = -8.0
-	_swatches = GridContainer.new()
-	_swatches.add_theme_constant_override("h_separation", 6)
-	_swatches.add_theme_constant_override("v_separation", 6)
+	_swatches = ColourPalette.new(SWATCH)
+	_swatches.picked.connect(func(colour: Color) -> void: colour_chosen.emit(slot, colour))
 	_colours.add_child(_swatches)
 
 
