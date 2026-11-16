@@ -99,8 +99,8 @@ func _ready() -> void:
 	_show()
 
 
-## One tile for each trophy the game's cups use, and one for the trophy
-## picked from the cup's name. The one the cup awards is lit.
+## One tile for the trophy picked from the cup's name, one for each trophy
+## the game's cups use, then the extra ones. The one the cup awards is lit.
 func _show_trophies() -> void:
 	for child in _trophies.get_children():
 		child.queue_free()
@@ -112,19 +112,26 @@ func _show_trophies() -> void:
 	by_name.pressed.connect(_pick_trophy.bind(""))
 	BuilderStyle.dress_tile(by_name, cup.trophy == "")
 	_trophies.add_child(by_name)
+	var picks := []
 	for game_cup in GrandPrix.cups():
-		var spec: Dictionary = game_cup.get("trophy", {})
-		var colour := Color(game_cup.get("colour", "#a3a2a4"))
+		picks.append([str(game_cup.id), str(game_cup.name), game_cup.get("trophy", {}), Color(game_cup.get("colour", "#a3a2a4"))])
+	for id in TrophyModel.EXTRAS:
+		var extra: Dictionary = TrophyModel.EXTRAS[id]
+		picks.append([id, extra.name, {"top": extra.top}, Color(extra.colour)])
+	for pick in picks:
+		var id: String = pick[0]
+		var spec: Dictionary = pick[2]
+		var colour: Color = pick[3]
 		var key := TrophyThumbnails.key_of(spec, colour, "gold")
 		var tile := Button.new()
-		tile.set_meta("trophy", game_cup.id)
-		tile.tooltip_text = str(game_cup.name)
+		tile.set_meta("trophy", id)
+		tile.tooltip_text = pick[1]
 		tile.custom_minimum_size = TILE
 		tile.icon = TrophyThumbnails.picture(key)
 		tile.expand_icon = true
 		tile.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		tile.pressed.connect(_pick_trophy.bind(game_cup.id))
-		BuilderStyle.dress_tile(tile, cup.trophy == game_cup.id)
+		tile.pressed.connect(_pick_trophy.bind(id))
+		BuilderStyle.dress_tile(tile, cup.trophy == id)
 		_trophies.add_child(tile)
 		_tiles[key] = _tiles.get(key, []) + [tile]
 		Game.trophy_pictures().take(spec, colour, "gold")

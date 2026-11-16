@@ -17,8 +17,9 @@ const MOST := 8
 
 var name := "My cup"
 var made_by := ""
-## The id of the game's cup whose trophy this cup awards, or "" for the one
-## picked from its name. An id that isn't one of the game's cups counts as "".
+## The id of the game's cup whose trophy this cup awards, an extra trophy's
+## id (TrophyModel.EXTRAS), or "" for the one picked from its name. An id
+## that's neither counts as "".
 var trophy := ""
 ## The races in order, each { "from": where the course came from, "course":
 ## the course itself }.
@@ -56,9 +57,9 @@ func trophy_colour() -> Color:
 ## { "spec", "colour" } for a cup's trophy pick, falling back to the one from
 ## its name when there's no pick or it isn't one of the game's cups.
 static func trophy_of(pick: String, cup_name: String) -> Dictionary:
-	for game_cup in GrandPrix.cups():
-		if pick != "" and game_cup.id == pick:
-			return {"spec": game_cup.get("trophy", {}), "colour": Color(game_cup.get("colour", "#a3a2a4"))}
+	var found := award(pick)
+	if not found.is_empty():
+		return {"spec": found.trophy, "colour": Color(found.colour)}
 	return {"spec": TrophyModel.spec_for(cup_name), "colour": TrophyModel.colour_for(cup_name)}
 
 
@@ -145,13 +146,15 @@ func to_cup(id: String) -> Dictionary:
 
 
 ## The "trophy" and "colour" entries a Grand Prix cup takes for a pick, or
-## nothing if it isn't one of the game's cups, so the podium falls back to the
-## trophy from the cup's name.
+## nothing if it isn't one of the game's cups or an extra trophy, so the
+## podium falls back to the trophy from the cup's name.
 static func award(pick: String) -> Dictionary:
+	if pick == "":
+		return {}
 	for game_cup in GrandPrix.cups():
-		if pick != "" and game_cup.id == pick:
+		if game_cup.id == pick:
 			return {"trophy": game_cup.get("trophy", {}), "colour": game_cup.get("colour", "#a3a2a4")}
-	return {}
+	return TrophyModel.extra(pick)
 
 
 ## A cup's id for its trophies, which is "mine_" and its file name.

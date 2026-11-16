@@ -49,6 +49,22 @@ func _initialize() -> void:
 	check(not Sharing.cup_from_online({"name": "X", "courses": []}).has("trophy"), "and one with none stays without")
 	check(CupDesign.award("gearbox").trophy == game_cup.trophy, "the online setup resolves a pick the same way")
 
+	print("-- An extra trophy")
+	cup.trophy = "extra:rocket"
+	var extra: Dictionary = TrophyModel.EXTRAS["extra:rocket"]
+	var extra_back := Sharing.read(Sharing.code_for(cup.to_dict()))
+	check(extra_back.data.get("trophy") == "extra:rocket", "the pick goes through a share code")
+	var extra_cup := CupDesign.from_dict(JSON.parse_string(JSON.stringify(extra_back.data)))
+	check(extra_cup.trophy == "extra:rocket", "and reads back from a file")
+	check(extra_cup.trophy_spec() == {"top": "rocket"} and extra_cup.trophy_colour() == Color(extra.colour), "it shows the rocket in its own colour")
+	var extra_gp := cup.to_cup("mine_x")
+	check(extra_gp.get("trophy") == {"top": "rocket"} and Color(extra_gp.get("colour", "#000000")) == Color(extra.colour), "a Grand Prix of it awards the rocket")
+	check(Sharing.cup_from_online({"name": "X", "courses": [], "trophy": "extra:rocket"}).get("trophy") == "extra:rocket", "a cup sent online keeps it")
+	check(CupDesign.award("extra:rocket").trophy == {"top": "rocket"}, "and the online setup resolves it")
+	cup.trophy = "extra:teapot"
+	check(not cup.to_cup("mine_x").has("trophy") and cup.trophy_spec() == TrophyModel.spec_for(cup.name) and cup.trophy_colour() == TrophyModel.colour_for(cup.name), "an extra id this game doesn't know falls back to the trophy from the name")
+	check(CupDesign.award("extra:teapot").is_empty(), "with no award")
+
 	print("-- An unknown trophy")
 	cup.trophy = "nonsense"
 	check(cup.to_cup("mine_x").has("trophy") == false, "a Grand Prix ignores it")

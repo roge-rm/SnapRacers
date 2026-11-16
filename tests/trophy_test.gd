@@ -32,6 +32,29 @@ func _init() -> void:
 			if finish == "grey" or not fits or loose > 0:
 				check(fits and loose == 0, "  in %s it's a sensible size (%.2f by %.2f by %.2f m) with nothing loose (%d)" % [finish, all.size.x, all.size.y, all.size.z, loose])
 	check(tops.size() == GrandPrix.cups().size(), "every cup's trophy is different")
+	print("-- Extra trophies")
+	var colours := {}
+	for cup in GrandPrix.cups():
+		colours[Color(cup.colour)] = true
+	for id in TrophyModel.EXTRAS:
+		var extra: Dictionary = TrophyModel.EXTRAS[id]
+		check(str(id).begins_with("extra:") and GrandPrix.cups().all(func(c): return c.id != id), "%s has an id no game cup has" % id)
+		check(not tops.has(extra.top) and not TrophyModel.TOPS.has(extra.top), "  and a top of its own (%s)" % extra.top)
+		check(not colours.has(Color(extra.colour)), "  and a colour of its own (%s)" % extra.colour)
+		tops[extra.top] = true
+		colours[Color(extra.colour)] = true
+		for finish in TrophyModel.FINISHES:
+			var pieces := TrophyModel.pieces({"top": extra.top}, Color(extra.colour), finish)
+			var all := AABB(pieces[0].box.position, pieces[0].box.size)
+			var tris := 0
+			for piece in pieces:
+				all = all.merge(piece.box)
+				tris += (piece.mesh as Mesh).get_faces().size() / 3
+			var fits := all.position.y > -0.01 and all.size.x < 1.3 and all.size.z < 1.3 and all.size.y < 2.2
+			var loose := _loose(pieces)
+			if finish == "grey" or not fits or loose > 0:
+				check(fits and loose == 0 and tris < 30000, "  in %s it's a sensible size (%.2f by %.2f by %.2f m) with nothing loose (%d) and %d triangles" % [finish, all.size.x, all.size.y, all.size.z, loose, tris])
+	check(TrophyModel.extra("extra:star").trophy == {"top": "star"} and TrophyModel.extra("extra:nope").is_empty() and TrophyModel.extra("baseplate").is_empty(), "an extra trophy is found by its id and nothing else")
 	var mine := TrophyModel.spec_for("My Cup")
 	check(mine == TrophyModel.spec_for("My Cup") and TrophyModel.colour_for("My Cup") == TrophyModel.colour_for("My Cup"), "your own cup gets a trophy from its name, the same every time")
 	check(TrophyModel.finish_for(1) == "gold" and TrophyModel.finish_for(3) == "bronze" and TrophyModel.finish_for(4) == "grey" and TrophyModel.finish_for(0) == "grey", "top three are gold, silver and bronze, and the rest grey")

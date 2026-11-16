@@ -5,7 +5,8 @@ extends Node
 ## down, held up, clapping and confetti), close ups of the winner and the
 ## field, and with the standings over it. "two" after the size is a cup for
 ## two ("one" for one), and then where the players finish, like 5 or 2,7.
-## An optional stock kart key after the places picks player 1's kart.
+## An optional stock kart key after the places picks player 1's kart, and a
+## trophy pick after that, like extra:star.
 ## It needs a screen.
 ##   DISPLAY=:0 tools/godot/Godot_v4.7.2-stable_linux.x86_64 --path . res://tools/shots/podium_shots.tscn -- baseplate rain night [folder] [WIDTHxHEIGHT] [two] [places]
 
@@ -47,6 +48,9 @@ func _ready() -> void:
 	if args.size() > 7:
 		Game.settings.set_value("race", "kart", args[7])
 	Game.start_grand_prix(cup, two)
+	if args.size() > 8:
+		Game.grand_prix.cup = Game.grand_prix.cup.duplicate()
+		Game.grand_prix.cup.merge(CupDesign.award(args[8]), true)
 	# Straight to the last race, before the first one's loaded.
 	Game.grand_prix.round = Game.grand_prix.track_ids().size() - 1
 	Game.track_path = Game.grand_prix.track_path()
