@@ -33,8 +33,15 @@ ADB="${ANDROID_HOME:-$HOME/Android/Sdk}/platform-tools/adb"
 # projects' emulators and phones hang off.
 export ANDROID_ADB_SERVER_PORT=5042
 # Leave 5042 running. Start it detached so Godot doesn't spawn it as a child
-# of this build, which would hold the heavy slot.
-setsid "$ADB" start-server >/dev/null 2>&1 || true
+# of this build, with every descriptor above 2 closed so it doesn't inherit
+# heavy's lock and hold the slot after the build ends.
+(
+	for fd in /proc/$BASHPID/fd/*; do
+		fd=${fd##*/}
+		if [ "$fd" -gt 2 ]; then eval "exec $fd>&-"; fi
+	done
+	exec setsid "$ADB" start-server
+) >/dev/null 2>&1 < /dev/null || true
 
 if [ ! -x "$GODOT" ] || [ ! -f "$TEMPLATES/android_source.zip" ]; then
 	echo "Godot $VERSION or its export templates aren't in tools/godot. See README.md." >&2
