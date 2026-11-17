@@ -373,7 +373,8 @@ func _build_colours() -> void:
 	_colours.grow_horizontal = GROW_DIRECTION_BEGIN
 	_colours.grow_vertical = GROW_DIRECTION_BEGIN
 	_colours.offset_right = -8.0
-	_colours.offset_bottom = -8.0
+	# Sits above the Done row, which is up to 420 px wide in the middle.
+	_colours.offset_bottom = -86.0
 	_swatches = ColourPalette.new(SWATCH)
 	_swatches.picked.connect(func(colour: Color) -> void: colour_chosen.emit(slot, colour))
 	_colours.add_child(_swatches)
