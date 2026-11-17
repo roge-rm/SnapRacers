@@ -215,7 +215,16 @@ func _initialize() -> void:
 	var second := Puddles.new(peach, 5, 1.0)
 	check(first.spots.size() >= 10 and str(first.spots) == str(second.spots), "puddles come out the same for the same seed (%d of them)" % first.spots.size())
 	first.grow(1.0)
+	# One with no other puddle reaching past its edge.
 	var spot: Array = first.spots[0]
+	for candidate: Array in first.spots:
+		var alone := true
+		for other: Array in first.spots:
+			if other != candidate and (other[0] as Vector3).distance_to(candidate[0]) < float(other[1]) + float(candidate[1]) + 2.0:
+				alone = false
+		if alone:
+			spot = candidate
+			break
 	check(first.factor_at(spot[0]) > 0.99 and first.factor_at(spot[0] + Vector3(spot[1] + 1.0, 0.0, 0.0)) == 0.0, "a point in the middle of one is in it, and one past its edge isn't")
 	first.free()
 	_check_drawn_depth(peach)

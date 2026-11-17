@@ -19,6 +19,8 @@ Landmarks, paint, weather, time, road colour and map rotation aren't in the shor
 
 To check courses with the game's own code, run `res://tools/track-design/course_check.tscn` headless, with course ids or course files after `--`, or nothing for all of them. It prints a line a course: closes, clashes, length, the closest two stretches come middle to middle, the editor's problems, paint squares, landmarks, the start, and whether it closes mirrored and reversed. Landmarks the editor wouldn't let you drop and paint it wouldn't put by the road count as fails.
 
+`arc_tracer.py <id> <out.txt>` traces a circuit again from its `<id>_aligned.json` with the newer pieces: arcs of 15 to 90 degrees in all four sizes and half and quarter straights, closed with an adjustable offset and whole straights before the start. Its short hand goes in `courses/<id>.txt` like the old tracer's. `fit.py <course> <id> [out.png]` says how far a course strays from the real line, on average and at worst, and draws one over the other.
+
 `baseline.sh [<id> ...]` races eight Expert AI karts round each course in clear weather by day and writes `baseline.md` with the best lap, resets and who finished, from the logs in `build/soak-baseline`.
 
 The cups and the order of the courses are in `data/grand_prix.json`.

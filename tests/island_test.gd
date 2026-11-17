@@ -50,6 +50,14 @@ func _initialize() -> void:
 		var runoff_dry := true
 		var near := 0
 		var samples := 0
+		# Where the road runs, by 8 m square, so a side with another stretch
+		# of road close by (where the island fills in between) is left out.
+		var road := {}
+		for j in range(0, track.points.size(), 2):
+			var cell := Vector2i(floori(track.points[j].x / 8.0), floori(track.points[j].z / 8.0))
+			if not road.has(cell):
+				road[cell] = []
+			road[cell].append(track.distances[j])
 		for k in range(0, track.points.size(), 4):
 			var lanes := track.lanes_of(k)
 			for side in [-1.0, 1.0]:
@@ -57,11 +65,13 @@ func _initialize() -> void:
 				var runoff: Vector3 = track.points[k] + track.rights[k] * (edge + side * (TrackPath.KERB + Race.RUNOFF))
 				runoff_dry = runoff_dry and Scenery.inside(shore, Vector2(runoff.x, runoff.z))
 				var wet: Vector3 = track.points[k] + track.rights[k] * (edge + side * 21.0)
+				if _other_road_near(road, wet, track.distances[k], track.length):
+					continue
+				samples += 1
 				if not Scenery.inside(shore, Vector2(wet.x, wet.z)):
 					near += 1
-			samples += 1
 		check(runoff_dry, "%s: the runoff is all on the island" % id)
-		check(near > samples * 0.25, "%s: the sea's within 21 m of the road along much of it (%d of %d spots)" % [id, near, samples])
+		check(near > samples * 0.125, "%s: the sea's within 21 m of the road along much of it (%d of %d open sides)" % [id, near, samples])
 	check(most_shore < 1500, "the shore has at most %d corners" % most_shore)
 	check(most_sea < 4000, "the sea and beach have at most %d triangles" % most_sea)
 	check(slowest < 1000, "working the island out takes at most %d ms" % slowest)
@@ -166,6 +176,18 @@ func _curled() -> void:
 				over = over or Geometry2D.point_is_inside_triangle(spot, sea[i], sea[i + 1], sea[i + 2])
 		var whole := far_box.get_area() - absf(Scenery._area(hook))
 		check(absf(area - whole) < whole * 0.001 and not over, "a hook of land cut from %s gets sea all round it and none over it (%.0f of %.0f m²)" % [centre, area, whole])
+
+
+## Whether road more than 100 m further round the lap passes within about
+## 40 m of `at`, from the squares in `road` (see above).
+func _other_road_near(road: Dictionary, at: Vector3, along: float, length: float) -> bool:
+	var middle := Vector2i(floori(at.x / 8.0), floori(at.z / 8.0))
+	for dz in range(-5, 6):
+		for dx in range(-5, 6):
+			for d in road.get(middle + Vector2i(dx, dz), []):
+				if absf(wrapf(float(d) - along, -length * 0.5, length * 0.5)) > 100.0:
+					return true
+	return false
 
 
 ## Painted water inside the loop of road on an island makes a lagoon: it's

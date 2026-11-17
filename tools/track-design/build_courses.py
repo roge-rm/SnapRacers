@@ -12,10 +12,10 @@ src = open(os.path.join(here, "design.py")).read().replace("\nmain()\n", "\n")
 design = {"__file__": os.path.join(here, "design.py"), "__name__": "design"}
 exec(compile(src, "design.py", "exec"), design)
 INFO = {
- "peach_pit": "An easy first lap through the peach orchards, round the pond and past the big red barns.",
- "trulli_turns": "Winding lanes between the trulli and the olive groves, and over a low stone hump.",
- "lemon_lake": "Around the lake past the lemon trees and villas, with a hairpin by the water and a banked sweeper on the way home.",
- "pithead_park": "A fast, flowing lap around an old coal mine, over the hump between the slag heaps and past the gravel traps.",
+ "peach_pit": "A long easy lap through the peach orchard, round the pond and past the red barns.",
+ "trulli_turns": "Twisting lanes and tight hairpins between the trulli and the olive groves, over a low stone hump.",
+ "lemon_lake": "Tight hairpins back and forth beside the lake, past the lemon trees and villas.",
+ "pithead_park": "Tight bends and quick wiggles round an old coal mine, over a hump and past the slag heaps and gravel traps.",
  "delta_dash": "Out across the marshes of the river delta, past the fishing huts on stilts and over a hump bridge.",
  "bucketwheel_bend": "Around the rim of an open pit mine where the giant bucket wheel digger works, with dirt on the back section.",
  "foundry_flats": "Long straights between the factory halls and the container stacks, and a jump off the loading ramp.",

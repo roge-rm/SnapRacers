@@ -93,8 +93,13 @@ func _write_course() -> Vector2:
 				var clear := spot.distance_to(lake) > 70.0
 				for other in pools:
 					clear = clear and spot.distance_to(other) > 60.0
-				for q in track.points:
-					clear = clear and Vector2(q.x - spot.x, q.z - spot.y).length() > 26.0
+				# Clear of the road, and only this stretch of it close by, so
+				# a kart driven in is put back here and not on another.
+				for j in track.points.size():
+					var q: Vector3 = track.points[j]
+					var gap := Vector2(q.x - spot.x, q.z - spot.y).length()
+					var along := absf(wrapf(track.distances[j] - track.distances[k], -track.length * 0.5, track.length * 0.5))
+					clear = clear and gap > 26.0 and (gap > 60.0 or along < 60.0)
 				# Not far below the road, or it counts as fallen off first.
 				if not clear or absf(plain.ground_at(spot.x, spot.y) - track.points[k].y) > 1.5:
 					continue
