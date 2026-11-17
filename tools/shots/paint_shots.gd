@@ -68,6 +68,11 @@ func _ready() -> void:
 	_views.append(["kart", road + Vector3.UP * 1.6, ground.call(_focus, 0.0)])
 	_views.append(["kart_along", behind + Vector3.UP * 1.8, road + Vector3(towards.x, 0.0, towards.y) * 12.0])
 	_views.append(["low", ground.call(flat_road + towards * 8.0 + Vector2(-towards.y, towards.x) * 30.0, 3.0), ground.call(_focus, 0.0)])
+	if args.has("map"):
+		await _maps(scene, track)
+		DirAccess.remove_absolute(ProjectSettings.globalize_path(COURSE))
+		get_tree().quit()
+		return
 	var cam := Camera3D.new()
 	cam.fov = 60.0
 	cam.far = 2000.0
@@ -85,6 +90,38 @@ func _ready() -> void:
 		await _burn(cam, tag)
 	DirAccess.remove_absolute(ProjectSettings.globalize_path(COURSE))
 	get_tree().quit()
+
+
+## The race's map and the editor's outline of the same course, big, on a dark
+## ground. Add "map" to the arguments, and the folder is _out.
+func _maps(scene: String, track: TrackPath) -> void:
+	race.hud.visible = true
+	var layer := CanvasLayer.new()
+	layer.layer = 50
+	add_child(layer)
+	var back := ColorRect.new()
+	back.color = Color(0.1, 0.12, 0.15)
+	back.set_anchors_preset(Control.PRESET_FULL_RECT)
+	layer.add_child(back)
+	var map := CourseMap.new()
+	map.track = track
+	map.across = 600.0
+	map.position = Vector2(20, 60)
+	map.size = Vector2(600, 600)
+	layer.add_child(map)
+	map.mode = "outline"
+	map.custom_minimum_size = Vector2(600, 600)
+	map.size = Vector2(600, 600)
+	var view := CourseOutlineView.new()
+	view.position = Vector2(660, 60)
+	view.size = Vector2(600, 600)
+	layer.add_child(view)
+	view.show_track(track)
+	for i in 60:
+		await get_tree().process_frame
+	await RenderingServer.frame_post_draw
+	get_viewport().get_texture().get_image().save_png("%s/map_%s.png" % [_out, scene])
+	print("saved map_%s" % scene)
 
 
 ## The course for a scene with its paint, setting _focus and _road.
