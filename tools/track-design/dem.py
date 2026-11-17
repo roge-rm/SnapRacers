@@ -10,7 +10,8 @@ line's lat and lon), downloads the Copernicus GLO-30 tiles under it into
 them at every 8 m map point. GLO-30 has the trees and buildings in it, so a
 60 m opening takes them out, then a 16 m blur. Heights are from the road at
 the start, sized by the fit's scale, times the exaggeration (1.5 by default)
-and squeezed into 25 m top to bottom.
+and squeezed into 25 m top to bottom over the road and the ground within
+60 m of it (ground further out is eased into that range).
 
 Writes "ground" into courses/<id>.extra.json and drops "hills", prints the
 road's height range, its steepest grade and the spots that want a ramp or a
@@ -42,6 +43,10 @@ CELL = ground_map.CELL
 MARGIN = 128.0
 OPENING = 60.0
 TALLEST = 25.0
+# The 25 m counts only this far from the road's middle line, and ground
+# further out is eased into that range over BLEND.
+NEAR = 60.0
+BLEND = 30.0
 ROAD_STEEPEST = 0.12
 # Road ground this far off the real profile over a stretch wants a ramp.
 RAMP_GAP = 1.5
@@ -323,10 +328,24 @@ def main():
     ground = blur(opening(raw, k), [1 / 16, 4 / 16, 6 / 16, 4 / 16, 1 / 16])[pad:-pad, pad:-pad]
     # Real metres to course metres, then the exaggeration, from the start.
     h = (ground - height_at(ground, lo, 0.0, 0.0)) / sc * exaggerate
+    # The 25 m is measured on the road and the ground within NEAR of its
+    # middle line. Ground further out is eased into that range.
+    gx2, gz2 = np.meshgrid(lo[0] + np.arange(cols) * CELL, lo[1] + np.arange(rows) * CELL)
+    flat = np.stack([gx2.ravel(), gz2.ravel()], axis=1)
+    dist = np.empty(len(flat))
+    for a in range(0, len(flat), 2000):
+        d2 = ((flat[a:a + 2000, None, :] - line[None, ::4, :2]) ** 2).sum(axis=2)
+        dist[a:a + 2000] = np.sqrt(d2.min(axis=1))
+    dist = dist.reshape(rows, cols)
+    near = h[dist <= NEAR]
     squeeze = 1.0
-    if h.max() - h.min() > TALLEST:
-        squeeze = TALLEST / (h.max() - h.min())
+    if near.max() - near.min() > TALLEST:
+        squeeze = TALLEST / (near.max() - near.min())
         h *= squeeze
+        near = near * squeeze
+    t_out = np.clip((dist - NEAR) / BLEND, 0, 1)
+    t_out = t_out * t_out * (3 - 2 * t_out)
+    h = h + t_out * (np.clip(h, near.min(), near.max()) - h)
     q = np.round(h / ground_map.STEP) * ground_map.STEP
     # The road copy is blurred, so the whole map moves to put the road at
     # the start level with the start line, as with hills.
