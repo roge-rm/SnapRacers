@@ -1,0 +1,23 @@
+{
+	"landmarks": [
+		{"prop": "church", "at": [-135.0, -200.0], "facing": 3},
+		{"prop": "cypress", "at": [-116.0, -196.0], "facing": 1},
+		{"prop": "cypress", "at": [-116.0, -176.0], "facing": 1},
+		{"prop": "villa", "at": [-140.0, -346.0], "facing": 0},
+		{"prop": "trullo", "at": [36.0, -42.0], "facing": 3},
+		{"prop": "trullo", "at": [38.0, -18.0], "facing": 3},
+		{"prop": "trullo", "at": [-322.0, -60.0], "facing": 0},
+		{"prop": "trullo", "at": [-350.0, -6.0], "facing": 2},
+		{"prop": "trullo", "at": [-528.0, 50.0], "facing": 1},
+		{"prop": "trullo", "at": [-530.0, 78.0], "facing": 1},
+		{"prop": "trullo", "at": [-522.0, 104.0], "facing": 1},
+		{"prop": "olive", "at": [-445.0, 35.0], "facing": 3},
+		{"prop": "olive", "at": [-415.0, 35.0], "facing": 2},
+		{"prop": "olive", "at": [-445.0, 63.0], "facing": 3},
+		{"prop": "olive", "at": [-415.0, 63.0], "facing": 3},
+		{"prop": "olive", "at": [-445.0, 91.0], "facing": 3},
+		{"prop": "olive", "at": [-415.0, 91.0], "facing": 3},
+		{"prop": "cypress", "at": [-30.0, 20.0], "facing": 1},
+		{"prop": "cypress", "at": [-30.0, 50.0], "facing": 1}
+	]
+}

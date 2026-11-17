@@ -175,6 +175,8 @@ func _lagoon() -> void:
 	var data = JSON.parse_string(FileAccess.get_file_as_string(Tracks.path_of("peach_pit")))
 	data.theme = "island"
 	data.hills = 0.0
+	# Its own landmarks stand inside the loop, so they go.
+	data.erase("landmarks")
 	var track := TrackPath.from_dict(data)
 	var loop := PackedVector2Array()
 	var middle := Vector2.ZERO
@@ -183,7 +185,8 @@ func _lagoon() -> void:
 		middle += Vector2(p.x, p.z) / track.points.size()
 	var areas := PaintedAreas.new()
 	var inside := 0
-	for z in range(-60, 60):
+	# A band across the loop, to stay under PaintedAreas.MOST_SQUARES.
+	for z in range(-15, 15):
 		for x in range(-60, 60):
 			var square := Vector2i(x, z)
 			if Scenery.inside(loop, PaintedAreas.middle_of(square)) and PaintedAreas.allowed(square, "water", track):

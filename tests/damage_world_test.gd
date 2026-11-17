@@ -213,6 +213,8 @@ func _ready() -> void:
 		kart.global_transform = Transform3D(Basis.looking_at(Vector3(0, 0, 1)), from + Vector3.UP * 0.3)
 		kart.linear_velocity = Vector3(0, 0, 22)
 		kart.angular_velocity = Vector3.ZERO
+		# Where it is round the lap now, or the race puts it back as lost.
+		race.player.offset = race.track.offset_of(from)
 		var broke := [false]
 		kart.broke_scenery.connect(func(_g, _at, _v): broke[0] = true)
 		await frames(50)

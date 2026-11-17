@@ -144,9 +144,10 @@ class Runner:
 		check(old.crossing_offsets().is_empty(), "a course without one has none")
 		check(CourseOutline.describe(path).contains("level crossing"), "the course list says it has a crossing")
 		check(not design.problems().any(func(p): return p.contains("level crossing")), "a crossing out in the open has room")
-		# Peach Pit's road comes back close beside its ninth piece.
-		var squeezed: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://data/tracks/peach_pit.json"))
-		squeezed.pieces[8] = {"type": "crossing"}
+		# A tight hairpin brings the road back a tile beside the crossing.
+		var squeezed := COURSE.duplicate(true)
+		squeezed.pieces = [{"type": "straight", "length": 3}, {"type": "crossing"}, {"type": "straight", "length": 3},
+			{"type": "curve", "turn": "left", "size": 1}, {"type": "curve", "turn": "left", "size": 1}, {"type": "straight", "length": 8}]
 		var tight := CourseDesign.from_dict(squeezed)
 		check(tight.problems().any(func(p): return p.contains("level crossing")), "one with road too close beside it is a problem in the editor")
 		check(not Sharing.buildable(tight), "and can't be shared")

@@ -1,0 +1,21 @@
+{
+	"paint": {"cell": 8.0, "runs": [[3, -17, 4, "water"], [4, -19, 8, "water"], [5, -20, 11, "water"], [6, -21, 12, "water"], [7, -22, 14, "water"], [8, -22, 14, "water"], [9, -22, 15, "water"], [10, -23, 16, "water"], [11, -23, 16, "water"], [12, -23, 16, "water"], [13, -23, 16, "water"], [14, -23, 16, "water"], [15, -22, 15, "water"], [16, -22, 14, "water"], [17, -22, 14, "water"], [18, -21, 12, "water"], [19, -20, 11, "water"], [20, -19, 12, "water"], [21, -17, 10, "water"], [22, -16, 9, "water"], [23, -16, 9, "water"], [24, -15, 8, "water"], [25, -14, 5, "water"]]},
+	"landmarks": [
+		{"prop": "barn", "at": [-117.0, -322.0], "facing": 0},
+		{"prop": "barn", "at": [62.0, -100.0], "facing": 3},
+		{"prop": "silo", "at": [64.0, -130.0], "facing": 3},
+		{"prop": "barn", "at": [-245.0, 470.0], "facing": 1},
+		{"prop": "house", "at": [-95.0, 610.0], "facing": 2},
+		{"prop": "peach", "at": [-130.0, -205.0], "facing": 3},
+		{"prop": "peach", "at": [-105.0, -205.0], "facing": 1},
+		{"prop": "peach", "at": [-130.0, -183.0], "facing": 3},
+		{"prop": "peach", "at": [-105.0, -183.0], "facing": 1},
+		{"prop": "peach", "at": [-130.0, -161.0], "facing": 3},
+		{"prop": "peach", "at": [-105.0, -161.0], "facing": 1},
+		{"prop": "peach", "at": [-130.0, -139.0], "facing": 3},
+		{"prop": "peach", "at": [-105.0, -139.0], "facing": 1},
+		{"prop": "hay", "at": [-270.0, 30.0], "facing": 1},
+		{"prop": "hay", "at": [-272.0, 52.0], "facing": 1},
+		{"prop": "cows", "at": [-275.0, 110.0], "facing": 1}
+	]
+}

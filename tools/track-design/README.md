@@ -17,7 +17,7 @@ The short hand knows every piece in the track editor's drawer: straights of any 
 
 Landmarks, paint, weather, time, road colour and map rotation aren't in the short hand. `build_courses.py` keeps them from the course file it's replacing, or takes them from `courses/<id>.extra.json` when there is one, which can set any course key but the pieces.
 
-To check courses with the game's own code, run `res://tools/track-design/course_check.tscn` headless, with course ids or course files after `--`, or nothing for all of them. It prints a line a course: closes, clashes, length, the closest two stretches come middle to middle, the editor's problems, paint squares, landmarks, the start, and whether it closes mirrored and reversed.
+To check courses with the game's own code, run `res://tools/track-design/course_check.tscn` headless, with course ids or course files after `--`, or nothing for all of them. It prints a line a course: closes, clashes, length, the closest two stretches come middle to middle, the editor's problems, paint squares, landmarks, the start, and whether it closes mirrored and reversed. Landmarks the editor wouldn't let you drop and paint it wouldn't put by the road count as fails.
 
 `baseline.sh [<id> ...]` races eight Expert AI karts round each course in clear weather by day and writes `baseline.md` with the best lap, resets and who finished, from the logs in `build/soak-baseline`.
 

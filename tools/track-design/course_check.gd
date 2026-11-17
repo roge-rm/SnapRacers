@@ -3,7 +3,9 @@ extends Node
 ## Checks courses with the game's own code and prints a line for each: whether
 ## it closes, clashes, its length, how close two stretches come middle to
 ## middle, CourseDesign.problems(), paint squares, landmarks, the start, and
-## whether it still closes mirrored, reversed and both. Then a line with every
+## whether it still closes mirrored, reversed and both. Landmarks too close to
+## the road or in water and paint the editor wouldn't allow by the road count
+## as fails too. Then a line with every
 ## course that failed a check.
 ##   tools/godot/Godot_v4.7.2-stable_linux.x86_64 --headless --path . res://tools/track-design/course_check.tscn [-- id or file.json ...]
 ## With no ids it checks every course in the cups, in cup order.
@@ -48,6 +50,8 @@ func _check(id: String, data: Dictionary) -> Array:
 	var first: TrackPiece = track.pieces[track.piece_of[0]] if not track.pieces.is_empty() else null
 	var on_straight := first != null and first.type in STRAIGHTS and not first.crossing
 	var behind := _straight_behind(track)
+	var bad_marks := _landmarks_in_the_way(track)
+	var bad_paint := _paint_too_close(track)
 	var layouts := []
 	for layout in [[true, false, "mirrored"], [false, true, "reversed"], [true, true, "both"]]:
 		var turned := TrackPath.from_dict(data)
@@ -71,6 +75,10 @@ func _check(id: String, data: Dictionary) -> Array:
 		bad.append("start")
 	if behind < GRID_BEHIND - 0.01:
 		bad.append("grid")
+	if not bad_marks.is_empty():
+		bad.append("landmarks %s" % " ".join(bad_marks))
+	if bad_paint > 0:
+		bad.append("%d squares by the road" % bad_paint)
 	print("%s: %s, %d clashes, %.0f m, closest %.0f m, problems %s, paint %d, landmarks %d, start %s at %s degrees with %.0f m behind, %s%s" % [
 		id, "closes" if track.closes else "OPEN", clashes.size(), track.length, close,
 		"none" if problems.is_empty() else "[%s]" % " ".join(problems),
@@ -78,6 +86,41 @@ func _check(id: String, data: Dictionary) -> Array:
 		heading * 15 if heading >= 0 else -1, behind, ", ".join(layouts),
 		"" if bad.is_empty() else ", FAIL " + ", ".join(bad)])
 	return bad
+
+
+## The landmarks the editor wouldn't let you drop: too close to the road, or
+## in or by water or lava (see TrackEditor._clear_of_road()).
+func _landmarks_in_the_way(track: TrackPath) -> Array:
+	var out := []
+	for i in track.landmarks.size():
+		var mark: Dictionary = track.landmarks[i]
+		var at := Vector2(float(mark.at[0]), float(mark.at[1]))
+		var own: float = Props.ROOM.get(mark.prop, 3.0)
+		var room: float = own + track.width * 0.5 + TrackPath.KERB + TrackBuilder.WALL_THICKNESS + TrackEditor.LANDMARK_GAP
+		var clear := true
+		for p in track.points:
+			if Vector2(p.x, p.z).distance_to(at) < room:
+				clear = false
+				break
+		if clear and track.paint.has_deep():
+			for k in 9:
+				var spot := at + (Vector2.ZERO if k == 0 else Vector2.from_angle(k * TAU / 8.0) * own)
+				var kind := track.paint.kind_at(spot.x, spot.y)
+				if kind != "" and PaintedAreas.effect_of(kind) != "":
+					clear = false
+					break
+		if not clear:
+			out.append("%d:%s" % [i, mark.prop])
+	return out
+
+
+## How many painted squares sit where the editor wouldn't paint them.
+func _paint_too_close(track: TrackPath) -> int:
+	var count := 0
+	for square: Vector2i in track.paint.squares:
+		if not PaintedAreas.allowed(square, track.paint.squares[square], track):
+			count += 1
+	return count
 
 
 ## How far the straights run back from the start line, at ground level,
