@@ -2,12 +2,14 @@ class_name GroundToolIcon
 extends Control
 
 ## A picture for a Ground tab tile: the ground side on with what the tool
-## does to it, or the brush's size as a ring.
+## does to it, water for the lake and river tools, or the brush's size as a
+## ring.
 
 const GROUND := Color("#6fbf5a")
 const BEFORE := Color(1, 1, 1, 0.35)
 const ROAD := Color("#8a8d86")
 const ARROW := Color("#f2f2f2")
+const WATER := Color("#4f9fd6")
 
 var tool := ""
 var brush := 1
@@ -60,6 +62,39 @@ func _draw() -> void:
 			var road_y := base - 8.0
 			draw_line(Vector2(left, road_y), Vector2(left + w, road_y), GROUND, 4.0, true)
 			draw_rect(Rect2(Vector2(c.x - 12.0, road_y - 5.0), Vector2(24.0, 5.0)), ROAD)
+		"lake":
+			# A hollow with water filling it to a level, and an arrow up and down.
+			var hollow := PackedVector2Array()
+			var water := PackedVector2Array()
+			for k in 17:
+				var t := k / 16.0
+				var y := base - 14.0 + 18.0 * pow(sin(PI * t), 2.0)
+				hollow.append(Vector2(left + w * t, y))
+				if y > base - 6.0:
+					water.append(Vector2(left + w * t, y))
+			if water.size() >= 2:
+				var fill := water.duplicate()
+				fill.append(Vector2(water[water.size() - 1].x, base - 6.0))
+				fill.append(Vector2(water[0].x, base - 6.0))
+				draw_colored_polygon(fill, WATER)
+			draw_polyline(hollow, GROUND, 4.0, true)
+			draw_line(Vector2(c.x, base - 26.0), Vector2(c.x, base - 12.0), ARROW, 2.0, true)
+			draw_line(Vector2(c.x, base - 26.0), Vector2(c.x - 4.0, base - 21.0), ARROW, 2.0, true)
+			draw_line(Vector2(c.x, base - 26.0), Vector2(c.x + 4.0, base - 21.0), ARROW, 2.0, true)
+		"river":
+			# A river winding across from above.
+			var bend := PackedVector2Array()
+			for k in 17:
+				var t := k / 16.0
+				bend.append(Vector2(left + w * t, c.y + 2.0 + 9.0 * sin(t * TAU)))
+			draw_polyline(bend, GROUND, 14.0, true)
+			draw_polyline(bend, WATER, 8.0, true)
+		"valley":
+			# A slope with a river running down it from a dot at the top.
+			var slope := PackedVector2Array([Vector2(left, base - 22.0), Vector2(left + w * 0.5, base - 6.0), Vector2(left + w, base)])
+			draw_polyline(slope, GROUND, 4.0, true)
+			draw_polyline(PackedVector2Array([Vector2(left + 4.0, base - 24.0), Vector2(left + w * 0.5, base - 8.0), Vector2(left + w - 2.0, base - 2.0)]), WATER, 3.0, true)
+			draw_circle(Vector2(left + 4.0, base - 24.0), 4.0, ARROW)
 	draw_line(Vector2(left, base + 4.0), Vector2(left + w, base + 4.0), Color(1, 1, 1, 0.15), 1.0)
 
 

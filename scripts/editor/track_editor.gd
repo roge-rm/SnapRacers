@@ -670,13 +670,18 @@ func _clear_of_road(mark: Dictionary) -> bool:
 
 ## Whether ground that sinks or burns is at the point or within `room` of it.
 func _in_paint(at: Vector2, room: float) -> bool:
-	if not course.paint.has_deep():
+	if track != null and track.waters.has_real():
+		track.waters.ensure(track)
+		if track.waters.covered(Vector3(at.x, 0.0, at.y), room):
+			return true
+	var paint := Scenery.paint_of(track) if track != null else course.paint
+	if not paint.has_deep():
 		return false
 	var spots := [Vector2.ZERO]
 	for k in 8:
 		spots.append(Vector2.from_angle(k * TAU / 8.0) * room)
 	for spot: Vector2 in spots:
-		var kind := course.paint.kind_at(at.x + spot.x, at.y + spot.y)
+		var kind := paint.kind_at(at.x + spot.x, at.y + spot.y)
 		if kind != "" and PaintedAreas.effect_of(kind) != "":
 			return true
 	return false
@@ -1099,6 +1104,10 @@ func _on_drag(event: InputEventScreenDrag) -> void:
 		var at := _ground_point(event.position)
 		if not _stroke:
 			paint_begin(_ground_point(_press_at))
+		# With the Lake tool, up and down raise and lower its level.
+		if water_tool() and ui.ground_tool == "lake":
+			water_lift(-event.relative.y * LIFT_PER_PIXEL)
+			return
 		paint_to(at)
 		return
 	if not _dragging and event.position.distance_to(_press_at) > DRAG_START:
@@ -1221,6 +1230,9 @@ func move_brush(at: Vector3) -> void:
 ## sculpt_begin()). Paint erases if the eraser's picked or the first square
 ## is already the picked type.
 func paint_begin(at: Vector3) -> void:
+	if not _stroke and water_tool():
+		water_begin(at)
+		return
 	if not _stroke and ui.sculpting():
 		sculpt_begin(at)
 		return
@@ -1239,6 +1251,9 @@ func paint_begin(at: Vector3) -> void:
 ## Paints along from where the stroke was to a point.
 func paint_to(at: Vector3) -> void:
 	if not _stroke:
+		return
+	if water_tool():
+		water_to(at)
 		return
 	if ui.sculpting():
 		_brush_at = at
@@ -1274,6 +1289,9 @@ func paint_to(at: Vector3) -> void:
 ## Ends the stroke and builds the smooth ground.
 func paint_end() -> void:
 	if not _stroke:
+		return
+	if water_tool():
+		water_end()
 		return
 	_stroke = false
 	_stroke_erases = false
@@ -1464,7 +1482,7 @@ func sculpt_begin(at: Vector3) -> void:
 
 ## Works the brush where it is for `seconds`, while a stroke's going.
 func sculpt_for(seconds: float) -> void:
-	if not _stroke or not ui.sculpting():
+	if not _stroke or not ui.sculpting() or water_tool():
 		return
 	var map := _relief()
 	if map == null:
@@ -1491,6 +1509,216 @@ func sculpt_for(seconds: float) -> void:
 		_build_in = -1.0
 	_show_relief()
 	_ring_key = []
+
+
+# Lakes and rivers.
+
+## How far a lake's level moves for each pixel dragged up or down.
+const LIFT_PER_PIXEL := 0.03
+## How far apart a drawn river's points go, in metres.
+const RIVER_GAP := 12.0
+## A new lake starts this far over the ground where it's put.
+const LAKE_START := 1.0
+
+## The lake or river in course.waters being worked on, or -1.
+var _water_body := -1
+## A river being drawn, as (x, z, width).
+var _river_points := PackedVector3Array()
+## The lakes and rivers settled on the course's map, for the live shoreline,
+## and the views of it and of a river being drawn.
+var _water_preview: Waters
+var _water_view: MeshInstance3D
+var _water_line: MeshInstance3D
+
+
+## Whether the Ground tab's Lake, River or Follow the valley tool is picked.
+func water_tool() -> bool:
+	return ui != null and ui.sculpting() and ui.ground_tool in GroundBrush.WATER_TOOLS
+
+
+## Starts a stroke with a water tool. Lake: a tap on a lake picks it, a tap
+## elsewhere puts a new one there, and dragging up and down moves its level.
+## River: drawing lays a river along the stroke, and a tap on one takes it
+## away. Follow the valley: a tap starts a river there that runs down the
+## ground. Each stroke is one undo step.
+func water_begin(at: Vector3) -> void:
+	_stroke = true
+	_stroke_changed = false
+	_stroke_undo = _snapshot()
+	_brush_at = at
+	_stroke_last = at
+	_river_points = PackedVector3Array()
+	_water_body = -1
+	var map := _relief()
+	if map == null:
+		return
+	var flat := Vector2(at.x, at.z)
+	_settle_preview()
+	var hit := _water_preview.body_at(flat.x, flat.y)
+	var width: float = GroundBrush.RIVER_WIDTHS.get(ui.ground_brush, 12.0)
+	var full := course.waters.bodies.size() >= Waters.MOST_BODIES
+	match ui.ground_tool:
+		"lake":
+			if hit >= 0 and course.waters.bodies[hit].kind == "lake":
+				_water_body = hit
+			elif full:
+				ui.toast("That's as many lakes and rivers as a course can have.")
+			else:
+				_first_water_change()
+				course.waters.bodies.append(Waters.make_lake(ui.water_type, flat, map.height_at(flat.x, flat.y) + LAKE_START))
+				_water_body = course.waters.bodies.size() - 1
+				_water_changed()
+		"river":
+			if hit >= 0 and course.waters.bodies[hit].kind == "river":
+				_water_body = hit
+			_river_points.append(Vector3(flat.x, flat.y, width))
+			_show_river_line()
+		"valley":
+			if full:
+				ui.toast("That's as many lakes and rivers as a course can have.")
+				return
+			var area := Rect2(map.origin, Vector2(map.cols - 1, map.rows - 1) * map.cell)
+			var points := Waters.follow_valley(map.height_at, flat, width, area)
+			if points.size() >= 2:
+				_first_water_change()
+				course.waters.bodies.append(Waters.make_river(ui.water_type, points))
+				_water_body = course.waters.bodies.size() - 1
+				_water_changed()
+
+
+## Draws a river on along the stroke.
+func water_to(at: Vector3) -> void:
+	_brush_at = at
+	_stroke_last = at
+	if ui.ground_tool != "river" or _river_points.is_empty():
+		return
+	var last := _river_points[_river_points.size() - 1]
+	if Vector2(last.x, last.y).distance_to(Vector2(at.x, at.z)) >= RIVER_GAP and _river_points.size() < Waters.MOST_POINTS:
+		_river_points.append(Vector3(at.x, at.z, last.z))
+		_show_river_line()
+
+
+## Moves the picked lake's level up or down by `metres`.
+func water_lift(metres: float) -> void:
+	if not _stroke or _water_body < 0 or _water_body >= course.waters.bodies.size():
+		return
+	var lake: Dictionary = course.waters.bodies[_water_body]
+	if lake.kind != "lake" or metres == 0.0:
+		return
+	_first_water_change()
+	lake.level = clampf(lake.level + metres, -GroundBrush.MOST, GroundBrush.MOST)
+	_water_changed()
+
+
+## Ends the stroke: a drawn river goes in, a tapped one comes out, and a lake
+## left with no water in it is taken away.
+func water_end() -> void:
+	_stroke = false
+	if ui.ground_tool == "river":
+		var drawn := _river_points.size() >= 2
+		if drawn and course.waters.bodies.size() < Waters.MOST_BODIES:
+			_first_water_change()
+			course.waters.bodies.append(Waters.make_river(ui.water_type, _river_points))
+		elif not drawn and not _dragging and _water_body >= 0:
+			_first_water_change()
+			course.waters.bodies.remove_at(_water_body)
+	elif ui.ground_tool == "lake" and _water_body >= 0 and _water_preview != null and _water_preview.wet_count(_water_body) == 0:
+		_first_water_change()
+		course.waters.bodies.remove_at(_water_body)
+	_river_points = PackedVector3Array()
+	_water_body = -1
+	if _water_line != null:
+		_water_line.visible = false
+	if _water_view != null:
+		_water_view.visible = false
+	if _stroke_changed:
+		_stroke_changed = false
+		_refresh()
+
+
+## The first change in a stroke: the step undo goes back over, and the map
+## the water sits in if the course had none.
+func _first_water_change() -> void:
+	if _stroke_changed:
+		return
+	if course.ground == null:
+		course.ground = _relief()
+		_unbaked = null
+	_stroke_changed = true
+	_undo.append(_stroke_undo)
+	if _undo.size() > 100:
+		_undo.pop_front()
+	_redo.clear()
+	ui.set_undo_state(true, false)
+	if _full != null:
+		_full.queue_free()
+		_full = null
+	_quick.visible = true
+	_build_in = -1.0
+	_show_relief()
+
+
+## Settles the course's lakes and rivers on its map, for the live shoreline.
+func _settle_preview() -> void:
+	var map := _relief()
+	_water_preview = Waters.from_dict(course.waters.to_dict())
+	if map == null or track == null or track.points.is_empty():
+		return
+	_water_preview.settle_with(track, map.height_at)
+
+
+## Settles the lakes again after a change and shows the one being worked on.
+func _water_changed() -> void:
+	if _water_preview == null or _water_preview.cols < 2:
+		_settle_preview()
+	else:
+		_water_preview.bodies = Waters.from_dict(course.waters.to_dict()).bodies
+		_water_preview.resettle()
+	if _water_view == null:
+		_water_view = MeshInstance3D.new()
+		var look := StandardMaterial3D.new()
+		look.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		look.vertex_color_use_as_albedo = true
+		look.albedo_color = Color(1, 1, 1, 0.85)
+		look.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		look.cull_mode = BaseMaterial3D.CULL_DISABLED
+		_water_view.material_override = look
+		_water_view.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		add_child(_water_view)
+	var b := _water_body
+	var mesh: ArrayMesh = null
+	if b >= 0 and b < _water_preview.bodies.size():
+		mesh = _water_preview.lake_mesh(b) if _water_preview.bodies[b].kind == "lake" else _water_preview.river_mesh(b)
+	_water_view.mesh = mesh
+	_water_view.visible = mesh != null
+
+
+## The line of a river being drawn, on the ground.
+func _show_river_line() -> void:
+	if _water_line == null:
+		_water_line = MeshInstance3D.new()
+		_water_line.mesh = ImmediateMesh.new()
+		_water_line.material_override = _ring.material_override
+		_water_line.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		add_child(_water_line)
+	var mesh: ImmediateMesh = _water_line.mesh
+	mesh.clear_surfaces()
+	_water_line.visible = _river_points.size() >= 2
+	if _river_points.size() < 2:
+		return
+	var colour: Color = Waters.colours(ui.water_type)[0]
+	var map := _relief()
+	mesh.surface_begin(Mesh.PRIMITIVE_TRIANGLE_STRIP)
+	for i in _river_points.size():
+		var p := _river_points[i]
+		var a := Vector2(_river_points[maxi(i - 1, 0)].x, _river_points[maxi(i - 1, 0)].y)
+		var c := Vector2(_river_points[mini(i + 1, _river_points.size() - 1)].x, _river_points[mini(i + 1, _river_points.size() - 1)].y)
+		var side := (c - a).normalized().orthogonal() * p.z * 0.5
+		for s in [-1.0, 1.0]:
+			var spot: Vector2 = Vector2(p.x, p.y) + side * s
+			mesh.surface_set_color(colour)
+			mesh.surface_add_vertex(Vector3(spot.x, (map.height_at(spot.x, spot.y) if map != null else 0.0) + RING_LIFT, spot.y))
+	mesh.surface_end()
 
 
 ## Lays the ring round the brush on the ground, red past the map's edge.

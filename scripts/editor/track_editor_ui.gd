@@ -155,12 +155,14 @@ var _group_pills: Array[Button] = []
 var _landmark_group := 0
 ## What the Paint tab paints: a type from PaintedAreas.TYPES, or "" for the
 ## eraser, and how many squares across the brush is.
-var paint_type := "water"
+var paint_type := "mud"
 var paint_brush := 1
 ## What the Ground tab does: one of GroundBrush.TOOLS, and how many squares
 ## across the brush is (1, 3 or 5).
 var ground_tool := "raise"
 var ground_brush := 3
+## What the Lake and River tools make: "water" or "lava".
+var water_type := "water"
 ## Whether the Ground tab is offered: not indoors.
 var _ground_offered := true
 var _tile_memory: Dictionary = {}
@@ -619,6 +621,12 @@ func flip_raise_lower() -> void:
 	choose_ground_tool("lower" if ground_tool == "raise" else "raise")
 
 
+## Water to lava and back, for the Lake and River tools.
+func toggle_water_type() -> void:
+	water_type = "lava" if water_type == "water" else "water"
+	_show_category(_category)
+
+
 func cycle_ground_brush() -> void:
 	ground_brush = 3 if ground_brush == 1 else 5 if ground_brush == 3 else 1
 	_show_category(_category)
@@ -638,12 +646,15 @@ func cycle_brush() -> void:
 	_show_category(_category)
 
 
-var _last_paint := "water"
+var _last_paint := "mud"
 
 
 ## A tile for each type of ground, the eraser, the brush size and Done.
 func _add_paint_tiles() -> void:
 	for type: String in PaintedAreas.TYPES:
+		# Water and lava are lakes and rivers on the Ground tab.
+		if type in Waters.TYPES:
+			continue
 		var tile := _tile("")
 		_name_tile(tile, PaintedAreas.TYPES[type].name)
 		var swatch := ColorRect.new()
@@ -699,9 +710,10 @@ func _add_paint_tiles() -> void:
 	_add_palette_tile(done, "done")
 
 
-## A tile for each of the Ground tab's tools, then the brush size and Done.
+## A tile for each of the Ground tab's tools, water or lava, then the brush
+## size and Done.
 func _add_ground_tiles() -> void:
-	for tool: String in GroundBrush.TOOLS:
+	for tool: String in GroundBrush.TOOLS + GroundBrush.WATER_TOOLS:
 		var tile := _tile("")
 		_name_tile(tile, GroundBrush.NAMES[tool])
 		var picture := GroundToolIcon.new(tool)
@@ -711,6 +723,19 @@ func _add_ground_tiles() -> void:
 		BuilderStyle.dress_tile(tile, ground_tool == tool)
 		tile.tapped.connect(choose_ground_tool.bind(tool))
 		_add_palette_tile(tile, tool)
+	var kind := _tile("")
+	_name_tile(kind, "Lava" if water_type == "lava" else "Water")
+	var swatch := ColorRect.new()
+	swatch.color = PaintedAreas.TYPES[water_type].colour
+	swatch.mouse_filter = MOUSE_FILTER_IGNORE
+	kind.add_child(swatch)
+	swatch.set_anchors_and_offsets_preset(PRESET_FULL_RECT)
+	swatch.offset_left = 14.0
+	swatch.offset_right = -14.0
+	swatch.offset_top = 10.0
+	swatch.offset_bottom = -50.0
+	kind.tapped.connect(toggle_water_type)
+	_add_palette_tile(kind, "water_type")
 	var brush := _tile("")
 	_name_tile(brush, "Brush %d" % ground_brush)
 	var size_ring := GroundToolIcon.new("brush", ground_brush)

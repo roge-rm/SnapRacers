@@ -14,7 +14,10 @@ extends Node
 ##   leaves the tab. The d-pad goes into the drawer to pick a type, and B
 ##   comes back out.
 ## - The Ground tab works the same way: holding A sculpts, X flips between
-##   Raise and Lower and Y is the brush size.
+##   Raise and Lower and Y is the brush size. With Lake, A on a lake picks it
+##   (or puts a new one down) and the stick up and down moves its level while
+##   A's held; with River, holding A and moving draws one; X picks water or
+##   lava.
 ## - With a landmark in hand, the left stick moves it, X turns it, A puts it
 ##   down, Back takes it away and B puts it back.
 ##
@@ -27,6 +30,8 @@ const PUSH := 0.6
 ## landmark, in pixels a second.
 const ORBIT := 700.0
 const SLIDE := 900.0
+## How fast the stick moves a lake's level, in metres a second.
+const LAKE_LIFT := 3.0
 
 var editor: TrackEditor
 ## Stepping along the road rather than in the drawer.
@@ -71,7 +76,9 @@ func _button(button: JoyButton) -> bool:
 				editor.paint_begin(editor._ground_point(_brush_screen()))
 				return true
 			JOY_BUTTON_X:
-				if editor.ui.sculpting():
+				if editor.water_tool():
+					editor.ui.toggle_water_type()
+				elif editor.ui.sculpting():
 					editor.ui.flip_raise_lower()
 				else:
 					editor.ui.toggle_eraser()
@@ -212,6 +219,10 @@ func _process(delta: float) -> void:
 		editor._orbit(right * ORBIT * delta)
 	if _brush_free():
 		var push := Vector2(Input.get_joy_axis(pad, JOY_AXIS_LEFT_X), Input.get_joy_axis(pad, JOY_AXIS_LEFT_Y))
+		if editor._stroke and editor.water_tool() and editor.ui.ground_tool == "lake":
+			if absf(push.y) > 0.2:
+				editor.water_lift(-push.y * LAKE_LIFT * delta)
+			return
 		var rect := editor.get_viewport().get_visible_rect()
 		_brush = (_brush_screen() + (push * SLIDE * delta if push.length() > 0.2 else Vector2.ZERO)).clamp(Vector2.ZERO, rect.size)
 		var at := editor._ground_point(_brush)

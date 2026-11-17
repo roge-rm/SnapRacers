@@ -12,7 +12,11 @@ extends RefCounted
 ## and Level to road towards the road's ground nearest each point.
 
 const TOOLS := ["raise", "lower", "smooth", "flatten", "level"]
-const NAMES := {"raise": "Raise", "lower": "Lower", "smooth": "Smooth", "flatten": "Flatten", "level": "Level to road"}
+## The tools for lakes and rivers (see TrackEditor.water_begin()).
+const WATER_TOOLS := ["lake", "river", "valley"]
+const NAMES := {"raise": "Raise", "lower": "Lower", "smooth": "Smooth", "flatten": "Flatten", "level": "Level to road", "lake": "Lake", "river": "River", "valley": "Follow the valley"}
+## How wide a river is, in metres, by the brush's size.
+const RIVER_WIDTHS := {1: 8.0, 3: 12.0, 5: 18.0}
 ## How wide each brush is, in metres, by its size in squares.
 const WIDTHS := {1: 8.0, 3: 24.0, 5: 40.0}
 ## Metres a second at the middle for Raise and Lower.

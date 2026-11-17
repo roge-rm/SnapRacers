@@ -105,6 +105,7 @@ func _ready() -> void:
 	await _controller(editor)
 	await _paint(editor)
 	await _ground(editor)
+	_water(editor)
 
 	# Saving.
 	editor.course.name = "Editor Test Course"
@@ -211,7 +212,7 @@ func _controller(editor: TrackEditor) -> void:
 	pad._button(JOY_BUTTON_X)
 	check(editor.ui.paint_type == "", "X picks the eraser")
 	pad._button(JOY_BUTTON_X)
-	check(editor.ui.paint_type == "water", "and X again the type before")
+	check(editor.ui.paint_type == "mud", "and X again the type before")
 	editor.ui.paint_brush = 1
 	var undo_before: int = editor._undo.size()
 	pad._brush = editor.get_viewport().get_visible_rect().size * 0.5
@@ -289,15 +290,16 @@ func _controller(editor: TrackEditor) -> void:
 
 
 ## Painting ground: a stroke is one undo step, the eraser and a stroke that
-## starts on the same type erase, and the road keeps water away.
+## starts on the same type erase, and the road keeps slime away. Water and
+## lava have no tiles here: they're lakes and rivers on the Ground tab.
 func _paint(editor: TrackEditor) -> void:
 	var kept := editor.course.to_dict()
 	editor.ui._show_category(TrackEditorUI.CATEGORIES.size() + 1)
 	check(editor.ui.painting(), "the Paint tab opens")
 	var tiles := editor.ui._tiles.get_children()
-	check(tiles.size() == PaintedAreas.TYPES.size() + 3, "with a tile for each type, the eraser, the brush and Done (%d)" % tiles.size())
+	check(tiles.size() == PaintedAreas.TYPES.size() - Waters.TYPES.size() + 3, "with a tile for each type but water and lava, the eraser, the brush and Done (%d)" % tiles.size())
 	var far := editor.track.points[0] + Vector3(600.0, 0.0, 600.0)
-	editor.ui.paint_type = "water"
+	editor.ui.paint_type = "mud"
 	editor.ui.paint_brush = 3
 	var undo_before := editor._undo.size()
 	editor.paint_begin(far)
@@ -306,7 +308,7 @@ func _paint(editor: TrackEditor) -> void:
 	editor.paint_end()
 	await frames(1)
 	var painted := editor.course.paint.count()
-	check(painted >= 15 and editor.course.paint.square_type(PaintedAreas.square_at(far.x + 24.0, far.z)) == "water", "a drag paints water (%d squares)" % painted)
+	check(painted >= 15 and editor.course.paint.square_type(PaintedAreas.square_at(far.x + 24.0, far.z)) == "mud", "a drag paints mud (%d squares)" % painted)
 	check(editor._undo.size() == undo_before + 1, "and the stroke is one undo step")
 	check(editor.track.paint.count() == painted, "the course the editor builds from has it")
 	editor.undo()
@@ -327,17 +329,17 @@ func _paint(editor: TrackEditor) -> void:
 	editor.paint_begin(far + Vector3(24.0, 0.0, 0.0))
 	editor.paint_end()
 	check(editor.course.paint.square_type(PaintedAreas.square_at(far.x + 24.0, far.z)) == "", "a stroke starting on the same type erases")
-	editor.ui.paint_type = "lava"
+	editor.ui.paint_type = "gravel"
 	editor.paint_begin(far)
 	editor.paint_end()
-	check(editor.course.paint.square_type(PaintedAreas.square_at(far.x, far.z)) == "lava", "another type paints over it")
+	check(editor.course.paint.square_type(PaintedAreas.square_at(far.x, far.z)) == "gravel", "another type paints over it")
 	editor.ui.paint_type = ""
 	var count := editor.course.paint.count()
 	editor.paint_begin(far)
 	editor.paint_end()
 	check(editor.course.paint.count() < count, "the eraser erases")
 	# Near the road.
-	editor.ui.paint_type = "water"
+	editor.ui.paint_type = "slime"
 	editor.ui.paint_brush = 1
 	var road := editor.track.points[3]
 	var before := editor.course.paint.count()
@@ -361,11 +363,11 @@ func _paint(editor: TrackEditor) -> void:
 	check(Sharing.validate_saved(Sharing.COURSE, editor.course.to_dict()).get("kind") == Sharing.COURSE, "a course with the most squares saves and loads")
 	editor.course.paint = kept_paint
 	editor._refresh()
-	# A landmark over water gets the red ring.
-	editor.ui.paint_type = "water"
+	# A landmark over slime gets the red ring.
+	editor.ui.paint_type = "slime"
 	editor.paint_begin(far)
 	editor.paint_end()
-	check(not editor._clear_of_road({"prop": "barn", "at": [far.x, far.z], "facing": 0}), "a landmark over water is refused like one on the road")
+	check(not editor._clear_of_road({"prop": "barn", "at": [far.x, far.z], "facing": 0}), "a landmark over slime is refused like one on the road")
 	editor.ui.paint_type = "mud"
 	editor.paint_begin(far + Vector3(200.0, 0.0, 0.0))
 	editor.paint_end()
@@ -378,15 +380,88 @@ func _paint(editor: TrackEditor) -> void:
 		if editor.track.points[i].y - editor.track.grounds[i] > editor.track.points[top].y - editor.track.grounds[top]:
 			top = i
 	var high := editor.track.points[top]
-	editor.ui.paint_type = "water"
+	editor.ui.paint_type = "slime"
 	editor.ui.paint_brush = 1
 	editor.paint_begin(high)
 	editor.paint_end()
-	check(editor.course.paint.square_type(PaintedAreas.square_at(high.x, high.z)) == "water", "water paints under a bridge")
+	check(editor.course.paint.square_type(PaintedAreas.square_at(high.x, high.z)) == "slime", "slime paints under a bridge")
 	editor.ui._show_category(0)
 	check(not editor.ui.painting(), "Done goes back to the first tab")
 	editor.course = CourseDesign.from_dict(kept)
 	editor._undo.clear()
+	editor._refresh()
+
+
+## Lakes and rivers on the Ground tab: Lake puts one down and drag moves its
+## level, live, in one undo step, and a lake lowered dry goes; River draws
+## one and a tap takes it away; Follow the valley runs one downhill; and the
+## lava tile makes them lava.
+func _water(editor: TrackEditor) -> void:
+	var kept := editor.course.to_dict()
+	var data: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://tests/data/ground_course.json"))
+	data.erase("water")
+	editor.course = CourseDesign.from_dict(data)
+	editor._undo.clear()
+	editor._refresh()
+	editor.ui._show_category(TrackEditorUI.CATEGORIES.size() + 2)
+	editor.ui.ground_tool = "lake"
+	check(editor.water_tool(), "the Lake tool is a water tool")
+	var hollow := Vector3(150.0, 0.0, -282.0)
+	var ground := editor.course.ground.height_at(hollow.x, hollow.z)
+	editor._dragging = false
+	editor.paint_begin(hollow)
+	editor.water_lift(1.0)
+	var shown := editor._water_view != null and editor._water_view.visible
+	var wet := editor._water_preview.wet_count(0)
+	editor.water_lift(0.5)
+	check(shown and editor._water_preview.wet_count(0) > wet, "a tap puts a lake in the hollow and lifting it shows its shore growing (%d to %d points)" % [wet, editor._water_preview.wet_count(0)])
+	editor.paint_end()
+	var bodies := editor.course.waters.bodies
+	check(bodies.size() == 1 and bodies[0].kind == "lake" and bodies[0].type == "water" and is_equal_approx(bodies[0].level, ground + TrackEditor.LAKE_START + 1.5), "the lake's level is where it was lifted to (%.2f over %.2f)" % [bodies[0].level if not bodies.is_empty() else 0.0, ground])
+	check(editor._undo.size() == 1 and editor.track.waters.bodies.size() == 1, "in one undo step, and the course built from it has it")
+	editor.undo()
+	check(editor.course.waters.is_empty(), "undo takes it away")
+	editor.redo()
+	editor.paint_begin(hollow)
+	editor.water_lift(-30.0)
+	editor.paint_end()
+	check(editor.course.waters.is_empty() and editor._undo.size() == 2, "lowered till it's dry the lake goes, in one step")
+	editor.undo()
+	# A river drawn down the valley.
+	editor.ui.ground_tool = "river"
+	editor.ui.ground_brush = 3
+	editor._dragging = true
+	editor.paint_begin(Vector3(236.0, 0.0, -160.0))
+	for x in range(220, 40, -10):
+		editor.paint_to(Vector3(float(x), 0.0, -160.0))
+	editor.paint_end()
+	bodies = editor.course.waters.bodies
+	var river: Dictionary = bodies[bodies.size() - 1] if not bodies.is_empty() else {}
+	check(bodies.size() == 2 and river.get("kind") == "river" and river.points.size() >= 10 and is_equal_approx(river.points[0].z, GroundBrush.RIVER_WIDTHS[3]), "drawing with River lays a river %d points long" % (river.points.size() if not river.is_empty() else 0))
+	check(editor._undo.size() == 2, "in one undo step")
+	editor._dragging = false
+	editor.paint_begin(Vector3(150.0, 0.0, -160.0))
+	editor.paint_end()
+	check(editor.course.waters.bodies.size() == 1, "a tap on it takes it away")
+	# Follow the valley, as lava.
+	editor.ui.ground_tool = "valley"
+	editor.ui.toggle_water_type()
+	var source := Vector3(205.0, 0.0, -255.0)
+	editor.paint_begin(source)
+	editor.paint_end()
+	bodies = editor.course.waters.bodies
+	var down := true
+	if bodies.size() == 2:
+		var points: PackedVector3Array = bodies[1].points
+		for i in range(1, points.size()):
+			down = down and editor.course.ground.height_at(points[i].x, points[i].y) <= editor.course.ground.height_at(points[i - 1].x, points[i - 1].y) + 0.3
+	check(bodies.size() == 2 and bodies[1].type == "lava" and bodies[1].points.size() >= 3 and down, "Follow the valley runs a lava river downhill from where it's tapped")
+	editor.ui.toggle_water_type()
+	check(editor.ui.water_type == "water", "and the tile goes back to water")
+	editor.ui._show_category(0)
+	editor.course = CourseDesign.from_dict(kept)
+	editor._undo.clear()
+	editor._redo.clear()
 	editor._refresh()
 
 
@@ -399,7 +474,7 @@ func _ground(editor: TrackEditor) -> void:
 	editor.ui._show_category(ground_tab)
 	check(editor.ui.sculpting() and not editor.ui.painting(), "the Ground tab opens")
 	var tiles := editor.ui._tiles.get_children()
-	check(tiles.size() == GroundBrush.TOOLS.size() + 2, "with a tile for each tool, the brush and Done (%d)" % tiles.size())
+	check(tiles.size() == GroundBrush.TOOLS.size() + GroundBrush.WATER_TOOLS.size() + 3, "with a tile for each tool, water or lava, the brush and Done (%d)" % tiles.size())
 	editor.ui.hills_chosen.emit(8.0)
 	check(editor.course.ground == null and editor.course.hills == 8.0, "a course with rolling hills has no map yet")
 	var k := editor.track.points.size() / 3
