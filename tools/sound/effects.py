@@ -463,6 +463,20 @@ def plunge():
     return normalise(out, 0.85)
 
 
+def sizzle():
+    """A kart dropping into lava or slime: a soft thump as it goes in, a loud
+    hiss of steam that dies away, with crackles and pops through it."""
+    n = seconds(1.3)
+    thump = lowpass(noise(seconds(0.25), 151), 300) * decay(seconds(0.25), 0.08)
+    hiss = bandpass(noise(n, 152), 2500, 10000)
+    hiss = sweep_lowpass(hiss, ramp(n, [(0.0, 10000), (0.5, 6000), (1.0, 3000)])) * ramp(n, [(0.0, 0.0), (0.03, 1.0), (0.3, 0.6), (1.0, 0.0)])
+    steam = bandpass(noise(n, 153), 600, 2500) * ramp(n, [(0.0, 0.0), (0.05, 0.6), (0.6, 0.25), (1.0, 0.0)])
+    crackle = _grit(seconds(1.0), 154, 70, 1500.0, 6000.0, 0.004) * ramp(seconds(1.0), [(0.0, 1.0), (0.5, 0.6), (1.0, 0.0)])
+    pops = _bubbles(seconds(0.9), 155, 14, 180.0, 500.0, (0.02, 0.05)) * ramp(seconds(0.9), [(0.0, 0.2), (0.3, 1.0), (1.0, 0.0)])
+    out = mix((thump * 0.7, 0.0), (normalise(hiss) * 0.8, 0.0), (normalise(steam) * 0.4, 0.0), (normalise(crackle) * 0.35, 0.05), (normalise(pops) * 0.35, 0.2))
+    return normalise(out, 0.8)
+
+
 def turbo():
     n = seconds(1.0)
     roar = lowpass(noise(n, 10), 2500) * ramp(n, [(0.0, 0.0), (0.05, 1.0), (1.0, 0.0)])
@@ -726,7 +740,7 @@ ONE_SHOTS = {
     "bump": bump, "crash": crash, "bricks": bricks, "powerup": powerup,
     "beep": lambda: beep("A5", 0.16), "go": lambda: beep("A6", 0.5),
     "lap": lap, "final_lap": final_lap, "finish": finish, "win": win,
-    "reset": reset, "splash": plunge, "turbo": turbo, "rope": rope, "wall": wall, "shockwave": shockwave, "marbles": marbles, "spikes": spikes, "drop": drop, "cannon": cannon,
+    "reset": reset, "splash": plunge, "sizzle": sizzle, "turbo": turbo, "rope": rope, "wall": wall, "shockwave": shockwave, "marbles": marbles, "spikes": spikes, "drop": drop, "cannon": cannon,
     "hit": hit, "homing_warning": homing_warning, "repair": repair, "shield": shield, "ghost": ghost, "lightning": lightning, "thunder": thunder, "ram": ram,
     "crossing_bell": crossing_bell, "drift_whoosh_1": lambda: drift_whoosh(1), "drift_whoosh_2": lambda: drift_whoosh(2), "drift_whoosh_3": lambda: drift_whoosh(3), "train_horn": train_horn,
     "click": click, "back": back, "snap": snap, "unsnap": unsnap, "pick": pick, "nope": nope,

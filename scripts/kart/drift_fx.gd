@@ -40,6 +40,9 @@ const SPRAY_LEAST := 4.0
 const SPRAY := Color(0.93, 0.96, 1.0, 0.8)
 ## Drops in the burst going into deep water, at High.
 const SPLASH_DROPS := 18
+## How many puffs of smoke and embers a kart dropping into lava throws up.
+const BURN_PUFFS := 14
+const BURN_EMBERS := 10
 
 const LEVEL_COLOURS := [Color(0.35, 0.65, 1.0), Color(1.0, 0.55, 0.12), Color(0.78, 0.32, 1.0)]
 
@@ -363,6 +366,27 @@ func splash(at: Vector3, going: Vector3) -> void:
 		var fling := flat + out + Vector3.UP * _rng.randf_range(5.0, 9.0)
 		var size := _rng.randf_range(0.5, 0.9)
 		_smoke.add(at + out * 0.3 + Vector3.UP * 0.3, fling, _rng.randf_range(0.6, 0.9), size, size * 2.2, SPRAY, Color(SPRAY, 0.0), 12.0)
+
+
+## A puff of smoke as the kart drops into lava or slime at `at`, tinted with
+## its `colour`, rising and spreading, with a few glowing embers thrown up.
+## Low graphics gets fewer puffs.
+func burn(at: Vector3, going: Vector3, colour: Color) -> void:
+	var share := float(Graphics.value("drift_fx"))
+	var flat := Vector3(going.x, 0.0, going.z) * 0.2
+	var dark := Color(0.22, 0.2, 0.19).lerp(colour, 0.25)
+	var pale := Color(0.55, 0.53, 0.5).lerp(colour, 0.15)
+	var puffs := maxi(roundi(BURN_PUFFS * share), 5)
+	for i in puffs:
+		var a := i * TAU / puffs + _rng.randf_range(-0.4, 0.4)
+		var out := Vector3(cos(a), 0.0, sin(a)) * _rng.randf_range(0.8, 2.5)
+		var rise := Vector3.UP * _rng.randf_range(4.0, 8.0)
+		var size := _rng.randf_range(1.2, 1.8)
+		_smoke.add(at + out * 0.4 + Vector3.UP * 0.4, flat + out + rise, _rng.randf_range(1.6, 2.4), size, size * 3.5, Color(dark, 0.9), Color(pale, 0.0), -5.0)
+	var hot := colour.lerp(Color(1.0, 0.9, 0.5), 0.4)
+	for i in maxi(roundi(BURN_EMBERS * share), 3):
+		var out := Vector3(_rng.randf_range(-2.5, 2.5), _rng.randf_range(5.0, 9.0), _rng.randf_range(-2.5, 2.5))
+		_glow.add(at + Vector3.UP * 0.3, flat + out, _rng.randf_range(0.5, 0.8), 0.45, 0.15, hot, Color(colour, 0.0), 12.0)
 
 
 ## Sparks off the back wheels in the colour of the level charged.

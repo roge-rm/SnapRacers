@@ -23,8 +23,9 @@ signal broke_scenery(group: int, at: Vector3, velocity: Vector3)
 signal broke_barrier(crossing: int, arm: int, velocity: Vector3)
 ## Its lost parts are back on, after a reset or from a repair kit.
 signal repaired
-## It drove into deep water (see sink()), so others can see the splash.
-signal splashed
+## It drove into deep water (see sink()), so others can see the splash, or
+## the smoke for lava and slime. `kind` is what DeepWater.kind said it was.
+signal splashed(kind: String)
 
 const SUSPENSION_TRAVEL := 0.12 # metres up or down from where the wheel was built
 const SUSPENSION_DAMPING := 0.55 # fraction of critical damping
@@ -443,6 +444,9 @@ var weather_grip := 1.0
 var weather_drag := 1.0
 var puddles: Puddles
 var drifts: Drifts
+## The course's painted ground, for the grip and drag of mud, gravel, sand
+## and ice off the road (see PaintedAreas.TYPES). The race sets it.
+var paint: PaintedAreas
 ## Whether its lights are on. The race turns them on when it's dark (see
 ## Conditions.dark()).
 var lights_on := false:
@@ -1637,6 +1641,15 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 		w.off = off
 		w.contact = contact
 		w.surface = ground.get_meta("surface", "dirt" if off else "asphalt") if ground != null else "asphalt"
+		# Painted mud, gravel, sand or ice off the road has its own grip and
+		# drag. Road always wins, as it isn't tagged offroad.
+		if off and paint != null and not paint.is_empty() and not ground.has_meta("trap"):
+			var painted := paint.kind_at(contact.x, contact.z)
+			var info: Dictionary = PaintedAreas.TYPES.get(painted, {})
+			if info.has("grip"):
+				grip_here = info.grip
+				drag_here = info.drag
+				w.surface = info.offroad
 		w.wade = ground.get_meta("wade", 0.0) if ground != null else 0.0
 		# The weather makes any ground slippier, and a puddle more so. A trap
 		# is the same whatever the weather. It never takes a tire below
@@ -2369,10 +2382,11 @@ func _set_collisions(ghostly: bool) -> void:
 
 
 ## Drives into deep water with its surface `level` metres up: it splashes,
-## sinks for SINK_TIME and is then reset like any other kart that's left the
-## track. Only the kart's own device calls this; others see the splash from
-## the splashed signal.
-func sink(level: float) -> void:
+## or smokes in lava and slime (`kind` as DeepWater.kind), sinks for
+## SINK_TIME and is then reset like any other kart that's left the track.
+## Only the kart's own device calls this; others see it from the splashed
+## signal.
+func sink(level: float, kind := "water") -> void:
 	if sinking_left > 0.0 or remote:
 		return
 	sinking_left = SINK_TIME
@@ -2382,15 +2396,23 @@ func sink(level: float) -> void:
 	for w: Wheel in wheels:
 		w.grounded = false
 	_set_collisions(ghost_left > 0.0)
-	show_splash()
-	splashed.emit()
+	show_splash(kind)
+	splashed.emit(kind)
 
 
 ## The splash of a kart going into deep water: a sound and a burst of spray.
-func show_splash() -> void:
+## Into something that burns, lava or slime, it's a sizzle and a puff of
+## smoke in that type's colour instead.
+func show_splash(kind := "water") -> void:
+	var going := remote_velocity if remote else linear_velocity
+	if PaintedAreas.effect_of(kind) == "burn":
+		Sounds.play_at("fx/sizzle", sound)
+		if fx != null:
+			fx.burn(global_position, going, PaintedAreas.TYPES[kind].colour)
+		return
 	Sounds.play_at("fx/splash", sound)
 	if fx != null:
-		fx.splash(global_position, remote_velocity if remote else linear_velocity)
+		fx.splash(global_position, going)
 
 
 ## Shoved by a shockwave from `from`, harder the closer it is, and knocked

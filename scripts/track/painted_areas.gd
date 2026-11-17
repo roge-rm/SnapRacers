@@ -28,17 +28,20 @@ const MOST_SQUARES := 200000
 const MOST_SPAN := 4096
 
 ## Each type: name on its tile, colour, edge colour (sand round water, crust
-## round lava), the SceneryKit surface by name (water, glow, plain, smooth), effect ("sink", "burn" or ""), and the
-## TrackPath.OFFROAD key whose grip and drag it uses when it only slows ("" for
-## the ones that sink or burn).
+## round lava), the SceneryKit surface by name (water, glow, plain, smooth),
+## effect ("sink", "burn" or ""), and for the ones that only slow, the surface
+## a wheel on it is on (for its smoke and sound) and its grip and drag off the
+## road, as multiples of plain road like TrackPath.OFFROAD. Mud, gravel and
+## sand slow you more than grass (drag 8) and ice keeps your speed with very
+## little grip.
 const TYPES := {
 	"water": {"name": "Water", "colour": Color("#2f7fb5"), "edge": Color("#d8c88f"), "surface": "water", "effect": "sink", "offroad": ""},
 	"lava": {"name": "Lava", "colour": Color("#e8561a"), "edge": Color("#2a2220"), "surface": "glow", "effect": "burn", "offroad": ""},
 	"slime": {"name": "Slime", "colour": Color("#7fd23a"), "edge": Color("#3d6b22"), "surface": "glow", "effect": "burn", "offroad": ""},
-	"mud": {"name": "Mud", "colour": Color("#6b4a2e"), "edge": Color("#8a6a45"), "surface": "plain", "effect": "", "offroad": "mud"},
-	"gravel": {"name": "Gravel", "colour": Color("#9a9690"), "edge": Color("#b3afa8"), "surface": "plain", "effect": "", "offroad": "gravel"},
-	"sand": {"name": "Sand", "colour": Color("#dcc686"), "edge": Color("#e6d6a0"), "surface": "plain", "effect": "", "offroad": "sand"},
-	"ice": {"name": "Ice", "colour": Color("#bfe6f2"), "edge": Color("#e4f6fb"), "surface": "smooth", "effect": "", "offroad": "ice"},
+	"mud": {"name": "Mud", "colour": Color("#6b4a2e"), "edge": Color("#8a6a45"), "surface": "plain", "effect": "", "offroad": "mud", "grip": 0.42, "drag": 14.0},
+	"gravel": {"name": "Gravel", "colour": Color("#9a9690"), "edge": Color("#b3afa8"), "surface": "plain", "effect": "", "offroad": "gravel", "grip": 0.45, "drag": 12.0},
+	"sand": {"name": "Sand", "colour": Color("#dcc686"), "edge": Color("#e6d6a0"), "surface": "plain", "effect": "", "offroad": "sand", "grip": 0.32, "drag": 16.0},
+	"ice": {"name": "Ice", "colour": Color("#bfe6f2"), "edge": Color("#e4f6fb"), "surface": "smooth", "effect": "", "offroad": "ice", "grip": 0.16, "drag": 1.5},
 }
 
 ## The type in each square, by Vector2i(x, z).

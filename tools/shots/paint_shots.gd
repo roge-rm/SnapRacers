@@ -4,16 +4,18 @@ extends Node
 ## a kart's view. Scenes: atoll (a lagoon with two islands in it on an
 ## island course), river (water under a bridge), hill_lake (a lake on a
 ## hillside), lava (a pit and a river of it), slime, and patches (mud,
-## gravel, sand and ice beside a corner). Add "night" for night. It needs a
+## gravel, sand and ice beside a corner). Add "night" for night, and "burn"
+## for a kart dropping into the pit at the end (lava or slime). It needs a
 ## screen:
-##   DISPLAY=:0 tools/godot/Godot_v4.7.2-stable_linux.x86_64 --path . res://tools/shots/paint_shots.tscn -- lava night
+##   DISPLAY=:0 tools/godot/Godot_v4.7.2-stable_linux.x86_64 --path . res://tools/shots/paint_shots.tscn -- lava night burn
 ## They're saved in /srv/downloads/temp/debug/snapracers/0.16/paint/m2 as
-## <scene>[_night]_<view>.png.
+## <scene>[_night]_<view>.png, or in m4 with "m4".
 
-const OUT := "/srv/downloads/temp/debug/snapracers/0.16/paint/m2"
+const FOLDER := "/srv/downloads/temp/debug/snapracers/0.16/paint/"
 const COURSE := "user://paint_shots.json"
 
 var race: Race
+var _out := FOLDER + "m2"
 ## Each view: [name, camera position, where it looks], worked out once the
 ## race is built and the ground is known.
 var _views: Array = []
@@ -28,6 +30,8 @@ func _ready() -> void:
 	var args := OS.get_cmdline_user_args()
 	var scene: String = args[0] if not args.is_empty() else "atoll"
 	var night := args.has("night")
+	if args.has("m4"):
+		_out = FOLDER + "m4"
 	var data := _course(scene)
 	var file := FileAccess.open(COURSE, FileAccess.WRITE)
 	file.store_string(JSON.stringify(data))
@@ -50,7 +54,7 @@ func _ready() -> void:
 	race.hud.visible = false
 	for racer in race.racers:
 		racer.kart.locked = true
-	DirAccess.make_dir_recursive_absolute(OUT)
+	DirAccess.make_dir_recursive_absolute(_out)
 	var track := race.track
 	var ground := func(at: Vector2, up: float) -> Vector3:
 		return Vector3(at.x, race.builder.ground_at(at.x, at.y) + up, at.y)
@@ -75,8 +79,10 @@ func _ready() -> void:
 		for i in 45:
 			await get_tree().process_frame
 		await RenderingServer.frame_post_draw
-		get_viewport().get_texture().get_image().save_png("%s/%s_%s.png" % [OUT, tag, view[0]])
+		get_viewport().get_texture().get_image().save_png("%s/%s_%s.png" % [_out, tag, view[0]])
 		print("saved %s_%s" % [tag, view[0]])
+	if args.has("burn"):
+		await _burn(cam, tag)
 	DirAccess.remove_absolute(ProjectSettings.globalize_path(COURSE))
 	get_tree().quit()
 
@@ -246,6 +252,40 @@ func _patches(areas: PaintedAreas, track: TrackPath) -> void:
 		sum += Vector2(p.x, p.z)
 	_focus = sum / types.size()
 	_road = (sharpest - 40 + track.points.size()) % track.points.size()
+
+
+## Drives the player's kart from the road side of the pit into it, and takes
+## pictures from beside it as it drops in and a moment later.
+func _burn(cam: Camera3D, tag: String) -> void:
+	var kart := race.player.kart
+	var road := race.track.points[_road]
+	var towards := (_focus - Vector2(road.x, road.z)).normalized()
+	var aim := Vector3(towards.x, 0.0, towards.y)
+	# From the road beside the pit, flat out straight at it.
+	kart.locked = false
+	race.player.input.set_physics_process(false)
+	race.player.input.controls.throttle = 1.0
+	# Moved there the way a reset moves it, inside the physics step.
+	var spot := Transform3D(Basis.looking_at(aim, Vector3.UP), road + Vector3.UP * 0.6)
+	race.player.offset = race.track.distances[_road]
+	race.player.road_offset = race.player.offset
+	kart.reset_to = func(_where: Vector3) -> Transform3D: return spot
+	kart.request_reset()
+	var side := Vector3(-towards.y, 0.0, towards.x)
+	var into := _focus - towards * 10.0
+	var watch := Vector3(into.x, race.builder.ground_at(into.x, into.y), into.y)
+	cam.look_at_from_position(watch + side * 7.0 + Vector3.UP * 3.0 - aim * 3.0, watch + aim * 3.0 + Vector3.UP * 1.5, Vector3.UP)
+	for i in 360:
+		await get_tree().physics_frame
+		if kart.sinking_left > 0.0:
+			break
+	print("sinking: %s" % (kart.sinking_left > 0.0))
+	for shot in [["burn", 8], ["burn_later", 24]]:
+		for i in shot[1]:
+			await get_tree().process_frame
+		await RenderingServer.frame_post_draw
+		get_viewport().get_texture().get_image().save_png("%s/%s_%s.png" % [_out, tag, shot[0]])
+		print("saved %s_%s" % [tag, shot[0]])
 
 
 func _nearest(track: TrackPath, at: Vector2) -> int:

@@ -589,6 +589,7 @@ func _add_racer(racer_name: String, design: KartDesign, slot: int, who: Characte
 	racer.kart.weather_drag = conditions.drag()
 	racer.kart.puddles = builder.puddles
 	racer.kart.drifts = builder.drifts
+	racer.kart.paint = track.paint
 	racer.kart.fx.snow_lies = conditions.snow() > 0.0
 	racer.kart.lights_on = conditions.dark()
 	racer.kart.beams = conditions.beams()
@@ -684,7 +685,7 @@ func _physics_process(delta: float) -> void:
 		if not kart.remote and kart.sinking_left <= 0.0 and not kart.on_road and not track.on_road_across(racer.offset, across, -TrackPath.KERB):
 			var level := builder.water.level_at(kart.global_position)
 			if is_finite(level):
-				kart.sink(level)
+				kart.sink(level, builder.water.kind)
 				if racer.hud != null:
 					racer.hud.flash("Back on the track")
 		# If it's fallen off or wandered far away, put it back.

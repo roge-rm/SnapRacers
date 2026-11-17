@@ -5,13 +5,19 @@ extends Node
 ## without resetting or running off the road. First, two drivers seeded the
 ## same have to pick the same line all the way round. The race itself isn't
 ## compared, as the physics with sliding karts doesn't come out exactly the
-## same twice, even before the racing line.
+## same twice, even before the racing line. Last, each drives a lap of a
+## course with water, lava, mud, ice and sand painted as close to the road as
+## they're allowed, which its line keeps clear of.
 ##
 ##   tools/godot/Godot_v4.7.2-stable_linux.x86_64 --headless --fixed-fps 60 --path . res://tests/ai_line_test.tscn
 
 const COURSES := ["hairpin_hall", "lakeshore_plunge", "launchpad_loop"]
 const LAYOUTS := [[false, false], [false, true], [true, false], [true, true]]
 const LEVELS := ["easy", "normal", "expert"]
+## The course painted all round for the last check, and the types it gets,
+## in blocks of four by four squares.
+const PAINTED := "lakeshore_plunge"
+const PAINT_TYPES := ["water", "lava", "mud", "ice", "sand", "gravel", "slime"]
 ## The longest a lap may take, in seconds.
 const GIVE_UP := 220.0
 ## Over the road's edge by this much, in metres, counts as off it, and a
@@ -60,6 +66,10 @@ func _ready() -> void:
 			for level in LEVELS:
 				await _race(course, layout[0], layout[1], level)
 				check(finished[0] > 0 and resets[0] == 0 and off[0] <= OFF_FOR, "%s: %s finishes a lap (%s), %d resets, %.1f s off the road" % [name, level, "%.1f s" % (finished[0] / 60.0) if finished[0] > 0 else "%.0f m" % gone[0], resets[0], off[0]])
+	for level in LEVELS:
+		await _race(PAINTED, false, false, level, true)
+		var painted := track.paint.count()
+		check(painted > 100 and finished[0] > 0 and resets[0] == 0 and off[0] <= OFF_FOR, "%s painted (%d squares): %s finishes a lap (%s), %d resets, %.1f s off the road" % [PAINTED, painted, level, "%.1f s" % (finished[0] / 60.0) if finished[0] > 0 else "%.0f m" % gone[0], resets[0], off[0]])
 	print("All AI line checks passed." if failures == 0 else "%d AI line checks failed." % failures)
 	get_tree().quit(1 if failures > 0 else 0)
 
@@ -74,17 +84,20 @@ func _seeded(path: TrackPath, seed: int) -> AIDriver:
 
 ## Races one driver at `level` from the grid, on its own so it's its line
 ## that's tested and not its racecraft, until it's done a lap or GIVE_UP.
-func _race(course: String, mirrored: bool, reversed: bool, level: String) -> void:
+func _race(course: String, mirrored: bool, reversed: bool, level: String, painted := false) -> void:
 	_clear()
 	await get_tree().physics_frame
 	track = TrackPath.load_file("res://data/tracks/%s.json" % course)
 	track.apply_layout(mirrored, reversed)
+	if painted:
+		_paint_all_round()
 	track.racing_line()
 	builder = TrackBuilder.new(track)
 	add_child(builder)
 	for i in 1:
 		var kart := Kart.new()
 		kart.build(design)
+		kart.paint = track.paint
 		kart.transform = track.grid_slot(1)
 		add_child(kart)
 		var ai := AIDriver.new()
@@ -143,3 +156,19 @@ func _clear() -> void:
 	off.clear()
 	resets.clear()
 	finished.clear()
+
+
+## Paints every square within 40 m of the road that a type is allowed in,
+## the types in blocks, so each comes as close to the road as it may.
+func _paint_all_round() -> void:
+	var near := {}
+	for p in track.points:
+		var square := PaintedAreas.square_at(p.x, p.z)
+		for dz in range(-5, 6):
+			for dx in range(-5, 6):
+				near[square + Vector2i(dx, dz)] = true
+	for square: Vector2i in near:
+		var block := Vector2i(floori(square.x / 4.0), floori(square.y / 4.0))
+		var type: String = PAINT_TYPES[posmod(block.x * 3 + block.y * 5, PAINT_TYPES.size())]
+		if PaintedAreas.allowed(square, type, track):
+			track.paint.set_square(square, type)

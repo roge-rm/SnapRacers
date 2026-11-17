@@ -86,6 +86,10 @@ const LAMP_EVERY := 20.0
 ## pool of water or lava this far above its level. Its field is sampled every
 ## PAINT_STEP metres.
 const PAINT_LIFT := 0.07
+## Lava and slime light the ground round them at night from spots this far
+## apart along their edge and this high over them, in metres.
+const PAINT_LAMP_GAP := 16.0
+const PAINT_LAMP_HEIGHT := 3.0
 const PAINT_STEP := 2.0
 ## The pattern on each painted type and on its edge band (see "grain" in
 ## BrickShaders.BLOCK): 1 mud, 2 gravel, 3 sand, 4 ice, 5 crust, 6 lava,
@@ -594,6 +598,7 @@ func _ready() -> void:
 	if not _shore.is_empty():
 		_build_island()
 	_build_paint()
+	_paint_lamps()
 	# Only things near the road need to be solid. And nothing that ended up on
 	# the road itself may be, or karts would pile into it (the walls keep
 	# them off everything else).
@@ -1688,6 +1693,38 @@ func _build_paint() -> void:
 		mesh = _paint_mesh(band, false)
 		if mesh != null:
 			_flat_draw(mesh, info.edge, SceneryKit.GROUND, grain[1]).name = "Paint %s edge" % type
+
+
+## Spots of light round the edge of lava and slime, about every
+## PAINT_LAMP_GAP metres, into `lamps`, so at night their glow lights the
+## ground round them (see CourseLamps). No real lights.
+func _paint_lamps() -> void:
+	if not paint.has_deep():
+		return
+	var taken := {}
+	var edges: Array[Vector2i] = []
+	for square: Vector2i in paint.squares:
+		var type: String = paint.squares[square]
+		if PaintedAreas.effect_of(type) != "burn":
+			continue
+		for d: Vector2i in [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)]:
+			if paint.square_type(square + d) != type:
+				edges.append(square)
+				break
+	edges.sort()
+	var gap := PAINT_LAMP_GAP / PaintedAreas.CELL
+	for square in edges:
+		var near := false
+		for dz in range(-2, 3):
+			for dx in range(-2, 3):
+				var other: Variant = taken.get(square + Vector2i(dx, dz))
+				if other != null and Vector2(square - (other as Vector2i)).length() < gap:
+					near = true
+		if near:
+			continue
+		taken[square] = square
+		var middle := PaintedAreas.middle_of(square)
+		lamps.append(Vector3(middle.x, water.paint_top(middle.x, middle.y) + PAINT_LAMP_HEIGHT, middle.y))
 
 
 ## What's left of a flat polygon of (x, z, field, field less the strongest
