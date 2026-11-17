@@ -448,7 +448,7 @@ func _slow_types() -> void:
 		held.append(absf(kart.linear_velocity.z))
 	print("  coasting kept %.1f m/s on mud, %.1f on ice, %.1f on plain %s; flat out %.1f, %.1f, %.1f; sideways left %.1f, %.1f, %.1f" % [kept[0], kept[1], kept[2], surfaces[2], driven[0], driven[1], driven[2], held[0], held[1], held[2]])
 	check(surfaces[0] == "mud" and surfaces[1] == "ice", "the wheels know they're on mud and ice (%s, %s)" % [surfaces[0], surfaces[1]])
-	check(driven[0] < driven[2] - 0.5, "flat out, mud holds a kart back more than the plain ground (%.1f against %.1f m/s)" % [driven[0], driven[2]])
+	check(driven[0] < driven[2] * 0.72 and driven[0] > driven[2] * 0.6, "flat out, mud holds a kart to about two thirds of the plain ground (%.1f against %.1f m/s)" % [driven[0], driven[2]])
 	check(kept[1] > kept[2] + 0.5, "ice keeps more of its speed (%.1f against %.1f m/s)" % [kept[1], kept[2]])
 	check(held[1] > held[2] + 0.5, "and sliding sideways on ice it holds on less (%.1f against %.1f m/s left)" % [held[1], held[2]])
 	kart.free()
