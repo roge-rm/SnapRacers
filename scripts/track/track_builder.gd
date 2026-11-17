@@ -86,7 +86,7 @@ var drifts: Drifts
 ## Where the water's too deep to drive (see Scenery).
 var water := DeepWater.new()
 var _material: ShaderMaterial
-## The rolling ground, on a course with hills.
+## The rolling ground, on a course with hills or a ground map.
 var terrain: Terrain
 ## The level crossings, in the order they come around the lap.
 var crossings: Array[LevelCrossing] = []
@@ -219,8 +219,8 @@ func _build() -> void:
 		CourseLamps.light(dressing.lamps)
 
 
-## How high the ground is here: the hills on a hilly course, and 0 on a flat
-## one.
+## How high the ground is here: the hills or the map on a course with them,
+## and 0 on a flat one.
 func ground_at(x: float, z: float) -> float:
 	return terrain.height_at(x, z) if terrain != null else 0.0
 
@@ -229,7 +229,7 @@ func _add_grass() -> void:
 	# A sky course floats, with nothing under it.
 	if _theme.get("void", false):
 		return
-	if track.hills > 0.0:
+	if track.has_relief():
 		terrain = Terrain.new(track, Scenery.REACH + 45.0)
 		add_child(terrain)
 		return

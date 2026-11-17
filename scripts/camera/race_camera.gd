@@ -257,13 +257,16 @@ func _orbit(delta: float) -> void:
 	look_at(target.global_position + Vector3.UP * 0.6, Vector3.UP)
 
 
-## Cameras beside the track, on alternate sides.
+## Cameras beside the track, on alternate sides, TV_HEIGHT above the road or
+## the ground there, whichever is higher.
 func _place_tv_cameras() -> void:
 	var count := maxi(int(track.length / TV_SPACING), 4)
 	for i in count:
 		var at := track.length * i / count
 		var side := 1.0 if i % 2 == 0 else -1.0
 		var spot := track.point_at(at) + track.right_at(at) * side * (track.width * 0.5 + TV_OUT) + Vector3.UP * TV_HEIGHT
+		# Never inside a hill or a cutting's bank beside the road.
+		spot.y = maxf(spot.y, track.ground_height(spot.x, spot.z) + TV_HEIGHT)
 		_tv_spots.append(spot)
 		_tv_offsets.append(at)
 

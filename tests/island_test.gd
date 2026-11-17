@@ -91,6 +91,21 @@ func _initialize() -> void:
 		under = under and terrain.height_at(p.x, p.y) < level + 0.05
 	check(under, "a hilly island's ground is under the sea at the shore (%.1f m)" % level)
 	terrain.free()
+	# So does one on a ground map, with the sea as low as the map at the shore.
+	var mapped_data = JSON.parse_string(FileAccess.get_file_as_string("res://tests/data/ground_course.json"))
+	mapped_data.theme = "island"
+	var mapped := TrackPath.from_dict(mapped_data)
+	terrain = Terrain.new(mapped, Scenery.REACH + 45.0)
+	shore = Scenery.island_shore(mapped)
+	level = Scenery.island_level(mapped, shore)
+	under = true
+	var lowest := INF
+	for i in range(0, shore.size(), 3):
+		var p := shore[i]
+		under = under and terrain.height_at(p.x, p.y) < level + 0.05
+		lowest = minf(lowest, mapped.ground_height(p.x, p.y))
+	check(under and level <= lowest + 0.001, "an island on a ground map is under the sea at the shore (%.1f m)" % level)
+	terrain.free()
 	print("%d failed" % failures if failures > 0 else "All island checks passed.")
 	quit(1 if failures > 0 else 0)
 

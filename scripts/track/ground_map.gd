@@ -93,21 +93,25 @@ func road_heights() -> GroundMap:
 	var out := duplicate_map()
 	if cols < 1 or rows < 1:
 		return out
-	# Blur along rows, then down columns.
+	# Blur along rows, then down columns, held at the edges.
 	var across := PackedFloat32Array()
 	across.resize(heights.size())
+	var w0: float = ROAD_BLUR[0]
+	var w1: float = ROAD_BLUR[1]
+	var w2: float = ROAD_BLUR[2]
 	for z in rows:
+		var row := z * cols
 		for x in cols:
-			var sum := 0.0
-			for k in 5:
-				sum += height_of(x + k - 2, z) * ROAD_BLUR[k]
-			across[z * cols + x] = sum
+			across[row + x] = heights[row + maxi(x - 2, 0)] * w0 + heights[row + maxi(x - 1, 0)] * w1 + heights[row + x] * w2 \
+				+ heights[row + mini(x + 1, cols - 1)] * w1 + heights[row + mini(x + 2, cols - 1)] * w0
 	for z in rows:
+		var a := maxi(z - 2, 0) * cols
+		var b := maxi(z - 1, 0) * cols
+		var c := z * cols
+		var d := mini(z + 1, rows - 1) * cols
+		var e := mini(z + 2, rows - 1) * cols
 		for x in cols:
-			var sum := 0.0
-			for k in 5:
-				sum += across[clampi(z + k - 2, 0, rows - 1) * cols + x] * ROAD_BLUR[k]
-			out.heights[z * cols + x] = sum
+			out.heights[c + x] = across[a + x] * w0 + across[b + x] * w1 + across[c + x] * w2 + across[d + x] * w1 + across[e + x] * w0
 	# Slope limit: a lower pass cuts peaks and a raise pass fills valleys, each
 	# two sweeps over the 8 neighbours, and the two are averaged.
 	var lowered := _limited(out.heights, false)
@@ -121,22 +125,39 @@ func _limited(from: PackedFloat32Array, raise: bool) -> PackedFloat32Array:
 	var h := from.duplicate()
 	var straight := ROAD_STEEPEST * cell
 	var diagonal := straight * sqrt(2.0)
+	# Raising compares with each neighbour less its reach, lowering with each
+	# neighbour plus it, so one sign covers both.
+	var sign := -1.0 if raise else 1.0
 	for back in [false, true]:
 		var step := 1 if back else -1
-		var zs := range(rows - 1, -1, -1) if back else range(rows)
-		var xs := range(cols - 1, -1, -1) if back else range(cols)
-		for z in zs:
-			for x in xs:
+		var z0 := rows - 1 if back else 0
+		var x0 := cols - 1 if back else 0
+		for zn in rows:
+			var z: int = z0 - zn if back else zn
+			var zs: int = z + step
+			var z_in := zs >= 0 and zs < rows
+			for xn in cols:
+				var x: int = x0 - xn if back else xn
+				var xs: int = x + step
+				var xd: int = x - step
 				var i: int = z * cols + x
 				var best := h[i]
-				for n in [Vector3i(x + step, z, 0), Vector3i(x, z + step, 0), Vector3i(x + step, z + step, 1), Vector3i(x - step, z + step, 1)]:
-					if n.x < 0 or n.y < 0 or n.x >= cols or n.y >= rows:
-						continue
-					var reach := diagonal if n.z == 1 else straight
-					var other := h[n.y * cols + n.x]
-					best = maxf(best, other - reach) if raise else minf(best, other + reach)
+				var reach_s := sign * straight
+				var reach_d := sign * diagonal
+				if xs >= 0 and xs < cols:
+					best = _pick(best, h[i + step] + reach_s, raise)
+					if z_in:
+						best = _pick(best, h[zs * cols + xs] + reach_d, raise)
+				if z_in:
+					best = _pick(best, h[zs * cols + x] + reach_s, raise)
+					if xd >= 0 and xd < cols:
+						best = _pick(best, h[zs * cols + xd] + reach_d, raise)
 				h[i] = best
 	return h
+
+
+static func _pick(a: float, b: float, raise: bool) -> float:
+	return maxf(a, b) if raise else minf(a, b)
 
 
 # Files.

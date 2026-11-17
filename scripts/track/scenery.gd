@@ -26,6 +26,9 @@ const UNDERGROWTH_REACH := 10.0 # metres
 ## Only scenery closer to the road than this is solid. Nothing further out
 ## can be hit, so lower graphics settings can leave some out.
 const SOLID_REACH := 60.0
+## Props with more room than this (see Props.ROOM) sit at the lowest ground
+## under them on a slope.
+const BIG_ON_SLOPES := 4.0
 ## Grass between the edge of the road and anything you could hit.
 const RUNOFF := 10.0
 ## Props this small (by Props.ROOM) come down whole when hit. Bigger ones only
@@ -819,8 +822,24 @@ func _grounded(at: Vector3) -> Vector3:
 	return Vector3(at.x, ground.call(at.x, at.z), at.z)
 
 
+## A prop's spot on the ground. One wider than BIG_ON_SLOPES sits at the lowest
+## of its middle and four corners, so nothing hangs out over a slope. Lakes,
+## ponds and lava pools stay at their middle, so the ground doesn't come up
+## through their water.
+func _grounded_prop(prop: String, at: Vector3) -> Vector3:
+	var room: float = Props.ROOM.get(prop, 3.0)
+	if room <= BIG_ON_SLOPES or prop in ["lake", "pond", "lava_pool"]:
+		return _grounded(at)
+	var corner := room * 0.7
+	var low: float = ground.call(at.x, at.z)
+	for dx in [-corner, corner]:
+		for dz in [-corner, corner]:
+			low = minf(low, ground.call(at.x + dx, at.z + dz))
+	return Vector3(at.x, low, at.z)
+
+
 func _add(prop: String, at: Vector3, facing := -1) -> void:
-	at = _grounded(at)
+	at = _grounded_prop(prop, at)
 	var f := facing if facing >= 0 else _facing_road(at)
 	var stack := prop == "tire_stack" or prop == "barrier_stack"
 	if stack:
@@ -1147,7 +1166,7 @@ static func inland_of(spot: Vector2, side: Array) -> float:
 ## How high the sea beside a hilly course is: as low as the hills get along
 ## its shore past the course, so it never floods the land.
 static func sea_level(path: TrackPath, side: Array) -> float:
-	if path.hills <= 0.0:
+	if not path.has_relief():
 		return 0.0
 	var sea: Rect2 = side[0]
 	var out: Vector2 = side[1]
@@ -1318,7 +1337,7 @@ static func grass_patches(material: ShaderMaterial, path: TrackPath) -> void:
 ## How high the sea is round an island: as low as the hills get along the
 ## shore, so it never floods the land.
 static func island_level(path: TrackPath, shore: PackedVector2Array) -> float:
-	if path.hills <= 0.0 or shore.is_empty():
+	if not path.has_relief() or shore.is_empty():
 		return 0.0
 	var level := INF
 	for p in shore:
@@ -2209,8 +2228,11 @@ func _far_skyline() -> void:
 
 ## How high the far ring and the ground under it go: a metre below the lowest
 ## ground on the baseplate, which is the whole box of `half` round `middle`,
-## or the road.
+## or the road. On a map it's a metre below the edge of the ground, which
+## eases down to its lowest edge point (see Terrain.rim).
 func _far_level(middle: Vector2, half: Vector2) -> float:
+	if _mapped():
+		return terrain.rim - 1.0
 	var lowest := 0.0
 	for p in track.points:
 		lowest = minf(lowest, p.y - 1.0)
@@ -2232,7 +2254,29 @@ func _far_floor(middle: Vector2, half: Vector2, level: float) -> void:
 	var colour := Color(theme.get("ground", "#4b9f4a"))
 	if theme.get("litter", false):
 		colour = (colour.srgb_to_linear() * 0.78).lerp(Color(0.34, 0.25, 0.15).srgb_to_linear(), 0.3).linear_to_srgb()
-	_kit.box(Vector3(middle.x, level - 1.0, middle.y), Vector3(half.x * 2.0, 1.0, half.y * 2.0), colour, SceneryKit.PLAIN, false)
+	if not _mapped():
+		_kit.box(Vector3(middle.x, level - 1.0, middle.y), Vector3(half.x * 2.0, 1.0, half.y * 2.0), colour, SceneryKit.PLAIN, false)
+		return
+	# On a map the ground inside can dip below the far floor, so it's a frame
+	# round the ground's grid instead of one slab under everything.
+	var lo := terrain.origin
+	var hi := terrain.origin + Vector2(terrain.cols - 1, terrain.rows - 1) * Terrain.CELL
+	var outer_lo := middle - half
+	var outer_hi := middle + half
+	for part: Rect2 in [
+		Rect2(outer_lo, Vector2(outer_hi.x - outer_lo.x, lo.y - outer_lo.y)),
+		Rect2(Vector2(outer_lo.x, hi.y), Vector2(outer_hi.x - outer_lo.x, outer_hi.y - hi.y)),
+		Rect2(Vector2(outer_lo.x, lo.y), Vector2(lo.x - outer_lo.x, hi.y - lo.y)),
+		Rect2(Vector2(hi.x, lo.y), Vector2(outer_hi.x - hi.x, hi.y - lo.y)),
+	]:
+		if part.size.x > 0.0 and part.size.y > 0.0:
+			var centre := part.get_center()
+			_kit.box(Vector3(centre.x, level - 1.0, centre.y), Vector3(part.size.x, 1.0, part.size.y), colour, SceneryKit.PLAIN, false)
+
+
+## Whether the ground comes from the course's own map.
+func _mapped() -> bool:
+	return terrain != null and track.ground != null
 
 
 ## What the pit building looks like on this theme (see Props.pit_building()).

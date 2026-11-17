@@ -2,13 +2,15 @@
 """Writes and reads a course's "ground" key, the same as scripts/track/ground_map.gd.
 
 Usage: ground_map.py fixture <out.json>
+       ground_map.py course <out.json>
 
 Heights are rounded to 0.05 m, each stored as the difference from the plane
 through its left, upper and upper left neighbours (left only on the first row,
 upper only on the first column), as zigzag varints, zlib deflated and base64.
 
 `fixture` writes the small map tests/ground_map_test.gd checks the game
-decodes the same.
+decodes the same. `course` writes tests/data/ground_course.json, the
+course tests/terrain_test.gd builds.
 """
 import base64, json, sys, zlib
 import numpy as np
@@ -85,7 +87,65 @@ def fixture():
     return {"ground": to_dict(q, (-32.0, -24.0)), "heights": [round(float(v), 2) for v in q.ravel()]}
 
 
+def course():
+    """A loop on hand-made ground: a hill beside the east straight (a cutting),
+    a valley across both straights (a bridge on the west one, an embankment on
+    the east), a river of pools down the valley, a lake on the side of a
+    second hill and a barn on the first hill's slope. The ground tilts up to
+    the east, so that edge is high."""
+    origin = (-136.0, -504.0)
+    cols, rows = 71, 87
+    z, x = np.mgrid[0:rows, 0:cols].astype(np.float64)
+    x = origin[0] + x * CELL
+    z = origin[1] + z * CELL
+
+    def height(x, z):
+        tilt = 0.03 * x
+        hill = 12.0 * np.exp(-((x - 345.0) ** 2 + (z + 80.0) ** 2) / (2 * 32.0 ** 2))
+        lake_hill = 9.0 * np.exp(-((x - 210.0) ** 2 + (z + 290.0) ** 2) / (2 * 30.0 ** 2))
+        valley = -9.0 * np.exp(-((z + 160.0) ** 2) / (2 * 18.0 ** 2))
+        return tilt + hill + lake_hill + valley
+
+    h = height(x, z) - height(0.0, 0.0)
+    runs = []
+    # The river: two squares wide down the valley, in pools a square apart,
+    # the first under the bridge.
+    for row in (-21, -20):
+        for first, last in ((-6, 1), (3, 8), (10, 15), (17, 22), (24, 29)):
+            runs.append([row, first, last - first + 1, "water"])
+    # The lake, a rough circle on the second hill's west side.
+    middle = (155.0, -282.0)
+    for row in range(-38, -32):
+        xs = [c for c in range(14, 26) if (c * CELL + 4.0 - middle[0]) ** 2 + (row * CELL + 4.0 - middle[1]) ** 2 <= 15.0 ** 2]
+        if xs:
+            runs.append([row, xs[0], len(xs), "water"])
+    return {
+        "name": "Ground course", "theme": "orchard", "about": "A test loop on a hand-made ground map.",
+        "laps": 3, "width": 13.0, "grid": 32,
+        "ground": to_dict(h, origin),
+        "paint": {"cell": CELL, "runs": runs},
+        "landmarks": [{"prop": "barn", "at": [360, -20], "facing": 3}],
+        "pieces": [
+            {"type": "straight", "length": 2},
+            {"type": "ramp", "length": 2, "rise": 1}, {"type": "straight", "length": 2}, {"type": "ramp", "length": 2, "rise": -1},
+            {"type": "straight", "length": 1},
+            {"type": "curve", "turn": "right", "size": 3},
+            {"type": "straight", "length": 4},
+            {"type": "curve", "turn": "right", "size": 3},
+            {"type": "straight", "length": 9},
+            {"type": "curve", "turn": "right", "size": 3},
+            {"type": "straight", "length": 4},
+            {"type": "curve", "turn": "right", "size": 3},
+        ],
+    }
+
+
 def main():
+    if len(sys.argv) == 3 and sys.argv[1] == "course":
+        with open(sys.argv[2], "w") as f:
+            json.dump(course(), f, indent="\t")
+            f.write("\n")
+        return
     if len(sys.argv) == 3 and sys.argv[1] == "fixture":
         data = fixture()
         back = decode(data["ground"]["data"], *data["ground"]["size"])

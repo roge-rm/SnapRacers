@@ -1,14 +1,16 @@
 class_name Terrain
 extends StaticBody3D
 
-## The ground a hilly course sits on: grass that rolls with the hills (see
-## TrackPath.ground_height()) and meets the road level, so the road never
-## floats above it or sinks into it.
+## The ground a hilly course sits on: grass that rolls with the hills or the
+## course's ground map (see TrackPath.ground_height()) and meets the road
+## level, so the road never floats above it or sinks into it.
 ##
 ## Right beside the road the ground is as high as the road, level across,
 ## like a real track's verges. Out over the runoff it eases back to the
 ## hills. Under road up in the air (a bridge, a loop, a jump's gap) it's just
-## the hills.
+## the hills. On a map a hill beside the road becomes a cutting and a valley
+## an embankment, and the outer EDGE metres ease down to the map's lowest
+## edge point, so a high side doesn't end in a cliff.
 ##
 ## It's a grid of heights CELL metres apart, drawn as one mesh on the studded
 ## baseplate, and karts drive on it like the flat grass. A flat course uses
@@ -35,6 +37,10 @@ const LEDGE := 7.0
 ## How far the ground dips under the middle of painted water or lava, below
 ## its surface.
 const BASIN := 1.2
+## How far in from the grid's edge the ground of a map eases down to `rim`.
+## The grid reaches 125 m past the road, so this leaves 45 m for the road's
+## cut and fill, and a map 25 m top to bottom comes down at most about 45%.
+const EDGE := 80.0
 
 var track: TrackPath
 ## The corner of the grid, and how many points across and down it has.
@@ -45,6 +51,9 @@ var heights := PackedFloat32Array()
 ## How high each painted pool of water or lava sits, as square -> height (see
 ## PaintedAreas.surface_levels()).
 var paint_levels := {}
+## How high the edge of the grid is on a course with a map: the lowest the map
+## gets along it. Scenery's far floor sits just under it.
+var rim := 0.0
 
 
 func _init(path: TrackPath, reach: float) -> void:
@@ -139,12 +148,18 @@ func _work_out_heights() -> void:
 	if Scenery.theme_named(track.theme).get("sea", false):
 		side = Scenery.sea_side(track)
 		sea = Scenery.sea_level(track, side) - 0.02
+	var mapped := track.ground != null
+	if mapped:
+		rim = _lowest_edge()
 	heights.resize(cols * rows)
 	for z in rows:
 		for x in cols:
 			var i := z * cols + x
 			var at := _point(x, z)
 			var h := track.ground_height(at.x, at.y)
+			if mapped:
+				var in_from := minf(minf(x, cols - 1 - x), minf(z, rows - 1 - z)) * CELL
+				h = lerpf(rim, h, smoothstep(0.0, EDGE, in_from))
 			if not high.is_empty() and high[0][i] >= 0:
 				var up: int = high[0][i]
 				var lift := clampf((track.points[up].y - track.grounds[up] - TrackBuilder.RAISED) / DROP_FULL, 0.0, 1.0)
@@ -176,6 +191,20 @@ func _work_out_heights() -> void:
 				h = lerpf(sea, h, smoothstep(0.0, float(rings.size()), float(inside)))
 			heights[i] = h
 	_basins(gap, edge)
+
+
+## The lowest the ground gets along the grid's edge, read every CELL.
+func _lowest_edge() -> float:
+	var low := INF
+	for x in cols:
+		for z in [0, rows - 1]:
+			var at := _point(x, z)
+			low = minf(low, track.ground_height(at.x, at.y))
+	for z in rows:
+		for x in [0, cols - 1]:
+			var at := _point(x, z)
+			low = minf(low, track.ground_height(at.x, at.y))
+	return low
 
 
 ## Under painted water and lava the ground comes down from the hills, from

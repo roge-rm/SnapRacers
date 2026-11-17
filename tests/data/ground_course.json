@@ -1,0 +1,176 @@
+{
+	"name": "Ground course",
+	"theme": "orchard",
+	"about": "A test loop on a hand-made ground map.",
+	"laps": 3,
+	"width": 13.0,
+	"grid": 32,
+	"ground": {
+		"cell": 8.0,
+		"origin": [
+			-136.0,
+			-504.0
+		],
+		"size": [
+			71,
+			87
+		],
+		"step": 0.05,
+		"data": "eNrtV8tyFEEMs92P6ZnsDX4ArvAjcIUr/Bw/imT37E6opLLdS8FlzNIVqoIi27Ll/NIN0R5+5IwzzvgvYbo/D+KIBs4s1v7/TEQf4WM7iP9rHsrETI20VNJDKBYoSiTRuZQsGz5ClIS/SGuYkikwLNecxRKjqIxjsCY5V0Q2cFlKST2zQRzJ4NJaA520LMRJM8XJ4ijA0VLWZUVWoDNYHBQ2W62wooqkgFJK0Ymmo9GoTcMfk+JZRa+mcKyhX6KFrRqv8E05+zTEZ0rJCSNADhRzDj3bKAYnIJXEykroB3oeRzHoH5Vdl5Qss++VhIbpIJlUgLKUJNAPGu90RnGAAtmh0YtCzUBpXp5BDOEkpcQhgBAzc8JUTBSHnWKJoV3IOdfXyGhI4pWHxWGV2XG0u6LnMbHPvk/vrLK6bjinJi8UeDla0EtPx4kBII4rWnfH6Zp+d09xuh34VnfN3Nj0rz7JW3SCk1632NX7JOrjdL6M9P7AwjqVXt4fO7E3nj/a15+r2Xy7L6nDc83OesX4kz5MLSA3wD7+/MjHKROV3H3U3Q9I3++sjd2a6xrknBtdNIzi53BtmBBHq/pypm2B0tfxY4dU6BRwHGwi9z/9PJqUuRlvYVxAWVcO//sxJmHGdauXbauwUaCs9NE2QCZk7JW5tMtG/1ufwGbR0ZVq7jKVblybcbtiS/NWeTbxbzx9soxGkxsbXrxVOu5+MQbcgZRfxMQg8HBKtEBOgkXMDJT2FY+zy/wOc6uYMGMMAAq70kY3+l+1PJERYCCXJxw6sNELdZhtECVyWsoCvcBG4aIXt+PxAjMpzgDY8JpDVjnPXBhQCw5bjKT6iRqnypQZgw/3jFg0aqbl/vtH3IDGq3C4T4f7q+/OuOJkToB9j2sM6jTIDtXX+8RBeds91y/jSJmNvuOPhjwDcnScx0L/HtQZZ5xxxj+O3xp3E1s="
+	},
+	"paint": {
+		"cell": 8.0,
+		"runs": [
+			[
+				-21,
+				-6,
+				8,
+				"water"
+			],
+			[
+				-21,
+				3,
+				6,
+				"water"
+			],
+			[
+				-21,
+				10,
+				6,
+				"water"
+			],
+			[
+				-21,
+				17,
+				6,
+				"water"
+			],
+			[
+				-21,
+				24,
+				6,
+				"water"
+			],
+			[
+				-20,
+				-6,
+				8,
+				"water"
+			],
+			[
+				-20,
+				3,
+				6,
+				"water"
+			],
+			[
+				-20,
+				10,
+				6,
+				"water"
+			],
+			[
+				-20,
+				17,
+				6,
+				"water"
+			],
+			[
+				-20,
+				24,
+				6,
+				"water"
+			],
+			[
+				-37,
+				18,
+				3,
+				"water"
+			],
+			[
+				-36,
+				18,
+				3,
+				"water"
+			],
+			[
+				-35,
+				18,
+				3,
+				"water"
+			],
+			[
+				-34,
+				19,
+				1,
+				"water"
+			]
+		]
+	},
+	"landmarks": [
+		{
+			"prop": "barn",
+			"at": [
+				360,
+				-20
+			],
+			"facing": 3
+		}
+	],
+	"pieces": [
+		{
+			"type": "straight",
+			"length": 2
+		},
+		{
+			"type": "ramp",
+			"length": 2,
+			"rise": 1
+		},
+		{
+			"type": "straight",
+			"length": 2
+		},
+		{
+			"type": "ramp",
+			"length": 2,
+			"rise": -1
+		},
+		{
+			"type": "straight",
+			"length": 1
+		},
+		{
+			"type": "curve",
+			"turn": "right",
+			"size": 3
+		},
+		{
+			"type": "straight",
+			"length": 4
+		},
+		{
+			"type": "curve",
+			"turn": "right",
+			"size": 3
+		},
+		{
+			"type": "straight",
+			"length": 9
+		},
+		{
+			"type": "curve",
+			"turn": "right",
+			"size": 3
+		},
+		{
+			"type": "straight",
+			"length": 4
+		},
+		{
+			"type": "curve",
+			"turn": "right",
+			"size": 3
+		}
+	]
+}
