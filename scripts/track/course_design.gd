@@ -40,6 +40,8 @@ var made_by := ""
 var pieces: Array = []
 ## Landmarks you've put down: { "prop": "windmill", "at": [x, z], "facing": 0 }.
 var landmarks: Array = []
+## Painted ground: lakes, lava, mud (see PaintedAreas).
+var paint := PaintedAreas.new()
 ## Where the start line is. Moving it to another straight keeps the road
 ## where it was, so this is wherever that straight is.
 var start := Transform3D.IDENTITY
@@ -66,6 +68,7 @@ static func from_dict(data: Dictionary) -> CourseDesign:
 		if mark is Dictionary and Props.ROOM.has(str(mark.get("prop", ""))):
 			c.landmarks.append(mark.duplicate())
 	c.start = TrackPath.start_from(data.get("start", []))
+	c.paint = PaintedAreas.from_dict(data.get("paint"), TrackPath.growth(data))
 	# One made before the tiles were kart sized comes out twice as big (see
 	# TrackPath.from_dict()).
 	var grow := TrackPath.growth(data)
@@ -99,6 +102,8 @@ func to_dict() -> Dictionary:
 		out.time = time
 	if fixed_time:
 		out.fixed_time = true
+	if not paint.is_empty():
+		out.paint = paint.to_dict()
 	return out
 
 

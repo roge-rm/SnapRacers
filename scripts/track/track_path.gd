@@ -98,6 +98,8 @@ var fixed_time := false
 ## { "prop": ..., "at": [x, z], "facing": 0 to 3 }. With none, the theme
 ## picks its own.
 var landmarks: Array = []
+## Painted ground: lakes, lava, mud (see PaintedAreas).
+var paint := PaintedAreas.new()
 var pieces: Array[TrackPiece] = []
 var start := Transform3D.IDENTITY
 ## Where each piece starts, in the world.
@@ -165,6 +167,7 @@ static func from_dict(data: Dictionary) -> TrackPath:
 	track.fixed_time = bool(data.get("fixed_time", false))
 	track.landmarks = data.get("landmarks", []).duplicate(true)
 	track.start = start_from(data.get("start", []))
+	track.paint = PaintedAreas.from_dict(data.get("paint"), growth(data))
 	# A course made before the tiles were kart sized has the same pieces twice
 	# as big, so where it starts and its landmarks move out to match.
 	var grow := growth(data)

@@ -17,6 +17,7 @@ const KART := "kart"
 const KINDS := [COURSE, CUP, DRIVER, KART]
 const MOST_PIECES := 200
 const MOST_LANDMARKS := 100
+const MOST_PAINT_RUNS := 4000
 ## Bound model creation and connector comparisons before opening an import.
 const MOST_PARTS := 256
 const MOST_CONNECTORS := 4096
@@ -249,6 +250,8 @@ static func _read_course(data: Dictionary, saved := false) -> Dictionary:
 	for mark in data.get("landmarks", []):
 		if not mark is Dictionary or not mark.get("prop") is String or not Props.ROOM.has(mark.prop) or not _vector(mark.get("at", [0, 0]), 100000.0, 2) or not _integer(mark.get("facing", 0), 0, 3):
 			return {"why": "That course has an invalid landmark."}
+	if data.has("paint") and not _paint(data.paint):
+		return {"why": "That course has invalid painted ground."}
 	var canonical := data.duplicate(true)
 	if not canonical.get("start", []).is_empty():
 		canonical.start[3] = roundf(float(canonical.start[3]) * 6.0) / 6.0
@@ -256,6 +259,21 @@ static func _read_course(data: Dictionary, saved := false) -> Dictionary:
 	if not buildable(course, saved):
 		return {"why": "That course has pieces the game can't build."}
 	return {"kind": COURSE, "data": course.to_dict()}
+
+
+static func _paint(value: Variant) -> bool:
+	if not value is Dictionary or not value.get("runs") is Array or value.runs.size() > MOST_PAINT_RUNS:
+		return false
+	if value.has("cell") and (not _number(value.cell) or float(value.cell) <= 0.0 or float(value.cell) > 1000.0):
+		return false
+	var squares := 0
+	for run in value.runs:
+		if not run is Array or run.size() != 4 or not run[3] is String:
+			return false
+		if not _integer(run[0], -PaintedAreas.MOST_SPAN, PaintedAreas.MOST_SPAN) or not _integer(run[1], -PaintedAreas.MOST_SPAN, PaintedAreas.MOST_SPAN) or not _integer(run[2], 1, PaintedAreas.MOST_SPAN):
+			return false
+		squares += int(run[2])
+	return squares <= PaintedAreas.MOST_SQUARES
 
 
 static func _start(value: Variant) -> bool:
