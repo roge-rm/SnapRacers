@@ -96,8 +96,10 @@ make_appimage aarch64 linux-arm64
 
 # Windows: the installer, made in the NSIS image, and the zip.
 rm -f "$OUT/snapracers-$V-setup.exe" "$OUT/snapracers-$V-windows-x64.zip"
-docker run --rm -u "$(id -u):$(id -g)" -v "$ROOT":/src -v "$OUT":/out -w /src/tools/desktop apogee-windows \
-	makensis -V1 -DVERSION="$V" -DEXE=/src/build/desktop/windows-x86_64/snapracers.exe -DLICENSE=/src/LICENSE \
+# The exe folder is mounted on its own, since build/desktop may be a link to another disk.
+docker run --rm -u "$(id -u):$(id -g)" -v "$ROOT":/src -v "$(realpath "$BUILD/windows-x86_64")":/exe -v "$OUT":/out \
+	-w /src/tools/desktop apogee-windows \
+	makensis -V1 -DVERSION="$V" -DEXE=/exe/snapracers.exe -DLICENSE=/src/LICENSE \
 	-DOUT="/out/snapracers-$V-setup.exe" installer.nsi
 python3 -I - "$OUT/snapracers-$V-windows-x64.zip" "$V" "$BUILD/windows-x86_64/snapracers.exe" LICENSE <<'PY'
 import sys, zipfile
