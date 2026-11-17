@@ -30,6 +30,9 @@ const COUNTDOWN := 3.0
 const FALLEN := 4.0
 ## If you're further from the middle of the road than this, you're lost.
 const LOST := 45.0
+## Beside road on rolling ground, how far under the ground a kart has to be
+## to have fallen through it.
+const UNDERGROUND := 1.0
 ## How far before a loop or wall ride a reset puts you, so you can build up
 ## speed.
 const RUN_UP := 110.0
@@ -422,6 +425,8 @@ func _add_view(racer: Racer, world_parent: Node, layer: CanvasLayer) -> void:
 	var view := RaceCamera.new()
 	view.target = racer.kart
 	view.track = track
+	if builder != null and builder.terrain != null:
+		view.ground = builder.ground_at
 	view.input = input
 	view.mirror_available = humans.size() == 1 and split == Game.SOLO
 	# Your own head is on a layer of its own, so your first person view can
@@ -691,7 +696,13 @@ func _physics_process(delta: float) -> void:
 		# If it's fallen off or wandered far away, put it back.
 		var middle := track.point_at(racer.offset)
 		var below := (kart.global_position - middle).dot(track.up_at(racer.offset))
-		if kart.slowdown_left <= 0.0 and kart.sinking_left <= 0.0 and (below < -FALLEN or kart.global_position.distance_to(middle) > LOST):
+		var fallen := below < -FALLEN
+		# Beside road on rolling ground a valley can drop well below the road,
+		# so there it's only fallen once it's under the ground itself.
+		if fallen and builder.terrain != null and track.grounded_at(racer.offset, TrackBuilder.RAISED):
+			var pos := kart.global_position
+			fallen = pos.y < builder.ground_at(pos.x, pos.z) - UNDERGROUND
+		if kart.slowdown_left <= 0.0 and kart.sinking_left <= 0.0 and (fallen or kart.global_position.distance_to(middle) > LOST):
 			if OS.has_environment("RACE_DEBUG"):
 				var truly := track.offset_of(kart.global_position)
 				print("OFF %s at %.0f m: below %.1f, away %.1f, height %.1f, speed %.1f, really at %.0f m %.1f away" % [racer.name, racer.offset, below, kart.global_position.distance_to(middle), kart.global_position.y, kart.linear_velocity.length(), truly, kart.global_position.distance_to(track.point_at(truly))])

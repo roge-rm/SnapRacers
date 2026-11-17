@@ -22,6 +22,9 @@ const CELL := 4.0
 const BLEND := 30.0
 ## How far below the road the ground sits under it, out of sight.
 const SINK := 0.03
+## The same with a map, a little deeper, since the road's grade there can
+## change more between the ground's points.
+const MAP_SINK := 0.05
 ## On a theme with "drop" (see Scenery.THEMES) road up in the air runs along
 ## the top of a ridge: the ground comes up to LEDGE below the road's edge,
 ## where the theme's supports show as a cliff, and falls away CLIFF metres
@@ -176,12 +179,12 @@ func _work_out_heights() -> void:
 			if k >= 0:
 				# A split's road reaches further out than the road's width.
 				var reach := edge if not track.has_splits else track.outer_half(k) + TrackPath.KERB
-				h = lerpf(_low_edge(k, reach), h, smoothstep(reach, reach + BLEND, gap[i]))
+				h = lerpf(_low_edge(k, reach, at), h, smoothstep(reach, reach + BLEND, gap[i]))
 			# Under and beside road that leans, the ground stays below its low
 			# edge.
 			k = tilted[i]
 			if k >= 0:
-				h = minf(h, lerpf(_low_edge(k, edge), h, smoothstep(edge, edge + BLEND, tilted_gap[i])))
+				h = minf(h, lerpf(_low_edge(k, edge, at), h, smoothstep(edge, edge + BLEND, tilted_gap[i])))
 			# The island's shore comes after the road's blend, since it's
 			# nearer the road than BLEND.
 			if not rings.is_empty():
@@ -257,9 +260,17 @@ func surface_at(x: float, z: float) -> float:
 	return d + (heights[i + cols] - d) * (1.0 - ax) + (heights[i + 1] - d) * (1.0 - az)
 
 
-## Just under the lower edge of the road at this sample.
-func _low_edge(k: int, edge: float) -> float:
-	return track.points[k].y - edge * absf(track.rights[k].y) - SINK
+## Just under the lower edge of the road at this sample. With a map, given
+## the grid point `at`, it's the road's height level with that point, since
+## the nearest sample can be half a metre along on a 12% slope.
+func _low_edge(k: int, edge: float, at := Vector2.INF) -> float:
+	var y := track.points[k].y
+	if track.ground != null and at != Vector2.INF:
+		var flat := Vector2(track.forwards[k].x, track.forwards[k].z)
+		if flat.length() > 0.1:
+			var along := (at - Vector2(track.points[k].x, track.points[k].z)).dot(flat.normalized())
+			y = track.point_at(track.distances[k] + clampf(along, -TrackPath.SAMPLE, TrackPath.SAMPLE)).y
+	return y - edge * absf(track.rights[k].y) - (MAP_SINK if track.ground != null else SINK)
 
 
 ## The nearest road sample that `use` picks to every point of the grid, and

@@ -80,8 +80,8 @@ func height_of(x: int, z: int) -> float:
 	return heights[clampi(z, 0, rows - 1) * cols + clampi(x, 0, cols - 1)]
 
 
-## The ground the road follows: the map blurred over 16 m, then no steeper
-## than ROAD_STEEPEST between neighbouring points. Made once and kept until
+## The ground the road follows: the map blurred over 16 m, made no steeper
+## than ROAD_STEEPEST any way, then blurred again. Made once and kept until
 ## changed().
 func road() -> GroundMap:
 	if _road == null:
@@ -93,17 +93,32 @@ func road_heights() -> GroundMap:
 	var out := duplicate_map()
 	if cols < 1 or rows < 1:
 		return out
-	# Blur along rows, then down columns, held at the edges.
+	_blur(out.heights)
+	# Slope limit: a lower pass cuts peaks and a raise pass fills valleys, each
+	# two sweeps over the neighbours, and the two are averaged.
+	var lowered := _limited(out.heights, false)
+	var raised := _limited(out.heights, true)
+	for i in out.heights.size():
+		out.heights[i] = (lowered[i] + raised[i]) * 0.5
+	# Blurred again to round off the creases the limit leaves, which would
+	# be sudden changes of grade along the road. A blur can't make it steeper.
+	_blur(out.heights)
+	return out
+
+
+## Blurs `h` in place with ROAD_BLUR, along rows then down columns, held at
+## the edges.
+func _blur(h: PackedFloat32Array) -> void:
 	var across := PackedFloat32Array()
-	across.resize(heights.size())
+	across.resize(h.size())
 	var w0: float = ROAD_BLUR[0]
 	var w1: float = ROAD_BLUR[1]
 	var w2: float = ROAD_BLUR[2]
 	for z in rows:
 		var row := z * cols
 		for x in cols:
-			across[row + x] = heights[row + maxi(x - 2, 0)] * w0 + heights[row + maxi(x - 1, 0)] * w1 + heights[row + x] * w2 \
-				+ heights[row + mini(x + 1, cols - 1)] * w1 + heights[row + mini(x + 2, cols - 1)] * w0
+			across[row + x] = h[row + maxi(x - 2, 0)] * w0 + h[row + maxi(x - 1, 0)] * w1 + h[row + x] * w2 \
+				+ h[row + mini(x + 1, cols - 1)] * w1 + h[row + mini(x + 2, cols - 1)] * w0
 	for z in rows:
 		var a := maxi(z - 2, 0) * cols
 		var b := maxi(z - 1, 0) * cols
@@ -111,14 +126,7 @@ func road_heights() -> GroundMap:
 		var d := mini(z + 1, rows - 1) * cols
 		var e := mini(z + 2, rows - 1) * cols
 		for x in cols:
-			out.heights[c + x] = across[a + x] * w0 + across[b + x] * w1 + across[c + x] * w2 + across[d + x] * w1 + across[e + x] * w0
-	# Slope limit: a lower pass cuts peaks and a raise pass fills valleys, each
-	# two sweeps over the 8 neighbours, and the two are averaged.
-	var lowered := _limited(out.heights, false)
-	var raised := _limited(out.heights, true)
-	for i in out.heights.size():
-		out.heights[i] = (lowered[i] + raised[i]) * 0.5
-	return out
+			h[c + x] = across[a + x] * w0 + across[b + x] * w1 + across[c + x] * w2 + across[d + x] * w1 + across[e + x] * w0
 
 
 func _limited(from: PackedFloat32Array, raise: bool) -> PackedFloat32Array:
@@ -152,6 +160,18 @@ func _limited(from: PackedFloat32Array, raise: bool) -> PackedFloat32Array:
 					best = _pick(best, h[zs * cols + x] + reach_s, raise)
 					if xd >= 0 and xd < cols:
 						best = _pick(best, h[zs * cols + xd] + reach_d, raise)
+				# The neighbours across and along can each be within reach and
+				# still make the slope between them too steep for a diagonal road,
+				# so the slope through both together is held to it too.
+				var a := h[i - 1] if x > 0 else h[i]
+				if x < cols - 1:
+					a = _pick(a, h[i + 1], raise)
+				var b := h[i - cols] if z > 0 else h[i]
+				if z < rows - 1:
+					b = _pick(b, h[i + cols], raise)
+				var apart := absf(a - b)
+				if apart < straight:
+					best = _pick(best, (a + b) * 0.5 + sign * sqrt(2.0 * straight * straight - apart * apart) * 0.5, raise)
 				h[i] = best
 	return h
 

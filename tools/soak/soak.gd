@@ -6,6 +6,7 @@ extends Node
 ## course in a mix of weather and times of day. With "why" it also says what
 ## a kart that's made no headway for a while is doing and what it's touching.
 ##   tools/godot/Godot_v4.7.2-stable_linux.x86_64 --headless --fixed-fps 60 --path . res://tools/soak/soak.tscn -- peach_pit weather=rain time=night seed=1 [why]
+## The course can also be a res:// path to a course file.
 
 ## Gives up on a race after this long.
 const MOST_TIME := 600.0
@@ -35,7 +36,8 @@ func _ready() -> void:
 			Game.set_reversed(arg.get_slice("=", 1) == "on")
 		if arg.begins_with("mirrored="):
 			Game.set_mirrored(arg.get_slice("=", 1) == "on")
-	Game.show_race(Game.TRACKS + "/" + course + ".json")
+	# A res:// path races a course file from anywhere, like a test course.
+	Game.show_race(course if course.begins_with("res://") else Game.TRACKS + "/" + course + ".json")
 	var race: Race = null
 	while race == null:
 		await get_tree().process_frame

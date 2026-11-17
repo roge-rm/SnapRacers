@@ -63,7 +63,7 @@ func _run() -> void:
 	check(partial.close_up(1, 1000) == [QUARTER], "automatic closing can fill an exact eight-metre gap")
 	var net := NetSession.new()
 	add_child(net)
-	check(NetSession.VERSION == 23 and net._check({"version": 22}).contains("different version") and net._check({"version": 23, "players": []}) == "Nobody to race.", "current online peers accept engine tuning and reverse or mirrored layouts and reject protocol 22")
+	check(NetSession.VERSION == 24 and net._check({"version": 23}).contains("different version") and net._check({"version": 24, "players": []}) == "Nobody to race.", "current online peers accept engine tuning and reverse or mirrored layouts and reject protocol 23")
 	net.queue_free()
 	print("%d quarter-straight checks passed, %d failed." % [checks - failures, failures])
 	get_tree().quit(1 if failures else 0)

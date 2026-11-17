@@ -72,6 +72,9 @@ func _ready() -> void:
 	cam.current = true
 	for view: Array in views:
 		cam.look_at_from_position(view[1], view[2], Vector3.UP)
+		# From far off the near plane goes out too, or the road and the ground
+		# just under it flicker into each other.
+		cam.near = 5.0 if view[0] in ["overview", "edge", "edge_west"] else 0.05
 		for i in 45:
 			await get_tree().process_frame
 		await RenderingServer.frame_post_draw

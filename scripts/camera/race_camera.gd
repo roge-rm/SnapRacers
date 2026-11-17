@@ -46,6 +46,8 @@ const SWING := 12.0
 ## the chase cameras look along, so a slide still looks like a slide.
 const FOLLOW_SLIDE := 0.3
 const LOOK_HEIGHT := 0.9
+## How far above the ground under it a chase camera keeps, in metres.
+const ABOVE_GROUND := 1.0
 ## First person looking back: metres behind the eyes and up, so the camera
 ## starts behind the head instead of from the eyes looking backwards.
 const LOOK_BACK_BEHIND := 0.5
@@ -66,6 +68,9 @@ const FIRST_HEAD_LAYER := 13
 var target: Kart
 ## The track, for the TV cameras. A test drive has none, so no TV cameras.
 var track: TrackPath
+## How high the ground is at an x and z, on a course with rolling ground, so
+## the chase cameras stay above it. Unset on flat courses and test drives.
+var ground: Callable
 ## Whose controls to read for looking back and changing view.
 var input: LocalPlayerInput
 var view := "chase"
@@ -244,6 +249,12 @@ func _chase(distance: float, height: float, delta: float, instantly: bool) -> vo
 	var wanted := facing * distance * side + _up * height
 	_chase_offset = wanted if instantly else _chase_offset.lerp(wanted, 1.0 - exp(-SWING * delta))
 	global_position = target.global_position + _chase_offset
+	# Keep above the ground on crests and in cuttings, but not on a loop or
+	# wall ride, where it follows the kart round.
+	if ground.is_valid() and not target.sticking:
+		var lowest := float(ground.call(global_position.x, global_position.z)) + ABOVE_GROUND
+		if global_position.y < lowest:
+			global_position.y = lowest
 	var aim := target.global_position + _up * LOOK_HEIGHT
 	if _looking_back:
 		aim = target.global_position - facing * 12.0 + _up * 0.5

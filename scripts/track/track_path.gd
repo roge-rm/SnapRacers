@@ -533,6 +533,14 @@ func solid_at(offset: float) -> bool:
 	return solids[_index_before(offset)]
 
 
+## Whether the road here lies on the ground, no more than `raised` above it
+## and not sticky or leaning on a bank (see TrackBuilder._raised()).
+func grounded_at(offset: float, raised: float) -> bool:
+	var k := _index_before(offset)
+	return solids[k] and not stickies[k] and ups[k].y >= 0.985 \
+		and points[k].y - grounds[k] <= raised
+
+
 ## The road's own frame here, with -Z along the track, Y up off the road and X
 ## to the right.
 func frame_at(offset: float) -> Transform3D:

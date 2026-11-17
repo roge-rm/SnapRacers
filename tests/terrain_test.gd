@@ -6,7 +6,8 @@ extends Node
 ## the raw map under the bridge, eases down to a level rim at the grid's
 ## edge with the far floor under it, the painted pools sit in the ground, a
 ## big landmark on a slope doesn't hang over it and the TV cameras are above
-## the ground. Also prints how steep the road gets between map points.
+## the ground, the ground stays under the road all the way round and the road's
+## ground is no steeper than about 12% along the road or any way under it.
 ##
 ##   tools/godot/Godot_v4.7.2-stable_linux.x86_64 --headless --fixed-fps 60 --path . tests/terrain_test.tscn
 
@@ -41,6 +42,8 @@ func _ready() -> void:
 	_landmark(builder)
 	_tv(track, terrain)
 	_slope(track)
+	_any_way(track)
+	_under_road(track, terrain)
 	builder.free()
 	_finish()
 
@@ -73,7 +76,7 @@ func _edges(track: TrackPath, terrain: Terrain) -> void:
 		var p := track.points[k]
 		for side in [-1.0, 1.0]:
 			var at: Vector3 = p + track.rights[k] * side * edge
-			worst = maxf(worst, absf(terrain.surface_at(at.x, at.z) - (at.y - Terrain.SINK)))
+			worst = maxf(worst, absf(terrain.surface_at(at.x, at.z) - (at.y - Terrain.MAP_SINK)))
 			var away: Vector3 = p + track.rights[k] * side * (edge + 15.0)
 			var raw := track.ground_height(away.x, away.z) - p.y
 			cut = maxf(cut, raw)
@@ -184,3 +187,36 @@ func _slope(track: TrackPath) -> void:
 		if run > 0.5:
 			steepest = maxf(steepest, absf(track.grounds[k] - track.grounds[k - 1]) / run)
 	check(steepest <= GroundMap.ROAD_STEEPEST + 0.005, "the road's ground climbs at most %d%% along the road (%.1f%%)" % [roundi(GroundMap.ROAD_STEEPEST * 100.0), steepest * 100.0])
+
+
+
+## How steep the road's ground is under the road in its steepest direction,
+## so a diagonal road over the same spot stays near the limit too. Reads
+## between map points can go a little over it.
+func _any_way(track: TrackPath) -> void:
+	var road := track.ground.road()
+	var steepest := 0.0
+	for p in track.points:
+		var across := (road.height_at(p.x + 0.25, p.z) - road.height_at(p.x - 0.25, p.z)) / 0.5
+		var along := (road.height_at(p.x, p.z + 0.25) - road.height_at(p.x, p.z - 0.25)) / 0.5
+		steepest = maxf(steepest, Vector2(across, along).length())
+	check(steepest <= 0.13, "under the road the road's ground is at most 13%% steep any way (%.1f%%)" % (steepest * 100.0))
+
+
+## The ground stays under the road's surface all the way round, across the
+## whole road and its kerbs.
+func _under_road(track: TrackPath, terrain: Terrain) -> void:
+	var edge := track.width * 0.5 + TrackPath.KERB
+	var worst := -INF
+	var at := 0.0
+	for k in track.points.size():
+		if not track.solids[k]:
+			continue
+		var p := track.points[k]
+		for step in 11:
+			var spot: Vector3 = p + track.rights[k] * edge * (step / 5.0 - 1.0)
+			var poke := terrain.surface_at(spot.x, spot.z) - spot.y
+			if poke > worst:
+				worst = poke
+				at = track.distances[k]
+	check(worst <= 0.0, "the ground stays under the road all the way round (%.2f m at most, at %.0f m)" % [worst, at])

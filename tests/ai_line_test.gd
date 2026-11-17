@@ -7,11 +7,13 @@ extends Node
 ## compared, as the physics with sliding karts doesn't come out exactly the
 ## same twice, even before the racing line. Last, each drives a lap of a
 ## course with water, lava, mud, ice and sand painted as close to the road as
-## they're allowed, which its line keeps clear of.
+## they're allowed, which its line keeps clear of. One course is the ground
+## map test course, for slopes, cuttings and embankments.
 ##
 ##   tools/godot/Godot_v4.7.2-stable_linux.x86_64 --headless --fixed-fps 60 --path . res://tests/ai_line_test.tscn
 
-const COURSES := ["hairpin_hall", "lakeshore_plunge", "launchpad_loop"]
+## A res:// path is a course file from anywhere, like the ground map test course.
+const COURSES := ["hairpin_hall", "lakeshore_plunge", "launchpad_loop", "res://tests/data/ground_course.json"]
 const LAYOUTS := [[false, false], [false, true], [true, false], [true, true]]
 const LEVELS := ["easy", "normal", "expert"]
 ## The course painted all round for the last check, and the types it gets,
@@ -62,7 +64,7 @@ func _ready() -> void:
 		driver.free()
 	for course in COURSES:
 		for layout in LAYOUTS:
-			var name := "%s%s%s" % [course, " mirrored" if layout[0] else "", " reversed" if layout[1] else ""]
+			var name := "%s%s%s" % [course.get_file().get_basename(), " mirrored" if layout[0] else "", " reversed" if layout[1] else ""]
 			for level in LEVELS:
 				await _race(course, layout[0], layout[1], level)
 				check(finished[0] > 0 and resets[0] == 0 and off[0] <= OFF_FOR, "%s: %s finishes a lap (%s), %d resets, %.1f s off the road" % [name, level, "%.1f s" % (finished[0] / 60.0) if finished[0] > 0 else "%.0f m" % gone[0], resets[0], off[0]])
@@ -87,7 +89,7 @@ func _seeded(path: TrackPath, seed: int) -> AIDriver:
 func _race(course: String, mirrored: bool, reversed: bool, level: String, painted := false) -> void:
 	_clear()
 	await get_tree().physics_frame
-	track = TrackPath.load_file("res://data/tracks/%s.json" % course)
+	track = TrackPath.load_file(course if course.begins_with("res://") else "res://data/tracks/%s.json" % course)
 	track.apply_layout(mirrored, reversed)
 	if painted:
 		_paint_all_round()
