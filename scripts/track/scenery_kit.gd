@@ -17,8 +17,8 @@ extends RefCounted
 ## fan() adds a brick figure to watch the race (see Crowd).
 
 ## GROUND is painted ground (see Scenery._build_paint()), its pattern in the
-## instance's custom data.
-enum { BRICK, WINDOWS, SMOOTH, GLOW, WATER, PLAIN, LAMP, PUDDLE, DRIFT, GROUND }
+## instance's custom data. RIVER is flowing water (see Waters.river_mesh()).
+enum { BRICK, WINDOWS, SMOOTH, GLOW, WATER, PLAIN, LAMP, PUDDLE, DRIFT, GROUND, RIVER }
 
 static var _shader: Shader
 static var _material: ShaderMaterial

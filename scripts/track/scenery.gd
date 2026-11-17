@@ -602,6 +602,7 @@ func _ready() -> void:
 		_build_island()
 	_build_paint()
 	_paint_lamps()
+	_build_waters()
 	# Only things near the road need to be solid. And nothing that ended up on
 	# the road itself may be, or karts would pile into it (the walls keep
 	# them off everything else).
@@ -761,6 +762,8 @@ func _free(at: Vector3, radius: float) -> bool:
 
 ## Whether any painted ground is within `radius` of `at`.
 func _painted(at: Vector3, radius: float) -> bool:
+	if track.waters.covered(at, radius):
+		return true
 	if paint.is_empty():
 		return false
 	return paint.covered(at, radius) or (radius > PaintedAreas.CELL and paint.covered(at, radius * 0.5))
@@ -1595,8 +1598,9 @@ func _build_island() -> void:
 ## The course's painted ground, less any squares whose middle is out in an
 ## island's sea.
 static func paint_of(path: TrackPath) -> PaintedAreas:
-	if path.paint.is_empty() or not theme_named(path.theme).get("island", false):
-		return path.paint
+	var all := path.all_paint()
+	if all.is_empty() or not theme_named(path.theme).get("island", false):
+		return all
 	var shore := island_shore(path)
 	var kept := PaintedAreas.new()
 	if shore.is_empty():
@@ -1609,11 +1613,11 @@ static func paint_of(path: TrackPath) -> PaintedAreas:
 	var hi := PaintedAreas.square_at(reach.end.x, reach.end.y)
 	var cols := hi.x - lo.x + 1
 	var land := inside_grid(shore, PaintedAreas.middle_of(lo), cols, hi.y - lo.y + 1, PaintedAreas.CELL)
-	for square: Vector2i in path.paint.squares:
+	for square: Vector2i in all.squares:
 		if square.x < lo.x or square.y < lo.y or square.x > hi.x or square.y > hi.y:
 			continue
 		if land[(square.y - lo.y) * cols + square.x - lo.x] == 1:
-			kept.squares[square] = path.paint.squares[square]
+			kept.squares[square] = all.squares[square]
 	return kept
 
 
@@ -1766,6 +1770,27 @@ func _build_paint() -> void:
 		mesh = _paint_mesh(band, false)
 		if mesh != null:
 			_flat_draw(mesh, info.edge, SceneryKit.GROUND, grain[1]).name = "Paint %s edge" % type
+
+
+## Each lake and river: a flat lake and a ribbon of river at their surface
+## (see Waters), and lava's night lights along its edges.
+func _build_waters() -> void:
+	if _floating or not track.waters.has_real() or not track.waters.settled:
+		return
+	var waters := track.waters
+	for b in waters.bodies.size():
+		var body: Dictionary = waters.bodies[b]
+		if body.has("cells"):
+			continue
+		var lava: bool = body.type == "lava"
+		var mesh := waters.lake_mesh(b) if body.kind == "lake" else waters.river_mesh(b)
+		if mesh == null:
+			continue
+		var surface := SceneryKit.GROUND if lava else (SceneryKit.RIVER if body.kind == "river" else SceneryKit.WATER)
+		var grain: int = PAINT_GRAIN["lava"][0] if lava else 0
+		_flat_draw(mesh, Color.WHITE, surface, grain).name = "%s %s %d" % [body.type.capitalize(), body.kind, b]
+	for spot in waters.lava_edges(PAINT_LAMP_GAP):
+		lamps.append(spot + Vector3.UP * PAINT_LAMP_HEIGHT)
 
 
 ## Spots of light round the edge of lava and slime, about every

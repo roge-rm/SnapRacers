@@ -231,9 +231,15 @@ uniform vec4 patch_colour = vec4(0.42, 0.67, 0.3, 1.0);
 uniform sampler2D patch_map : filter_linear, repeat_disable, hint_default_black;
 uniform vec4 patch_area = vec4(0.0, 0.0, 1.0, 1.0);
 varying vec3 world;
+varying float shade;
 """ + COMMON + """
 void vertex() {
 	world = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
+	// Slopes shaded as if lit from the north-west, so hills read from above:
+	// 1 on the flat, darker facing away, lighter facing it.
+	vec3 n = normalize((MODEL_MATRIX * vec4(NORMAL, 0.0)).xyz);
+	float lit = dot(n, vec3(-0.496, 0.744, -0.447));
+	shade = clamp(1.0 + 0.9 * (lit - 0.744) - 0.25 * (1.0 - n.y), 0.62, 1.15);
 }
 
 void fragment() {
@@ -263,6 +269,7 @@ void fragment() {
 		vec3 green = pow(patch_colour.rgb, vec3(2.2)) * (0.92 + 0.16 * blotches(p * 0.6 + 4.1));
 		col = mix(col, green, grass);
 	}
+	col *= shade;
 	col = studs(world.xz, col);
 	float s = max(seam(world.x, 8.0, 0.025), seam(world.z, 8.0, 0.025));
 	col *= 1.0 - 0.3 * s;
@@ -413,6 +420,17 @@ void fragment() {
 		float flicker = 0.8 + 0.2 * sin(TIME * 2.0 + pattern_position.x * 0.4 + pattern_position.z * 0.3);
 		EMISSION = col * 1.6 * flicker;
 		rough = 0.9;
+	} else if (pattern > 9.5) {
+		// A river: ripples running downstream at UV2.x metres a second, UV.x
+		// along it and UV.y across, and white water where UV2.y says rapids.
+		float flow = UV.x - TIME * UV2.x;
+		float wave = sin(flow * 1.1 + 1.7 * sin(UV.y * 0.7)) * sin(flow * 0.45 - UV.y * 1.3);
+		col *= 0.86 + 0.14 * wave;
+		float foam = blotches(vec2(flow * 0.5, UV.y * 1.1)) * 0.7 + blotches(vec2(flow * 1.6, UV.y * 2.3)) * 0.3;
+		foam = smoothstep(0.66 - 0.22 * UV2.y, 0.8 - 0.2 * UV2.y, foam) * (0.15 + UV2.y);
+		col = mix(col, vec3(0.9, 0.93, 0.93), clamp(foam, 0.0, 0.85));
+		rough = mix(0.12, 0.6, foam);
+		spec = mix(0.6, 0.2, foam);
 	} else if (pattern > 8.5) {
 		vec3 glow = vec3(0.0);
 		col = painted(pattern_position.xz, col, grain, rough, spec, glow);
@@ -447,7 +465,7 @@ void fragment() {
 	// sides.
 	if (pattern < 2.5 || (pattern > 4.5 && pattern < 5.5)) {
 		col = mix(col, SNOW, snow * (top ? 0.95 : (side ? 0.2 : 0.0)));
-	} else if (pattern > 8.5) {
+	} else if (pattern > 8.5 && pattern < 9.5) {
 		col = mix(col, SNOW, snow * 0.8 * smoothstep(0.3, 0.6, blotches(pattern_position.xz * 0.5)));
 	}
 	EMISSION += col * lamp_light(world) * 0.9;

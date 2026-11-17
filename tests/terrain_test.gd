@@ -4,7 +4,7 @@ extends Node
 ## ground map (tools/track-design/ground_map.py course), and checks the
 ## ground meets the road's edges in the cutting and on the embankment, is
 ## the raw map under the bridge, eases down to a level rim at the grid's
-## edge with the far floor under it, the painted pools sit in the ground, a
+## edge with the far floor under it, the lakes and river sit in the ground, a
 ## big landmark on a slope doesn't hang over it and the TV cameras are above
 ## the ground, the ground stays under the road all the way round and the road's
 ## ground is no steeper than about 12% along the road or any way under it.
@@ -130,19 +130,18 @@ func _rim(track: TrackPath, terrain: Terrain, builder: TrackBuilder) -> void:
 	dressing.free()
 
 
-## Every painted pool's surface is no higher than the ground at its edge, and
-## the ground is under the water across its middle.
+## The lakes and the river sit in the ground: under every wet point the
+## ground is under the surface (see water_test for the rest).
 func _pools(track: TrackPath, terrain: Terrain) -> void:
-	var dry := true
-	var deepest_dig := 0.0
-	for square: Vector2i in terrain.paint_levels:
-		var level: float = terrain.paint_levels[square]
-		var middle := PaintedAreas.middle_of(square)
-		if track.paint.deep_field_at(middle.x, middle.y) >= 1.0:
-			dry = dry and terrain.height_at(middle.x, middle.y) < level
-		deepest_dig = maxf(deepest_dig, track.ground_height(middle.x, middle.y) - level)
-	check(not terrain.paint_levels.is_empty() and dry, "the river's pools and the lake on the hillside sit in the ground")
-	print("        the deepest a pool is dug into the slope is %.1f m" % deepest_dig)
+	var waters := track.waters
+	var under := true
+	var count := 0
+	for i in waters.wet.size():
+		if waters.wet[i] > 0:
+			count += 1
+			var at := waters.origin + Vector2(i % waters.cols, i / waters.cols) * Waters.CELL
+			under = under and terrain.height_at(at.x, at.y) < waters.tops[i]
+	check(count > 0 and under and waters.heights == terrain.heights, "the lakes and the river sit in the ground (%d points)" % count)
 
 
 ## The barn on the hill's slope sits at the lowest ground under its corners.

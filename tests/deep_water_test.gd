@@ -59,6 +59,8 @@ func _write_course() -> Vector2:
 	var data: Dictionary = JSON.parse_string(FileAccess.get_file_as_string(Tracks.path_of("peach_pit")))
 	data.name = "Deep water test"
 	data.theme = "island"
+	# With no ground map, so painted pools stay squares (see Waters).
+	data.erase("ground")
 	for piece: Dictionary in data.pieces:
 		piece["surface"] = "shallows"
 	var track := TrackPath.from_dict(data)
@@ -246,6 +248,7 @@ func _run() -> void:
 func _painted() -> void:
 	for hills in [0.0, 16.0]:
 		var data: Dictionary = JSON.parse_string(FileAccess.get_file_as_string(Tracks.path_of("peach_pit")))
+		data.erase("ground")
 		data.hills = hills
 		var track := TrackPath.from_dict(data)
 		# Two pools of three by three squares, 40 m out on each side of a
@@ -293,6 +296,7 @@ func _painted() -> void:
 ## square is turned away.
 func _most_squares() -> void:
 	var data: Dictionary = JSON.parse_string(FileAccess.get_file_as_string(Tracks.path_of("peach_pit")))
+	data.erase("ground")
 	data.hills = 16.0
 	var types := PaintedAreas.TYPES.keys()
 	for extra in [1, 0]:
@@ -313,7 +317,7 @@ func _most_squares() -> void:
 		host.add_child(builder)
 		var took := Time.get_ticks_msec() - start
 		var meshes := builder.find_children("Paint *", "", true, false).size()
-		check(builder.track.paint.count() == PaintedAreas.MOST_SQUARES and meshes > 0, "and builds on hills, %d painted meshes in %d ms with the rest of the course" % [meshes, took])
+		check(Scenery.paint_of(builder.track).count() == PaintedAreas.MOST_SQUARES and meshes > 0, "and builds on hills, %d painted meshes in %d ms with the rest of the course" % [meshes, took])
 		builder.free()
 
 
@@ -392,6 +396,7 @@ func _shore(centre: Vector3, radius: float) -> Vector3:
 ## it keeps more of its speed, and sliding sideways on ice it holds on less.
 func _slow_types() -> void:
 	var data: Dictionary = JSON.parse_string(FileAccess.get_file_as_string(Tracks.path_of("peach_pit")))
+	data.erase("ground")
 	data.hills = 0.0
 	var track := TrackPath.from_dict(data)
 	# Find three spots 80 m out from the road with 40 m clear all round.

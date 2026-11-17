@@ -3,7 +3,9 @@ extends SceneTree
 ## Painted ground: it goes to a course file as runs and back, merges
 ## neighbours, drops types it doesn't know, has soft edges, keeps water and
 ## lava off road on the ground but not under raised road, lets mud and the like
-## up to the kerb, and moves out with an old course's tiles.
+## up to the kerb, and moves out with an old course's tiles. Water and lava
+## on a course with no map come back as lakes that keep their squares (see
+## Waters), so these read all_paint().
 ##
 ##   tools/godot/Godot_v4.7.2-stable_linux.x86_64 --headless --fixed-fps 60 --path . -s tests/painted_area_test.gd
 
@@ -104,32 +106,34 @@ func _initialize() -> void:
 	var grow := TrackPath.growth(old_data)
 	var old_track := TrackPath.from_dict(old_data)
 	var design := CourseDesign.from_dict(old_data)
-	check(grow == 2.0 and old_track.paint.count() == 8 and design.paint.count() == 8, "an old course's squares are %d times as many, grown out to fit" % int(grow))
+	check(grow == 2.0 and old_track.all_paint().count() == 8 and design.all_paint().count() == 8, "an old course's squares are %d times as many, grown out to fit" % int(grow))
 	var lo := Vector2(2 * 8.0 * grow, 1 * 8.0 * grow)
 	var hi := Vector2(4 * 8.0 * grow, 2 * 8.0 * grow)
 	var fits := true
-	for sq: Vector2i in old_track.paint.squares:
+	for sq: Vector2i in old_track.all_paint().squares:
 		var m := PaintedAreas.middle_of(sq)
 		fits = fits and m.x > lo.x and m.x < hi.x and m.y > lo.y and m.y < hi.y
-	check(fits and old_track.paint.kind_at(lo.x + 4.0, lo.y + 4.0) == "lava" and old_track.paint.kind_at(hi.x + 6.0, hi.y + 6.0) == "", "and cover the same ground")
-	check(design.to_dict().paint == old_track.paint.to_dict() and design.to_dict().grid == TrackPiece.TILE, "a design saves them at the new size")
+	check(fits and old_track.all_paint().kind_at(lo.x + 4.0, lo.y + 4.0) == "lava" and old_track.all_paint().kind_at(hi.x + 6.0, hi.y + 6.0) == "", "and cover the same ground")
+	check(CourseDesign.from_dict(design.to_dict()).all_paint().squares == old_track.all_paint().squares and design.to_dict().grid == TrackPiece.TILE, "a design saves them at the new size")
 
 	var plain := CourseDesign.from_dict({"start": [0, 0, 0, 0], "pieces": [{"type": "straight", "length": 3}]})
 	check(not plain.to_dict().has("paint"), "a course with none saves no paint")
 	var painted := CourseDesign.from_dict({"grid": TrackPiece.TILE, "start": [0, 0, 0, 0], "pieces": [{"type": "straight", "length": 3}], "paint": dict})
-	check(painted.to_dict().paint == dict and painted.duplicate_design().paint.squares == areas.squares, "a design keeps its paint through to_dict and duplicate")
-	check(TrackPath.from_dict(painted.to_dict()).paint.squares == areas.squares, "a track reads it too")
+	check(painted.all_paint().to_dict() == dict and painted.duplicate_design().all_paint().squares == areas.squares, "a design keeps its paint through to_dict and duplicate")
+	check(TrackPath.from_dict(painted.to_dict()).all_paint().squares == areas.squares, "a track reads it too")
 
 	var shared := Sharing.read(Sharing.code_for(painted.to_dict()))
-	check(shared.get("kind") == Sharing.COURSE and shared.data.get("paint") == dict, "paint survives a share code")
+	check(shared.get("kind") == Sharing.COURSE and CourseDesign.from_dict(shared.data).all_paint().to_dict() == dict, "paint survives a share code")
 	var bad := painted.to_dict()
+	# Its painted water is a lake now; these check paint on its own.
+	bad.erase("water")
 	bad.paint = {"cell": 8.0, "runs": [[0, 0, 1, 5]]}
 	check(Sharing.read(Sharing.code_for(bad)).has("why"), "a code with a run that isn't well formed is turned away")
 	bad.paint = limit_paint(PaintedAreas.MOST_SQUARES + 1)
 	check(Sharing.read(Sharing.code_for(bad)).has("why"), "a code with one square more than %d is turned away" % PaintedAreas.MOST_SQUARES)
 	bad.paint = limit_paint(PaintedAreas.MOST_SQUARES)
 	var most := Sharing.read(Sharing.code_for(bad))
-	check(most.get("kind") == Sharing.COURSE and TrackPath.from_dict(most.data).paint.count() == PaintedAreas.MOST_SQUARES, "and one with %d is let in" % PaintedAreas.MOST_SQUARES)
+	check(most.get("kind") == Sharing.COURSE and TrackPath.from_dict(most.data).all_paint().count() == PaintedAreas.MOST_SQUARES, "and one with %d is let in" % PaintedAreas.MOST_SQUARES)
 	bad.paint = {"cell": 8.0, "runs": []}
 	for k in PaintedAreas.MOST_SQUARES + 1:
 		bad.paint.runs.append([k % 100, 0, 1, "water"])
@@ -141,7 +145,7 @@ func _initialize() -> void:
 
 	var old_far := {"grid": TrackPiece.OLD_TILE, "start": [0, 0, 0, 0], "pieces": [{"type": "straight", "length": 3}],
 		"paint": {"cell": 8.0, "runs": [[0, PaintedAreas.MOST_SPAN / 2 - 1, 2, "water"]]}}
-	var far := TrackPath.from_dict(old_far).paint
+	var far := TrackPath.from_dict(old_far).all_paint()
 	var inside := true
 	for sq: Vector2i in far.squares:
 		inside = inside and PaintedAreas.within(sq)

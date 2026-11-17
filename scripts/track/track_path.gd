@@ -102,6 +102,8 @@ var fixed_time := false
 var landmarks: Array = []
 ## Painted ground: lakes, lava, mud (see PaintedAreas).
 var paint := PaintedAreas.new()
+## Lakes and rivers of water and lava (see Waters).
+var waters := Waters.new()
 var pieces: Array[TrackPiece] = []
 var start := Transform3D.IDENTITY
 ## Where each piece starts, in the world.
@@ -171,6 +173,7 @@ static func from_dict(data: Dictionary) -> TrackPath:
 	track.start = start_from(data.get("start", []))
 	track.paint = PaintedAreas.from_dict(data.get("paint"), growth(data))
 	track.ground = GroundMap.from_dict(data.get("ground"), growth(data))
+	track.waters = Waters.read_course(data, track.paint, track.ground)
 	# A course made before the tiles were kart sized has the same pieces twice
 	# as big, so where it starts and its landmarks move out to match.
 	var grow := growth(data)
@@ -228,6 +231,8 @@ func to_dict() -> Dictionary:
 		out.ground = ground.to_dict()
 	elif hills > 0.0:
 		out.hills = hills
+	if not waters.is_empty():
+		out.water = waters.to_dict()
 	if road_colour != STOCK_ROAD:
 		out.road_colour = road_colour
 	if map_rotation != 0.0:
@@ -250,6 +255,7 @@ func apply_layout(mirrored_: bool, reversed_: bool) -> void:
 	reversed = reversed_
 	if mirrored:
 		_mirror_layout()
+		waters.flip_all(_laid_out)
 	if reversed:
 		pieces.reverse()
 		for piece in pieces:
@@ -279,6 +285,19 @@ func _mirror_layout() -> void:
 
 
 ## Whether the ground rises and falls, from the hills or a map.
+## The painted ground with the squares of old lakes that kept them (see
+## Waters.old_squares()).
+func all_paint() -> PaintedAreas:
+	var old := waters.old_squares()
+	if old.is_empty():
+		return paint
+	var all := paint.duplicate_areas()
+	for square: Vector2i in old.squares:
+		if not all.squares.has(square):
+			all.squares[square] = old.squares[square]
+	return all
+
+
 func has_relief() -> bool:
 	return ground != null or hills > 0.0
 

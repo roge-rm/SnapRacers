@@ -40,6 +40,8 @@ var ground: Callable = func(_x: float, _z: float) -> float: return 0.0
 ## surface is, as square -> height.
 var paint: PaintedAreas
 var paint_tops := {}
+## Lakes and rivers that go by the ground (see Waters), settled.
+var waters: Waters
 ## What the last deep water level_at() found was: "water" for the sea, a lake
 ## or painted water, or the painted type ("lava", "slime"), "" for none. See
 ## PaintedAreas.effect_of() for whether it sinks or burns.
@@ -47,7 +49,7 @@ var kind := ""
 
 
 func is_empty() -> bool:
-	return sea.size == Vector2.ZERO and not island and _pools.is_empty() and (paint == null or not paint.has_deep())
+	return sea.size == Vector2.ZERO and not island and _pools.is_empty() and (paint == null or not paint.has_deep()) and (waters == null or not waters.has_real())
 
 
 ## Sea all round the land inside `shore`, from above, with its surface at
@@ -93,6 +95,11 @@ func level_at(at: Vector3) -> float:
 			var top: float = pool[1]
 			if (pool[0] as Rect2).has_point(flat) and at.y < top + ABOVE and ground.call(flat.x, flat.y) < top:
 				return top
+	if waters != null and waters.settled:
+		var surface := waters.level_at(at.x, at.z)
+		if not is_nan(surface) and at.y < surface + ABOVE:
+			kind = waters.kind
+			return surface
 	if paint != null and not paint.is_empty():
 		var type := paint.kind_at(at.x, at.z)
 		if type != "" and PaintedAreas.effect_of(type) != "" and paint.level_at(at.x, at.z) >= PaintedAreas.DEEP:

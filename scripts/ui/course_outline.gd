@@ -96,12 +96,34 @@ static func of_track(track: TrackPath, shade := false) -> Dictionary:
 	var out := {
 		"name": track.name, "summary": describe(track), "map_rotation": track.map_rotation,
 		"line": line, "heights": heights, "loops": loops, "splits": _splits_of(track), "box": box,
-		"paint": track.paint.to_dict().runs,
+		"paint": _paint_and_water(track).to_dict().runs,
 		"start": line[0], "across": across.normalized() if across.length() > 0.01 else Vector2.RIGHT,
 	}
 	if shade and track.ground != null:
 		out.shade = _shade_of(track, line)
 	return out
+
+
+## The painted ground with lakes and rivers drawn in as squares of their
+## type, for the map.
+static func _paint_and_water(track: TrackPath) -> PaintedAreas:
+	var all := track.all_paint()
+	if not track.waters.has_real():
+		return all
+	all = all.duplicate_areas()
+	var waters := track.waters
+	waters.ensure(track)
+	if waters.cols < 2:
+		return all
+	var cell := PaintedAreas.CELL
+	var lo := PaintedAreas.square_at(waters.origin.x, waters.origin.y)
+	var hi := PaintedAreas.square_at(waters.origin.x + waters.cols * Waters.CELL, waters.origin.y + waters.rows * Waters.CELL)
+	for z in range(lo.y, hi.y + 1):
+		for x in range(lo.x, hi.x + 1):
+			var middle := PaintedAreas.middle_of(Vector2i(x, z))
+			if not is_nan(waters.surface_at(middle.x, middle.y)) and not all.full():
+				all.squares[Vector2i(x, z)] = waters.kind
+	return all
 
 
 ## A hillshade of the ground round the road: one pixel every SHADE_CELL

@@ -51,6 +51,8 @@ var pieces: Array = []
 var landmarks: Array = []
 ## Painted ground: lakes, lava, mud (see PaintedAreas).
 var paint := PaintedAreas.new()
+## Lakes and rivers (see Waters).
+var waters := Waters.new()
 ## Where the start line is. Moving it to another straight keeps the road
 ## where it was, so this is wherever that straight is.
 var start := Transform3D.IDENTITY
@@ -79,6 +81,7 @@ static func from_dict(data: Dictionary) -> CourseDesign:
 	c.start = TrackPath.start_from(data.get("start", []))
 	c.paint = PaintedAreas.from_dict(data.get("paint"), TrackPath.growth(data))
 	c.ground = GroundMap.from_dict(data.get("ground"), TrackPath.growth(data))
+	c.waters = Waters.read_course(data, c.paint, c.ground)
 	# One made before the tiles were kart sized comes out twice as big (see
 	# TrackPath.from_dict()).
 	var grow := TrackPath.growth(data)
@@ -118,7 +121,20 @@ func to_dict() -> Dictionary:
 		out.fixed_time = true
 	if not paint.is_empty():
 		out.paint = paint.to_dict()
+	if not waters.is_empty():
+		out.water = waters.to_dict()
 	return out
+
+
+## The painted ground with the squares of old lakes that kept them (see
+## Waters.old_squares()).
+func all_paint() -> PaintedAreas:
+	var all := paint.duplicate_areas()
+	var old := waters.old_squares()
+	for square: Vector2i in old.squares:
+		if not all.squares.has(square):
+			all.squares[square] = old.squares[square]
+	return all
 
 
 func duplicate_design() -> CourseDesign:
@@ -249,9 +265,10 @@ func steep_spots(path: TrackPath) -> PackedVector3Array:
 ## the middle of one of its squares, on a course whose ground rises and falls.
 func dug_spots(path: TrackPath) -> PackedVector3Array:
 	var out := PackedVector3Array()
-	if not path.has_relief() or not path.paint.has_deep():
+	var paint := path.all_paint()
+	if not path.has_relief() or not paint.has_deep():
 		return out
-	var levels := path.paint.surface_levels(path.ground_height)
+	var levels := paint.surface_levels(path.ground_height)
 	var last := Vector3.INF
 	for square: Vector2i in levels:
 		var middle := PaintedAreas.middle_of(square)

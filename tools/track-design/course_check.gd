@@ -105,10 +105,14 @@ func _landmarks_in_the_way(track: TrackPath) -> Array:
 			if Vector2(p.x, p.z).distance_to(at) < room:
 				clear = false
 				break
-		if clear and track.paint.has_deep():
+		if clear and track.waters.has_real():
+			track.waters.ensure(track)
+			clear = not track.waters.covered(Vector3(at.x, 0.0, at.y), own)
+		var paint := Scenery.paint_of(track)
+		if clear and paint.has_deep():
 			for k in 9:
 				var spot := at + (Vector2.ZERO if k == 0 else Vector2.from_angle(k * TAU / 8.0) * own)
-				var kind := track.paint.kind_at(spot.x, spot.y)
+				var kind := paint.kind_at(spot.x, spot.y)
 				if kind != "" and PaintedAreas.effect_of(kind) != "":
 					clear = false
 					break
@@ -120,8 +124,9 @@ func _landmarks_in_the_way(track: TrackPath) -> Array:
 ## How many painted squares sit where the editor wouldn't paint them.
 func _paint_too_close(track: TrackPath) -> int:
 	var count := 0
-	for square: Vector2i in track.paint.squares:
-		if not PaintedAreas.allowed(square, track.paint.squares[square], track):
+	var paint := Scenery.paint_of(track)
+	for square: Vector2i in paint.squares:
+		if not PaintedAreas.allowed(square, paint.squares[square], track):
 			count += 1
 	return count
 

@@ -255,6 +255,8 @@ static func _read_course(data: Dictionary, saved := false) -> Dictionary:
 		return {"why": "That course has invalid painted ground."}
 	if data.has("ground") and not _ground(data.ground):
 		return {"why": "That course has an invalid ground map."}
+	if data.has("water") and not Waters.valid(data.water):
+		return {"why": "That course has invalid lakes or rivers."}
 	var canonical := data.duplicate(true)
 	if not canonical.get("start", []).is_empty():
 		canonical.start[3] = roundf(float(canonical.start[3]) * 6.0) / 6.0

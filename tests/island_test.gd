@@ -212,6 +212,9 @@ func _lagoon() -> void:
 	var data = JSON.parse_string(FileAccess.get_file_as_string(Tracks.path_of("peach_pit")))
 	data.theme = "island"
 	data.hills = 0.0
+	# On a ground map painted water turns into a lake (see Waters), so this
+	# takes the flat course's way, where the squares stay.
+	data.erase("ground")
 	# Its own landmarks stand inside the loop, so they go.
 	data.erase("landmarks")
 	var track := TrackPath.from_dict(data)

@@ -12,7 +12,7 @@ upper only on the first column), as zigzag varints, zlib deflated and base64.
 decodes the same. `course` writes tests/data/ground_course.json, the
 course tests/terrain_test.gd builds.
 """
-import base64, json, sys, zlib
+import base64, json, math, sys, zlib
 import numpy as np
 
 CELL = 8.0
@@ -90,9 +90,10 @@ def fixture():
 def course():
     """A loop on hand-made ground: a hill beside the east straight (a cutting),
     a valley across both straights (a bridge on the west one, an embankment on
-    the east), a river of pools down the valley, a lake on the side of a
-    second hill and a barn on the first hill's slope. The ground tilts up to
-    the east, so that edge is high."""
+    the east) with a drop in it, a river down the valley under the bridge, a
+    lake in a hollow on the side of a second hill, a lava lake in a hollow
+    outside the loop and a barn on the first hill's slope. The ground tilts up
+    to the east, so that edge is high."""
     origin = (-136.0, -504.0)
     cols, rows = 71, 87
     z, x = np.mgrid[0:rows, 0:cols].astype(np.float64)
@@ -104,26 +105,55 @@ def course():
         hill = 12.0 * np.exp(-((x - 345.0) ** 2 + (z + 80.0) ** 2) / (2 * 32.0 ** 2))
         lake_hill = 9.0 * np.exp(-((x - 210.0) ** 2 + (z + 290.0) ** 2) / (2 * 30.0 ** 2))
         valley = -9.0 * np.exp(-((z + 160.0) ** 2) / (2 * 18.0 ** 2))
-        return tilt + hill + lake_hill + valley
+        # The valley floor steps up 4 m over about 30 m inside the loop.
+        drop = 4.0 / (1.0 + np.exp(-(x - 110.0) / 8.0)) * np.exp(-((z + 160.0) ** 2) / (2 * 24.0 ** 2))
+        hollow = -7.0 * np.exp(-((x - 150.0) ** 2 + (z + 282.0) ** 2) / (2 * 20.0 ** 2))
+        lava_hollow = -6.0 * np.exp(-((x - 130.0) ** 2 + (z + 40.0) ** 2) / (2 * 16.0 ** 2))
+        return tilt + hill + lake_hill + valley + drop + hollow + lava_hollow
 
     h = height(x, z) - height(0.0, 0.0)
-    runs = []
-    # The river: two squares wide down the valley, in pools a square apart,
-    # the first under the bridge.
-    for row in (-21, -20):
-        for first, last in ((-6, 1), (3, 8), (10, 15), (17, 22), (24, 29)):
-            runs.append([row, first, last - first + 1, "water"])
-    # The lake, a rough circle on the second hill's west side.
-    middle = (155.0, -282.0)
-    for row in range(-38, -32):
-        xs = [c for c in range(14, 26) if (c * CELL + 4.0 - middle[0]) ** 2 + (row * CELL + 4.0 - middle[1]) ** 2 <= 15.0 ** 2]
-        if xs:
-            runs.append([row, xs[0], len(xs), "water"])
+
+    def level(at):
+        """Two thirds of the way from the bottom of the hollow round `at` to
+        where it would spill."""
+        seed = (int(round((at[1] - origin[1]) / CELL)), int(round((at[0] - origin[0]) / CELL)))
+        lo, hi = float(h[seed]), float(h[seed]) + 20.0
+        for _ in range(30):
+            mid = (lo + hi) / 2.0
+            seen = {seed}
+            todo = [seed]
+            spilled = False
+            while todo and not spilled:
+                r, c = todo.pop()
+                for dr, dc in ((1, 0), (-1, 0), (0, 1), (0, -1)):
+                    n = (r + dr, c + dc)
+                    if not (0 <= n[0] < rows and 0 <= n[1] < cols):
+                        spilled = True
+                        break
+                    if n not in seen and h[n] < mid:
+                        seen.add(n)
+                        todo.append(n)
+                if len(seen) > 400:
+                    spilled = True
+            lo, hi = (mid, hi) if not spilled else (lo, mid)
+        bottom = float(h[seed])
+        return round(bottom + (lo - bottom) * 0.66, 2)
+
+    lake = (150.0, -282.0)
+    lava = (130.0, -40.0)
+    # The river down the valley from inside the loop, west under the bridge
+    # and out, winding a little.
+    river = [[round(float(px), 2), round(-160.0 + 5.0 * math.sin(px / 37.0), 2), 10.0] for px in range(236, -110, -16)]
+    water = [
+        {"kind": "lake", "type": "water", "at": list(lake), "level": level(lake)},
+        {"kind": "lake", "type": "lava", "at": list(lava), "level": level(lava)},
+        {"kind": "river", "type": "water", "points": river},
+    ]
     return {
         "name": "Ground course", "theme": "orchard", "about": "A test loop on a hand-made ground map.",
         "laps": 3, "width": 13.0, "grid": 32,
         "ground": to_dict(h, origin),
-        "paint": {"cell": CELL, "runs": runs},
+        "water": water,
         "landmarks": [{"prop": "barn", "at": [360, -20], "facing": 3}],
         "pieces": [
             {"type": "straight", "length": 2},

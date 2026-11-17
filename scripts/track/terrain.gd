@@ -193,6 +193,10 @@ func _work_out_heights() -> void:
 					inside += 1
 				h = lerpf(sea, h, smoothstep(0.0, float(rings.size()), float(inside)))
 			heights[i] = h
+	# Rivers carve their channels and lakes fill their hollows on the ground
+	# as built (see Waters).
+	if track.waters.has_real():
+		heights = track.waters.settle(origin, cols, rows, heights, Waters.blocked_grid(track, origin, cols, rows))
 	_basins(gap, edge)
 
 

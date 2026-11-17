@@ -194,9 +194,12 @@ func _build() -> void:
 	# file called noscenery in the app's data folder, the scenery is left out.
 	if OS.is_debug_build() and FileAccess.file_exists("user://noscenery"):
 		return
+	if track.waters.has_real():
+		track.waters.ensure(track)
+		water.waters = track.waters
 	if scenery == "none":
 		return
-	if scenery == "sea" and not (_theme.get("sea", false) or _theme.get("island", false)) and track.paint.is_empty():
+	if scenery == "sea" and not (_theme.get("sea", false) or _theme.get("island", false)) and track.paint.is_empty() and track.waters.is_empty():
 		return
 	var dressing := Scenery.new(track, track.theme)
 	dressing.ground = ground_at
