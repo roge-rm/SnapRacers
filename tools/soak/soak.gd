@@ -102,6 +102,15 @@ func _ready() -> void:
 		else:
 			lines.append("  %-14s %-14s    DNF  %d resets, lap %d" % [racer.name, kart, resets[racer], racer.progress.current_lap()])
 	print("\n".join(lines))
+	# The fastest lap anyone did, for comparing a course before and after.
+	var best := INF
+	var best_by := ""
+	for racer in race.racers:
+		for lap: float in racer.progress.lap_times:
+			if lap < best:
+				best = lap
+				best_by = racer.name
+	print("BEST %s: %.2f s by %s" % [course, best, best_by] if best < INF else "BEST %s: none" % course)
 	var total_resets: int = resets.values().reduce(func(a, b): return a + b, 0)
 	var total_stalls: int = stalls.values().reduce(func(a, b): return a + b, 0)
 	print("RESULT %s %s %s reversed=%s mirrored=%s: %d of %d finished, %d resets, %d stalls, %.0f s" % [course, race.conditions.weather, race.conditions.time, Game.reversed(), Game.mirrored(), finished, race.racers.size(), total_resets, total_stalls, race.time])

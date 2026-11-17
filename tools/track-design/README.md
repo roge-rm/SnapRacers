@@ -13,4 +13,12 @@ The real layouts come from OpenStreetMap, where kart tracks are mapped as racewa
 5. `design.py courses/<id>.txt [<name>] [out.png]` checks a course closes and doesn't run into itself, and draws it beside the real circuit.
 6. `build_courses.py ../../data/tracks <id> ...` writes the game's course files, with each start line on the course's longest straight.
 
+The short hand knows every piece in the track editor's drawer: straights of any length, arcs of 15 to 75°, 90° curves, slants and offsets, ramps, humps, banked bends, jumps, loops, corkscrews, crossings, shortcut bends and all the splits (the list is at the top of `parse()` in `design.py`). Anything else can go in as JSON with `@{...}`.
+
+Landmarks, paint, weather, time, road colour and map rotation aren't in the short hand. `build_courses.py` keeps them from the course file it's replacing, or takes them from `courses/<id>.extra.json` when there is one, which can set any course key but the pieces.
+
+To check courses with the game's own code, run `res://tools/track-design/course_check.tscn` headless, with course ids or course files after `--`, or nothing for all of them. It prints a line a course: closes, clashes, length, the closest two stretches come middle to middle, the editor's problems, paint squares, landmarks, the start, and whether it closes mirrored and reversed.
+
+`baseline.sh [<id> ...]` races eight Expert AI karts round each course in clear weather by day and writes `baseline.md` with the best lap, resets and who finished, from the logs in `build/soak-baseline`.
+
 The cups and the order of the courses are in `data/grand_prix.json`.

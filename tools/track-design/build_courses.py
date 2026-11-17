@@ -1,5 +1,10 @@
 # Turns the course short hand into the game's track files, with a line about
 # each one.
+# Usage: build_courses.py <out dir> <id> ...
+# Landmarks, paint, weather, time, road colour, map rotation and the real
+# circuit come from courses/<id>.extra.json when there is one (any course key
+# but the pieces, and it wins over what's here), or else from the course file
+# already in <out dir>.
 import importlib.util, json, os, sys
 here = os.path.dirname(os.path.abspath(__file__))
 spec = importlib.util.spec_from_file_location("design", os.path.join(here, "design.py"))
@@ -78,7 +83,7 @@ def rotate_to_longest_straight(pieces):
             units += [("S" if not walls else "W", level)] * int(p.get("length", 1))
         else:
             units.append((p, level))
-            level += int(p.get("rise", 0)) if p["type"] in ("ramp", "curve", "slant") else 0
+            level += int(p.get("rise", 0)) if p["type"] in ("ramp", "curve", "arc", "slant") else 0
     n = len(units)
     straight = lambda u: u in ("S", "W")
     best, best_len = 0, 0
@@ -116,14 +121,39 @@ def rotate_to_longest_straight(pieces):
     return out, best_len
 
 
+# Kept from the old course file when there's no extra file. The start pose
+# isn't, since it goes with the old pieces.
+KEPT = ["inspired_by", "road_colour", "map_rotation", "weather", "time", "fixed_time", "landmarks", "paint"]
+
+
+def extras_for(name, out_dir):
+    path = os.path.join(here, "courses", name + ".extra.json")
+    if os.path.exists(path):
+        extra = json.load(open(path))
+        extra.pop("pieces", None)
+        return extra
+    old = os.path.join(out_dir, name + ".json")
+    if not os.path.exists(old):
+        return {}
+    data = json.load(open(old))
+    return {k: data[k] for k in KEPT if k in data}
+
+
+def value_lines(key, value):
+    """A key and its value, with lists of dictionaries one per line."""
+    if isinstance(value, list) and value and all(isinstance(v, dict) for v in value):
+        return ['\t%s: [' % json.dumps(key), ",\n".join("\t\t" + json.dumps(v) for v in value), "\t]"]
+    return ["\t%s: %s" % (json.dumps(key), json.dumps(value))]
+
+
 out_dir = sys.argv[1]
 for name in sys.argv[2:]:
     data = design["parse"](open(os.path.join(here, "courses", name + ".txt")).read())
     data["pieces"], run = rotate_to_longest_straight(data["pieces"])
     line, end = design["walk"](data["pieces"])
     import math
-    assert math.hypot(end[0], end[1]) < 0.5 and abs(end[2]) < 0.1, name + " doesn't close after turning"
-    clashes = design["clashes"](line, len(data["pieces"]), data.get("width", 13.0))
+    assert math.hypot(end[0], end[1]) < 0.5 and abs(end[2]) < 0.1 and end[5] == 0, name + " doesn't close after turning"
+    clashes = design["clashes"](line, len(data["pieces"]), data.get("width", 13.0), design["reaches"](line, data["pieces"]))
     assert not clashes, "%s clashes after turning: %s" % (name, clashes)
     if min(p[2] for p in line) < -0.1:
         raise SystemExit(name + " goes underground")
@@ -137,6 +167,11 @@ for name in sys.argv[2:]:
     # How much the ground rises and falls around it (see TrackPath.hills).
     if data.get("hills", 0):
         ordered["hills"] = data["hills"]
+    extra = extras_for(name, out_dir)
+    if "inspired_by" in extra and "inspired_by" not in ordered:
+        ordered = {"name": ordered["name"], "inspired_by": extra["inspired_by"], **{k: v for k, v in ordered.items() if k != "name"}}
+    for k, v in extra.items():
+        ordered[k] = v
     ordered["pieces"] = data["pieces"]
     lines = ["{"]
     for k, v in ordered.items():
@@ -145,7 +180,9 @@ for name in sys.argv[2:]:
             lines.append(",\n".join("\t\t" + json.dumps(p) for p in v))
             lines.append("\t]")
         else:
-            lines.append("\t%s: %s," % (json.dumps(k), json.dumps(v)))
+            entry = value_lines(k, v)
+            entry[-1] += ","
+            lines += entry
     lines.append("}")
     open(os.path.join(out_dir, name + ".json"), "w").write("\n".join(lines) + "\n")
     print("wrote %s (start on a %d tile straight)" % (name, run))

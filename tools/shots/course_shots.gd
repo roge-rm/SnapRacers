@@ -8,7 +8,8 @@ extends Node
 ##   DISPLAY=:0 tools/godot/Godot_v4.7.2-stable_linux.x86_64 --path . res://tools/shots/course_shots.tscn -- peach_pit
 ## With "at" and a distance around the lap after the course, like
 ## -- windmill_ridge at 1083, it only takes two pictures of that spot, one
-## along the road and one from beside it. With "fps" after the course it
+## along the road and one from beside it. With "overview" after the course it
+## only takes the one from above. With "fps" after the course it
 ## races for ten seconds as fast as it can and says how many frames a second
 ## it drew. With weather= and time= after the course, like -- peach_pit
 ## weather=rain time=dusk, it races in those (see Conditions) and only takes
@@ -66,6 +67,11 @@ func _ready() -> void:
 	while not race.started:
 		await get_tree().process_frame
 	await seconds(4.0)
+	# "overview" takes only the picture of the whole course from above.
+	if args.has("overview"):
+		await overhead()
+		get_tree().quit()
+		return
 	if args.has("fps"):
 		await frame_rate()
 		get_tree().quit()
