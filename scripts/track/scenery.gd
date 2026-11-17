@@ -1582,14 +1582,17 @@ static func paint_of(path: TrackPath) -> PaintedAreas:
 	var kept := PaintedAreas.new()
 	if shore.is_empty():
 		return kept
-	var lo := Vector2i(1 << 30, 1 << 30)
-	var hi := -lo
-	for square: Vector2i in path.paint.squares:
-		lo = lo.min(square)
-		hi = hi.max(square)
+	# The grid only covers the island, so its size goes by the course.
+	var reach := Rect2(shore[0], Vector2.ZERO)
+	for p in shore:
+		reach = reach.expand(p)
+	var lo := PaintedAreas.square_at(reach.position.x, reach.position.y)
+	var hi := PaintedAreas.square_at(reach.end.x, reach.end.y)
 	var cols := hi.x - lo.x + 1
 	var land := inside_grid(shore, PaintedAreas.middle_of(lo), cols, hi.y - lo.y + 1, PaintedAreas.CELL)
 	for square: Vector2i in path.paint.squares:
+		if square.x < lo.x or square.y < lo.y or square.x > hi.x or square.y > hi.y:
+			continue
 		if land[(square.y - lo.y) * cols + square.x - lo.x] == 1:
 			kept.squares[square] = path.paint.squares[square]
 	return kept
@@ -1606,21 +1609,72 @@ func _build_paint() -> void:
 	var step := PAINT_STEP
 	var base := terrain.origin if terrain != null else Vector2.ZERO
 	var reach := PaintedAreas.BLUR * 0.5 + step
-	var fields := {}
+	# Each type's field at every node near a square, added up square by square:
+	# node -> its row in `weights`, which has a slot per type.
+	var names: Array = []
+	for type: String in paint.squares.values():
+		if not type in names:
+			names.append(type)
+	var kinds := names.size()
+	var rows := {}
+	var nodes: Array[Vector2i] = []
+	var weights := PackedFloat32Array()
+	var half := PaintedAreas.BLUR * 0.5
+	var share := 1.0 / (PaintedAreas.BLUR * PaintedAreas.BLUR)
 	for square: Vector2i in paint.squares:
-		var a := ((Vector2(square) * PaintedAreas.CELL - Vector2.ONE * reach - base) / step).floor()
-		var b := ((Vector2(square + Vector2i.ONE) * PaintedAreas.CELL + Vector2.ONE * reach - base) / step).ceil()
+		var t := names.find(paint.squares[square])
+		var lo := Vector2(square) * PaintedAreas.CELL
+		var hi := lo + Vector2.ONE * PaintedAreas.CELL
+		var a := ((lo - Vector2.ONE * reach - base) / step).floor()
+		var b := ((hi + Vector2.ONE * reach - base) / step).ceil()
 		for z in range(int(a.y), int(b.y) + 1):
+			var at_z := base.y + z * step
+			var oz := maxf(0.0, minf(at_z + half, hi.y) - maxf(at_z - half, lo.y))
 			for x in range(int(a.x), int(b.x) + 1):
 				var node := Vector2i(x, z)
-				if not fields.has(node):
-					var at := base + Vector2(node) * step
-					fields[node] = paint.weights_at(at.x, at.y)
-	var types := {}
-	for type: String in paint.squares.values():
-		types[type] = true
-	var cell := [Vector2i(0, 0), Vector2i(1, 0), Vector2i(0, 1), Vector2i(1, 1)]
-	for type: String in types:
+				var row: int = rows.get(node, -1)
+				if row < 0:
+					row = rows.size()
+					rows[node] = row
+					nodes.append(node)
+					weights.resize(weights.size() + kinds)
+				var at_x := base.x + x * step
+				var ox := maxf(0.0, minf(at_x + half, hi.x) - maxf(at_x - half, lo.x))
+				weights[row * kinds + t] += ox * oz * share
+	# The strongest field at each node and the next strongest, so a type can
+	# tell how far it's ahead of the others there.
+	var best := PackedFloat32Array()
+	var best_type := PackedInt32Array()
+	var second := PackedFloat32Array()
+	best.resize(nodes.size())
+	best_type.resize(nodes.size())
+	second.resize(nodes.size())
+	# The cells each type reaches EDGE in at some corner, by the cell's first
+	# corner.
+	var reached: Array[Dictionary] = []
+	for t in kinds:
+		reached.append({})
+	var cell: Array[Vector2i] = [Vector2i(0, 0), Vector2i(1, 0), Vector2i(0, 1), Vector2i(1, 1)]
+	for row in nodes.size():
+		var first := 0.0
+		var next := 0.0
+		var first_type := -1
+		for t in kinds:
+			var w := weights[row * kinds + t]
+			if w > first:
+				next = first
+				first = w
+				first_type = t
+			elif w > next:
+				next = w
+			if w >= PaintedAreas.EDGE:
+				for c in cell:
+					reached[t][nodes[row] - c] = true
+		best[row] = first
+		best_type[row] = first_type
+		second[row] = next
+	for t in kinds:
+		var type: String = names[t]
 		var info: Dictionary = PaintedAreas.TYPES[type]
 		var pool: bool = info.effect != ""
 		var hills := terrain != null
@@ -1628,18 +1682,18 @@ func _build_paint() -> void:
 		var band: Array = []
 		# Whole cells in a flat middle, by row, joined up into strips after.
 		var full := {}
-		for node: Vector2i in fields:
+		for node: Vector2i in reached[t]:
 			var corners: Array[Vector4] = []
 			var top := 0.0
 			var low := INF
 			var apart := INF
-			for c: Vector2i in cell:
-				var weights: Dictionary = fields.get(node + c, {})
-				var own: float = weights.get(type, 0.0)
+			for c in cell:
+				var row: int = rows.get(node + c, -1)
+				var own := 0.0
 				var other := 0.0
-				for t: String in weights:
-					if t != type:
-						other = maxf(other, weights[t])
+				if row >= 0:
+					own = weights[row * kinds + t]
+					other = second[row] if best_type[row] == t else best[row]
 				var at := base + Vector2(node + c) * step
 				corners.append(Vector4(at.x, at.y, own, own - other))
 				top = maxf(top, own)
@@ -1731,8 +1785,17 @@ func _paint_lamps() -> void:
 ## other type's) on one side of `cut` in component `which`: at or above it,
 ## or at or below.
 static func _clip(piece: Array[Vector4], which: int, cut: float, above: bool) -> Array[Vector4]:
-	var out: Array[Vector4] = []
 	var count := piece.size()
+	# All on one side is the usual case, and needs no new corners.
+	var kept := 0
+	for i in count:
+		if (piece[i][which] - cut) * (1.0 if above else -1.0) >= 0.0:
+			kept += 1
+	if kept == count:
+		return piece
+	var out: Array[Vector4] = []
+	if kept == 0:
+		return out
 	for i in count:
 		var a := piece[i]
 		var b := piece[(i + 1) % count]
@@ -1748,9 +1811,13 @@ static func _clip(piece: Array[Vector4], which: int, cut: float, above: bool) ->
 ## A mesh of flat polygons (see _clip()): a pool's at its level, the rest on
 ## the ground with its slope, PAINT_LIFT up. Null if there's nothing.
 func _paint_mesh(pieces: Array, pool: bool) -> ArrayMesh:
-	var tool := SurfaceTool.new()
-	tool.begin(Mesh.PRIMITIVE_TRIANGLES)
-	var any := false
+	var points := PackedVector3Array()
+	var normals := PackedVector3Array()
+	var order := PackedInt32Array()
+	# Most corners are shared by several pieces, so each one is placed once:
+	# where it is -> its index.
+	var placed := {}
+	var slopes := {}
 	for piece: Array in pieces:
 		for i in range(1, piece.size() - 1):
 			var corners := [piece[0], piece[i], piece[i + 1]]
@@ -1762,28 +1829,47 @@ func _paint_mesh(pieces: Array, pool: bool) -> ArrayMesh:
 			if turn < 0.0:
 				corners = [corners[0], corners[2], corners[1]]
 			for c: Vector4 in corners:
-				if pool:
-					tool.set_normal(Vector3.UP)
-					tool.add_vertex(Vector3(c.x, water.paint_top(c.x, c.y), c.y))
-				else:
-					tool.set_normal(_paint_normal(c.x, c.y))
-					tool.add_vertex(Vector3(c.x, _paint_ground(c.x, c.y) + PAINT_LIFT, c.y))
-			any = true
-	if not any:
+				var key := Vector2(c.x, c.y)
+				var index: int = placed.get(key, -1)
+				if index < 0:
+					index = points.size()
+					placed[key] = index
+					if pool:
+						points.append(Vector3(c.x, water.paint_top(c.x, c.y), c.y))
+						normals.append(Vector3.UP)
+					else:
+						points.append(Vector3(c.x, _paint_ground(c.x, c.y) + PAINT_LIFT, c.y))
+						normals.append(_paint_normal(c.x, c.y, slopes))
+				order.append(index)
+	if order.is_empty():
 		return null
-	tool.index()
-	return tool.commit()
+	var arrays := []
+	arrays.resize(Mesh.ARRAY_MAX)
+	arrays[Mesh.ARRAY_VERTEX] = points
+	arrays[Mesh.ARRAY_NORMAL] = normals
+	arrays[Mesh.ARRAY_INDEX] = order
+	var mesh := ArrayMesh.new()
+	mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
+	return mesh
 
 
 func _paint_ground(x: float, z: float) -> float:
 	return terrain.surface_at(x, z) if terrain != null else ground.call(x, z)
 
 
-func _paint_normal(x: float, z: float) -> Vector3:
+## The ground's normal at the nearest point of the hills' grid, kept in
+## `slopes` by that point.
+func _paint_normal(x: float, z: float, slopes: Dictionary) -> Vector3:
 	if terrain == null:
 		return Vector3.UP
 	var d := Terrain.CELL
-	return Vector3(_paint_ground(x - d, z) - _paint_ground(x + d, z), d * 2.0, _paint_ground(x, z - d) - _paint_ground(x, z + d)).normalized()
+	var node := Vector2i(roundi((x - terrain.origin.x) / d), roundi((z - terrain.origin.y) / d))
+	var normal: Vector3 = slopes.get(node, Vector3.ZERO)
+	if normal == Vector3.ZERO:
+		var at := terrain.origin + Vector2(node) * d
+		normal = Vector3(_paint_ground(at.x - d, at.y) - _paint_ground(at.x + d, at.y), d * 2.0, _paint_ground(at.x, at.y - d) - _paint_ground(at.x, at.y + d)).normalized()
+		slopes[node] = normal
+	return normal
 
 
 ## The hall around an indoor course: its walls with a coloured band round

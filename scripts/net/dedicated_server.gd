@@ -64,6 +64,9 @@ func _ready() -> void:
 		return
 	merged.add(enet)
 	var ws := WebSocketMultiplayerPeer.new()
+	# A race's setup goes out as one message with its whole course, or a cup's
+	# courses, in it (see Connections.join_websocket()).
+	ws.outbound_buffer_size = Sharing.MOST_BYTES
 	var tls: TLSOptions = null
 	if str(config.tls_cert) != "" and str(config.tls_key) != "":
 		var key := CryptoKey.new()

@@ -86,6 +86,8 @@ var _stroke_erases := false
 var _stroke_last := Vector3.ZERO
 var _stroke_changed := false
 var _stroke_undo := {}
+## What the brush showed last (see _update_brush()).
+var _brush_key := []
 
 var _fingers := {}
 var _press_at := Vector2.ZERO
@@ -435,6 +437,7 @@ func undo() -> void:
 	var step: Dictionary = _undo.pop_back()
 	_redo.append(_snapshot(step.has("creation_path")))
 	_restore(step)
+	_restart_stroke()
 	_select(-1)
 	_refresh()
 
@@ -445,8 +448,17 @@ func redo() -> void:
 	var step: Dictionary = _redo.pop_back()
 	_undo.append(_snapshot(step.has("creation_path")))
 	_restore(step)
+	_restart_stroke()
 	_select(-1)
 	_refresh()
+
+
+## A stroke still going on through an undo or redo carries on as a new one,
+## so the rest of it is its own undo step.
+func _restart_stroke() -> void:
+	if _stroke:
+		_stroke_changed = false
+		_stroke_undo = _snapshot()
 
 
 func _snapshot(identity := false) -> Dictionary:
@@ -1108,15 +1120,23 @@ func refused_squares(at: Vector3) -> Array[Vector2i]:
 	var type := _brush_type()
 	if type == "" or _stroke_erases:
 		return out
+	var full := course.paint.full()
 	for square in _brush_squares(at):
-		if not PaintedAreas.allowed(square, type, track):
+		if not course.paint.squares.has(square) and (full or not PaintedAreas.within(square)):
+			out.append(square)
+		elif not PaintedAreas.allowed(square, type, track):
 			out.append(square)
 	return out
 
 
 ## Shows the squares under the brush: the type's colour, or red where it
-## won't paint.
+## won't paint. It's only worked out again when what it shows can change.
 func _update_brush() -> void:
+	var key := [PaintedAreas.square_at(_brush_at.x, _brush_at.z), _brush_type(), ui.paint_brush, _stroke_erases, track, course.paint.full()]
+	_brush_view.visible = true
+	if key == _brush_key:
+		return
+	_brush_key = key
 	var squares := []
 	var refused := refused_squares(_brush_at)
 	var type := _brush_type()
@@ -1125,7 +1145,6 @@ func _update_brush() -> void:
 	for square in _brush_squares(_brush_at):
 		squares.append([square, Color(1.0, 0.2, 0.2, 0.7) if refused.has(square) else colour])
 	_fill_squares(_brush_view, squares)
-	_brush_view.visible = true
 
 
 ## Moves the brush to a point on the ground.

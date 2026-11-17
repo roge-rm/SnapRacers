@@ -17,7 +17,6 @@ const KART := "kart"
 const KINDS := [COURSE, CUP, DRIVER, KART]
 const MOST_PIECES := 200
 const MOST_LANDMARKS := 100
-const MOST_PAINT_RUNS := 4000
 ## Bound model creation and connector comparisons before opening an import.
 const MOST_PARTS := 256
 const MOST_CONNECTORS := 4096
@@ -261,19 +260,25 @@ static func _read_course(data: Dictionary, saved := false) -> Dictionary:
 	return {"kind": COURSE, "data": course.to_dict()}
 
 
+## Painted ground: runs of squares on the current grid, inside MOST_SPAN, with
+## no more than MOST_SQUARES in all. An old course's are counted before they
+## grow, and PaintedAreas.from_dict() keeps the grown ones to the same limits.
 static func _paint(value: Variant) -> bool:
-	if not value is Dictionary or not value.get("runs") is Array or value.runs.size() > MOST_PAINT_RUNS:
+	if not value is Dictionary or not value.get("runs") is Array:
 		return false
-	if value.has("cell") and (not _number(value.cell) or float(value.cell) <= 0.0 or float(value.cell) > 1000.0):
+	if value.has("cell") and (not _number(value.cell) or not is_equal_approx(float(value.cell), PaintedAreas.CELL)):
 		return false
+	var span := PaintedAreas.MOST_SPAN
 	var squares := 0
 	for run in value.runs:
 		if not run is Array or run.size() != 4 or not run[3] is String:
 			return false
-		if not _integer(run[0], -PaintedAreas.MOST_SPAN, PaintedAreas.MOST_SPAN) or not _integer(run[1], -PaintedAreas.MOST_SPAN, PaintedAreas.MOST_SPAN) or not _integer(run[2], 1, PaintedAreas.MOST_SPAN):
+		if not _integer(run[0], -span, span) or not _integer(run[1], -span, span) or not _integer(run[2], 1, span) or int(run[1]) + int(run[2]) - 1 > span:
 			return false
 		squares += int(run[2])
-	return squares <= PaintedAreas.MOST_SQUARES
+		if squares > PaintedAreas.MOST_SQUARES:
+			return false
+	return true
 
 
 static func _start(value: Variant) -> bool:

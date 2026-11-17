@@ -280,6 +280,36 @@ func _painted() -> void:
 			dry = dry and not is_finite(water.level_at(track.points[i] + track.ups[i] * 0.5))
 		check(dry and water.kind == "", "%s: the road is never deep" % what)
 		builder.free()
+	_most_squares()
+
+
+## A share code with the most squares a course can have, every other square
+## in mixed types for the most edges, comes in and builds, and one more
+## square is turned away.
+func _most_squares() -> void:
+	var data: Dictionary = JSON.parse_string(FileAccess.get_file_as_string(Tracks.path_of("peach_pit")))
+	data.hills = 16.0
+	var types := PaintedAreas.TYPES.keys()
+	for extra in [1, 0]:
+		var runs := []
+		for k in PaintedAreas.MOST_SQUARES + extra:
+			runs.append([k / 40 - 20, (k % 40) * 2 - 40, 1, types[k % types.size()]])
+		data.paint = {"cell": 8.0, "runs": runs}
+		var read := Sharing.read(Sharing.code_for(data))
+		if extra == 1:
+			check(read.has("why"), "a code with %d squares is turned away" % (PaintedAreas.MOST_SQUARES + 1))
+			continue
+		check(read.get("kind") == Sharing.COURSE, "a code with %d squares comes in" % PaintedAreas.MOST_SQUARES)
+		if read.get("kind") != Sharing.COURSE:
+			return
+		var builder := TrackBuilder.new(TrackPath.from_dict(read.data))
+		builder.sky = false
+		var start := Time.get_ticks_msec()
+		host.add_child(builder)
+		var took := Time.get_ticks_msec() - start
+		var meshes := builder.find_children("Paint *", "", true, false).size()
+		check(builder.track.paint.count() == PaintedAreas.MOST_SQUARES and meshes > 0, "and builds on hills, %d painted meshes in %d ms with the rest of the course" % [meshes, took])
+		builder.free()
 
 
 ## Puts the kart on the road at `offset`, so it knows where it left it, then

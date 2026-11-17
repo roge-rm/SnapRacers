@@ -22,8 +22,11 @@ const EDGE := 0.25
 const ROAD_ROOM := 2.0
 ## Road this far above the ground is raised: a bridge or a jump.
 const RAISED := 2.0
-## The most squares one course can have.
-const MOST_SQUARES := 200000
+## The most squares one course can have, as much as a 250 m by 250 m
+## lake. Building that many as one round lake takes about 0.3 s here on
+## the flat and 0.7 s on hills, a phone about five times as long, and as the
+## most edges it can have, every other square in mixed types, up to 3 s.
+const MOST_SQUARES := 1000
 ## The furthest a square or a run can reach, in squares.
 const MOST_SPAN := 4096
 
@@ -80,13 +83,26 @@ static func middle_of(square: Vector2i) -> Vector2:
 # Painting.
 
 ## Puts a type in a square, or clears it with "". Returns whether it changed.
+## A new square past MOST_SQUARES or MOST_SPAN is left out.
 func set_square(square: Vector2i, type: String) -> bool:
 	if type == "":
 		return squares.erase(square)
 	if not TYPES.has(type) or squares.get(square, "") == type:
 		return false
+	if not squares.has(square) and (full() or not within(square)):
+		return false
 	squares[square] = type
 	return true
+
+
+## Whether it has as many squares as a course can.
+func full() -> bool:
+	return squares.size() >= MOST_SQUARES
+
+
+## Whether a square is inside MOST_SPAN of the middle of the world.
+static func within(square: Vector2i) -> bool:
+	return absi(square.x) <= MOST_SPAN and absi(square.y) <= MOST_SPAN
 
 
 func square_type(square: Vector2i) -> String:
@@ -164,7 +180,7 @@ static func from_dict(data: Variant, grow := 1.0) -> PaintedAreas:
 	var cell := CELL
 	if data.get("cell") is float or data.get("cell") is int:
 		cell = float(data.cell)
-	if not is_finite(cell) or cell <= 0.0 or not is_finite(grow) or grow <= 0.0:
+	if not is_equal_approx(cell, CELL) or not is_finite(grow) or grow <= 0.0:
 		return areas
 	var read := {}
 	for run in data.runs:
@@ -180,13 +196,15 @@ static func from_dict(data: Variant, grow := 1.0) -> PaintedAreas:
 		for k in int(span):
 			if read.size() >= MOST_SQUARES:
 				break
-			read[Vector2i(int(x0) + k, int(z))] = run[3]
-	if is_equal_approx(cell * grow, CELL):
+			var square := Vector2i(int(x0) + k, int(z))
+			if within(square):
+				read[square] = run[3]
+	if is_equal_approx(grow, 1.0):
 		areas.squares = read
 		return areas
 	# Squares of another size are redrawn on this grid: each square here takes
 	# the type of the old one its middle is in.
-	var size := cell * grow
+	var size := CELL * grow
 	for square: Vector2i in read:
 		var low := Vector2(square.x, square.y) * size
 		var first := Vector2i(ceili(low.x / CELL - 0.5), ceili(low.y / CELL - 0.5))
@@ -196,7 +214,8 @@ static func from_dict(data: Variant, grow := 1.0) -> PaintedAreas:
 			for x in range(first.x, last.x + 1):
 				if areas.squares.size() >= MOST_SQUARES:
 					return areas
-				areas.squares[Vector2i(x, z)] = read[square]
+				if within(Vector2i(x, z)):
+					areas.squares[Vector2i(x, z)] = read[square]
 	return areas
 
 
@@ -252,30 +271,19 @@ func covered(at: Vector3, room := 0.0) -> bool:
 	return false
 
 
-## The field of every type at the point, as type -> 0 to 1, only the types
-## that reach it.
-func weights_at(x: float, z: float) -> Dictionary:
-	var out := {}
+## The field of all the types that sink or burn together, from 0 to 1.
+func deep_field_at(x: float, z: float) -> float:
 	if squares.is_empty():
-		return out
+		return 0.0
+	var sum := 0.0
 	var half := BLUR * 0.5
 	for cz in range(floori((z - half) / CELL), floori((z + half) / CELL) + 1):
 		var oz := minf(z + half, (cz + 1) * CELL) - maxf(z - half, cz * CELL)
 		for cx in range(floori((x - half) / CELL), floori((x + half) / CELL) + 1):
 			var type: String = squares.get(Vector2i(cx, cz), "")
-			if type != "":
+			if type != "" and TYPES[type].effect != "":
 				var ox := minf(x + half, (cx + 1) * CELL) - maxf(x - half, cx * CELL)
-				out[type] = out.get(type, 0.0) + ox * oz / (BLUR * BLUR)
-	return out
-
-
-## The field of all the types that sink or burn together, from 0 to 1.
-func deep_field_at(x: float, z: float) -> float:
-	var sum := 0.0
-	var weights := weights_at(x, z)
-	for type: String in weights:
-		if TYPES[type].effect != "":
-			sum += weights[type]
+				sum += ox * oz / (BLUR * BLUR)
 	return sum
 
 

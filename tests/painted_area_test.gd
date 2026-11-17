@@ -16,6 +16,16 @@ func check(ok: bool, what: String) -> void:
 		failures += 1
 
 
+## Paint of `count` squares in mixed types, every other one, so it's as many
+## runs as squares.
+static func limit_paint(count: int) -> Dictionary:
+	var runs := []
+	var types := PaintedAreas.TYPES.keys()
+	for k in count:
+		runs.append([k / 60, (k % 60) * 2, 1, types[k % types.size()]])
+	return {"cell": 8.0, "runs": runs}
+
+
 func _initialize() -> void:
 	var areas := PaintedAreas.new()
 	for x in range(2, 6):
@@ -115,10 +125,35 @@ func _initialize() -> void:
 	var bad := painted.to_dict()
 	bad.paint = {"cell": 8.0, "runs": [[0, 0, 1, 5]]}
 	check(Sharing.read(Sharing.code_for(bad)).has("why"), "a code with a run that isn't well formed is turned away")
+	bad.paint = limit_paint(PaintedAreas.MOST_SQUARES + 1)
+	check(Sharing.read(Sharing.code_for(bad)).has("why"), "a code with one square more than %d is turned away" % PaintedAreas.MOST_SQUARES)
+	bad.paint = limit_paint(PaintedAreas.MOST_SQUARES)
+	var most := Sharing.read(Sharing.code_for(bad))
+	check(most.get("kind") == Sharing.COURSE and TrackPath.from_dict(most.data).paint.count() == PaintedAreas.MOST_SQUARES, "and one with %d is let in" % PaintedAreas.MOST_SQUARES)
 	bad.paint = {"cell": 8.0, "runs": []}
-	for k in Sharing.MOST_PAINT_RUNS + 1:
+	for k in PaintedAreas.MOST_SQUARES + 1:
 		bad.paint.runs.append([k % 100, 0, 1, "water"])
-	check(Sharing.read(Sharing.code_for(bad)).has("why"), "and so is one with too many runs")
+	check(Sharing.read(Sharing.code_for(bad)).has("why"), "and so is one with a square painted over and over")
+	bad.paint = {"cell": 1000.0, "runs": [[0, 0, 1, "water"]]}
+	check(Sharing.read(Sharing.code_for(bad)).has("why"), "and one with squares of another size")
+	bad.paint = {"cell": 8.0, "runs": [[0, PaintedAreas.MOST_SPAN - 1, 3, "water"]]}
+	check(Sharing.read(Sharing.code_for(bad)).has("why"), "and one with a run past the edge")
+
+	var old_far := {"grid": TrackPiece.OLD_TILE, "start": [0, 0, 0, 0], "pieces": [{"type": "straight", "length": 3}],
+		"paint": {"cell": 8.0, "runs": [[0, PaintedAreas.MOST_SPAN / 2 - 1, 2, "water"]]}}
+	var far := TrackPath.from_dict(old_far).paint
+	var inside := true
+	for sq: Vector2i in far.squares:
+		inside = inside and PaintedAreas.within(sq)
+	check(inside and not far.is_empty(), "an old course's squares grown past the edge are left out")
+
+	var filling := PaintedAreas.new()
+	for k in PaintedAreas.MOST_SQUARES:
+		filling.set_square(Vector2i(k % 100, k / 100), "mud")
+	check(filling.full() and not filling.set_square(Vector2i(-5, -5), "mud") and filling.set_square(Vector2i(0, 0), "ice"), "past the most squares no more go in, but one can change type")
+	var saved_course := CourseDesign.from_dict({"grid": TrackPiece.TILE, "start": [0, 0, 0, 0], "pieces": [{"type": "straight", "length": 3}]})
+	saved_course.paint = filling
+	check(not Sharing.validate_saved(Sharing.COURSE, saved_course.to_dict()).has("why"), "a full painting saves and loads")
 
 	print("All painted area checks passed." if failures == 0 else "%d painted area checks failed." % failures)
 	quit(1 if failures > 0 else 0)

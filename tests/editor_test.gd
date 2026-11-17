@@ -291,6 +291,16 @@ func _paint(editor: TrackEditor) -> void:
 	check(editor.course.paint.is_empty(), "undo takes the whole stroke back")
 	editor.redo()
 	check(editor.course.paint.count() == painted, "and redo puts it back")
+	# Undo in the middle of a stroke, like a trigger while A is held.
+	editor.paint_begin(far + Vector3(0.0, 0.0, 48.0))
+	editor.undo()
+	var mid_undo := editor._undo.size()
+	check(editor.course.paint.count() == painted, "undo in the middle of a stroke takes back what it painted so far")
+	editor.paint_to(far + Vector3(24.0, 0.0, 48.0))
+	check(editor._undo.size() == mid_undo + 1, "and the rest of the stroke is its own undo step")
+	editor.paint_end()
+	editor.undo()
+	check(editor.course.paint.count() == painted, "which undo takes back")
 	# A stroke that starts on the same type erases.
 	editor.paint_begin(far + Vector3(24.0, 0.0, 0.0))
 	editor.paint_end()
@@ -315,6 +325,20 @@ func _paint(editor: TrackEditor) -> void:
 	editor.paint_to(road + editor.track.rights[3] * 6.0)
 	editor.paint_end()
 	check(editor.course.paint.count() == before and editor._undo.size() == undo_size, "and aren't painted, with no undo step")
+	# Past the most squares.
+	var kept_paint := editor.course.paint
+	var filled := PaintedAreas.new()
+	for k in PaintedAreas.MOST_SQUARES:
+		filled.set_square(PaintedAreas.square_at(far.x, far.z) + Vector2i(k % 40, 10 + k / 40), "mud")
+	editor.course.paint = filled
+	var spot := far + Vector3(0.0, 0.0, -200.0)
+	check(editor.refused_squares(spot).size() == 1, "with the most squares painted the brush shows red")
+	editor.paint_begin(spot)
+	editor.paint_end()
+	check(editor.course.paint.count() == PaintedAreas.MOST_SQUARES and editor.course.paint.square_type(PaintedAreas.square_at(spot.x, spot.z)) == "", "and paints no more")
+	check(Sharing.validate_saved(Sharing.COURSE, editor.course.to_dict()).get("kind") == Sharing.COURSE, "a course with the most squares saves and loads")
+	editor.course.paint = kept_paint
+	editor._refresh()
 	# A landmark over water gets the red ring.
 	editor.ui.paint_type = "water"
 	editor.paint_begin(far)

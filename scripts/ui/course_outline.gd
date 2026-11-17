@@ -164,17 +164,44 @@ static func draw_splits(item: CanvasItem, outline: Dictionary, to_view: Transfor
 
 
 ## Fills the painted squares of an outline in their colours, drawn with
-## `to_view`.
-static func draw_paint(item: CanvasItem, outline: Dictionary, to_view: Transform2D) -> void:
+## `to_view` after `under`, the transform `item` is drawing with. The squares
+## are one mesh, made the first time and kept in the outline under "paint_mesh".
+static func draw_paint(item: CanvasItem, outline: Dictionary, to_view: Transform2D, under := Transform2D.IDENTITY) -> void:
+	if not outline.get("paint") is Array or outline.paint.is_empty():
+		return
+	if not outline.has("paint_mesh"):
+		outline.paint_mesh = _paint_mesh(outline.paint)
+	if outline.paint_mesh == null:
+		return
+	item.draw_set_transform_matrix(under * to_view)
+	item.draw_mesh(outline.paint_mesh, null)
+	item.draw_set_transform_matrix(under)
+
+
+## A flat mesh of a quad for each run, in metres, coloured by type. Null if
+## there's none it knows.
+static func _paint_mesh(runs: Array) -> ArrayMesh:
 	var cell := PaintedAreas.CELL
-	for run in outline.get("paint", []):
-		var type := str(run[3])
-		if not PaintedAreas.TYPES.has(type):
+	var points := PackedVector2Array()
+	var colours := PackedColorArray()
+	for run in runs:
+		if not run is Array or run.size() < 4 or not PaintedAreas.TYPES.has(str(run[3])):
 			continue
 		var low := Vector2(float(run[1]), float(run[0])) * cell
-		var wide := Vector2(float(run[2]) * cell, cell)
-		var corners := PackedVector2Array([to_view * low, to_view * (low + Vector2(wide.x, 0.0)), to_view * (low + wide), to_view * (low + Vector2(0.0, wide.y))])
-		item.draw_colored_polygon(corners, PaintedAreas.TYPES[type].colour)
+		var high := low + Vector2(float(run[2]) * cell, cell)
+		points.append_array([low, Vector2(high.x, low.y), high, low, high, Vector2(low.x, high.y)])
+		var colour: Color = PaintedAreas.TYPES[str(run[3])].colour
+		for k in 6:
+			colours.append(colour)
+	if points.is_empty():
+		return null
+	var arrays := []
+	arrays.resize(Mesh.ARRAY_MAX)
+	arrays[Mesh.ARRAY_VERTEX] = points
+	arrays[Mesh.ARRAY_COLOR] = colours
+	var mesh := ArrayMesh.new()
+	mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
+	return mesh
 
 
 ## The game's own courses never change while it runs, but yours can.

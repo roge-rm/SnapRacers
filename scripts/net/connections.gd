@@ -33,6 +33,9 @@ static func join_enet(address: String, port := NetSession.PORT, why: Array = [])
 ## A page served over HTTPS can only open a secure one (wss).
 static func join_websocket(url: String, why: Array = []) -> MultiplayerPeer:
 	var peer := WebSocketMultiplayerPeer.new()
+	# A race's setup comes as one message with its whole course, or a cup's
+	# courses, in it, which can be more than the 64 KB it takes by itself.
+	peer.inbound_buffer_size = Sharing.MOST_BYTES
 	var error := peer.create_client(url)
 	if error != OK:
 		why.append("I couldn't connect to %s." % url)
