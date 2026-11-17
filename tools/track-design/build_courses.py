@@ -1,10 +1,10 @@
 # Turns the course short hand into the game's track files, with a line about
 # each one.
 # Usage: build_courses.py <out dir> <id> ...
-# Landmarks, paint, weather, time, road colour, map rotation and the real
-# circuit come from courses/<id>.extra.json when there is one (any course key
-# but the pieces, and it wins over what's here), or else from the course file
-# already in <out dir>.
+# Landmarks, paint, weather, time, road colour, map rotation, the ground map
+# and the real circuit come from courses/<id>.extra.json when there is one
+# (any course key but the pieces, and it wins over what's here), or else from
+# the course file already in <out dir>.
 import importlib.util, json, os, sys
 here = os.path.dirname(os.path.abspath(__file__))
 spec = importlib.util.spec_from_file_location("design", os.path.join(here, "design.py"))
@@ -172,6 +172,9 @@ for name in sys.argv[2:]:
         ordered = {"name": ordered["name"], "inspired_by": extra["inspired_by"], **{k: v for k, v in ordered.items() if k != "name"}}
     for k, v in extra.items():
         ordered[k] = v
+    # A ground map (from dem.py) takes the place of the hills.
+    if "ground" in ordered:
+        ordered.pop("hills", None)
     ordered["pieces"] = data["pieces"]
     lines = ["{"]
     for k, v in ordered.items():

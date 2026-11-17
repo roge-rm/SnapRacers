@@ -27,6 +27,8 @@ func _ready() -> void:
 		"",
 		"Every course is based on a real circuit somewhere in the world, traced from OpenStreetMap map data, which is © OpenStreetMap contributors and available under the Open Database Licence.",
 		"",
+		"The ground around the courses comes from the Copernicus GLO-30 height map, © DLR e.V. 2010-2014 and © Airbus Defence and Space GmbH 2014-2018 provided under COPERNICUS by the European Union and ESA; all rights reserved.",
+		"",
 		"Made with the Godot Engine (godotengine.org), which is free and open source under the MIT licence.",
 		"",
 		"Enjoy!",

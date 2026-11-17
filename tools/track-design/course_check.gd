@@ -79,10 +79,13 @@ func _check(id: String, data: Dictionary) -> Array:
 		bad.append("landmarks %s" % " ".join(bad_marks))
 	if bad_paint > 0:
 		bad.append("%d squares by the road" % bad_paint)
-	print("%s: %s, %d clashes, %.0f m, closest %.0f m, problems %s, paint %d, landmarks %d, start %s at %s degrees with %.0f m behind, %s%s" % [
+	var ground := "no ground map"
+	if track.ground != null:
+		ground = "ground %d x %d" % [track.ground.cols, track.ground.rows]
+	print("%s: %s, %d clashes, %.0f m, closest %.0f m, problems %s, paint %d, %s, landmarks %d, start %s at %s degrees with %.0f m behind, %s%s" % [
 		id, "closes" if track.closes else "OPEN", clashes.size(), track.length, close,
 		"none" if problems.is_empty() else "[%s]" % " ".join(problems),
-		squares, track.landmarks.size(), "on a straight" if on_straight else "NOT on a straight",
+		squares, ground, track.landmarks.size(), "on a straight" if on_straight else "NOT on a straight",
 		heading * 15 if heading >= 0 else -1, behind, ", ".join(layouts),
 		"" if bad.is_empty() else ", FAIL " + ", ".join(bad)])
 	return bad

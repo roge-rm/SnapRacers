@@ -355,4 +355,4 @@ SnapRacers is free software under the GNU General Public License, version 3 or l
 
 Copyright © 2026 Dan Hunke.
 
-It uses the [Godot Engine](https://godotengine.org), under the MIT licence. Courses are traced from OpenStreetMap map data, © OpenStreetMap contributors, under the Open Database Licence.
+It uses the [Godot Engine](https://godotengine.org), under the MIT licence. Courses are traced from OpenStreetMap map data, © OpenStreetMap contributors, under the Open Database Licence. The ground around the courses comes from the Copernicus GLO-30 height map, © DLR e.V. 2010-2014 and © Airbus Defence and Space GmbH 2014-2018 provided under COPERNICUS by the European Union and ESA; all rights reserved.

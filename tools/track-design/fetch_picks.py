@@ -4,7 +4,8 @@ OpenStreetMap ways, so they can be traced again without looking for them.
 
 Usage: fetch_picks.py [--local <folder>] [--flat] [name ...]
 Writes <name>.json for each, the same as osm_track.py does, in metres from the
-track's first point (x east, y south). A pick of several ways (see
+track's first point (x east, y south), with that point's lat and lon as
+"origin" on each line, which dem.py needs. A pick of several ways (see
 find_lap.py) is joined into one line in the order it lists them, and a
 negative id means that way runs backwards. With --local it uses the ways
 osm_track.py already downloaded into that folder instead of asking the
@@ -30,6 +31,7 @@ names = args or sorted(picks)
 # of a point on its first way joins it there.
 GAP = 5.0
 JOIN = 15.0
+AGENT = "python-urllib/3"
 
 
 def from_api(ids):
@@ -38,7 +40,7 @@ def from_api(ids):
     out = []
     for i in ids:
         url = "https://api.openstreetmap.org/api/0.6/way/%d/full.json" % i
-        data = json.load(urllib.request.urlopen(urllib.request.Request(url, headers={"User-Agent": "SnapRacers-research/1.0"}), timeout=60))
+        data = json.load(urllib.request.urlopen(urllib.request.Request(url, headers={"User-Agent": AGENT}), timeout=60))
         nodes = {e["id"]: e for e in data["elements"] if e["type"] == "node"}
         way = next(e for e in data["elements"] if e["type"] == "way")
         out.append({"id": i, "tags": way.get("tags", {}), "geometry": [{"lat": nodes[n]["lat"], "lon": nodes[n]["lon"]} for n in way["nodes"]]})
@@ -51,7 +53,7 @@ def download(ids):
     for attempt in range(2):
         for server in ["https://overpass-api.de/api/interpreter", "https://overpass.kumi.systems/api/interpreter"]:
             try:
-                req = urllib.request.Request(server, data=urllib.parse.urlencode({"data": q}).encode(), headers={"User-Agent": "SnapRacers-research/1.0"})
+                req = urllib.request.Request(server, data=urllib.parse.urlencode({"data": q}).encode(), headers={"User-Agent": AGENT})
                 return json.load(urllib.request.urlopen(req, timeout=60))
             except Exception as e:
                 print("server failed", server, e)
@@ -79,12 +81,15 @@ def from_nearest(way, point):
 
 for name in names:
     ids = [abs(i) for i in picks[name]]
+    origin = None
     if local:
         lines = [l for l in json.load(open(os.path.join(local, name + ".json"))) if l["id"] in ids]
+        origin = lines[0].get("origin") if lines else None
     else:
         ways = [e for e in download(ids)["elements"] if e.get("geometry")]
         lat = ways[0]["geometry"][0]["lat"]
         lon = ways[0]["geometry"][0]["lon"]
+        origin = [lat, lon]
         k = 111320.0
         lines = []
         for w in ways:
@@ -123,6 +128,9 @@ for name in names:
             along.append(along[-1] + math.dist(a, b))
         tags = {"surfaces": [[round(along[s[0]], 1)] + s[1:] for s in surfaces]}
         lines = [{"id": picks[name][0], "tags": tags, "points": pts, "length": along[-1]}]
+    if origin:
+        for l in lines:
+            l["origin"] = origin
     json.dump(lines, open(os.path.join(here, name + ".json"), "w"))
     print("%s: %d ways, %.0f m" % (name, len(lines), sum(l["length"] for l in lines)), flush=True)
     time.sleep(8)

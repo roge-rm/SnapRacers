@@ -3,10 +3,12 @@
 
 Usage: fit.py <course.json or .txt> <osm name> [out.png] [label]
 
-Lays the course's middle line over the real one from <osm name>_aligned.json,
-turned and shifted to fit it best, and prints the average and worst distance
-between the two lines in metres, both ways. With out.png it draws them on top
-of each other, the real line grey and the course red.
+Lays the course's middle line over the real one from <osm name>.json (the
+OpenStreetMap line in metres, x east and y south), turned, shifted and scaled
+to fit it best, and prints the scale (course metres to a real metre) and the
+average and worst distance between the two lines in course metres, both ways.
+With out.png it draws them on top of each other, the real line grey and the
+course red.
 """
 import json, math, os, subprocess, sys
 import numpy as np
@@ -18,11 +20,23 @@ exec(compile(src, "design.py", "exec"), design)
 
 
 def course_line(path):
+    """The middle line in game x and z (design.py's y is the game's -z)."""
     text = open(path).read()
     data = design["parse"](text) if path.endswith(".txt") else json.loads(text)
     line, _ = design["walk"](data["pieces"])
-    pts = np.array([(p[0], p[1]) for p in line])
+    pts = np.array([(p[0], -p[1]) for p in line])
     return resample(np.vstack([pts, pts[:1]]))
+
+
+def real_line(name):
+    """The joined OpenStreetMap line of a pick in metres (x east, y south),
+    closed and every metre, and the lat and lon of its metres origin."""
+    picks = json.load(open(os.path.join(here, "picks.json")))[name]
+    lines = [l for l in json.load(open(os.path.join(here, name + ".json"))) if l["id"] in picks]
+    pts = np.array([p for l in lines for p in l["points"]], dtype=float)
+    if np.linalg.norm(pts[0] - pts[-1]) > 1:
+        pts = np.vstack([pts, pts[:1]])
+    return resample(pts), lines[0].get("origin")
 
 
 def resample(pts, step=1.0):
@@ -49,35 +63,40 @@ def nearest_index(a, b):
     return out
 
 
-def fit(course, real):
+def fit(course, real, scale=False):
     """Turns and shifts the course onto the real line (closest point fitting
-    from each of the four quarter turns), and gives back the moved course,
-    the average distance and the worst."""
+    from 24 starting turns), and with scale sizes it too. Gives back the moved
+    course, the average distance, the worst and the fit (s, R, t), where a
+    course point p lands on s * R @ p + t."""
     best = None
     sub = course[::3]
-    for quarter in range(4):
-        a = quarter * math.pi / 2
-        rot = np.array([[math.cos(a), -math.sin(a)], [math.sin(a), math.cos(a)]])
-        moved = sub @ rot.T
-        moved += real.mean(axis=0) - moved.mean(axis=0)
-        R, t = rot, real.mean(axis=0) - (sub @ rot.T).mean(axis=0)
+    ca0 = sub.mean(axis=0)
+    s0 = math.sqrt(((real - real.mean(axis=0)) ** 2).sum(axis=1).mean() / ((sub - ca0) ** 2).sum(axis=1).mean()) if scale else 1.0
+    for turn in range(24):
+        a = turn * math.pi / 12
+        R = np.array([[math.cos(a), -math.sin(a)], [math.sin(a), math.cos(a)]])
+        sc = s0
+        t = real.mean(axis=0) - sc * ca0 @ R.T
         for _ in range(40):
-            cur = sub @ R.T + t
+            cur = sc * sub @ R.T + t
             match = real[nearest_index(cur, real)]
             ca, cb = sub.mean(axis=0), match.mean(axis=0)
             H = (sub - ca).T @ (match - cb)
-            U, _, Vt = np.linalg.svd(H)
-            Rn = Vt.T @ U.T
-            if np.linalg.det(Rn) < 0:
-                Vt[1] *= -1
-                Rn = Vt.T @ U.T
-            R, t = Rn, cb - ca @ Rn.T
-        moved = course @ R.T + t
+            U, S, Vt = np.linalg.svd(H)
+            d = np.ones(2)
+            if np.linalg.det(Vt.T @ U.T) < 0:
+                d[1] = -1
+            R = Vt.T @ np.diag(d) @ U.T
+            # Umeyama: the scale that best fits once turned.
+            if scale:
+                sc = float((S * d).sum() / ((sub - ca) ** 2).sum())
+            t = cb - sc * ca @ R.T
+        moved = sc * course @ R.T + t
         d1, d2 = nearest(moved, real), nearest(real, moved)
         avg = (d1.mean() + d2.mean()) / 2
         worst = max(d1.max(), d2.max())
         if best is None or avg < best[1]:
-            best = (moved, avg, worst)
+            best = (moved, avg, worst, (sc, R, t))
     return best
 
 
@@ -101,10 +120,13 @@ def draw(real, moved, out, label):
 
 if __name__ == "__main__":
     course = course_line(sys.argv[1])
-    real = np.array(json.load(open(os.path.join(here, sys.argv[2] + "_aligned.json"))))
-    moved, avg, worst = fit(course, real)
+    real, _ = real_line(sys.argv[2])
+    moved, avg, worst, (sc, R, t) = fit(course, real, scale=True)
+    avg, worst = avg / sc, worst / sc
     length = len(course)
-    print("%s: %.0f m, average %.1f m, worst %.1f m from the real line" % (os.path.basename(sys.argv[1]), length, avg, worst))
+    print("%s: %.0f m, scale %.3f, average %.1f m, worst %.1f m from the real line" % (os.path.basename(sys.argv[1]), length, 1.0 / sc, avg, worst))
     if len(sys.argv) > 3:
         label = sys.argv[4] if len(sys.argv) > 4 else os.path.basename(sys.argv[1])
-        draw(real, moved, sys.argv[3], "%s  avg %.1f m  worst %.1f m" % (label, avg, worst))
+        # Drawn north up, so y flips back.
+        flip = np.array([1.0, -1.0])
+        draw(real * flip / sc, moved * flip / sc, sys.argv[3], "%s  avg %.1f m  worst %.1f m" % (label, avg, worst))
