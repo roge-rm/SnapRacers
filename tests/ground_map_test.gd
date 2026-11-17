@@ -27,6 +27,7 @@ func _initialize() -> void:
 	_course()
 	_mirrored()
 	_growth()
+	_sculpting()
 	_timberline()
 	print("All ground map checks passed." if failures == 0 else "%d ground map checks failed." % failures)
 	quit(1 if failures > 0 else 0)
@@ -155,6 +156,43 @@ func _growth() -> void:
 	var spot := map.origin + Vector2(37.0, 51.0)
 	check(track.ground != null and is_equal_approx(track.ground.cell, GroundMap.CELL * grow) and track.ground.origin == map.origin * grow, "an old course's map grows with its tiles (cell %d m)" % track.ground.cell)
 	check(is_equal_approx(track.ground_height(spot.x * grow, spot.y * grow), map.height_at(spot.x, spot.y)) and is_equal_approx(design.ground.height_at(spot.x * grow, spot.y * grow), map.height_at(spot.x, spot.y)), "and the heights move out with it")
+
+
+## The editor's brush on a map: a map baked from a flat course is flat and
+## covers the road with room round it, growing keeps every height where it
+## was on the old points, Raise lifts the middle most and stops at the
+## editor's limit, and Smooth evens out a spike.
+func _sculpting() -> void:
+	var course := CourseDesign.starter()
+	course.pieces.append({"type": "straight", "length": 4})
+	var track := course.track()
+	var map := GroundBrush.bake(track)
+	var box := Rect2(map.origin, Vector2(map.cols - 1, map.rows - 1) * map.cell)
+	var covered := true
+	for p in track.points:
+		covered = covered and box.grow(-GroundBrush.MARGIN + 0.01).has_point(Vector2(p.x, p.z))
+	check(covered and map.heights.count(0.0) == map.heights.size(), "a map baked from a flat course is flat and covers the road and %d m round it" % int(GroundBrush.MARGIN))
+	GroundBrush.work(map, "raise", Vector2(40.0, 40.0), 1, 1.0)
+	var middle := map.height_at(40.0, 40.0)
+	check(middle > 1.9 and middle <= 2.0 and map.height_at(40.0, 40.0 + 24.0) < middle * 0.2, "Raise lifts the middle 2 m a second and the edge a little (%.2f)" % middle)
+	GroundBrush.work(map, "raise", Vector2(40.0, 40.0), 1, 100.0)
+	check(is_equal_approx(map.height_at(40.0, 40.0), GroundBrush.MOST), "and stops at %d m" % int(GroundBrush.MOST))
+	GroundBrush.work(map, "smooth", Vector2(40.0, 40.0), 5, 2.0)
+	check(map.height_at(40.0, 40.0) < GroundBrush.MOST * 0.7, "Smooth evens out a spike (%.1f)" % map.height_at(40.0, 40.0))
+	course.pieces.append({"type": "curve", "turn": "left", "size": 2})
+	for i in 6:
+		course.pieces.append({"type": "straight", "length": 4})
+	var longer := course.track()
+	var grown := GroundBrush.grown(map, longer)
+	var kept := grown != null
+	if grown != null:
+		for z in map.rows:
+			for x in map.cols:
+				var at := map.origin + Vector2(x, z) * map.cell
+				kept = kept and is_equal_approx(grown.height_at(at.x, at.y), map.heights[z * map.cols + x])
+	check(kept and grown.cols * grown.rows > map.cols * map.rows, "a map grows with the road and keeps its heights")
+	check(GroundBrush.grown(grown, longer) == null, "and doesn't grow again for the same road")
+
 
 
 ## Heights of a hills course with no map haven't changed.

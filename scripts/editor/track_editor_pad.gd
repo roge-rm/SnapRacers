@@ -13,6 +13,8 @@ extends Node
 ##   the brush, holding A paints, X is the eraser, Y is the brush size and B
 ##   leaves the tab. The d-pad goes into the drawer to pick a type, and B
 ##   comes back out.
+## - The Ground tab works the same way: holding A sculpts, X flips between
+##   Raise and Lower and Y is the brush size.
 ## - With a landmark in hand, the left stick moves it, X turns it, A puts it
 ##   down, Back takes it away and B puts it back.
 ##
@@ -69,16 +71,22 @@ func _button(button: JoyButton) -> bool:
 				editor.paint_begin(editor._ground_point(_brush_screen()))
 				return true
 			JOY_BUTTON_X:
-				editor.ui.toggle_eraser()
+				if editor.ui.sculpting():
+					editor.ui.flip_raise_lower()
+				else:
+					editor.ui.toggle_eraser()
 				return true
 			JOY_BUTTON_Y:
-				editor.ui.cycle_brush()
+				if editor.ui.sculpting():
+					editor.ui.cycle_ground_brush()
+				else:
+					editor.ui.cycle_brush()
 				return true
 			JOY_BUTTON_B:
 				editor.ui._show_category(0)
 				_focus_drawer.call_deferred(true)
 				return true
-	elif editor.ui.painting() and button == JOY_BUTTON_B and editor.ui.palette_has_focus():
+	elif editor.ui.brushing() and button == JOY_BUTTON_B and editor.ui.palette_has_focus():
 		_release_focus()
 		return true
 	var in_actions := _focus_in(editor.ui._actions)
@@ -130,11 +138,10 @@ func _button(button: JoyButton) -> bool:
 			editor._follow(editor.selected)
 		JOY_BUTTON_LEFT_SHOULDER, JOY_BUTTON_RIGHT_SHOULDER:
 			var ui := editor.ui
-			var tabs: int = TrackEditorUI.CATEGORIES.size() + 2
 			editor.paint_end()
-			ui._show_category(posmod(ui._category + (1 if button == JOY_BUTTON_RIGHT_SHOULDER else -1), tabs))
+			ui._show_category(ui.next_tab(1 if button == JOY_BUTTON_RIGHT_SHOULDER else -1))
 			on_road = false
-			if ui.painting():
+			if ui.brushing():
 				_release_focus()
 			else:
 				_focus_drawer.call_deferred(true)
@@ -180,10 +187,10 @@ func _release_focus() -> void:
 		focused.release_focus()
 
 
-## Whether the stick moves the brush: the Paint tab's open and nothing in the
-## drawer has the controller.
+## Whether the stick moves the brush: the Paint or Ground tab's open and
+## nothing in the drawer has the controller.
 func _brush_free() -> bool:
-	return editor.ui.painting() and editor._holding.is_empty() and not editor.ui.palette_has_focus() and not on_road
+	return editor.ui.brushing() and editor._holding.is_empty() and not editor.ui.palette_has_focus() and not on_road
 
 
 func _brush_screen() -> Vector2:

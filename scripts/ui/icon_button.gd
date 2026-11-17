@@ -72,6 +72,18 @@ func _draw() -> void:
 		"paint":
 			draw_line(c + Vector2(7, -10), c + Vector2(-3, 2), ink, 4.0, true)
 			draw_circle(c + Vector2(-6, 7), 5.0, ink)
+		"ground":
+			# Ground side on: a big hill and a small one, with an arrow lifting it.
+			var land := PackedVector2Array([c + Vector2(-13, 11)])
+			for k in 17:
+				var t := k / 16.0
+				var x := lerpf(-13.0, 13.0, t)
+				land.append(c + Vector2(x, 11.0 - 13.0 * pow(sin(PI * clampf(t * 1.6, 0.0, 1.0)), 2.0) - 6.0 * pow(sin(PI * clampf((t - 0.55) / 0.45, 0.0, 1.0)), 2.0)))
+			land.append(c + Vector2(13, 11))
+			draw_colored_polygon(land, ink)
+			draw_line(c + Vector2(8, -2), c + Vector2(8, -12), ink, 2.5, true)
+			draw_line(c + Vector2(8, -12), c + Vector2(4, -8), ink, 2.5, true)
+			draw_line(c + Vector2(8, -12), c + Vector2(12, -8), ink, 2.5, true)
 		"air":
 			# Three gusts of wind, the middle one longer.
 			for line in [[-8.0, -10.0, 6.0], [0.0, -13.0, 11.0], [8.0, -10.0, 4.0]]:

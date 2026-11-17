@@ -157,6 +157,12 @@ var _landmark_group := 0
 ## eraser, and how many squares across the brush is.
 var paint_type := "water"
 var paint_brush := 1
+## What the Ground tab does: one of GroundBrush.TOOLS, and how many squares
+## across the brush is (1, 3 or 5).
+var ground_tool := "raise"
+var ground_brush := 3
+## Whether the Ground tab is offered: not indoors.
+var _ground_offered := true
 var _tile_memory: Dictionary = {}
 var _pictures: LandmarkThumbnails
 
@@ -282,7 +288,7 @@ func is_over_ui(pos: Vector2) -> bool:
 # What the editor tells the panels.
 
 ## The course's name, length and laps on the chip, and its card.
-func show_course(course: CourseDesign, length: float, problems: Array[String], can_close: bool, outline_track: TrackPath = null) -> void:
+func show_course(course: CourseDesign, length: float, problems: Array[String], can_close: bool, outline_track: TrackPath = null, warnings: Array[String] = []) -> void:
 	_course_name = course.name
 	var in_sky: bool = Scenery.theme_named(course.theme).get("void", false)
 	if in_sky != _in_sky:
@@ -299,14 +305,22 @@ func show_course(course: CourseDesign, length: float, problems: Array[String], c
 		BuilderStyle.show_swatch(_themes[id], Color(Scenery.theme_named(id).ground).darkened(0.35), id == course.theme, UiKit.LEAN)
 	for id in _road_colours:
 		BuilderStyle.show_swatch(_road_colours[id], TrackPath.ROAD_COLOURS[id][1], id == course.road_colour, UiKit.LEAN)
+	# A ground map takes the place of the hills, so none of them is picked.
 	for id in _hills:
-		MenuStyle.mark(_hills[id], is_equal_approx(float(id), course.hills))
+		MenuStyle.mark(_hills[id], course.ground == null and is_equal_approx(float(id), course.hills))
+	var offered: bool = not Scenery.theme_named(course.theme).get("indoor", false)
+	if offered != _ground_offered:
+		_ground_offered = offered
+		_rail[CATEGORIES.size() + 2].visible = offered
+		if not offered and sculpting():
+			_show_category(0)
 	for id in _weathers:
 		MenuStyle.mark(_weathers[id], id == course.weather)
 	for id in _times:
 		MenuStyle.mark(_times[id], id == course.time)
-	_problems_label.text = "\n".join(problems.map(func(p): return "• " + p))
-	_problems_label.visible = not problems.is_empty()
+	var listed := problems + warnings
+	_problems_label.text = "\n".join(listed.map(func(p): return "• " + p))
+	_problems_label.visible = not listed.is_empty()
 	_close_up.visible = can_close
 	_join_ends.visible = can_close
 	_problem_count = problems.size()
@@ -461,11 +475,11 @@ func _build_drawer() -> void:
 	var rail := BuilderStyle.dress_drawer(_drawer, row)
 	_rail_box = rail
 	_drawer_row = row
-	var tabs: Array = CATEGORIES.map(func(c): return [c[0], c[1]]) + [["Landmarks", "landmarks"], ["Paint", "paint"]]
+	var tabs: Array = CATEGORIES.map(func(c): return [c[0], c[1]]) + [["Landmarks", "landmarks"], ["Paint", "paint"], ["Ground", "ground"]]
 	for i in tabs.size():
 		var tab := BuilderStyle.rail_tab(tabs[i][1], tabs[i][0])
-		# Shorter than the garage's, so all nine fit a short screen.
-		tab.custom_minimum_size.y = 46.0
+		# Shorter than the garage's, so all ten fit a short screen.
+		tab.custom_minimum_size.y = 40.0
 		tab.pressed.connect(_show_category.bind(i))
 		rail.add_child(tab)
 		_rail.append(tab)
@@ -537,6 +551,9 @@ func _show_category(index: int) -> void:
 	if index == CATEGORIES.size() + 1:
 		_heading.text = "PAINT"
 		_add_paint_tiles()
+	elif index == CATEGORIES.size() + 2:
+		_heading.text = "GROUND"
+		_add_ground_tiles()
 	elif index < CATEGORIES.size():
 		_heading.text = CATEGORIES[index][0].to_upper()
 		for row in CATEGORIES[index][2]:
@@ -558,13 +575,53 @@ func _show_category(index: int) -> void:
 			tile.icon = LandmarkThumbnails.picture(prop)
 			tile.tapped.connect(func() -> void: landmark_chosen.emit(prop))
 			_add_palette_tile(tile, prop)
-	if restore_focus and index != CATEGORIES.size() + 1:
+	if restore_focus and not brushing():
 		_restore_palette_focus.call_deferred()
 
 
 ## Whether the Paint tab is open.
 func painting() -> bool:
 	return _category == CATEGORIES.size() + 1
+
+
+## Whether the Ground tab is open.
+func sculpting() -> bool:
+	return _category == CATEGORIES.size() + 2
+
+
+## Whether a tab with a brush on the course is open, Paint or Ground.
+func brushing() -> bool:
+	return painting() or sculpting()
+
+
+## How many rail tabs there are, shown or not.
+func tab_count() -> int:
+	return _rail.size()
+
+
+## The tab `by` along from the open one, past any that are hidden.
+func next_tab(by: int) -> int:
+	var at := _category
+	for i in _rail.size():
+		at = posmod(at + by, _rail.size())
+		if _rail[at].visible:
+			return at
+	return _category
+
+
+func choose_ground_tool(tool: String) -> void:
+	ground_tool = tool
+	_show_category(_category)
+
+
+## Raise to Lower and back, and anything else to Raise.
+func flip_raise_lower() -> void:
+	choose_ground_tool("lower" if ground_tool == "raise" else "raise")
+
+
+func cycle_ground_brush() -> void:
+	ground_brush = 3 if ground_brush == 1 else 5 if ground_brush == 3 else 1
+	_show_category(_category)
 
 
 func choose_paint(type: String) -> void:
@@ -629,6 +686,38 @@ func _add_paint_tiles() -> void:
 	size_box.offset_top = 28.0 - side * 0.5
 	size_box.offset_bottom = 28.0 + side * 0.5
 	brush.tapped.connect(cycle_brush)
+	_add_palette_tile(brush, "brush")
+	var done := _tile("")
+	_name_tile(done, "Done")
+	var tick := Line2D.new()
+	tick.points = PackedVector2Array([Vector2(34, 36), Vector2(46, 50), Vector2(72, 20)])
+	tick.width = 8.0
+	tick.default_color = UiKit.WHITE
+	tick.joint_mode = Line2D.LINE_JOINT_ROUND
+	done.add_child(tick)
+	done.tapped.connect(_show_category.bind(0))
+	_add_palette_tile(done, "done")
+
+
+## A tile for each of the Ground tab's tools, then the brush size and Done.
+func _add_ground_tiles() -> void:
+	for tool: String in GroundBrush.TOOLS:
+		var tile := _tile("")
+		_name_tile(tile, GroundBrush.NAMES[tool])
+		var picture := GroundToolIcon.new(tool)
+		tile.add_child(picture)
+		picture.set_anchors_and_offsets_preset(PRESET_FULL_RECT)
+		picture.offset_bottom = -46.0
+		BuilderStyle.dress_tile(tile, ground_tool == tool)
+		tile.tapped.connect(choose_ground_tool.bind(tool))
+		_add_palette_tile(tile, tool)
+	var brush := _tile("")
+	_name_tile(brush, "Brush %d" % ground_brush)
+	var size_ring := GroundToolIcon.new("brush", ground_brush)
+	brush.add_child(size_ring)
+	size_ring.set_anchors_and_offsets_preset(PRESET_FULL_RECT)
+	size_ring.offset_bottom = -46.0
+	brush.tapped.connect(cycle_ground_brush)
 	_add_palette_tile(brush, "brush")
 	var done := _tile("")
 	_name_tile(done, "Done")

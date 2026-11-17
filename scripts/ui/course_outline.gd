@@ -13,7 +13,9 @@ extends RefCounted
 ## the road is at each, where the start line is and which way is across it
 ## there, where any loops and corkscrews are, each split's branches (see
 ## _splits_of()), the painted ground as runs (see PaintedAreas.to_dict()), and
-## the box around it all.
+## the box around it all. Asked for, a course with a ground map gets "shade"
+## too, a hillshade of its ground (see _shade_of()); saved outlines don't
+## keep it.
 
 const SAVED := "user://pictures/outlines"
 ## Every how many of the course's samples (a metre apart) go in the line.
@@ -22,6 +24,12 @@ const EVERY := 4
 const LOOK := 5
 ## The island's colour, drawn between a split's branches.
 const ISLAND := Color("#4b9f4a")
+## The hillshade's pixels, how far past the road it reaches, in metres, and
+## how strong its light and dark are at most.
+const SHADE_CELL := 8.0
+const SHADE_REACH := 128.0
+const SHADE_LIGHT := 0.35
+const SHADE_DARK := 0.6
 
 static var _kept := {}
 static var _tidied := false
@@ -59,8 +67,9 @@ static func is_ready(path: String) -> bool:
 	return _kept.has(_key(path))
 
 
-## The outline of a course that's already built.
-static func of_track(track: TrackPath) -> Dictionary:
+## The outline of a course that's already built, with its hillshade if
+## `shade` and it has a ground map.
+static func of_track(track: TrackPath, shade := false) -> Dictionary:
 	var line := PackedVector2Array()
 	var heights := PackedFloat32Array()
 	var loops: Array[Vector2] = []
@@ -84,12 +93,76 @@ static func of_track(track: TrackPath) -> Dictionary:
 	for p in line:
 		box = box.expand(p.rotated(rotation))
 	var across := Vector2(track.start.basis.x.x, track.start.basis.x.z)
-	return {
+	var out := {
 		"name": track.name, "summary": describe(track), "map_rotation": track.map_rotation,
 		"line": line, "heights": heights, "loops": loops, "splits": _splits_of(track), "box": box,
 		"paint": track.paint.to_dict().runs,
 		"start": line[0], "across": across.normalized() if across.length() > 0.01 else Vector2.RIGHT,
 	}
+	if shade and track.ground != null:
+		out.shade = _shade_of(track, line)
+	return out
+
+
+## A hillshade of the ground round the road: one pixel every SHADE_CELL
+## metres, white where the ground faces the light and dark where it faces
+## away, clear where it's flat. { rect, size, data }: the world rect the
+## pixels cover, their count and RGBA8 bytes. Read through the course's
+## layout, so a mirrored race gets it mirrored.
+static func _shade_of(track: TrackPath, line: PackedVector2Array) -> Dictionary:
+	var lo := Vector2(INF, INF)
+	var hi := Vector2(-INF, -INF)
+	for p in line:
+		lo = lo.min(p)
+		hi = hi.max(p)
+	lo -= Vector2.ONE * SHADE_REACH
+	hi += Vector2.ONE * SHADE_REACH
+	var cols := clampi(ceili((hi.x - lo.x) / SHADE_CELL) + 1, 2, 256)
+	var rows := clampi(ceili((hi.y - lo.y) / SHADE_CELL) + 1, 2, 256)
+	var h := PackedFloat32Array()
+	h.resize(cols * rows)
+	for z in rows:
+		for x in cols:
+			h[z * cols + x] = track.ground_height(lo.x + x * SHADE_CELL, lo.y + z * SHADE_CELL)
+	var light := Vector3(-1.0, 1.4, -1.0).normalized()
+	var data := PackedByteArray()
+	data.resize(cols * rows * 4)
+	for z in rows:
+		for x in cols:
+			var dx := (h[z * cols + mini(x + 1, cols - 1)] - h[z * cols + maxi(x - 1, 0)]) / (2.0 * SHADE_CELL)
+			var dz := (h[mini(z + 1, rows - 1) * cols + x] - h[maxi(z - 1, 0) * cols + x]) / (2.0 * SHADE_CELL)
+			var normal := Vector3(-dx, 1.0, -dz).normalized()
+			# How much more or less lit than flat ground, made stronger to show.
+			var lit := clampf((normal.dot(light) - light.y) * 4.0, -1.0, 1.0)
+			var i := (z * cols + x) * 4
+			var grey := 255 if lit > 0.0 else 0
+			data[i] = grey
+			data[i + 1] = grey
+			data[i + 2] = grey
+			data[i + 3] = int(absf(lit) * (SHADE_LIGHT if lit > 0.0 else SHADE_DARK) * 255.0)
+	var rect := Rect2(lo - Vector2.ONE * SHADE_CELL * 0.5, Vector2(cols, rows) * SHADE_CELL)
+	return {"rect": rect, "size": Vector2i(cols, rows), "data": data}
+
+
+## Draws an outline's hillshade, if it has one, with `to_view`, only inside
+## `area` (in the same pixels as `to_view` gives).
+static func draw_shade(item: CanvasItem, outline: Dictionary, to_view: Transform2D, area: Rect2) -> void:
+	var shade = outline.get("shade")
+	if not shade is Dictionary:
+		return
+	if not shade.has("texture"):
+		var image := Image.create_from_data(shade.size.x, shade.size.y, false, Image.FORMAT_RGBA8, shade.data)
+		shade.texture = ImageTexture.create_from_image(image)
+	var rect: Rect2 = shade.rect
+	var quad := PackedVector2Array([to_view * rect.position, to_view * Vector2(rect.end.x, rect.position.y),
+		to_view * rect.end, to_view * Vector2(rect.position.x, rect.end.y)])
+	var box := PackedVector2Array([area.position, Vector2(area.end.x, area.position.y), area.end, Vector2(area.position.x, area.end.y)])
+	var from_view := to_view.affine_inverse()
+	for piece: PackedVector2Array in Geometry2D.intersect_polygons(quad, box):
+		var uvs := PackedVector2Array()
+		for p in piece:
+			uvs.append(((from_view * p) - rect.position) / rect.size)
+		item.draw_colored_polygon(piece, Color.WHITE, uvs, shade.texture)
 
 
 ## Each split as { middle, across, left, right }: points down its middle line

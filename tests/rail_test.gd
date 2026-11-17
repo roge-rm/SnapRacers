@@ -295,7 +295,7 @@ func _builders() -> void:
 		add_child(ui)
 		await frames()
 		if ui is TrackEditorUI:
-			check(ui._rail.size() == 9 and ui._rail[4].picture == "banked", "the track editor has nine native rail tabs including Banked")
+			check(ui._rail.size() == 10 and ui._rail[4].picture == "banked" and ui._rail[9].picture == "ground", "the track editor has ten native rail tabs including Banked and Ground")
 		var rail: RailBox = ui._rail_box
 		var safe: SafeArea = ui.find_child("SafeArea", false, false)
 		var rect := rail.get_global_rect()

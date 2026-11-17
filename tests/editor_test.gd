@@ -104,6 +104,7 @@ func _ready() -> void:
 	check(editor.course.landmarks.size() == 1, "but it can beside it")
 	await _controller(editor)
 	await _paint(editor)
+	await _ground(editor)
 
 	# Saving.
 	editor.course.name = "Editor Test Course"
@@ -232,7 +233,28 @@ func _controller(editor: TrackEditor) -> void:
 	editor.ui._show_category(TrackEditorUI.CATEGORIES.size() + 1)
 	pad._button(JOY_BUTTON_RIGHT_SHOULDER)
 	await frames(2)
-	check(editor.ui._category == 0 and get_viewport().gui_get_focus_owner() == editor.ui._tiles.get_child(3), "RB wraps from Landmarks onto the remembered straight tile")
+	check(editor.ui.sculpting() and get_viewport().gui_get_focus_owner() == null, "RB from Paint opens Ground with the stick on the brush")
+	editor.ui.ground_tool = "raise"
+	pad._button(JOY_BUTTON_X)
+	check(editor.ui.ground_tool == "lower", "X flips Raise to Lower")
+	pad._button(JOY_BUTTON_X)
+	check(editor.ui.ground_tool == "raise", "and back")
+	var ground_brush: int = editor.ui.ground_brush
+	pad._button(JOY_BUTTON_Y)
+	check(editor.ui.ground_brush != ground_brush, "Y changes the ground brush size")
+	undo_before = editor._undo.size()
+	pad._brush = editor.get_viewport().get_visible_rect().size * 0.5
+	pad._button(JOY_BUTTON_A)
+	held = editor._stroke
+	await frames(10)
+	pad._input(stop)
+	check(held and not editor._stroke and editor.course.ground != null, "holding A sculpts a ground map and letting go ends the stroke")
+	check(editor._undo.size() == undo_before + 1, "as one undo step")
+	editor.undo()
+	check(editor.course.ground == null, "which undo takes back")
+	pad._button(JOY_BUTTON_RIGHT_SHOULDER)
+	await frames(2)
+	check(editor.ui._category == 0 and get_viewport().gui_get_focus_owner() == editor.ui._tiles.get_child(3), "RB wraps from Ground onto the remembered straight tile")
 	editor.ui._show_category(tab)
 	editor.ui.focus_palette()
 	var pieces := editor.course.pieces.size()
@@ -365,4 +387,119 @@ func _paint(editor: TrackEditor) -> void:
 	check(not editor.ui.painting(), "Done goes back to the first tab")
 	editor.course = CourseDesign.from_dict(kept)
 	editor._undo.clear()
+	editor._refresh()
+
+
+## Sculpting the ground: the first stroke bakes the hills into a map, a stroke
+## is one undo step, picking hills clears the map, Level to road, the map
+## growing with the course and the Ground tab hidden indoors.
+func _ground(editor: TrackEditor) -> void:
+	var kept := editor.course.to_dict()
+	var ground_tab := TrackEditorUI.CATEGORIES.size() + 2
+	editor.ui._show_category(ground_tab)
+	check(editor.ui.sculpting() and not editor.ui.painting(), "the Ground tab opens")
+	var tiles := editor.ui._tiles.get_children()
+	check(tiles.size() == GroundBrush.TOOLS.size() + 2, "with a tile for each tool, the brush and Done (%d)" % tiles.size())
+	editor.ui.hills_chosen.emit(8.0)
+	check(editor.course.ground == null and editor.course.hills == 8.0, "a course with rolling hills has no map yet")
+	var k := editor.track.points.size() / 3
+	var spot: Vector3 = editor.track.points[k] + editor.track.rights[k] * 70.0
+	var away: Vector3 = editor.track.points[k] + editor.track.rights[k] * -70.0
+	var hill_here := editor.track.ground_height(spot.x, spot.z)
+	var hill_away := editor.track.ground_height(away.x, away.z)
+	var undo_before := editor._undo.size()
+	editor.ui.ground_tool = "raise"
+	editor.ui.ground_brush = 3
+	editor.paint_begin(spot)
+	for i in 30:
+		editor.sculpt_for(1.0 / 60.0)
+	editor.paint_end()
+	var map := editor.course.ground
+	check(map != null, "the first stroke makes a ground map")
+	check(map != null and absf(map.height_at(away.x, away.z) - hill_away) < 0.05, "with the hills baked in away from the brush (%.2f, %.2f)" % [map.height_at(away.x, away.z) if map != null else 0.0, hill_away])
+	var raised := map.height_at(spot.x, spot.z) - hill_here if map != null else 0.0
+	check(raised > 1.2 and raised < 1.8, "Raise lifts the ground about 2 m a second (%.2f m in 0.75 s)" % raised)
+	check(editor._undo.size() == undo_before + 1, "the stroke is one undo step")
+	check(editor.track.ground != null and editor.course.to_dict().has("ground") and not editor.course.to_dict().has("hills"), "the course keeps the map instead of the hills")
+	editor.undo()
+	check(editor.course.ground == null and editor.course.hills == 8.0, "undo goes back to the hills")
+	editor.redo()
+	check(editor.course.ground != null, "and redo brings the map back")
+	# Picking hills clears the map, as one undo step.
+	undo_before = editor._undo.size()
+	editor.ui.hills_chosen.emit(0.0)
+	check(editor.course.ground == null and editor.course.hills == 0.0 and editor._undo.size() == undo_before + 1, "picking Flat clears the map in one undo step")
+	editor.undo()
+	check(editor.course.ground != null, "which undo brings back")
+	# Level to road: a hill raised beside the road comes back down to it.
+	var on_ground := -1
+	for i in range(0, editor.track.points.size(), 7):
+		if editor.track.points[i].y - editor.track.grounds[i] < 0.1 and not editor.track.stickies[i]:
+			on_ground = i
+			break
+	var road := editor.track.points[on_ground]
+	var verge: Vector3 = road + editor.track.rights[on_ground] * (editor.course.width * 0.5 + 10.0)
+	editor.paint_begin(verge)
+	for i in 120:
+		editor.sculpt_for(1.0 / 60.0)
+	editor.paint_end()
+	var before_level := editor.course.ground.height_at(verge.x, verge.z)
+	editor.ui.ground_tool = "level"
+	editor.paint_begin(verge)
+	for i in 180:
+		editor.sculpt_for(1.0 / 60.0)
+	editor.paint_end()
+	var level := editor.course.ground.height_at(verge.x, verge.z)
+	# Within half a metre, as each point goes to the road nearest it, which
+	# climbs with the hills.
+	check(before_level - editor.track.grounds[on_ground] > 2.0 and absf(level - editor.track.grounds[on_ground]) < 0.5, "Level to road brings a raised verge back to the road in one stroke (%.2f to %.2f, road %.2f)" % [before_level, level, editor.track.grounds[on_ground]])
+	# Flatten holds the height where the stroke starts.
+	editor.ui.ground_tool = "flatten"
+	var start_height := editor.course.ground.height_at(spot.x, spot.z)
+	editor.paint_begin(spot)
+	editor.paint_to(spot + Vector3(16.0, 0.0, 0.0))
+	for i in 180:
+		editor.sculpt_for(1.0 / 60.0)
+	editor.paint_end()
+	var flat := editor.course.ground.height_at(spot.x + 16.0, spot.z)
+	check(absf(flat - start_height) < 0.3, "Flatten brings the ground to where the stroke started (%.2f, %.2f)" % [flat, start_height])
+	# The ground's the brush's: the screen point under the middle lands on the map.
+	var middle := editor.get_viewport().get_visible_rect().size * 0.5
+	var landed := editor._ground_point(middle)
+	check(absf(landed.y - editor.course.ground.height_at(landed.x, landed.z)) < 0.2, "a point on the screen lands on the map (%.2f, %.2f)" % [landed.y, editor.course.ground.height_at(landed.x, landed.z)])
+	# The map grows to cover new road, keeping what was there.
+	var old := editor.course.ground
+	var old_points := old.cols * old.rows
+	var raised_at := old.height_at(spot.x, spot.z)
+	for i in 4:
+		editor.add_piece({"type": "straight", "length": 4})
+	var grown := editor.course.ground
+	check(grown.cols * grown.rows > old_points and absf(grown.height_at(spot.x, spot.z) - raised_at) < 0.01, "the map grows with the course and keeps its heights (%d to %d points)" % [old_points, grown.cols * grown.rows])
+	var box := Rect2(grown.origin, Vector2(grown.cols - 1, grown.rows - 1) * grown.cell)
+	var covered := true
+	for p in editor.track.points:
+		covered = covered and box.grow(-100.0).has_point(Vector2(p.x, p.z))
+	check(covered, "and covers the new road with room round it")
+	# A spike under the road is a problem, shown in red.
+	editor.ui.ground_tool = "raise"
+	editor.ui.ground_brush = 5
+	editor.paint_begin(road)
+	for i in 300:
+		editor.sculpt_for(1.0 / 60.0)
+	editor.paint_end()
+	var warnings := editor.course.warnings()
+	check(warnings.has("The road can't climb that steeply here.") and editor.ui._problems_label.text.contains("climb that steeply"), "a sculpted spike under the road gets a warning on the card %s" % [warnings])
+	check(editor._problem_view.visible and editor._problem_view.multimesh.instance_count > 0, "marked in red on the course")
+	check(not editor.course.problems().has("The road can't climb that steeply here."), "which doesn't stop it being raced")
+	# Indoors there's no Ground tab.
+	editor.ui.theme_chosen.emit("hall_red")
+	check(not editor.ui._rail[ground_tab].visible and not editor.ui.sculpting(), "an indoor course has no Ground tab")
+	editor.ui._show_category(ground_tab - 1)
+	check(editor.ui.next_tab(1) == 0, "and the tabs go round past it")
+	editor.ui.theme_chosen.emit("sky")
+	check(editor.ui._rail[ground_tab].visible, "up in the sky it's back")
+	editor.ui._show_category(0)
+	editor.course = CourseDesign.from_dict(kept)
+	editor._undo.clear()
+	editor._redo.clear()
 	editor._refresh()

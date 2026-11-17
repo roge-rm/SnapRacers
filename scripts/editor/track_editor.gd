@@ -89,6 +89,25 @@ var _stroke_undo := {}
 ## What the brush showed last (see _update_brush()).
 var _brush_key := []
 
+## Sculpting: the ground map drawn straight from its points while it's being
+## worked on and until the full build, the ring round the brush laid on it,
+## red marks where the course has a problem with its ground, the hills as a
+## map for the brush before the first stroke makes one, the Flatten height
+## and the road's levels for Level to road.
+var _relief_view: MeshInstance3D
+## The flat ground's own look, and the look it takes round a map: flat at
+## the map's edge, drawn like the map so the map isn't lost under it.
+var _ground_look: Material
+var _far_look: ShaderMaterial
+var _relief_heights: ImageTexture
+var _relief_size := Vector2i.ZERO
+var _ring: MeshInstance3D
+var _ring_key := []
+var _problem_view: MultiMeshInstance3D
+var _unbaked: GroundMap
+var _sculpt_target := 0.0
+var _road_levels: GroundBrush.RoadLevels
+
 var _fingers := {}
 var _press_at := Vector2.ZERO
 var _dragging := false
@@ -144,6 +163,7 @@ func _ready() -> void:
 	_highlight.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	_paint_view = _squares_view(0.25)
 	_brush_view = _squares_view(0.5)
+	_make_relief_view()
 	_camera = Camera3D.new()
 	# The course is seen from well back, so the near plane can be too, or the
 	# grass flickers through the road.
@@ -193,8 +213,10 @@ func _ready() -> void:
 		course.road_colour = id
 		_refresh())
 	ui.hills_chosen.connect(func(hills: float) -> void:
+		# Picking hills clears a ground map, in the same undo step.
 		_remember()
 		course.hills = hills
+		course.ground = null
 		_refresh())
 	ui.weather_chosen.connect(func(weather: String) -> void:
 		_remember()
@@ -692,7 +714,7 @@ func _landmark_node(mark: Dictionary, index: int) -> Node3D:
 	node.collision_layer = LANDMARK_LAYER
 	node.collision_mask = 0
 	node.set_meta("landmark", index)
-	var at := Vector3(float(mark.at[0]), 0.0, float(mark.at[1]))
+	var at := Vector3(float(mark.at[0]), _ground_height(float(mark.at[0]), float(mark.at[1])), float(mark.at[1]))
 	node.position = at
 	var kit := SceneryKit.new()
 	var rng := RandomNumberGenerator.new()
@@ -741,6 +763,13 @@ func rotate_map(by: float) -> void:
 func _refresh(immediate := false) -> void:
 	cancel_join(false)
 	track = course.track()
+	# A ground map grows to cover new road.
+	if course.ground != null:
+		var bigger := GroundBrush.grown(course.ground, track)
+		if bigger != null:
+			course.ground = bigger
+			track = course.track()
+	_unbaked = null
 	_lay_out()
 	_rebuild_landmarks()
 	if _sky_theme != course.theme:
@@ -750,9 +779,11 @@ func _refresh(immediate := false) -> void:
 			child.queue_free()
 		var look := Scenery.theme_named(course.theme)
 		SkyAndSun.add_to(_sky, 400.0, Color.TRANSPARENT, look.get("sky", []))
-		_ground.material_override = TrackBuilder.ground_material(look)
+		_ground_look = TrackBuilder.ground_material(look)
+		_ground.material_override = _ground_look
 	var problems := course.problems()
-	ui.show_course(course, track.length, problems, not track.closes and not course.pieces.is_empty(), track)
+	_show_problem_spots()
+	ui.show_course(course, track.length, problems, not track.closes and not course.pieces.is_empty(), track, course.warnings(track))
 	ui.set_undo_state(not _undo.is_empty(), not _redo.is_empty())
 	_update_hint()
 	_keep()
@@ -762,8 +793,7 @@ func _refresh(immediate := false) -> void:
 		_full = null
 	_quick.visible = true
 	_show_squares(true)
-	# Up in the sky there's no ground.
-	_ground.visible = not Scenery.theme_named(course.theme).get("void", false)
+	_show_relief()
 	_build_in = IDLE_BUILD
 	# A course being opened or replaced is complete before its first draw.
 	if immediate:
@@ -843,6 +873,12 @@ func _process(delta: float) -> void:
 		_update_brush()
 	elif _brush_view.visible:
 		_brush_view.visible = false
+	if ui.sculpting():
+		if _stroke:
+			sculpt_for(delta)
+		_update_ring()
+	elif _ring.visible:
+		_ring.visible = false
 	if _following:
 		_focus = _focus.lerp(_focus_goal, 1.0 - exp(-delta * 4.0))
 		_place_camera()
@@ -861,6 +897,7 @@ func _build_full() -> void:
 	_quick.visible = false
 	_ground.visible = false
 	_paint_view.visible = false
+	_relief_view.visible = false
 	_apply_highlight()
 
 
@@ -917,14 +954,42 @@ func _zoom(factor: float) -> void:
 	_place_camera()
 
 
-## Where this screen point lands on the ground.
+## Where this screen point lands on the ground: the course's ground map, or
+## the hills as a map on the Ground tab before there is one, or flat ground.
 func _ground_point(pos: Vector2) -> Vector3:
 	var from := _camera.project_ray_origin(pos)
 	var dir := _camera.project_ray_normal(pos)
 	if absf(dir.y) < 0.001:
 		return _focus
-	var t := -from.y / dir.y
-	return from + dir * maxf(t, 0.0)
+	var map := course.ground if course.ground != null else _relief() if ui != null and ui.sculpting() else null
+	if map == null or dir.y > -0.001:
+		var t := -from.y / dir.y
+		return from + dir * maxf(t, 0.0)
+	# Marched along in 4 m steps between the map's highest and lowest, then
+	# narrowed down to where it meets the ground.
+	var low := INF
+	var high := -INF
+	for h in map.heights:
+		low = minf(low, h)
+		high = maxf(high, h)
+	var t := maxf((high + 1.0 - from.y) / dir.y, 0.0)
+	var last := maxf((low - 1.0 - from.y) / dir.y, t)
+	var above := t
+	while t <= last:
+		var p := from + dir * t
+		if p.y <= map.height_at(p.x, p.z):
+			var below := t
+			for i in 12:
+				var middle := (above + below) * 0.5
+				var q := from + dir * middle
+				if q.y <= map.height_at(q.x, q.z):
+					below = middle
+				else:
+					above = middle
+			return from + dir * below
+		above = t
+		t += 4.0
+	return from + dir * last
 
 
 # Touches.
@@ -934,7 +999,7 @@ func _unhandled_input(event: InputEvent) -> void:
 		_on_touch(event)
 	elif event is InputEventScreenDrag:
 		_on_drag(event)
-	elif event is InputEventMouseMotion and ui.painting() and not _stroke:
+	elif event is InputEventMouseMotion and ui.brushing() and not _stroke:
 		move_brush(_ground_point(event.position))
 	elif event is InputEventMouseButton and event.pressed:
 		match event.button_index:
@@ -972,7 +1037,7 @@ func _on_touch(event: InputEventScreenTouch) -> void:
 		if _stroke:
 			paint_end()
 		elif not _several_fingers and not _dragging:
-			if ui.painting():
+			if ui.brushing():
 				paint_begin(_ground_point(event.position))
 				paint_end()
 			else:
@@ -1028,8 +1093,8 @@ func _on_drag(event: InputEventScreenDrag) -> void:
 			_distance = clampf(_pinch_start * _pinch_distance_start / spread, MIN_DISTANCE, MAX_DISTANCE)
 		_pan(event.relative / _fingers.size())
 		return
-	if ui.painting():
-		# One finger paints, from where it first went down.
+	if ui.brushing():
+		# One finger paints or sculpts, from where it first went down.
 		_dragging = true
 		var at := _ground_point(event.position)
 		if not _stroke:
@@ -1044,7 +1109,7 @@ func _on_drag(event: InputEventScreenDrag) -> void:
 	if not _holding.is_empty() and _ghost != null and _camera.unproject_position(_ghost.global_position).distance_to(_press_at) < GRAB_RADIUS * 2.0:
 		var at := _ground_point(event.position)
 		_holding.at = [at.x, at.z]
-		_ghost.position = Vector3(at.x, 0.0, at.z)
+		_ghost.position = Vector3(at.x, _ground_height(at.x, at.z), at.z)
 		_ghost_look.albedo_color = _ring_colour(_clear_of_road(_holding))
 		_press_at = event.position
 		return
@@ -1152,9 +1217,13 @@ func move_brush(at: Vector3) -> void:
 	_brush_at = at
 
 
-## Starts a stroke at a point. It erases if the eraser's picked or the first
-## square is already the picked type.
+## Starts a stroke at a point, on the Paint tab or the Ground tab (see
+## sculpt_begin()). Paint erases if the eraser's picked or the first square
+## is already the picked type.
 func paint_begin(at: Vector3) -> void:
+	if not _stroke and ui.sculpting():
+		sculpt_begin(at)
+		return
 	if _stroke or not ui.painting():
 		return
 	_stroke = true
@@ -1170,6 +1239,10 @@ func paint_begin(at: Vector3) -> void:
 ## Paints along from where the stroke was to a point.
 func paint_to(at: Vector3) -> void:
 	if not _stroke:
+		return
+	if ui.sculpting():
+		_brush_at = at
+		_stroke_last = at
 		return
 	var type := "" if _stroke_erases else _brush_type()
 	var gap := _stroke_last.distance_to(at)
@@ -1194,7 +1267,7 @@ func paint_to(at: Vector3) -> void:
 			_full.queue_free()
 			_full = null
 		_quick.visible = true
-		_ground.visible = not Scenery.theme_named(course.theme).get("void", false)
+		_show_relief()
 	_show_squares(true)
 
 
@@ -1207,6 +1280,253 @@ func paint_end() -> void:
 	if _stroke_changed:
 		_stroke_changed = false
 		_refresh()
+
+
+# Sculpting.
+
+## A tap with the brush works it for this long, in seconds.
+const TAP := 0.25
+## The ring round the brush, how far above the ground and how thick for each
+## metre the camera's back.
+const RING_LIFT := 0.4
+const RING_THICK := 0.004
+const RELIEF_SHADER := """
+shader_type spatial;
+render_mode cull_disabled;
+uniform sampler2D heights : filter_nearest;
+const float PUSH = 8.0;
+uniform vec2 origin;
+uniform float cell;
+uniform ivec2 size;
+// Picked as sRGB and turned linear below, since the phone's renderer doesn't
+// convert a source_color hint.
+uniform vec3 colour = vec3(0.3, 0.6, 0.3);
+varying float height;
+
+float map_point(ivec2 at) {
+	return texelFetch(heights, clamp(at, ivec2(0), size - ivec2(1)), 0).r;
+}
+
+float map_height(vec2 xz) {
+	vec2 f = clamp((xz - origin) / cell, vec2(0.0), vec2(size - ivec2(1)));
+	ivec2 i = ivec2(floor(f));
+	vec2 a = f - vec2(i);
+	return mix(mix(map_point(i), map_point(i + ivec2(1, 0)), a.x), mix(map_point(i + ivec2(0, 1)), map_point(i + ivec2(1, 1)), a.x), a.y);
+}
+
+void vertex() {
+	vec2 xz = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xz;
+	height = map_height(xz);
+	VERTEX.y = height;
+	float e = cell * 0.5;
+	NORMAL = normalize(vec3(map_height(xz - vec2(e, 0.0)) - map_height(xz + vec2(e, 0.0)), 2.0 * e, map_height(xz - vec2(0.0, e)) - map_height(xz + vec2(0.0, e))));
+	// Drawn as if a few metres further away, so road cut into a hill still
+	// shows through it before the full build cuts the ground.
+	vec3 seen = (MODELVIEW_MATRIX * vec4(VERTEX, 1.0)).xyz;
+	seen *= 1.0 + PUSH / max(length(seen), 1.0);
+	POSITION = PROJECTION_MATRIX * vec4(seen, 1.0);
+}
+
+void fragment() {
+	// Faint lines every 2 m up, so the slopes read from above.
+	float line = 1.0 - smoothstep(0.0, fwidth(height) * 1.5, abs(fract(height * 0.5 + 0.5) - 0.5) * 2.0);
+	vec3 base = pow(colour, vec3(2.2));
+	ALBEDO = mix(base, base * 0.6, line * 0.6);
+	ROUGHNESS = 1.0;
+	SPECULAR = 0.1;
+}
+"""
+
+
+func _make_relief_view() -> void:
+	_relief_view = MeshInstance3D.new()
+	var look := ShaderMaterial.new()
+	look.shader = Shader.new()
+	look.shader.code = RELIEF_SHADER
+	_relief_view.material_override = look
+	_relief_view.visible = false
+	_far_look = ShaderMaterial.new()
+	_far_look.shader = look.shader
+	# Moved up or down to the map's edge by the shader.
+	_ground.extra_cull_margin = GroundBrush.MOST
+	_relief_view.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	add_child(_relief_view)
+	_ring = MeshInstance3D.new()
+	_ring.mesh = ImmediateMesh.new()
+	var ring_look := StandardMaterial3D.new()
+	ring_look.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	ring_look.vertex_color_use_as_albedo = true
+	ring_look.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	ring_look.no_depth_test = true
+	ring_look.cull_mode = BaseMaterial3D.CULL_DISABLED
+	_ring.material_override = ring_look
+	_ring.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	_ring.visible = false
+	add_child(_ring)
+	_problem_view = MultiMeshInstance3D.new()
+	var post := CylinderMesh.new()
+	post.top_radius = 5.0
+	post.bottom_radius = 5.0
+	post.height = 8.0
+	var red := StandardMaterial3D.new()
+	red.albedo_color = Color(1.0, 0.2, 0.2, 0.55)
+	red.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	red.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	red.no_depth_test = true
+	post.material = red
+	var multi := MultiMesh.new()
+	multi.transform_format = MultiMesh.TRANSFORM_3D
+	multi.mesh = post
+	_problem_view.multimesh = multi
+	_problem_view.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	add_child(_problem_view)
+
+
+## The ground the brush works on: the course's map, or the hills made into
+## one (not kept on the course until a stroke changes it). Null with no road.
+func _relief() -> GroundMap:
+	if course.ground != null:
+		return course.ground
+	if _unbaked == null and track != null:
+		_unbaked = GroundBrush.bake(track)
+	return _unbaked
+
+
+## How high the ground is here, as the editor shows it.
+func _ground_height(x: float, z: float) -> float:
+	return course.ground.height_at(x, z) if course.ground != null else 0.0
+
+
+## The map drawn from its points in place of the flat ground until the full
+## build, or the flat ground when there's no map. The flat ground stays out
+## past the map's edge, a metre under its lowest edge point.
+func _show_relief() -> void:
+	var void_theme: bool = Scenery.theme_named(course.theme).get("void", false)
+	var map := course.ground
+	var showing := _full == null
+	_ground.visible = showing and not void_theme
+	_relief_view.visible = showing and map != null
+	var colour := Color(Scenery.theme_named(course.theme).get("ground", "#4b9f4a"))
+	if map == null:
+		_ground.material_override = _ground_look
+		return
+	var rim := INF
+	for x in map.cols:
+		rim = minf(rim, minf(map.height_of(x, 0), map.height_of(x, map.rows - 1)))
+	for z in map.rows:
+		rim = minf(rim, minf(map.height_of(0, z), map.height_of(map.cols - 1, z)))
+	var far := Image.create_from_data(1, 1, false, Image.FORMAT_RF, PackedFloat32Array([rim - 1.0]).to_byte_array())
+	_far_look.set_shader_parameter("heights", ImageTexture.create_from_image(far))
+	_far_look.set_shader_parameter("origin", Vector2.ZERO)
+	_far_look.set_shader_parameter("cell", 1.0)
+	_far_look.set_shader_parameter("size", Vector2i.ONE)
+	_far_look.set_shader_parameter("colour", colour)
+	_ground.material_override = _far_look
+	var image := Image.create_from_data(map.cols, map.rows, false, Image.FORMAT_RF, map.heights.to_byte_array())
+	var size := Vector2i(map.cols, map.rows)
+	if _relief_heights == null or size != _relief_size:
+		_relief_heights = ImageTexture.create_from_image(image)
+		_relief_size = size
+		var plane := PlaneMesh.new()
+		plane.size = Vector2(map.cols - 1, map.rows - 1) * map.cell
+		plane.subdivide_width = map.cols - 2
+		plane.subdivide_depth = map.rows - 2
+		_relief_view.mesh = plane
+	else:
+		_relief_heights.update(image)
+	var half := Vector2(map.cols - 1, map.rows - 1) * map.cell * 0.5
+	_relief_view.position = Vector3(map.origin.x + half.x, 0.0, map.origin.y + half.y)
+	# The mesh is flat, so it's culled by a box as tall as the map can be.
+	_relief_view.custom_aabb = AABB(Vector3(-half.x, -GroundBrush.MOST, -half.y), Vector3(half.x * 2.0, GroundBrush.MOST * 2.0, half.y * 2.0))
+	var look: ShaderMaterial = _relief_view.material_override
+	look.set_shader_parameter("heights", _relief_heights)
+	look.set_shader_parameter("origin", map.origin)
+	look.set_shader_parameter("cell", map.cell)
+	look.set_shader_parameter("size", size)
+	look.set_shader_parameter("colour", colour)
+
+
+## Starts sculpting at a point with the Ground tab's tool. A course with no
+## map gets one from its hills when the stroke first changes something.
+func sculpt_begin(at: Vector3) -> void:
+	if _stroke or not ui.sculpting():
+		return
+	_stroke = true
+	_stroke_changed = false
+	_brush_at = at
+	_stroke_last = at
+	_stroke_undo = _snapshot()
+	var map := _relief()
+	_sculpt_target = map.height_at(at.x, at.z) if map != null else 0.0
+	_road_levels = null
+	sculpt_for(TAP)
+
+
+## Works the brush where it is for `seconds`, while a stroke's going.
+func sculpt_for(seconds: float) -> void:
+	if not _stroke or not ui.sculpting():
+		return
+	var map := _relief()
+	if map == null:
+		return
+	if ui.ground_tool == "level" and _road_levels == null:
+		_road_levels = GroundBrush.RoadLevels.new(track)
+	if not GroundBrush.work(map, ui.ground_tool, Vector2(_brush_at.x, _brush_at.z), ui.ground_brush, seconds, _sculpt_target, _road_levels):
+		return
+	if course.ground == null:
+		course.ground = map
+		_unbaked = null
+	if not _stroke_changed:
+		# The first change is the step undo goes back over.
+		_stroke_changed = true
+		_undo.append(_stroke_undo)
+		if _undo.size() > 100:
+			_undo.pop_front()
+		_redo.clear()
+		ui.set_undo_state(true, false)
+		if _full != null:
+			_full.queue_free()
+			_full = null
+		_quick.visible = true
+		_build_in = -1.0
+	_show_relief()
+	_ring_key = []
+
+
+## Lays the ring round the brush on the ground, red past the map's edge.
+## Only made again when the brush, its size or the ground under it changes.
+func _update_ring() -> void:
+	var map := _relief()
+	var radius: float = GroundBrush.WIDTHS.get(ui.ground_brush, 8.0) * 0.5
+	var key := [_brush_at, radius, _distance, map, ui.ground_tool]
+	_ring.visible = true
+	if key == _ring_key:
+		return
+	_ring_key = key
+	var inside := map != null and Rect2(map.origin, Vector2(map.cols - 1, map.rows - 1) * map.cell).has_point(Vector2(_brush_at.x, _brush_at.z))
+	var colour := Color(1, 1, 1, 0.9) if inside else Color(1.0, 0.3, 0.3, 0.9)
+	var thick := maxf(_distance * RING_THICK, 0.5)
+	var mesh: ImmediateMesh = _ring.mesh
+	mesh.clear_surfaces()
+	mesh.surface_begin(Mesh.PRIMITIVE_TRIANGLE_STRIP)
+	for k in 49:
+		var way := Vector2.from_angle(k * TAU / 48.0)
+		for r in [radius - thick * 0.5, radius + thick * 0.5]:
+			var spot: Vector2 = Vector2(_brush_at.x, _brush_at.z) + way * r
+			var y := (map.height_at(spot.x, spot.y) if map != null else 0.0) + RING_LIFT
+			mesh.surface_set_color(colour)
+			mesh.surface_add_vertex(Vector3(spot.x, y, spot.y))
+	mesh.surface_end()
+
+
+## Red marks where the road's too steep for the ground or water's dug in.
+func _show_problem_spots() -> void:
+	var spots := course.ground_problem_spots(track)
+	var multi := _problem_view.multimesh
+	multi.instance_count = spots.size()
+	for i in spots.size():
+		multi.set_instance_transform(i, Transform3D(Basis.IDENTITY, spots[i] + Vector3.UP * 4.0))
+	_problem_view.visible = not spots.is_empty()
 
 
 func _start_pinch() -> void:

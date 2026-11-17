@@ -97,7 +97,7 @@ func _changed() -> void:
 ## Updates the live preview of a course being edited.
 func show_track(track: TrackPath) -> void:
 	path = ""
-	_outline = CourseOutline.of_track(track)
+	_outline = CourseOutline.of_track(track, true)
 	_course_key = var_to_str(_outline).md5_text()
 	_changed()
 
@@ -319,6 +319,7 @@ static func _material() -> ShaderMaterial:
 static func _paint(item: CanvasItem, outline: Dictionary, area: Vector2, scale: float, width: float, tint: Color, corner := Vector2.ZERO) -> void:
 	item.draw_set_transform(corner, 0.0, Vector2.ONE * scale)
 	var to_view := CourseOutline.fit(outline, Rect2(Vector2.ZERO, area), width * 2.0 + 2.0)
+	CourseOutline.draw_shade(item, outline, to_view, Rect2(Vector2.ZERO, area))
 	CourseOutline.draw_paint(item, outline, to_view, Transform2D(0.0, Vector2.ONE * scale, 0.0, corner))
 	var all: PackedVector2Array = to_view * (outline.line as PackedVector2Array)
 	var all_heights: PackedFloat32Array = outline.heights

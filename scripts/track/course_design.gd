@@ -17,6 +17,13 @@ const FOLDER := "user://courses"
 const SHORTEST := 600.0
 ## Tiles of straight road the grid needs behind the start line.
 const GRID_TILES := 2
+## Road on the ground further than this from a ground map under it is too
+## steep a climb for the road, in metres.
+const STEEP_GAP := 4.0
+## Painted water dug deeper than this into a slope is a problem, in metres.
+const DUG_DEEP := 3.0
+## Problem spots closer than this are marked once.
+const SPOT_GAP := 24.0
 
 var name := "My course"
 var theme := "orchard"
@@ -204,6 +211,63 @@ func _below_ground(path: TrackPath) -> bool:
 		if path.points[k].y < ground - 0.1:
 			return true
 	return false
+
+
+## What looks wrong with the course's ground, as sentences. Unlike problems()
+## these don't stop it being raced, since a cutting or embankment can be on
+## purpose. `path` is the course's track, if it's made already.
+func warnings(path: TrackPath = null) -> Array[String]:
+	var out: Array[String] = []
+	if path == null:
+		path = track()
+	if not steep_spots(path).is_empty():
+		out.append("The road can't climb that steeply here.")
+	if not dug_spots(path).is_empty():
+		out.append("Water on a slope is dug more than 3 m into the ground.")
+	return out
+
+
+## Where the road on a ground map is more than STEEP_GAP off the map under
+## it, because the map climbs faster than the road can follow, about one
+## spot every SPOT_GAP metres.
+func steep_spots(path: TrackPath) -> PackedVector3Array:
+	var out := PackedVector3Array()
+	if path.ground == null:
+		return out
+	var last := Vector3.INF
+	for k in path.points.size():
+		if k >= path.grounds.size() or path.stickies[k] or path.points[k].y - path.grounds[k] >= TrackBuilder.RAISED:
+			continue
+		var p := path.points[k]
+		if absf(path.grounds[k] - path.ground_height(p.x, p.z)) > STEEP_GAP and p.distance_to(last) > SPOT_GAP:
+			out.append(p)
+			last = p
+	return out
+
+
+## Where painted water or lava sits more than DUG_DEEP under the ground at
+## the middle of one of its squares, on a course whose ground rises and falls.
+func dug_spots(path: TrackPath) -> PackedVector3Array:
+	var out := PackedVector3Array()
+	if not path.has_relief() or not path.paint.has_deep():
+		return out
+	var levels := path.paint.surface_levels(path.ground_height)
+	var last := Vector3.INF
+	for square: Vector2i in levels:
+		var middle := PaintedAreas.middle_of(square)
+		var ground := path.ground_height(middle.x, middle.y)
+		var spot := Vector3(middle.x, ground, middle.y)
+		if ground - float(levels[square]) > DUG_DEEP and spot.distance_to(last) > SPOT_GAP:
+			out.append(spot)
+			last = spot
+	return out
+
+
+## Both of the above, for marking in red.
+func ground_problem_spots(path: TrackPath) -> PackedVector3Array:
+	var out := steep_spots(path)
+	out.append_array(dug_spots(path))
+	return out
 
 
 ## Whether any split piece sits above the ground. Its branches and island

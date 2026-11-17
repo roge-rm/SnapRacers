@@ -107,7 +107,7 @@ func _controls() -> void:
 	check(fit, "all 114 captions fit their 104 px tiles at 800 by 450")
 	check(clear, "the final row in every road tab scrolls fully above the race buttons on narrow screens")
 	check(screen.encloses(ui._drawer.get_global_rect()) and ui._drawer.find_children("*", "OptionButton", true, false).all(func(choice): return not choice.visible), "the parts drawer fits an 800 by 450 view without road dropdowns")
-	check(ui._rail.size() == 7 and ui._rail.all(func(tab): return screen.encloses(tab.get_global_rect())), "all seven rail tabs fit the narrow landscape screen")
+	check(ui._rail.size() == 10 and ui._rail.all(func(tab): return screen.encloses(tab.get_global_rect())), "all ten rail tabs fit the narrow landscape screen")
 	check(ui._tiles.size.x <= ui._tiles.get_parent().size.x and ui._tiles.get_parent().size.y >= BuilderStyle.TILE.y, "narrow landscape keeps both part columns and at least one visible row")
 	ui.show_selection(7, {"type": "arc", "angle": 45, "turn": "left", "size": 2, "rise": 1, "surface": "dirt", "edges": "open"})
 	check(ui._action_title.text == "8 · 45° up 3 m · Normal left" and ui._action_dimensions.text == "45° · radius 48 m · up 3 m", "selection shows the actual part name, index and compact dimensions after changing its surface and walls")

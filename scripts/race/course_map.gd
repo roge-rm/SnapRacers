@@ -60,7 +60,7 @@ func _ready() -> void:
 	mode = mode
 	if track == null:
 		return
-	_outline = CourseOutline.of_track(track)
+	_outline = CourseOutline.of_track(track, true)
 	_line = _outline.line
 
 
@@ -105,6 +105,7 @@ func _draw() -> void:
 	if not shared():
 		draw_rect(Rect2(Vector2.ZERO, size), UiKit.EDGE, false, 1.0)
 	var to_map := _whole() if mode != "close" else _close_up()
+	CourseOutline.draw_shade(self, _outline, to_map, Rect2(Vector2.ZERO, size))
 	CourseOutline.draw_paint(self, _outline, to_map)
 	var shown := to_map * _line
 	# A bigger map has thicker lines and dots to go with it.
