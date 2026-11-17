@@ -8,17 +8,18 @@ extends RefCounted
 ## worked out again when the course changes.
 ##
 ## An outline is { name, summary, line, heights, start, across, loops, splits,
-## box }: the course's name and a line about it (see describe()), the middle
+## paint, box }: the course's name and a line about it (see describe()), the middle
 ## of the road as (x, z) points that come back round to the first, how high
 ## the road is at each, where the start line is and which way is across it
 ## there, where any loops and corkscrews are, each split's branches (see
-## _splits_of()), and the box around it all.
+## _splits_of()), the painted ground as runs (see PaintedAreas.to_dict()), and
+## the box around it all.
 
 const SAVED := "user://pictures/outlines"
 ## Every how many of the course's samples (a metre apart) go in the line.
 const EVERY := 4
 ## Goes up when outlines are worked out differently, so the saved ones go.
-const LOOK := 4
+const LOOK := 5
 ## The island's colour, drawn between a split's branches.
 const ISLAND := Color("#4b9f4a")
 
@@ -86,6 +87,7 @@ static func of_track(track: TrackPath) -> Dictionary:
 	return {
 		"name": track.name, "summary": describe(track), "map_rotation": track.map_rotation,
 		"line": line, "heights": heights, "loops": loops, "splits": _splits_of(track), "box": box,
+		"paint": track.paint.to_dict().runs,
 		"start": line[0], "across": across.normalized() if across.length() > 0.01 else Vector2.RIGHT,
 	}
 
@@ -161,6 +163,20 @@ static func draw_splits(item: CanvasItem, outline: Dictionary, to_view: Transfor
 			item.draw_polyline(side, road, width, true)
 
 
+## Fills the painted squares of an outline in their colours, drawn with
+## `to_view`.
+static func draw_paint(item: CanvasItem, outline: Dictionary, to_view: Transform2D) -> void:
+	var cell := PaintedAreas.CELL
+	for run in outline.get("paint", []):
+		var type := str(run[3])
+		if not PaintedAreas.TYPES.has(type):
+			continue
+		var low := Vector2(float(run[1]), float(run[0])) * cell
+		var wide := Vector2(float(run[2]) * cell, cell)
+		var corners := PackedVector2Array([to_view * low, to_view * (low + Vector2(wide.x, 0.0)), to_view * (low + wide), to_view * (low + Vector2(0.0, wide.y))])
+		item.draw_colored_polygon(corners, PaintedAreas.TYPES[type].colour)
+
+
 ## The game's own courses never change while it runs, but yours can.
 static func _key(path: String) -> String:
 	if path.begins_with("user://"):
@@ -199,6 +215,7 @@ static func _read(saved: String) -> Dictionary:
 	return {
 		"name": str(data.get("name", "")), "summary": str(data.summary), "map_rotation": float(data.get("map_rotation", 0.0)),
 		"line": line, "heights": PackedFloat32Array(data.heights), "loops": loops, "splits": splits, "box": box,
+		"paint": data.get("paint", []),
 		"start": line[0], "across": Vector2(data.across[0], data.across[1]),
 	}
 
@@ -229,7 +246,7 @@ static func _write(saved: String, outline: Dictionary) -> void:
 	file.store_string(JSON.stringify({
 		"name": outline.name, "summary": outline.summary, "map_rotation": outline.get("map_rotation", 0.0),
 		"line": flat.call(Array(outline.line)), "heights": heights, "loops": flat.call(outline.loops), "splits": splits,
-		"across": [outline.across.x, outline.across.y],
+		"across": [outline.across.x, outline.across.y], "paint": outline.get("paint", []),
 	}))
 
 

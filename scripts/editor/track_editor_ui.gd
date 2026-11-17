@@ -153,6 +153,10 @@ var _group_row: ScrollContainer
 var _group_pills: Array[Button] = []
 ## Which of LANDMARK_GROUPS the landmark tab shows.
 var _landmark_group := 0
+## What the Paint tab paints: a type from PaintedAreas.TYPES, or "" for the
+## eraser, and how many squares across the brush is.
+var paint_type := "water"
+var paint_brush := 1
 var _tile_memory: Dictionary = {}
 var _pictures: LandmarkThumbnails
 
@@ -283,7 +287,7 @@ func show_course(course: CourseDesign, length: float, problems: Array[String], c
 	var in_sky: bool = Scenery.theme_named(course.theme).get("void", false)
 	if in_sky != _in_sky:
 		_in_sky = in_sky
-		if _category >= CATEGORIES.size():
+		if _category == CATEGORIES.size():
 			_show_category(_category)
 	_chip.text = "%s · %d m · %d lap%s" % [course.name, roundi(length), course.laps, "" if course.laps == 1 else "s"]
 	_name_label.text = course.name
@@ -457,9 +461,11 @@ func _build_drawer() -> void:
 	var rail := BuilderStyle.dress_drawer(_drawer, row)
 	_rail_box = rail
 	_drawer_row = row
-	var tabs: Array = CATEGORIES.map(func(c): return [c[0], c[1]]) + [["Landmarks", "landmarks"]]
+	var tabs: Array = CATEGORIES.map(func(c): return [c[0], c[1]]) + [["Landmarks", "landmarks"], ["Paint", "paint"]]
 	for i in tabs.size():
 		var tab := BuilderStyle.rail_tab(tabs[i][1], tabs[i][0])
+		# Shorter than the garage's, so all nine fit a short screen.
+		tab.custom_minimum_size.y = 46.0
 		tab.pressed.connect(_show_category.bind(i))
 		rail.add_child(tab)
 		_rail.append(tab)
@@ -527,8 +533,11 @@ func _show_category(index: int) -> void:
 	for child in _tiles.get_children():
 		_tiles.remove_child(child)
 		child.queue_free()
-	_group_row.visible = index >= CATEGORIES.size()
-	if index < CATEGORIES.size():
+	_group_row.visible = index == CATEGORIES.size()
+	if index == CATEGORIES.size() + 1:
+		_heading.text = "PAINT"
+		_add_paint_tiles()
+	elif index < CATEGORIES.size():
 		_heading.text = CATEGORIES[index][0].to_upper()
 		for row in CATEGORIES[index][2]:
 			for entry in row:
@@ -549,8 +558,104 @@ func _show_category(index: int) -> void:
 			tile.icon = LandmarkThumbnails.picture(prop)
 			tile.tapped.connect(func() -> void: landmark_chosen.emit(prop))
 			_add_palette_tile(tile, prop)
-	if restore_focus:
+	if restore_focus and index != CATEGORIES.size() + 1:
 		_restore_palette_focus.call_deferred()
+
+
+## Whether the Paint tab is open.
+func painting() -> bool:
+	return _category == CATEGORIES.size() + 1
+
+
+func choose_paint(type: String) -> void:
+	paint_type = type
+	_show_category(_category)
+
+
+func toggle_eraser() -> void:
+	choose_paint(_last_paint if paint_type == "" else "")
+
+
+func cycle_brush() -> void:
+	paint_brush = 3 if paint_brush == 1 else 1
+	_show_category(_category)
+
+
+var _last_paint := "water"
+
+
+## A tile for each type of ground, the eraser, the brush size and Done.
+func _add_paint_tiles() -> void:
+	for type: String in PaintedAreas.TYPES:
+		var tile := _tile("")
+		_name_tile(tile, PaintedAreas.TYPES[type].name)
+		var swatch := ColorRect.new()
+		swatch.color = PaintedAreas.TYPES[type].colour
+		swatch.mouse_filter = MOUSE_FILTER_IGNORE
+		tile.add_child(swatch)
+		swatch.set_anchors_and_offsets_preset(PRESET_FULL_RECT)
+		swatch.offset_left = 14.0
+		swatch.offset_right = -14.0
+		swatch.offset_top = 10.0
+		swatch.offset_bottom = -50.0
+		BuilderStyle.dress_tile(tile, paint_type == type)
+		tile.tapped.connect(func() -> void:
+			_last_paint = type
+			choose_paint(type))
+		_add_palette_tile(tile, type)
+	var eraser := _tile("")
+	_name_tile(eraser, "Eraser")
+	var rubber := ColorRect.new()
+	rubber.color = Color("#f2a7b8")
+	rubber.mouse_filter = MOUSE_FILTER_IGNORE
+	rubber.custom_minimum_size = Vector2(52, 28)
+	rubber.size = Vector2(52, 28)
+	rubber.rotation = deg_to_rad(-20.0)
+	rubber.position = Vector2(26, 44)
+	eraser.add_child(rubber)
+	BuilderStyle.dress_tile(eraser, paint_type == "")
+	eraser.tapped.connect(choose_paint.bind(""))
+	_add_palette_tile(eraser, "eraser")
+	var brush := _tile("")
+	_name_tile(brush, "Brush %d" % paint_brush)
+	var size_box := ColorRect.new()
+	size_box.color = UiKit.WHITE
+	size_box.mouse_filter = MOUSE_FILTER_IGNORE
+	brush.add_child(size_box)
+	size_box.set_anchors_and_offsets_preset(PRESET_CENTER_TOP)
+	var side := 12.0 * paint_brush
+	size_box.offset_left = -side * 0.5
+	size_box.offset_right = side * 0.5
+	size_box.offset_top = 28.0 - side * 0.5
+	size_box.offset_bottom = 28.0 + side * 0.5
+	brush.tapped.connect(cycle_brush)
+	_add_palette_tile(brush, "brush")
+	var done := _tile("")
+	_name_tile(done, "Done")
+	var tick := Line2D.new()
+	tick.points = PackedVector2Array([Vector2(34, 36), Vector2(46, 50), Vector2(72, 20)])
+	tick.width = 8.0
+	tick.default_color = UiKit.WHITE
+	tick.joint_mode = Line2D.LINE_JOINT_ROUND
+	done.add_child(tick)
+	done.tapped.connect(_show_category.bind(0))
+	_add_palette_tile(done, "done")
+
+
+## A name along the bottom of a tile, like the piece tiles have.
+func _name_tile(tile: Control, text: String) -> void:
+	var label := Label.new()
+	label.text = text
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	label.theme_type_variation = "TileLabel"
+	label.mouse_filter = MOUSE_FILTER_IGNORE
+	tile.add_child(label)
+	label.set_anchors_and_offsets_preset(PRESET_BOTTOM_WIDE)
+	label.offset_top = -44.0
+	label.offset_left = 3.0
+	label.offset_right = -3.0
 
 
 func _choose_landmark_group(index: int) -> void:
@@ -624,7 +729,7 @@ func _add_piece_tile(entry: Array) -> void:
 
 
 func _palette_key() -> String:
-	return "%d:%d" % [_category, _landmark_group if _category >= CATEGORIES.size() else -1]
+	return "%d:%d" % [_category, _landmark_group if _category == CATEGORIES.size() else -1]
 
 
 func _add_palette_tile(tile: ScrollButton, id: String) -> void:

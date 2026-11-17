@@ -75,6 +75,18 @@ var _join_spec: Dictionary = {}
 var _join_source: Dictionary = {}
 var _join_preview: MeshInstance3D
 
+## Painting: the squares of the course as one flat mesh for while you paint
+## and until the smooth ground is built, the squares under the brush, where
+## the brush is, whether a stroke is going and what it does.
+var _paint_view: MultiMeshInstance3D
+var _brush_view: MultiMeshInstance3D
+var _brush_at := Vector3.ZERO
+var _stroke := false
+var _stroke_erases := false
+var _stroke_last := Vector3.ZERO
+var _stroke_changed := false
+var _stroke_undo := {}
+
 var _fingers := {}
 var _press_at := Vector2.ZERO
 var _dragging := false
@@ -128,6 +140,8 @@ func _ready() -> void:
 	_highlight.albedo_color = HIGHLIGHT
 	_highlight.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 	_highlight.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	_paint_view = _squares_view(0.25)
+	_brush_view = _squares_view(0.5)
 	_camera = Camera3D.new()
 	# The course is seen from well back, so the near plane can be too, or the
 	# grass flickers through the road.
@@ -617,7 +631,21 @@ func _clear_of_road(mark: Dictionary) -> bool:
 	for p in track.points:
 		if Vector2(p.x, p.z).distance_to(at) < room:
 			return false
-	return true
+	return not _in_paint(at, Props.ROOM.get(mark.prop, 3.0))
+
+
+## Whether ground that sinks or burns is at the point or within `room` of it.
+func _in_paint(at: Vector2, room: float) -> bool:
+	if not course.paint.has_deep():
+		return false
+	var spots := [Vector2.ZERO]
+	for k in 8:
+		spots.append(Vector2.from_angle(k * TAU / 8.0) * room)
+	for spot: Vector2 in spots:
+		var kind := course.paint.kind_at(at.x + spot.x, at.y + spot.y)
+		if kind != "" and PaintedAreas.effect_of(kind) != "":
+			return true
+	return false
 
 
 func _show_ghost() -> void:
@@ -721,6 +749,7 @@ func _refresh(immediate := false) -> void:
 		_full.queue_free()
 		_full = null
 	_quick.visible = true
+	_show_squares(true)
 	# Up in the sky there's no ground.
 	_ground.visible = not Scenery.theme_named(course.theme).get("void", false)
 	_build_in = IDLE_BUILD
@@ -798,6 +827,10 @@ func _process(delta: float) -> void:
 		_build_in -= delta
 		if _build_in <= 0.0:
 			_build_full()
+	if ui.painting():
+		_update_brush()
+	elif _brush_view.visible:
+		_brush_view.visible = false
 	if _following:
 		_focus = _focus.lerp(_focus_goal, 1.0 - exp(-delta * 4.0))
 		_place_camera()
@@ -815,6 +848,7 @@ func _build_full() -> void:
 	add_child(_full)
 	_quick.visible = false
 	_ground.visible = false
+	_paint_view.visible = false
 	_apply_highlight()
 
 
@@ -888,6 +922,8 @@ func _unhandled_input(event: InputEvent) -> void:
 		_on_touch(event)
 	elif event is InputEventScreenDrag:
 		_on_drag(event)
+	elif event is InputEventMouseMotion and ui.painting() and not _stroke:
+		move_brush(_ground_point(event.position))
 	elif event is InputEventMouseButton and event.pressed:
 		match event.button_index:
 			MOUSE_BUTTON_WHEEL_UP:
@@ -914,14 +950,21 @@ func _on_touch(event: InputEventScreenTouch) -> void:
 			_several_fingers = false
 		else:
 			_several_fingers = true
+			paint_end()
 			_start_pinch()
 		return
 	if not _fingers.has(event.index):
 		return
 	_fingers.erase(event.index)
 	if _fingers.is_empty():
-		if not _several_fingers and not _dragging:
-			_tap(event.position)
+		if _stroke:
+			paint_end()
+		elif not _several_fingers and not _dragging:
+			if ui.painting():
+				paint_begin(_ground_point(event.position))
+				paint_end()
+			else:
+				_tap(event.position)
 		_several_fingers = false
 	else:
 		_start_pinch()
@@ -973,6 +1016,14 @@ func _on_drag(event: InputEventScreenDrag) -> void:
 			_distance = clampf(_pinch_start * _pinch_distance_start / spread, MIN_DISTANCE, MAX_DISTANCE)
 		_pan(event.relative / _fingers.size())
 		return
+	if ui.painting():
+		# One finger paints, from where it first went down.
+		_dragging = true
+		var at := _ground_point(event.position)
+		if not _stroke:
+			paint_begin(_ground_point(_press_at))
+		paint_to(at)
+		return
 	if not _dragging and event.position.distance_to(_press_at) > DRAG_START:
 		_dragging = true
 	if not _dragging:
@@ -986,6 +1037,157 @@ func _on_drag(event: InputEventScreenDrag) -> void:
 		_press_at = event.position
 		return
 	_orbit(event.relative)
+
+
+# Painting.
+
+## A flat mesh of squares, each its own colour, for showing painted ground
+## quickly.
+func _squares_view(height: float) -> MultiMeshInstance3D:
+	var plane := PlaneMesh.new()
+	plane.size = Vector2.ONE * PaintedAreas.CELL
+	var look := StandardMaterial3D.new()
+	look.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	look.vertex_color_use_as_albedo = true
+	look.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	look.cull_mode = BaseMaterial3D.CULL_DISABLED
+	plane.material = look
+	var multi := MultiMesh.new()
+	multi.transform_format = MultiMesh.TRANSFORM_3D
+	multi.use_colors = true
+	multi.mesh = plane
+	var view := MultiMeshInstance3D.new()
+	view.multimesh = multi
+	view.position.y = height
+	view.visible = false
+	view.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	add_child(view)
+	return view
+
+
+## Puts squares in a view: each one is [square, colour].
+func _fill_squares(view: MultiMeshInstance3D, squares: Array) -> void:
+	var multi := view.multimesh
+	multi.instance_count = squares.size()
+	for i in squares.size():
+		var middle := PaintedAreas.middle_of(squares[i][0])
+		multi.set_instance_transform(i, Transform3D(Basis.IDENTITY, Vector3(middle.x, 0.0, middle.y)))
+		multi.set_instance_color(i, squares[i][1])
+
+
+## Shows the course's squares flat, or hides them.
+func _show_squares(on: bool) -> void:
+	var squares := []
+	if on:
+		for square: Vector2i in course.paint.squares:
+			var colour: Color = PaintedAreas.TYPES[course.paint.squares[square]].colour
+			squares.append([square, Color(colour, 0.9)])
+	_fill_squares(_paint_view, squares)
+	_paint_view.visible = on and not squares.is_empty()
+
+
+## The type the brush paints, "" for the eraser.
+func _brush_type() -> String:
+	return ui.paint_type
+
+
+## The squares under the brush at a point.
+func _brush_squares(at: Vector3) -> Array[Vector2i]:
+	var out: Array[Vector2i] = []
+	var middle := PaintedAreas.square_at(at.x, at.z)
+	var reach := 1 if ui.paint_brush >= 3 else 0
+	for dz in range(-reach, reach + 1):
+		for dx in range(-reach, reach + 1):
+			out.append(middle + Vector2i(dx, dz))
+	return out
+
+
+## Squares the brush can't paint in right now, from where the brush is.
+func refused_squares(at: Vector3) -> Array[Vector2i]:
+	var out: Array[Vector2i] = []
+	var type := _brush_type()
+	if type == "" or _stroke_erases:
+		return out
+	for square in _brush_squares(at):
+		if not PaintedAreas.allowed(square, type, track):
+			out.append(square)
+	return out
+
+
+## Shows the squares under the brush: the type's colour, or red where it
+## won't paint.
+func _update_brush() -> void:
+	var squares := []
+	var refused := refused_squares(_brush_at)
+	var type := _brush_type()
+	var erasing := type == "" or _stroke_erases
+	var colour := Color(1, 1, 1, 0.55) if erasing else Color(PaintedAreas.TYPES[type].colour, 0.6)
+	for square in _brush_squares(_brush_at):
+		squares.append([square, Color(1.0, 0.2, 0.2, 0.7) if refused.has(square) else colour])
+	_fill_squares(_brush_view, squares)
+	_brush_view.visible = true
+
+
+## Moves the brush to a point on the ground.
+func move_brush(at: Vector3) -> void:
+	_brush_at = at
+
+
+## Starts a stroke at a point. It erases if the eraser's picked or the first
+## square is already the picked type.
+func paint_begin(at: Vector3) -> void:
+	if _stroke or not ui.painting():
+		return
+	_stroke = true
+	_stroke_changed = false
+	_brush_at = at
+	var type := _brush_type()
+	_stroke_erases = type == "" or course.paint.square_type(PaintedAreas.square_at(at.x, at.z)) == type
+	_stroke_undo = _snapshot()
+	_stroke_last = at
+	paint_to(at)
+
+
+## Paints along from where the stroke was to a point.
+func paint_to(at: Vector3) -> void:
+	if not _stroke:
+		return
+	var type := "" if _stroke_erases else _brush_type()
+	var gap := _stroke_last.distance_to(at)
+	var steps := maxi(1, ceili(gap / (PaintedAreas.CELL * 0.5)))
+	var changed := 0
+	for k in range(1, steps + 1):
+		var spot := _stroke_last.lerp(at, float(k) / steps)
+		changed += course.paint.paint_at(spot.x, spot.z, type, ui.paint_brush, track)
+	_stroke_last = at
+	_brush_at = at
+	if changed == 0:
+		return
+	if not _stroke_changed:
+		# The first change is the step undo goes back over.
+		_stroke_changed = true
+		_undo.append(_stroke_undo)
+		if _undo.size() > 100:
+			_undo.pop_front()
+		_redo.clear()
+		ui.set_undo_state(true, false)
+		if _full != null:
+			_full.queue_free()
+			_full = null
+		_quick.visible = true
+		_ground.visible = not Scenery.theme_named(course.theme).get("void", false)
+	_show_squares(true)
+
+
+## Ends the stroke and builds the smooth ground.
+func paint_end() -> void:
+	if not _stroke:
+		return
+	_stroke = false
+	_stroke_erases = false
+	if _stroke_changed:
+		_stroke_changed = false
+		_refresh()
 
 
 func _start_pinch() -> void:

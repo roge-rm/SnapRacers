@@ -9,6 +9,10 @@ extends Node
 ## - On the road, left and right step from piece to piece, A goes into its
 ##   buttons (surface, walls, add after), and X takes it out. B goes back to
 ##   the drawer.
+## - On the Paint tab, with nothing in the drawer picked, the left stick moves
+##   the brush, holding A paints, X is the eraser, Y is the brush size and B
+##   leaves the tab. The d-pad goes into the drawer to pick a type, and B
+##   comes back out.
 ## - With a landmark in hand, the left stick moves it, X turns it, A puts it
 ##   down, Back takes it away and B puts it back.
 ##
@@ -26,6 +30,8 @@ var editor: TrackEditor
 ## Stepping along the road rather than in the drawer.
 var on_road := false
 
+## Where the brush is on the screen.
+var _brush := Vector2.ZERO
 var _triggers := { JOY_AXIS_TRIGGER_LEFT: false, JOY_AXIS_TRIGGER_RIGHT: false }
 
 
@@ -36,6 +42,9 @@ func _input(event: InputEvent) -> void:
 			PadFocus.using_pad = true
 			editor.redo() if event.axis == JOY_AXIS_TRIGGER_RIGHT else editor.undo()
 		_triggers[event.axis] = down
+		return
+	if event is InputEventJoypadButton and not event.pressed and event.button_index == JOY_BUTTON_A and editor._stroke:
+		editor.paint_end()
 		return
 	if not (event is InputEventJoypadButton and event.pressed):
 		return
@@ -54,6 +63,24 @@ func _button(button: JoyButton) -> bool:
 	if editor.ui.palette_popup_open() or editor.ui._close_failure.visible:
 		return false
 	var holding := not editor._holding.is_empty()
+	if _brush_free():
+		match button:
+			JOY_BUTTON_A:
+				editor.paint_begin(editor._ground_point(_brush_screen()))
+				return true
+			JOY_BUTTON_X:
+				editor.ui.toggle_eraser()
+				return true
+			JOY_BUTTON_Y:
+				editor.ui.cycle_brush()
+				return true
+			JOY_BUTTON_B:
+				editor.ui._show_category(0)
+				_focus_drawer.call_deferred(true)
+				return true
+	elif editor.ui.painting() and button == JOY_BUTTON_B and editor.ui.palette_has_focus():
+		_release_focus()
+		return true
 	var in_actions := _focus_in(editor.ui._actions)
 	match button:
 		JOY_BUTTON_DPAD_LEFT, JOY_BUTTON_DPAD_RIGHT:
@@ -103,10 +130,14 @@ func _button(button: JoyButton) -> bool:
 			editor._follow(editor.selected)
 		JOY_BUTTON_LEFT_SHOULDER, JOY_BUTTON_RIGHT_SHOULDER:
 			var ui := editor.ui
-			var tabs: int = TrackEditorUI.CATEGORIES.size() + 1
+			var tabs: int = TrackEditorUI.CATEGORIES.size() + 2
+			editor.paint_end()
 			ui._show_category(posmod(ui._category + (1 if button == JOY_BUTTON_RIGHT_SHOULDER else -1), tabs))
 			on_road = false
-			_focus_drawer.call_deferred(true)
+			if ui.painting():
+				_release_focus()
+			else:
+				_focus_drawer.call_deferred(true)
 		JOY_BUTTON_BACK:
 			if holding:
 				editor.remove_landmark()
@@ -149,6 +180,19 @@ func _release_focus() -> void:
 		focused.release_focus()
 
 
+## Whether the stick moves the brush: the Paint tab's open and nothing in the
+## drawer has the controller.
+func _brush_free() -> bool:
+	return editor.ui.painting() and editor._holding.is_empty() and not editor.ui.palette_has_focus() and not on_road
+
+
+func _brush_screen() -> Vector2:
+	var rect := editor.get_viewport().get_visible_rect()
+	if _brush == Vector2.ZERO:
+		_brush = rect.size * 0.5
+	return _brush
+
+
 ## The sticks: the right one turns the view and the left one moves a
 ## landmark in hand.
 func _process(delta: float) -> void:
@@ -159,6 +203,16 @@ func _process(delta: float) -> void:
 	var right := Vector2(Input.get_joy_axis(pad, JOY_AXIS_RIGHT_X), Input.get_joy_axis(pad, JOY_AXIS_RIGHT_Y))
 	if right.length() > 0.2:
 		editor._orbit(right * ORBIT * delta)
+	if _brush_free():
+		var push := Vector2(Input.get_joy_axis(pad, JOY_AXIS_LEFT_X), Input.get_joy_axis(pad, JOY_AXIS_LEFT_Y))
+		var rect := editor.get_viewport().get_visible_rect()
+		_brush = (_brush_screen() + (push * SLIDE * delta if push.length() > 0.2 else Vector2.ZERO)).clamp(Vector2.ZERO, rect.size)
+		var at := editor._ground_point(_brush)
+		if editor._stroke:
+			editor.paint_to(at)
+		else:
+			editor.move_brush(at)
+		return
 	if editor._holding.is_empty():
 		return
 	var left := Vector2(Input.get_joy_axis(pad, JOY_AXIS_LEFT_X), Input.get_joy_axis(pad, JOY_AXIS_LEFT_Y))

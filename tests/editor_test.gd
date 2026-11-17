@@ -103,6 +103,7 @@ func _ready() -> void:
 	editor.drop_landmark()
 	check(editor.course.landmarks.size() == 1, "but it can beside it")
 	await _controller(editor)
+	await _paint(editor)
 
 	# Saving.
 	editor.course.name = "Editor Test Course"
@@ -199,6 +200,36 @@ func _controller(editor: TrackEditor) -> void:
 	var pill: Button = editor.ui._group_pills[editor.ui._landmark_group]
 	pill.grab_focus()
 	check(not pad._button(JOY_BUTTON_DPAD_DOWN) and get_viewport().gui_get_focus_owner() == pill, "the d-pad leaves the group pills' navigation to the drawer")
+	await frames(2)
+	pad._button(JOY_BUTTON_RIGHT_SHOULDER)
+	await frames(2)
+	check(editor.ui.painting() and get_viewport().gui_get_focus_owner() == null, "RB from Landmarks opens Paint with the stick on the brush")
+	var brush_before: int = editor.ui.paint_brush
+	pad._button(JOY_BUTTON_Y)
+	check(editor.ui.paint_brush != brush_before, "Y changes the brush size")
+	pad._button(JOY_BUTTON_X)
+	check(editor.ui.paint_type == "", "X picks the eraser")
+	pad._button(JOY_BUTTON_X)
+	check(editor.ui.paint_type == "water", "and X again the type before")
+	editor.ui.paint_brush = 1
+	var undo_before: int = editor._undo.size()
+	pad._brush = editor.get_viewport().get_visible_rect().size * 0.5
+	pad._button(JOY_BUTTON_A)
+	var held: bool = editor._stroke
+	var stop := InputEventJoypadButton.new()
+	stop.button_index = JOY_BUTTON_A
+	stop.pressed = false
+	pad._input(stop)
+	check(held and not editor._stroke, "holding A paints and letting go ends the stroke")
+	check(editor._undo.size() <= undo_before + 1, "as one undo step at most")
+	if editor._undo.size() > undo_before:
+		editor.undo()
+	pad._button(JOY_BUTTON_B)
+	await frames(2)
+	check(editor.ui._category == 0, "B leaves the Paint tab")
+	pad._button(JOY_BUTTON_RIGHT_SHOULDER)
+	await frames(1)
+	editor.ui._show_category(TrackEditorUI.CATEGORIES.size() + 1)
 	pad._button(JOY_BUTTON_RIGHT_SHOULDER)
 	await frames(2)
 	check(editor.ui._category == 0 and get_viewport().gui_get_focus_owner() == editor.ui._tiles.get_child(3), "RB wraps from Landmarks onto the remembered straight tile")
@@ -233,3 +264,81 @@ func _controller(editor: TrackEditor) -> void:
 	check(editor._holding.facing == (facing + 1) % 4, "X turns a landmark in hand")
 	pad._button(JOY_BUTTON_BACK)
 	check(editor._holding.is_empty() and editor.course.landmarks.size() == 1, "and Back takes it away")
+
+
+## Painting ground: a stroke is one undo step, the eraser and a stroke that
+## starts on the same type erase, and the road keeps water away.
+func _paint(editor: TrackEditor) -> void:
+	var kept := editor.course.to_dict()
+	editor.ui._show_category(TrackEditorUI.CATEGORIES.size() + 1)
+	check(editor.ui.painting(), "the Paint tab opens")
+	var tiles := editor.ui._tiles.get_children()
+	check(tiles.size() == PaintedAreas.TYPES.size() + 3, "with a tile for each type, the eraser, the brush and Done (%d)" % tiles.size())
+	var far := editor.track.points[0] + Vector3(600.0, 0.0, 600.0)
+	editor.ui.paint_type = "water"
+	editor.ui.paint_brush = 3
+	var undo_before := editor._undo.size()
+	editor.paint_begin(far)
+	editor.paint_to(far + Vector3(24.0, 0.0, 0.0))
+	editor.paint_to(far + Vector3(48.0, 0.0, 0.0))
+	editor.paint_end()
+	await frames(1)
+	var painted := editor.course.paint.count()
+	check(painted >= 15 and editor.course.paint.square_type(PaintedAreas.square_at(far.x + 24.0, far.z)) == "water", "a drag paints water (%d squares)" % painted)
+	check(editor._undo.size() == undo_before + 1, "and the stroke is one undo step")
+	check(editor.track.paint.count() == painted, "the course the editor builds from has it")
+	editor.undo()
+	check(editor.course.paint.is_empty(), "undo takes the whole stroke back")
+	editor.redo()
+	check(editor.course.paint.count() == painted, "and redo puts it back")
+	# A stroke that starts on the same type erases.
+	editor.paint_begin(far + Vector3(24.0, 0.0, 0.0))
+	editor.paint_end()
+	check(editor.course.paint.square_type(PaintedAreas.square_at(far.x + 24.0, far.z)) == "", "a stroke starting on the same type erases")
+	editor.ui.paint_type = "lava"
+	editor.paint_begin(far)
+	editor.paint_end()
+	check(editor.course.paint.square_type(PaintedAreas.square_at(far.x, far.z)) == "lava", "another type paints over it")
+	editor.ui.paint_type = ""
+	var count := editor.course.paint.count()
+	editor.paint_begin(far)
+	editor.paint_end()
+	check(editor.course.paint.count() < count, "the eraser erases")
+	# Near the road.
+	editor.ui.paint_type = "water"
+	editor.ui.paint_brush = 1
+	var road := editor.track.points[3]
+	var before := editor.course.paint.count()
+	var undo_size := editor._undo.size()
+	check(not editor.refused_squares(road).is_empty(), "squares on the road show red")
+	editor.paint_begin(road)
+	editor.paint_to(road + editor.track.rights[3] * 6.0)
+	editor.paint_end()
+	check(editor.course.paint.count() == before and editor._undo.size() == undo_size, "and aren't painted, with no undo step")
+	# A landmark over water gets the red ring.
+	editor.ui.paint_type = "water"
+	editor.paint_begin(far)
+	editor.paint_end()
+	check(not editor._clear_of_road({"prop": "barn", "at": [far.x, far.z], "facing": 0}), "a landmark over water is refused like one on the road")
+	editor.ui.paint_type = "mud"
+	editor.paint_begin(far + Vector3(200.0, 0.0, 0.0))
+	editor.paint_end()
+	check(editor._clear_of_road({"prop": "barn", "at": [far.x + 200.0, far.z], "facing": 0}), "but not over mud")
+	# Under a bridge.
+	editor.course = CourseDesign.from_dict({"theme": "orchard", "start": [0, 0, 0, 0], "pieces": [{"type": "straight", "length": 2}, {"type": "ramp", "length": 4, "rise": 3}, {"type": "straight", "length": 4}, {"type": "ramp", "length": 4, "rise": -3}, {"type": "straight", "length": 2}]})
+	editor._refresh()
+	var top := 0
+	for i in editor.track.points.size():
+		if editor.track.points[i].y - editor.track.grounds[i] > editor.track.points[top].y - editor.track.grounds[top]:
+			top = i
+	var high := editor.track.points[top]
+	editor.ui.paint_type = "water"
+	editor.ui.paint_brush = 1
+	editor.paint_begin(high)
+	editor.paint_end()
+	check(editor.course.paint.square_type(PaintedAreas.square_at(high.x, high.z)) == "water", "water paints under a bridge")
+	editor.ui._show_category(0)
+	check(not editor.ui.painting(), "Done goes back to the first tab")
+	editor.course = CourseDesign.from_dict(kept)
+	editor._undo.clear()
+	editor._refresh()
