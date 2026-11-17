@@ -7,9 +7,9 @@ extends Control
 ##
 ## Across the top are round tool buttons for leaving, undo, redo, a random
 ## driver and a menu to save, load, rename or start again. Down the left is the drawer, with a rail of tabs for the nine pieces
-## and a picture of your driver wearing each style. The colours are in the
-## bottom right, their name and weight in the top right (which opens into a
-## card), and sitting them in a kart and Done are along the
+## and a picture of your driver wearing each style. The colours are in a
+## drawer down the right, under their name and weight in the top right (which
+## opens into a card), and sitting them in a kart and Done are along the
 ## bottom.
 
 signal style_chosen(slot: String, style: String)
@@ -55,7 +55,7 @@ var _status: Label
 var _status_panel: PanelContainer
 var _toast_left := 0.0
 var _weight: Label
-var _colours: PanelContainer
+var _colours: ColourDrawer
 var _swatches: ColourPalette
 var _bottom: VBoxContainer
 var _pose: Button
@@ -79,7 +79,7 @@ func _ready() -> void:
 	# Nothing hides under a camera hole.
 	var safe := SafeArea.new()
 	add_child(safe)
-	for panel in [_toolbar, _chip, _card, _colours, _bottom]:
+	for panel in [_toolbar, _chip, _card, _colours, _colours.handle, _bottom]:
 		safe.watch(panel)
 	safe.watch(_drawer, true)
 	safe.flow(_rail_box)
@@ -90,7 +90,7 @@ func _ready() -> void:
 func is_over_ui(pos: Vector2) -> bool:
 	if _load_popup.visible or _new_dialog.visible or _name_dialog.visible or _file_menu.visible or _swatches.more_open():
 		return true
-	for panel in [_toolbar, _drawer, _chip, _card, _colours, _bottom]:
+	for panel in [_toolbar, _drawer, _chip, _card, _colours, _colours.handle, _bottom]:
 		if panel.is_visible_in_tree() and panel.get_global_rect().has_point(pos):
 			return true
 	return false
@@ -152,10 +152,8 @@ func _show_picture(key: String, picture: Texture2D) -> void:
 func _show_swatches() -> void:
 	var colours := CharacterDesign.colours_for(slot)
 	# Nothing has no colour to pick.
-	_colours.visible = design.style_of(slot) != "none"
-	if not _colours.visible:
-		_swatches.close_more()
-	_swatches.show_colours(colours, 10 if colours.size() > 12 else 6, design.color_of(slot))
+	_colours.set_shown(design.style_of(slot) != "none")
+	_swatches.show_colours(colours, 4, design.color_of(slot))
 
 
 # Building the panels.
@@ -366,18 +364,13 @@ func _build_card() -> void:
 
 
 func _build_colours() -> void:
-	_colours = PanelContainer.new()
-	_colours.add_theme_stylebox_override("panel", BuilderStyle.scrim(10, 10))
-	add_child(_colours)
-	_colours.set_anchors_and_offsets_preset(PRESET_BOTTOM_RIGHT)
-	_colours.grow_horizontal = GROW_DIRECTION_BEGIN
-	_colours.grow_vertical = GROW_DIRECTION_BEGIN
-	_colours.offset_right = -8.0
-	# Sits above the Done row, which is up to 420 px wide in the middle.
-	_colours.offset_bottom = -86.0
-	_swatches = ColourPalette.new(SWATCH)
+	_colours = ColourDrawer.new("Colours", SWATCH)
+	_colours.place(self)
+	# The weight card opens over it.
+	move_child(_colours, _chip.get_index())
+	move_child(_colours.handle, _chip.get_index())
+	_swatches = _colours.palette
 	_swatches.picked.connect(func(colour: Color) -> void: colour_chosen.emit(slot, colour))
-	_colours.add_child(_swatches)
 
 
 ## Sitting them in a kart and a big Done button, along the bottom.

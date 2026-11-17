@@ -95,6 +95,23 @@ func _camera_hole() -> void:
 					if now != first:
 						moved.append("%s %s" % [ui.CATEGORIES[j][0], now])
 			check(moved.is_empty(), "and the tabs don't move between categories (first %s) %s" % [first, moved])
+	# Painting, the colours drawer down the right clears a hole on that side,
+	# open or put away.
+	garage.set_painting(true)
+	for spot in {"top right": Vector2(window.x - across, 0.0), "partway down the right": Vector2(window.x - across * 1.3, window.y * 0.4)}.values():
+		for open in [true, false]:
+			ui._painting.set_open(open)
+			SafeArea.pretend = [Rect2(spot, Vector2(across, across))]
+			safe.refit()
+			await frames(8)
+			var hole: Rect2 = safe.holes()[0]
+			var under := []
+			for button in ui.find_children("*", "BaseButton", true, false):
+				if button.is_visible_in_tree() and button.get_global_rect().intersects(hole):
+					under.append(button.tooltip_text if button.tooltip_text != "" else button.name)
+			check(under.is_empty(), "painting with a hole at %s and the colours %s, no button's under it %s" % [spot, "out" if open else "away", under])
+	ui._painting.set_open(true)
+	garage.set_painting(false)
 	SafeArea.pretend = []
 	safe.refit()
 	await frames(8)
@@ -759,8 +776,13 @@ func _controller(parts: int) -> void:
 	pad._button(JOY_BUTTON_BACK)
 	check(garage._mode == GarageUI.Mode.PAINTING and pad.paint_at != -1, "Back in the drawer starts painting, with a part picked out")
 	var colour := garage.ui.paint_colour()
+	var drawer: ColourDrawer = garage.ui._painting
+	check(drawer.visible and not drawer.handle.visible, "and the colours drawer is out")
+	drawer.set_open(false)
+	check(not drawer.visible and drawer.handle.visible, "it puts away, leaving its handle")
 	pad._button(JOY_BUTTON_RIGHT_SHOULDER)
 	check(not garage.ui.paint_colour().is_equal_approx(colour), "RB picks the next colour")
+	check(drawer.visible, "and brings the colours drawer back out")
 	var target := pad.paint_at
 	pad._button(JOY_BUTTON_A)
 	check(garage.design.parts[target].get("color", Color.BLACK).is_equal_approx(garage.ui.paint_colour()), "and A paints the part")

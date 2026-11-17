@@ -412,7 +412,11 @@ func _step_aside(control: Control, hole: Rect2, screen: Rect2) -> void:
 		elif near_bottom:
 			control.offset_bottom -= rect.end.y - hole.position.y
 		elif not _wraps.has(control):
-			control.offset_left += hole.end.x - rect.position.x
+			# Down the right side it gets narrower from the right.
+			if hole.get_center().x > rect.get_center().x:
+				control.offset_right -= rect.end.x - hole.position.x
+			else:
+				control.offset_left += hole.end.x - rect.position.x
 		return
 	# One along the whole top or bottom gets narrower at the hole's end.
 	if rect.size.x > screen.size.x * 0.6 and rect.size.y < screen.size.y * 0.6:

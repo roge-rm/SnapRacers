@@ -216,6 +216,17 @@ func _ready() -> void:
 	check(builder.ui.slot != slot, "RB goes to the driver builder's next tab (%s to %s)" % [slot, builder.ui.slot])
 	await pad(JOY_BUTTON_LEFT_SHOULDER)
 	check(builder.ui.slot == slot, "and LB back")
+	# The colours drawer puts away and comes back with the focus on it.
+	var colours: ColourDrawer = builder.ui._colours
+	colours._shut.grab_focus()
+	colours._shut.pressed.emit()
+	await frames(2)
+	check(not colours.visible and focused() == colours.handle, "the colours drawer puts away, and the focus goes to its handle")
+	await pad(JOY_BUTTON_A)
+	await frames(2)
+	check(colours.visible and focused() == colours._shut, "and A on the handle brings it back")
+	await pad(JOY_BUTTON_DPAD_DOWN)
+	check(focused() != null and colours.is_ancestor_of(focused()), "the d-pad goes down into its colours (%s)" % focused())
 	await _typing()
 	Game.show_menu()
 	await frames(3)

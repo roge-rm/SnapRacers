@@ -13,7 +13,8 @@ extends Control
 ##
 ## A part in hand shows in a chip under the toolbar, with the arrows, up and
 ## down, turn, flip, way on, slide and place in the bottom right. Tap a part on the kart and its
-## actions pop up beside it. Race and test drive are along the bottom.
+## actions pop up beside it. Painting, the colours are in a drawer down the
+## right. Race and test drive are along the bottom.
 
 signal part_chosen(id: String)
 ## A part dragged out of the drawer. `finger` is the touch index, or -1 for
@@ -132,7 +133,7 @@ var _action_title: Label
 var _suspension: HBoxContainer
 var _suspension_buttons: Array[Button] = []
 var _anchor := Vector2.ZERO
-var _painting: PanelContainer
+var _painting: ColourDrawer
 var _palette: ColourPalette
 var _paint_colour := Color(PAINTS[0])
 
@@ -174,7 +175,7 @@ func _ready() -> void:
 	# Nothing hides under a camera hole.
 	var safe := SafeArea.new()
 	add_child(safe)
-	for panel in [_toolbar, _drawer_handle, _stats_chip, _stats_card, _held_chip, _placing, _actions, _painting, _bottom]:
+	for panel in [_toolbar, _drawer_handle, _stats_chip, _stats_card, _held_chip, _placing, _actions, _painting, _painting.handle, _bottom]:
 		safe.watch(panel)
 	safe.watch(_drawer, true)
 	safe.flow(_rail_box)
@@ -185,7 +186,7 @@ func _ready() -> void:
 func is_over_ui(pos: Vector2) -> bool:
 	if _load_popup.visible or _new_dialog.visible or _name_dialog.visible or _views_menu.visible or _file_menu.visible or _palette.more_open():
 		return true
-	for panel in [_toolbar, _drawer, _drawer_handle, _stats_chip, _stats_card, _held_chip, _placing, _actions, _painting, _bottom]:
+	for panel in [_toolbar, _drawer, _drawer_handle, _stats_chip, _stats_card, _held_chip, _placing, _actions, _painting, _painting.handle, _bottom]:
 		if panel.visible and panel.get_global_rect().has_point(pos):
 			return true
 	return false
@@ -218,7 +219,7 @@ func set_mode(mode: Mode, what: String, moves := {}) -> void:
 	_suspension.visible = mode == Mode.SELECTED and moves.has("suspension")
 	for i in _suspension_buttons.size():
 		_suspension_buttons[i].set_pressed_no_signal(["soft", "medium", "hard"][i] == moves.get("suspension", ""))
-	_painting.visible = mode == Mode.PAINTING
+	_painting.set_shown(mode == Mode.PAINTING)
 	_paint.on = mode == Mode.PAINTING
 	match mode:
 		Mode.PLACING:
@@ -324,7 +325,7 @@ func _show_status() -> void:
 
 
 func _process(delta: float) -> void:
-	BuilderStyle.slide_clear(_bottom, [_drawer, _drawer_handle], [_stats_card, _placing, _actions, _painting])
+	BuilderStyle.slide_clear(_bottom, [_drawer, _drawer_handle], [_stats_card, _placing, _actions, _painting, _painting.handle])
 	if _toast_left > 0.0:
 		_toast_left -= delta
 		if _toast_left <= 0.0:
@@ -731,26 +732,19 @@ func _place_actions() -> void:
 
 
 func _build_painting() -> void:
-	_painting = PanelContainer.new()
-	_painting.add_theme_stylebox_override("panel", BuilderStyle.scrim(10, 8))
-	add_child(_painting)
-	_painting.set_anchors_and_offsets_preset(PRESET_BOTTOM_RIGHT)
-	_painting.grow_horizontal = GROW_DIRECTION_BEGIN
-	_painting.grow_vertical = GROW_DIRECTION_BEGIN
-	_painting.offset_right = -8.0
-	_painting.offset_bottom = -8.0
-	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 8)
-	_painting.add_child(row)
-	_palette = ColourPalette.new()
+	_painting = ColourDrawer.new("Paint")
+	_painting.place(self)
+	# The stats card opens over it.
+	move_child(_painting, _stats_chip.get_index())
+	move_child(_painting.handle, _stats_chip.get_index())
+	_palette = _painting.palette
 	_palette.picked.connect(func(colour: Color) -> void:
 		_paint_colour = colour
 		colour_chosen.emit(colour))
-	row.add_child(_palette)
 	var done := IconButton.new("close", "Stop painting")
+	done.custom_minimum_size = Vector2(40, 40)
 	done.pressed.connect(func() -> void: paint_toggled.emit(false))
-	done.size_flags_vertical = SIZE_SHRINK_END
-	row.add_child(done)
+	_painting.heading.add_child(done)
 	_show_swatches()
 
 
@@ -765,6 +759,7 @@ func next_colour(by: int) -> void:
 	if at == -1:
 		at = -1 if by > 0 else 0
 	_paint_colour = all[posmod(at + by, all.size())]
+	_painting.set_open(true)
 	_show_swatches()
 	colour_chosen.emit(_paint_colour)
 
@@ -773,11 +768,12 @@ func _show_swatches() -> void:
 	var main: Array[Color] = []
 	for hex in PAINTS:
 		main.append(Color(hex))
-	_palette.show_colours(main, 8, _paint_colour)
+	_palette.show_colours(main, 4, _paint_colour)
 
 
 ## Opens the More colours grid, for a controller's Y while painting.
 func open_more_colours() -> void:
+	_painting.set_open(true)
 	_palette.open_more()
 
 

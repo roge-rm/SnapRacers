@@ -2,7 +2,8 @@ class_name ColourPalette
 extends VBoxContainer
 
 ## Colour swatches for the garage and the driver screen: the colours used last
-## along the top (once there are some), the main colours under them, and a
+## along the top (once there are some), the main colours under them, both in
+## the same number of columns, and a
 ## More colours button that opens a bigger grid, which closes after a pick. A
 ## + at the end of the Recent row opens the custom picker (ColourPicker).
 ## Every pick goes into Recent (see Paints).
@@ -13,7 +14,7 @@ var swatch_size := 42.0
 
 var _current: Variant = null
 var _main: Array[Color] = []
-var _recent_row: HBoxContainer
+var _recent_row: GridContainer
 var _recent: Array[Button] = []
 var _grid: GridContainer
 var _more_button: Button
@@ -46,14 +47,14 @@ static func remember(colour: Color) -> void:
 func _init(size := 42.0) -> void:
 	swatch_size = size
 	add_theme_constant_override("separation", 6)
-	_recent_row = HBoxContainer.new()
-	_recent_row.add_theme_constant_override("separation", 6)
-	add_child(_recent_row)
 	var label := Label.new()
 	label.text = "RECENT"
 	label.add_theme_font_size_override("font_size", UiKit.SMALL)
-	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	_recent_row.add_child(label)
+	add_child(label)
+	_recent_row = GridContainer.new()
+	_recent_row.add_theme_constant_override("h_separation", 6)
+	_recent_row.add_theme_constant_override("v_separation", 6)
+	add_child(_recent_row)
 	for i in Paints.RECENT_MOST:
 		var swatch := _swatch(Color.WHITE)
 		_recent_row.add_child(swatch)
@@ -89,6 +90,7 @@ func show_colours(main: Array[Color], columns: int, current: Variant) -> void:
 		for colour in _main:
 			_grid.add_child(_swatch(colour))
 	_grid.columns = maxi(columns, 1)
+	_recent_row.columns = _grid.columns
 	_refresh()
 
 
