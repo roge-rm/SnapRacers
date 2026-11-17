@@ -155,6 +155,10 @@ func _work_out_heights() -> void:
 	if mapped:
 		rim = _lowest_edge()
 	heights.resize(cols * rows)
+	# How far the edge easing lowers each point, for the lakes (see Waters.lift).
+	var eased_by := PackedFloat32Array()
+	if mapped:
+		eased_by.resize(cols * rows)
 	for z in rows:
 		for x in cols:
 			var i := z * cols + x
@@ -162,7 +166,9 @@ func _work_out_heights() -> void:
 			var h := track.ground_height(at.x, at.y)
 			if mapped:
 				var in_from := minf(minf(x, cols - 1 - x), minf(z, rows - 1 - z)) * CELL
-				h = lerpf(rim, h, smoothstep(0.0, EDGE, in_from))
+				var eased := lerpf(rim, h, smoothstep(0.0, EDGE, in_from))
+				eased_by[i] = maxf(h - eased, 0.0)
+				h = eased
 			if not high.is_empty() and high[0][i] >= 0:
 				var up: int = high[0][i]
 				var lift := clampf((track.points[up].y - track.grounds[up] - TrackBuilder.RAISED) / DROP_FULL, 0.0, 1.0)
@@ -196,7 +202,7 @@ func _work_out_heights() -> void:
 	# Rivers carve their channels and lakes fill their hollows on the ground
 	# as built (see Waters).
 	if track.waters.has_real():
-		heights = track.waters.settle(origin, cols, rows, heights, Waters.blocked_grid(track, origin, cols, rows))
+		heights = track.waters.settle(origin, cols, rows, heights, Waters.blocked_grid(track, origin, cols, rows), eased_by)
 	_basins(gap, edge)
 
 

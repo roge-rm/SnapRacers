@@ -183,6 +183,25 @@ func _road_rule(track: TrackPath, waters: Waters) -> void:
 	for i in high.wet.size():
 		kept = kept and not (high.wet[i] > 0 and high.blocked[i] == 1)
 	check(high.levels[0] < 30.0 and kept, "a lake raised over the road settles under it (%.2f)" % high.levels[0])
+	# Ground eased down 5 m at one side, as Terrain does at the map's edge.
+	var eased := Waters.from_dict([{"kind": "lake", "type": "water", "at": [20, 20], "level": 2.0}])
+	var flat := PackedFloat32Array()
+	flat.resize(400)
+	var lowered := PackedFloat32Array()
+	lowered.resize(400)
+	for i in 400:
+		lowered[i] = 5.0 if i % 20 >= 15 else 0.0
+	var none := PackedByteArray()
+	none.resize(400)
+	eased.settle(Vector2.ZERO, 20, 20, flat, none, lowered)
+	var held := true
+	for i in 400:
+		held = held and (eased.wet[i] > 0) == (i % 20 < 15)
+	check(held, "a lake stops where the ground was before it was eased down at the edge")
+	var far := Waters.from_dict([{"kind": "river", "type": "water", "points": [[-30000, 0, 8], [30000, 0, 8], [-30000, 10, 8]]}])
+	far.settle(waters.origin, waters.cols, waters.rows, waters.base, waters.blocked)
+	var line: Variant = far.lines[0]
+	check(line != null and line.at.size() <= Waters.MOST_STEPS + 1, "a very long river is cut short when it settles (%d steps)" % (line.at.size() if line != null else 0))
 
 
 ## DeepWater answers for the lakes and the river, lava burns, and dry ground
@@ -244,6 +263,10 @@ func _old_paint(data: Dictionary) -> void:
 	var design := CourseDesign.from_dict(old)
 	var saved := design.to_dict()
 	check(not saved.has("paint") and saved.get("water", []).size() == 4 and TrackPath.from_dict(saved).waters.bodies.size() == 4, "and saves them as lakes")
+	var crowded := PaintedAreas.from_dict(old.paint)
+	var map := GroundMap.from_dict(old.ground)
+	var some := Waters.from_paint(crowded, map, map.height_at, 1)
+	check(some.bodies.size() == 1 and crowded.has_deep() and crowded.count() < squares, "pools past the most lakes stay painted (%d squares)" % crowded.count())
 	var flat: Dictionary = old.duplicate(true)
 	flat.erase("ground")
 	var plain := TrackPath.from_dict(flat)
@@ -272,6 +295,10 @@ func _sharing(data: Dictionary) -> void:
 	for k in Waters.MOST_POINTS + 1:
 		long.append([k, 0, 8])
 	bad.append([{"kind": "river", "type": "water", "points": long}])
+	var lengthy := []
+	for k in 2:
+		lengthy.append({"kind": "river", "type": "water", "points": [[-5000, k * 20, 8], [5000, k * 20, 8]]})
+	bad.append(lengthy)
 	var turned := 0
 	for water in bad:
 		var trial: Dictionary = data.duplicate(true)

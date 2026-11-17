@@ -786,7 +786,7 @@ func _refresh(immediate := false) -> void:
 		SkyAndSun.add_to(_sky, 400.0, Color.TRANSPARENT, look.get("sky", []))
 		_ground_look = TrackBuilder.ground_material(look)
 		_ground.material_override = _ground_look
-	var problems := course.problems()
+	var problems := course.problems(track)
 	_show_problem_spots()
 	ui.show_course(course, track.length, problems, not track.closes and not course.pieces.is_empty(), track, course.warnings(track))
 	ui.set_undo_state(not _undo.is_empty(), not _redo.is_empty())
@@ -1607,13 +1607,18 @@ func water_lift(metres: float) -> void:
 		return
 	_first_water_change()
 	lake.level = clampf(lake.level + metres, -GroundBrush.MOST, GroundBrush.MOST)
-	_water_changed()
+	# Only this lake fills again while its level moves; the rest settle at the
+	# stroke's end.
+	_water_changed(_water_body)
 
 
 ## Ends the stroke: a drawn river goes in, a tapped one comes out, and a lake
 ## left with no water in it is taken away.
 func water_end() -> void:
 	_stroke = false
+	if ui.ground_tool == "lake" and _stroke_changed and _water_preview != null and _water_preview.cols >= 2:
+		_water_preview.bodies = Waters.from_dict(course.waters.to_dict()).bodies
+		_water_preview.resettle()
 	if ui.ground_tool == "river":
 		var drawn := _river_points.size() >= 2
 		if drawn and course.waters.bodies.size() < Waters.MOST_BODIES:
@@ -1668,9 +1673,13 @@ func _settle_preview() -> void:
 
 
 ## Settles the lakes again after a change and shows the one being worked on.
-func _water_changed() -> void:
+## With `only` a lake, just that one fills again at its new level.
+func _water_changed(only := -1) -> void:
 	if _water_preview == null or _water_preview.cols < 2:
 		_settle_preview()
+	elif only >= 0 and only < _water_preview.bodies.size() and _water_preview.bodies.size() == course.waters.bodies.size():
+		_water_preview.bodies[only].level = course.waters.bodies[only].level
+		_water_preview.reflood(only)
 	else:
 		_water_preview.bodies = Waters.from_dict(course.waters.to_dict()).bodies
 		_water_preview.resettle()

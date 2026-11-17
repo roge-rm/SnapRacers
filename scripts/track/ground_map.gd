@@ -35,6 +35,18 @@ var rows := 0
 var heights := PackedFloat32Array()
 ## The smoothed copy the road follows (see road()).
 var _road: GroundMap
+## The heights encode() last wrote out, and its text.
+var _encoded_heights := PackedFloat32Array()
+var _encoded := ""
+
+## The last few maps decoded, by their text, and road copies made, so
+## building a course again and again (the editor does on every change) only
+## does the work when the ground has changed. Locked, as the editor's closer
+## builds courses on another thread.
+const KEPT := 4
+static var _decoded: Dictionary = {}
+static var _roads: Array = []
+static var _lock := Mutex.new()
 
 
 static func blank(origin_: Vector2, cols_: int, rows_: int, cell_ := CELL) -> GroundMap:
@@ -84,8 +96,26 @@ func height_of(x: int, z: int) -> float:
 ## than ROAD_STEEPEST any way, then blurred again. Made once and kept until
 ## changed().
 func road() -> GroundMap:
-	if _road == null:
-		_road = road_heights()
+	if _road != null:
+		return _road
+	var made := PackedFloat32Array()
+	_lock.lock()
+	for entry: Array in _roads:
+		if entry[0] == cell and entry[1] == cols and entry[2] == rows and entry[3] == heights:
+			made = entry[4]
+			break
+	_lock.unlock()
+	if made.is_empty() and not heights.is_empty():
+		var key := heights.duplicate()
+		made = road_heights().heights
+		_lock.lock()
+		_roads.push_front([cell, cols, rows, key, made])
+		if _roads.size() > KEPT:
+			_roads.resize(KEPT)
+		_lock.unlock()
+	_road = GroundMap.blank(origin, cols, rows, cell)
+	if not made.is_empty():
+		_road.heights = made.duplicate()
 	return _road
 
 
@@ -95,11 +125,16 @@ func road_heights() -> GroundMap:
 		return out
 	_blur(out.heights)
 	# Slope limit: a lower pass cuts peaks and a raise pass fills valleys, each
-	# two sweeps over the neighbours, and the two are averaged.
-	var lowered := _limited(out.heights, false)
-	var raised := _limited(out.heights, true)
+	# two sweeps over the neighbours, and the two are averaged. Raising is
+	# lowering the ground turned upside down.
+	var lowered := _lowered(out.heights)
+	var flipped := PackedFloat32Array()
+	flipped.resize(out.heights.size())
 	for i in out.heights.size():
-		out.heights[i] = (lowered[i] + raised[i]) * 0.5
+		flipped[i] = -out.heights[i]
+	var raised := _lowered(flipped)
+	for i in out.heights.size():
+		out.heights[i] = (lowered[i] - raised[i]) * 0.5
 	# Blurred again to round off the creases the limit leaves, which would
 	# be sudden changes of grade along the road. A blur can't make it steeper.
 	_blur(out.heights)
@@ -129,55 +164,52 @@ func _blur(h: PackedFloat32Array) -> void:
 			h[c + x] = across[a + x] * w0 + across[b + x] * w1 + across[c + x] * w2 + across[d + x] * w1 + across[e + x] * w0
 
 
-func _limited(from: PackedFloat32Array, raise: bool) -> PackedFloat32Array:
+## A copy of `from` with each point brought down to within ROAD_STEEPEST of
+## its neighbours, in a sweep forwards and one back.
+func _lowered(from: PackedFloat32Array) -> PackedFloat32Array:
 	var h := from.duplicate()
 	var straight := ROAD_STEEPEST * cell
 	var diagonal := straight * sqrt(2.0)
-	# Raising compares with each neighbour less its reach, lowering with each
-	# neighbour plus it, so one sign covers both.
-	var sign := -1.0 if raise else 1.0
-	for back in [false, true]:
+	var twice := 2.0 * straight * straight
+	var last_x := cols - 1
+	var last_z := rows - 1
+	for sweep in 2:
+		var back := sweep == 1
 		var step := 1 if back else -1
-		var z0 := rows - 1 if back else 0
-		var x0 := cols - 1 if back else 0
 		for zn in rows:
-			var z: int = z0 - zn if back else zn
+			var z: int = last_z - zn if back else zn
 			var zs: int = z + step
 			var z_in := zs >= 0 and zs < rows
+			var row := z * cols
+			var other := zs * cols
 			for xn in cols:
-				var x: int = x0 - xn if back else xn
+				var x: int = last_x - xn if back else xn
 				var xs: int = x + step
 				var xd: int = x - step
-				var i: int = z * cols + x
+				var i: int = row + x
 				var best := h[i]
-				var reach_s := sign * straight
-				var reach_d := sign * diagonal
 				if xs >= 0 and xs < cols:
-					best = _pick(best, h[i + step] + reach_s, raise)
+					best = minf(best, h[i + step] + straight)
 					if z_in:
-						best = _pick(best, h[zs * cols + xs] + reach_d, raise)
+						best = minf(best, h[other + xs] + diagonal)
 				if z_in:
-					best = _pick(best, h[zs * cols + x] + reach_s, raise)
+					best = minf(best, h[other + x] + straight)
 					if xd >= 0 and xd < cols:
-						best = _pick(best, h[zs * cols + xd] + reach_d, raise)
+						best = minf(best, h[other + xd] + diagonal)
 				# The neighbours across and along can each be within reach and
 				# still make the slope between them too steep for a diagonal road,
 				# so the slope through both together is held to it too.
 				var a := h[i - 1] if x > 0 else h[i]
-				if x < cols - 1:
-					a = _pick(a, h[i + 1], raise)
+				if x < last_x:
+					a = minf(a, h[i + 1])
 				var b := h[i - cols] if z > 0 else h[i]
-				if z < rows - 1:
-					b = _pick(b, h[i + cols], raise)
+				if z < last_z:
+					b = minf(b, h[i + cols])
 				var apart := absf(a - b)
 				if apart < straight:
-					best = _pick(best, (a + b) * 0.5 + sign * sqrt(2.0 * straight * straight - apart * apart) * 0.5, raise)
+					best = minf(best, (a + b) * 0.5 + sqrt(twice - apart * apart) * 0.5)
 				h[i] = best
 	return h
-
-
-static func _pick(a: float, b: float, raise: bool) -> float:
-	return maxf(a, b) if raise else minf(a, b)
 
 
 # Files.
@@ -216,6 +248,8 @@ static func from_dict(data: Variant, grow := 1.0) -> GroundMap:
 
 
 func encode() -> String:
+	if _encoded != "" and heights == _encoded_heights:
+		return _encoded
 	var bytes := PackedByteArray()
 	var q := PackedInt32Array()
 	q.resize(heights.size())
@@ -229,7 +263,9 @@ func encode() -> String:
 				bytes.append((u & 0x7f) | 0x80)
 				u >>= 7
 			bytes.append(u)
-	return Marshalls.raw_to_base64(bytes.compress(FileAccess.COMPRESSION_DEFLATE))
+	_encoded = Marshalls.raw_to_base64(bytes.compress(FileAccess.COMPRESSION_DEFLATE))
+	_encoded_heights = heights.duplicate()
+	return _encoded
 
 
 ## The map from encode()'s text, or null if it isn't cols x rows points
@@ -237,6 +273,11 @@ func encode() -> String:
 static func decode(text: String, cols_: int, rows_: int) -> GroundMap:
 	if cols_ < 1 or rows_ < 1 or cols_ * rows_ > MOST_POINTS or text.length() > MOST_POINTS * 8:
 		return null
+	_lock.lock()
+	var known: Array = _decoded.get(text, [])
+	_lock.unlock()
+	if not known.is_empty() and known[0] == cols_ and known[1] == rows_:
+		return _decoded_map(text, known[2], cols_, rows_)
 	var packed := Marshalls.base64_to_raw(text)
 	if packed.is_empty():
 		return null
@@ -268,9 +309,23 @@ static func decode(text: String, cols_: int, rows_: int) -> GroundMap:
 		q[i] = v
 	if at != bytes.size():
 		return null
-	var map := GroundMap.blank(Vector2.ZERO, cols_, rows_)
+	var heights_ := PackedFloat32Array()
+	heights_.resize(count)
 	for i in count:
-		map.heights[i] = q[i] * STEP
+		heights_[i] = q[i] * STEP
+	_lock.lock()
+	if _decoded.size() >= KEPT:
+		_decoded.clear()
+	_decoded[text] = [cols_, rows_, heights_]
+	_lock.unlock()
+	return _decoded_map(text, heights_, cols_, rows_)
+
+
+static func _decoded_map(text: String, heights_: PackedFloat32Array, cols_: int, rows_: int) -> GroundMap:
+	var map := GroundMap.blank(Vector2.ZERO, cols_, rows_)
+	map.heights = heights_.duplicate()
+	map._encoded = text
+	map._encoded_heights = heights_.duplicate()
 	return map
 
 

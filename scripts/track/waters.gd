@@ -26,6 +26,10 @@ const KINDS := ["lake", "river"]
 ## The most lakes and rivers on one course, and points on one river.
 const MOST_BODIES := 24
 const MOST_POINTS := 160
+## The most metres of river on one course, all rivers together, and the most
+## STEP long stretches settle() works out, which is a little over that.
+const MOST_RIVER := 16000.0
+const MOST_STEPS := 6000
 const MIN_WIDTH := 6.0
 const MAX_WIDTH := 30.0
 ## Levels and heights keep within this many metres of the start.
@@ -54,6 +58,8 @@ const MOST_LAKE := 40000
 const BANK_DUG := 0.35
 const DIG_BANK := 48.0
 const SHALLOW := 0.3
+## How far past the kerbs of road on the ground an old pool's bank isn't dug.
+const ROAD_KEEP := 4.0
 
 ## Each lake or river as read from the course file, with "at" a Vector2 and
 ## "points" a PackedVector3Array of (x, z, width).
@@ -77,6 +83,12 @@ var levels := PackedFloat32Array()
 ## Each river's line, every STEP metres: "at" (x, z), "top", "width", "steep"
 ## (metres down per metre) and "dry" (1 where the road's in the way).
 var lines: Array = []
+## How far the ground was lowered at each grid point after the map, where
+## Terrain eases it down at the edge, or empty. Lakes fill as if it hadn't
+## been, so none spills out round the edge.
+var lift := PackedFloat32Array()
+## How many more STEP stretches of river this settle can work out.
+var _steps_left := MOST_STEPS
 ## The type of the body the last level_at() found, "" for none.
 var kind := ""
 
@@ -172,6 +184,7 @@ static func valid(data: Variant) -> bool:
 	if not data is Array or data.size() > MOST_BODIES:
 		return false
 	var squares := 0
+	var river := 0.0
 	for entry in data:
 		if not entry is Dictionary or not entry.get("kind") in KINDS or not entry.get("type") in TYPES:
 			return false
@@ -197,6 +210,10 @@ static func valid(data: Variant) -> bool:
 					return false
 				if absf(float(p[0])) > FURTHEST or absf(float(p[1])) > FURTHEST or float(p[2]) < MIN_WIDTH - 0.01 or float(p[2]) > MAX_WIDTH + 0.01:
 					return false
+			for k in entry.points.size() - 1:
+				river += Vector2(float(entry.points[k][0]), float(entry.points[k][1])).distance_to(Vector2(float(entry.points[k + 1][0]), float(entry.points[k + 1][1])))
+			if river > MOST_RIVER:
+				return false
 	return true
 
 
@@ -272,18 +289,24 @@ static func read_course(data: Dictionary, paint: PaintedAreas, map: GroundMap) -
 	var waters := from_dict(data.get("water"), TrackPath.growth(data))
 	if paint.has_deep():
 		var ground := func(x: float, z: float) -> float: return map.height_at(x, z) if map != null else 0.0
-		var old := from_paint(paint, map, ground)
-		for body: Dictionary in old.bodies:
-			if waters.bodies.size() < MOST_BODIES:
-				waters.bodies.append(body)
+		var keep := PackedByteArray()
+		if map != null:
+			var bare := data.duplicate()
+			bare.erase("paint")
+			bare.erase("water")
+			keep = road_mask(TrackPath.from_dict(bare), map)
+		var old := from_paint(paint, map, ground, MOST_BODIES - waters.bodies.size(), keep)
+		waters.bodies.append_array(old.bodies)
 	return waters
 
 
 ## Takes the water and lava squares out of `paint` and makes a lake of each
 ## pool at its PaintedAreas.surface_levels() level, seeded at its lowest
-## square. With a ground map the pool's hollow is dug into the map, so the
-## lake fills it. With none the lake keeps its squares (see old_squares()).
-static func from_paint(paint: PaintedAreas, map: GroundMap, ground: Callable) -> Waters:
+## square, up to `room` lakes. Pools past that stay painted. With a ground
+## map the pool's hollow is dug into the map, so the lake fills it, with its
+## banks eased off but not where `keep` (see road_mask()) is set. With no map
+## the lake keeps its squares (see old_squares()).
+static func from_paint(paint: PaintedAreas, map: GroundMap, ground: Callable, room := MOST_BODIES, keep := PackedByteArray()) -> Waters:
 	var waters := Waters.new()
 	for type: String in TYPES:
 		var pool := PaintedAreas.new()
@@ -292,13 +315,14 @@ static func from_paint(paint: PaintedAreas, map: GroundMap, ground: Callable) ->
 				pool.squares[square] = type
 		if pool.is_empty():
 			continue
-		for square: Vector2i in pool.squares:
-			paint.squares.erase(square)
 		# With no map one lake of each type keeps all its squares.
 		if map == null:
+			if waters.bodies.size() >= room:
+				continue
 			var cells := {}
 			for square: Vector2i in pool.squares:
 				cells[square] = true
+				paint.squares.erase(square)
 			var first: Vector2i = pool.squares.keys()[0]
 			var lake := make_lake(type, PaintedAreas.middle_of(first), 0.0)
 			lake.cells = cells
@@ -322,13 +346,14 @@ static func from_paint(paint: PaintedAreas, map: GroundMap, ground: Callable) ->
 						if pool.squares.has(next) and not seen.has(next):
 							seen[next] = true
 							group.append(next)
+			if waters.bodies.size() >= room:
+				continue
 			var level: float = levels[first]
-			if waters.bodies.size() >= MOST_BODIES:
-				break
 			var own := PaintedAreas.new()
 			for square in group:
 				own.squares[square] = type
-			_dig(map, own, level)
+				paint.squares.erase(square)
+			_dig(map, own, level, keep)
 			var seed := group[0]
 			var lowest := INF
 			for square in group:
@@ -343,9 +368,32 @@ static func from_paint(paint: PaintedAreas, map: GroundMap, ground: Callable) ->
 	return waters
 
 
+## The points of `map` near road on the ground, 1 where its banks aren't dug:
+## within half the road's width, its kerb and ROAD_KEEP.
+static func road_mask(track: TrackPath, map: GroundMap) -> PackedByteArray:
+	var out := PackedByteArray()
+	out.resize(map.cols * map.rows)
+	for k in track.points.size():
+		var p := track.points[k]
+		if k < track.grounds.size() and p.y - track.grounds[k] > PaintedAreas.RAISED:
+			continue
+		var reach := track.outer_half(k) + TrackPath.KERB + ROAD_KEEP
+		var x0 := maxi(0, ceili((p.x - reach - map.origin.x) / map.cell))
+		var x1 := mini(map.cols - 1, floori((p.x + reach - map.origin.x) / map.cell))
+		var z0 := maxi(0, ceili((p.z - reach - map.origin.y) / map.cell))
+		var z1 := mini(map.rows - 1, floori((p.z + reach - map.origin.y) / map.cell))
+		for z in range(z0, z1 + 1):
+			for x in range(x0, x1 + 1):
+				var spot := map.origin + Vector2(x, z) * map.cell
+				if spot.distance_squared_to(Vector2(p.x, p.z)) < reach * reach:
+					out[z * map.cols + x] = 1
+	return out
+
+
 ## Lowers the map under a painted pool: to its level where the field's at
-## PaintedAreas.DEEP, deeper towards the middle.
-static func _dig(map: GroundMap, pool: PaintedAreas, level: float) -> void:
+## PaintedAreas.DEEP, deeper towards the middle. Its banks are eased down
+## round it, except where `keep` is set.
+static func _dig(map: GroundMap, pool: PaintedAreas, level: float, keep := PackedByteArray()) -> void:
 	var lo := Vector2(INF, INF)
 	var hi := Vector2(-INF, -INF)
 	for square: Vector2i in pool.squares:
@@ -373,6 +421,8 @@ static func _dig(map: GroundMap, pool: PaintedAreas, level: float) -> void:
 		for z in range(z0, z1 + 1):
 			for x in range(x0, x1 + 1):
 				var i := z * map.cols + x
+				if not keep.is_empty() and keep[i] == 1:
+					continue
 				var low := map.heights[i]
 				if x > 0:
 					low = minf(low, map.heights[i - 1] + rise)
@@ -438,7 +488,9 @@ static func blocked_grid(track: TrackPath, at: Vector2, c: int, r: int) -> Packe
 		var area := Rect2(map.origin, Vector2(map.cols - 1, map.rows - 1) * map.cell)
 		for z in r:
 			for x in c:
-				if not area.has_point(at + Vector2(x, z) * CELL):
+				# The map is the course as made; the grid is the race's layout.
+				var spot := at + Vector2(x, z) * CELL
+				if not area.has_point(track.laid_out(spot.x, spot.y)):
 					out[z * c + x] = 2
 	for k in track.points.size():
 		var p := track.points[k]
@@ -459,13 +511,14 @@ static func blocked_grid(track: TrackPath, at: Vector2, c: int, r: int) -> Packe
 
 ## Works out every river's surface and channel and every lake's water on a
 ## grid of the ground's heights, `ground`, and returns the ground with the
-## channels carved in.
-func settle(at: Vector2, c: int, r: int, ground: PackedFloat32Array, block: PackedByteArray) -> PackedFloat32Array:
+## channels carved in. `lift_` is the lift for each point, or empty.
+func settle(at: Vector2, c: int, r: int, ground: PackedFloat32Array, block: PackedByteArray, lift_ := PackedFloat32Array()) -> PackedFloat32Array:
 	origin = at
 	cols = c
 	rows = r
 	base = ground.duplicate()
 	blocked = block
+	lift = lift_ if lift_.size() == c * r else PackedFloat32Array()
 	resettle()
 	return heights
 
@@ -489,6 +542,7 @@ func resettle() -> void:
 	for b in bodies.size():
 		if bodies[b].kind == "lake" and not bodies[b].has("cells"):
 			levels[b] = _flood(b, bodies[b].level)
+	_steps_left = MOST_STEPS
 	for b in bodies.size():
 		if bodies[b].kind == "river":
 			lines[b] = _line(b)
@@ -500,6 +554,17 @@ func resettle() -> void:
 		if bodies[b].kind == "lake" and not bodies[b].has("cells"):
 			_clear_lake(b)
 			levels[b] = _flood(b, bodies[b].level)
+
+
+## Fills one lake again at its level on the ground as it is, leaving the rest
+## as they were, for moving its level in the editor. resettle() after.
+func reflood(b: int) -> void:
+	if not settled or cols < 2 or b < 0 or b >= bodies.size() or b >= levels.size():
+		return
+	if bodies[b].kind != "lake" or bodies[b].has("cells"):
+		return
+	_clear_lake(b)
+	levels[b] = _flood(b, bodies[b].level)
 
 
 func _clear_lake(b: int) -> void:
@@ -514,10 +579,11 @@ func _flood(b: int, level: float) -> float:
 	var seed := _index(bodies[b].at)
 	if seed < 0:
 		return level
+	var lifted := not lift.is_empty()
 	for attempt in 4:
 		var reached := PackedInt32Array()
 		var lowest_road := INF
-		if heights[seed] < level and blocked[seed] == 0:
+		if heights[seed] + (lift[seed] if lifted else 0.0) < level and blocked[seed] == 0:
 			var seen := {seed: true}
 			reached.append(seed)
 			var n := 0
@@ -532,13 +598,14 @@ func _flood(b: int, level: float) -> float:
 					if nx < 0 or nz < 0 or nx >= cols or nz >= rows:
 						continue
 					var j := nz * cols + nx
-					if seen.has(j) or heights[j] >= level:
+					var ground := heights[j] + lift[j] if lifted else heights[j]
+					if seen.has(j) or ground >= level:
 						continue
 					seen[j] = true
 					if blocked[j] == 2:
 						continue
 					if blocked[j] == 1:
-						lowest_road = minf(lowest_road, heights[j])
+						lowest_road = minf(lowest_road, ground)
 						continue
 					reached.append(j)
 		if lowest_road < level and attempt < 3:
@@ -552,26 +619,35 @@ func _flood(b: int, level: float) -> float:
 
 
 ## A river's line every STEP metres, smooth through its points, with its
-## surface going only down.
-func _line(b: int) -> Dictionary:
+## surface going only down. Null if there's no room left for it (see
+## MOST_STEPS).
+func _line(b: int) -> Variant:
 	var points: PackedVector3Array = bodies[b].points
 	var at := PackedVector2Array()
 	var widths := PackedFloat32Array()
+	var cut := false
 	for k in points.size() - 1:
+		if _steps_left <= 0:
+			cut = true
+			break
 		var p0: Vector3 = points[maxi(k - 1, 0)]
 		var p1: Vector3 = points[k]
 		var p2: Vector3 = points[k + 1]
 		var p3: Vector3 = points[mini(k + 2, points.size() - 1)]
 		var length := Vector2(p1.x, p1.y).distance_to(Vector2(p2.x, p2.y))
-		var steps := maxi(1, ceili(length / STEP))
+		var steps := clampi(ceili(length / STEP), 1, maxi(_steps_left, 1))
+		_steps_left -= steps
 		for s in steps:
 			var t := float(s) / steps
 			var spot := _spline(Vector2(p0.x, p0.y), Vector2(p1.x, p1.y), Vector2(p2.x, p2.y), Vector2(p3.x, p3.y), t)
 			at.append(spot)
 			widths.append(lerpf(p1.z, p2.z, t))
-	var last: Vector3 = points[points.size() - 1]
-	at.append(Vector2(last.x, last.y))
-	widths.append(last.z)
+	if not cut:
+		var last: Vector3 = points[points.size() - 1]
+		at.append(Vector2(last.x, last.y))
+		widths.append(last.z)
+	if at.size() < 2:
+		return null
 	var count := at.size()
 	var top := PackedFloat32Array()
 	top.resize(count)

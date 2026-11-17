@@ -335,6 +335,10 @@ func road_ground(x: float, z: float) -> float:
 
 ## Where a point of the race layout is on the course as made: mirrored
 ## courses read the ground mirrored around the start.
+func laid_out(x: float, z: float) -> Vector2:
+	return _laid_out(x, z)
+
+
 func _laid_out(x: float, z: float) -> Vector2:
 	if not mirrored:
 		return Vector2(x, z)

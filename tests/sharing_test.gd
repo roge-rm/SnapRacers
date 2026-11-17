@@ -42,7 +42,10 @@ func _initialize() -> void:
 
 	print("-- Codes")
 	var code := Sharing.code_for(data)
-	check(code.begins_with(Sharing.CODE_START) and code.length() < 1000, "a course's code is short (%d characters)" % code.length())
+	var plain := CourseDesign.from_dict(JSON.parse_string(FileAccess.get_file_as_string(Tracks.path_of("castle_keep")))).to_dict()
+	var plain_code := Sharing.code_for(plain)
+	check(plain_code.begins_with(Sharing.CODE_START) and plain_code.length() < 1000, "a course's code is short (%d characters)" % plain_code.length())
+	check(code.begins_with(Sharing.CODE_START) and code.length() < 12000, "and one with a ground map isn't too long (%d characters)" % code.length())
 	var back := Sharing.read(code)
 	check(back.get("kind") == Sharing.COURSE and same(back.data, data), "and reads back as the same course")
 	var message := Sharing.message_for(data)
@@ -343,7 +346,8 @@ func _more_designs(course: Dictionary, stock: Dictionary) -> void:
 	custom.weather = "rain"
 	custom.time = "night"
 	custom.fixed_time = true
-	custom.hills = 0
+	# Peach Pit has a ground map, so no hills.
+	custom.erase("hills")
 	var cup := {"name": "Sharing mixed cup " + tag, "made_by": "Cup " + tag, "races": [
 		{"from": Tracks.path_of("lemon_lake"), "course": stock},
 		{"from": "/home/sender/private/track.json", "course": custom},

@@ -196,10 +196,12 @@ func track() -> TrackPath:
 	return TrackPath.from_dict(to_dict())
 
 
-## What stops it being raced, as sentences. None means it's ready.
-func problems() -> Array[String]:
+## What stops it being raced, as sentences. None means it's ready. `path` is
+## its track() if that's been made already.
+func problems(path: TrackPath = null) -> Array[String]:
 	var out: Array[String] = []
-	var path := track()
+	if path == null:
+		path = track()
 	if not path.closes:
 		out.append("The road doesn't come back around to the start yet.")
 	elif path.length < SHORTEST:
