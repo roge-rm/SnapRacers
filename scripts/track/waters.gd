@@ -49,6 +49,10 @@ const RAPIDS := 0.035
 ## The most grid points one lake can cover, 640,000 square metres.
 const MOST_LAKE := 40000
 ## Water this shallow you can drive through.
+## How steep the bank round an old painted pool is dug, rise over run, and
+## how far out from the pool it can go, in metres.
+const BANK_DUG := 0.35
+const DIG_BANK := 48.0
 const SHALLOW := 0.3
 
 ## Each lake or river as read from the course file, with "at" a Vector2 and
@@ -358,6 +362,27 @@ static func _dig(map: GroundMap, pool: PaintedAreas, level: float) -> void:
 				continue
 			var i := z * map.cols + x
 			map.heights[i] = minf(map.heights[i], level + (PaintedAreas.DEEP - field) * 3.0)
+	# Then the banks round it are eased down to no steeper than BANK_DUG, so
+	# a pool cut into a slope gets a sloped bank, not a wall.
+	var x0 := maxi(0, floori((lo.x - DIG_BANK - map.origin.x) / map.cell))
+	var x1 := mini(map.cols - 1, ceili((hi.x + DIG_BANK - map.origin.x) / map.cell))
+	var z0 := maxi(0, floori((lo.y - DIG_BANK - map.origin.y) / map.cell))
+	var z1 := mini(map.rows - 1, ceili((hi.y + DIG_BANK - map.origin.y) / map.cell))
+	var rise := map.cell * BANK_DUG
+	for n in ceili(DIG_BANK / map.cell):
+		for z in range(z0, z1 + 1):
+			for x in range(x0, x1 + 1):
+				var i := z * map.cols + x
+				var low := map.heights[i]
+				if x > 0:
+					low = minf(low, map.heights[i - 1] + rise)
+				if x < map.cols - 1:
+					low = minf(low, map.heights[i + 1] + rise)
+				if z > 0:
+					low = minf(low, map.heights[i - map.cols] + rise)
+				if z < map.rows - 1:
+					low = minf(low, map.heights[i + map.cols] + rise)
+				map.heights[i] = low
 
 
 # Working it out.
@@ -403,10 +428,18 @@ func ensure(track: TrackPath) -> void:
 
 
 ## The points of a grid near road on the ground, where no water goes: within
-## half the road's width, its kerb and PaintedAreas.ROAD_ROOM.
+## half the road's width, its kerb and PaintedAreas.ROAD_ROOM (1). Past the
+## edge of a ground map is 2: a lake stops there as at a wall.
 static func blocked_grid(track: TrackPath, at: Vector2, c: int, r: int) -> PackedByteArray:
 	var out := PackedByteArray()
 	out.resize(c * r)
+	var map := track.ground
+	if map != null:
+		var area := Rect2(map.origin, Vector2(map.cols - 1, map.rows - 1) * map.cell)
+		for z in r:
+			for x in c:
+				if not area.has_point(at + Vector2(x, z) * CELL):
+					out[z * c + x] = 2
 	for k in track.points.size():
 		var p := track.points[k]
 		if k < track.grounds.size() and p.y - track.grounds[k] > PaintedAreas.RAISED:
@@ -502,6 +535,8 @@ func _flood(b: int, level: float) -> float:
 					if seen.has(j) or heights[j] >= level:
 						continue
 					seen[j] = true
+					if blocked[j] == 2:
+						continue
 					if blocked[j] == 1:
 						lowest_road = minf(lowest_road, heights[j])
 						continue
@@ -895,12 +930,13 @@ func river_mesh(b: int) -> ArrayMesh:
 
 
 static func _mesh(points: PackedVector3Array, normals: PackedVector3Array, tints: PackedColorArray, order: PackedInt32Array, uvs: PackedVector2Array, flows: PackedVector2Array) -> ArrayMesh:
-	# Facing up whichever way round the triangles came.
+	# Facing up whichever way round the triangles came (clockwise from above
+	# is the front).
 	for t in range(0, order.size(), 3):
 		var a := points[order[t]]
 		var b := points[order[t + 1]]
 		var c := points[order[t + 2]]
-		if (b - a).cross(c - a).y < 0.0:
+		if (b - a).cross(c - a).y > 0.0:
 			var keep := order[t + 1]
 			order[t + 1] = order[t + 2]
 			order[t + 2] = keep
