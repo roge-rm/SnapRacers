@@ -16,7 +16,9 @@ extends RefCounted
 ## sails or a ferris wheel, and are drawn on their own (see WorldDamage). And
 ## fan() adds a brick figure to watch the race (see Crowd).
 
-enum { BRICK, WINDOWS, SMOOTH, GLOW, WATER, PLAIN, LAMP, PUDDLE, DRIFT }
+## GROUND is painted ground (see Scenery._build_paint()), its pattern in the
+## instance's custom data.
+enum { BRICK, WINDOWS, SMOOTH, GLOW, WATER, PLAIN, LAMP, PUDDLE, DRIFT, GROUND }
 
 static var _shader: Shader
 static var _material: ShaderMaterial

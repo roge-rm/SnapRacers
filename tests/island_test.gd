@@ -66,6 +66,7 @@ func _initialize() -> void:
 	check(most_sea < 4000, "the sea and beach have at most %d triangles" % most_sea)
 	check(slowest < 1000, "working the island out takes at most %d ms" % slowest)
 	_curled()
+	_lagoon()
 	# A hilly island eases down to just under the sea at the shore.
 	var data = JSON.parse_string(FileAccess.get_file_as_string(Tracks.path_of(Tracks.all()[0])))
 	data.theme = "island"
@@ -165,3 +166,62 @@ func _curled() -> void:
 				over = over or Geometry2D.point_is_inside_triangle(spot, sea[i], sea[i + 1], sea[i + 2])
 		var whole := far_box.get_area() - absf(Scenery._area(hook))
 		check(absf(area - whole) < whole * 0.001 and not over, "a hook of land cut from %s gets sea all round it and none over it (%.0f of %.0f m²)" % [centre, area, whole])
+
+
+## Painted water inside the loop of road on an island makes a lagoon: it's
+## deep water, nothing stands in it, and squares painted out past the shore
+## are left out.
+func _lagoon() -> void:
+	var data = JSON.parse_string(FileAccess.get_file_as_string(Tracks.path_of("peach_pit")))
+	data.theme = "island"
+	data.hills = 0.0
+	var track := TrackPath.from_dict(data)
+	var loop := PackedVector2Array()
+	var middle := Vector2.ZERO
+	for p in track.points:
+		loop.append(Vector2(p.x, p.z))
+		middle += Vector2(p.x, p.z) / track.points.size()
+	var areas := PaintedAreas.new()
+	var inside := 0
+	for z in range(-60, 60):
+		for x in range(-60, 60):
+			var square := Vector2i(x, z)
+			if Scenery.inside(loop, PaintedAreas.middle_of(square)) and PaintedAreas.allowed(square, "water", track):
+				areas.set_square(square, "water")
+				inside += 1
+	# And a row of squares far out to sea.
+	var far := track.points[0] + track.rights[0] * 300.0
+	for n in 4:
+		areas.set_square(PaintedAreas.square_at(far.x + n * 8.0, far.z), "water")
+	data.paint = areas.to_dict()
+	track = TrackPath.from_dict(data)
+	var kept := Scenery.paint_of(track)
+	check(inside > 20 and kept.count() == inside, "an island keeps the %d squares inside its shore and drops the 4 out at sea (kept %d)" % [inside, kept.count()])
+	# Built straight away, off the tree, since a -s script's tree only gets
+	# going after this.
+	var scenery := Scenery.new(track, track.theme)
+	scenery._ready()
+	var deep := 0
+	var standing := 0
+	var dry_wet := 0
+	for square: Vector2i in kept.squares:
+		var at := PaintedAreas.middle_of(square)
+		if not kept.inside(at.x, at.y):
+			continue
+		if is_finite(scenery.water.level_at(Vector3(at.x, 0.3, at.y))) and scenery.water.kind == "water":
+			deep += 1
+		if scenery._inside_hall(Vector3(at.x, 0.0, at.y), 1.0):
+			dry_wet += 1
+	for spot in scenery._placed:
+		if kept.covered(spot[0]):
+			standing += 1
+	var middles := kept.squares.keys().filter(func(s: Vector2i) -> bool: var m := PaintedAreas.middle_of(s); return kept.inside(m.x, m.y))
+	check(deep == middles.size(), "the lagoon is deep water all over (%d of %d)" % [deep, middles.size()])
+	check(dry_wet == 0, "and none of it counts as dry land")
+	check(standing == 0, "nothing's put down in it (%d)" % standing)
+	var drawn: Array[String] = []
+	for child in scenery.get_children():
+		if child is MultiMeshInstance3D and child.name.begins_with("Paint"):
+			drawn.append(child.name)
+	check(drawn == ["Paint water", "Paint water edge"], "the lagoon is drawn as one mesh and its sandy edge another (%s)" % str(drawn))
+	scenery.free()

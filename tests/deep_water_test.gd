@@ -36,6 +36,7 @@ func _ready() -> void:
 	Game.settings.set_value("race", "split", Game.SOLO)
 	Game.settings.set_value("race", "weather", "clear")
 	Game.settings.set_value("race", "time", "day")
+	_painted()
 	await _run()
 	Game.settings.clear()
 	Game.settings.parse(saved)
@@ -171,6 +172,53 @@ func _run() -> void:
 	if sea_at != Vector3.INF:
 		var from := track.point_at(sea_from)
 		await _drive_in(sea_from, from, sea_at + track.forward_at(sea_from) * 12.0 + out * 10.0, "the sea")
+
+
+## Painted water and lava beside Peach Pit, flat and on hills: the middle of
+## each is deep at the level it's drawn at, lava says it burns, its edge band
+## and the road aren't deep, and on hills the ground dips under the pool.
+func _painted() -> void:
+	for hills in [0.0, 16.0]:
+		var data: Dictionary = JSON.parse_string(FileAccess.get_file_as_string(Tracks.path_of("peach_pit")))
+		data.hills = hills
+		var track := TrackPath.from_dict(data)
+		# Two pools of three by three squares, 40 m out on each side of a
+		# spot a quarter of the way round.
+		var k := track.points.size() / 4
+		var spots: Array[Vector2] = []
+		var areas := PaintedAreas.new()
+		for n in 2:
+			var p := track.points[k] + track.rights[k] * (40.0 if n == 0 else -40.0)
+			var middle := PaintedAreas.square_at(p.x, p.z)
+			for dz in range(-1, 2):
+				for dx in range(-1, 2):
+					areas.set_square(middle + Vector2i(dx, dz), "water" if n == 0 else "lava")
+			spots.append(PaintedAreas.middle_of(middle))
+		data.paint = areas.to_dict()
+		track = TrackPath.from_dict(data)
+		var builder := TrackBuilder.new(track)
+		builder.sky = false
+		host.add_child(builder)
+		var water := builder.water
+		var what := "on hills" if hills > 0.0 else "on the flat"
+		for n in 2:
+			var at := spots[n]
+			var top := water.paint_top(at.x, at.y)
+			var ground := builder.ground_at(at.x, at.y)
+			var level := water.level_at(Vector3(at.x, ground + 0.3, at.y))
+			check(is_finite(level) and is_equal_approx(level, top) and ground < top, "%s: painted %s is deep in its middle at the level it's drawn (%.2f, ground %.2f)" % [what, ["water", "lava"][n], level, ground])
+			check(water.kind == ["water", "lava"][n] and PaintedAreas.effect_of(water.kind) == ["sink", "burn"][n], "and it's %s, which %ss" % [water.kind, PaintedAreas.effect_of(water.kind)])
+			# Out in its edge band, 12.8 m from the middle of the pool.
+			var band := at + Vector2(12.8, 0.0)
+			check(not is_finite(water.level_at(Vector3(band.x, builder.ground_at(band.x, band.y) + 0.3, band.y))), "%s: its edge band isn't deep" % what)
+			check(not is_finite(water.level_at(Vector3(at.x, top + 3.0, at.y))), "%s: well above it isn't" % what)
+			if hills > 0.0:
+				check(ground < top - Terrain.BASIN * 0.5, "the ground dips under it (%.2f below)" % (top - ground))
+		var dry := true
+		for i in range(0, track.points.size(), 3):
+			dry = dry and not is_finite(water.level_at(track.points[i] + track.ups[i] * 0.5))
+		check(dry and water.kind == "", "%s: the road is never deep" % what)
+		builder.free()
 
 
 ## Puts the kart on the road at `offset`, so it knows where it left it, then

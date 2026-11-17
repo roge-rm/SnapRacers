@@ -249,6 +249,108 @@ func covered(at: Vector3, room := 0.0) -> bool:
 	return false
 
 
+## The field of every type at the point, as type -> 0 to 1, only the types
+## that reach it.
+func weights_at(x: float, z: float) -> Dictionary:
+	var out := {}
+	if squares.is_empty():
+		return out
+	var half := BLUR * 0.5
+	for cz in range(floori((z - half) / CELL), floori((z + half) / CELL) + 1):
+		var oz := minf(z + half, (cz + 1) * CELL) - maxf(z - half, cz * CELL)
+		for cx in range(floori((x - half) / CELL), floori((x + half) / CELL) + 1):
+			var type: String = squares.get(Vector2i(cx, cz), "")
+			if type != "":
+				var ox := minf(x + half, (cx + 1) * CELL) - maxf(x - half, cx * CELL)
+				out[type] = out.get(type, 0.0) + ox * oz / (BLUR * BLUR)
+	return out
+
+
+## The field of all the types that sink or burn together, from 0 to 1.
+func deep_field_at(x: float, z: float) -> float:
+	var sum := 0.0
+	var weights := weights_at(x, z)
+	for type: String in weights:
+		if TYPES[type].effect != "":
+			sum += weights[type]
+	return sum
+
+
+## Whether any square sinks or burns.
+func has_deep() -> bool:
+	for type: String in squares.values():
+		if TYPES[type].effect != "":
+			return true
+	return false
+
+
+## How high each pool of water or lava sits, as square -> height for every
+## square that sinks or burns. Squares that touch, corners too, are one pool,
+## and its level is the lowest ground just round its edge, from `ground`
+## (x, z -> height), so it never spills over. Flat ground gives 0.
+func surface_levels(ground: Callable) -> Dictionary:
+	var deep := {}
+	for square: Vector2i in squares:
+		if TYPES[squares[square]].effect != "":
+			deep[square] = true
+	var levels := {}
+	var out := CELL * 0.5 + 1.5
+	for first: Vector2i in deep:
+		if levels.has(first):
+			continue
+		# Flood the pool from its first square, then find its lowest edge.
+		var pool: Array[Vector2i] = [first]
+		levels[first] = 0.0
+		var n := 0
+		var low := INF
+		while n < pool.size():
+			var square := pool[n]
+			n += 1
+			var middle := middle_of(square)
+			for dz in range(-1, 2):
+				for dx in range(-1, 2):
+					var next := square + Vector2i(dx, dz)
+					if next == square:
+						continue
+					if deep.has(next):
+						if not levels.has(next):
+							levels[next] = 0.0
+							pool.append(next)
+					elif dx == 0 or dz == 0:
+						var side := Vector2(dx, dz)
+						var along := Vector2(-dz, dx)
+						for k in [-3.0, 0.0, 3.0]:
+							var at: Vector2 = middle + side * out + along * k
+							low = minf(low, ground.call(at.x, at.y))
+					else:
+						var at := middle + Vector2(dx, dz) * (CELL * 0.5 + 1.0)
+						low = minf(low, ground.call(at.x, at.y))
+		if low == INF:
+			low = 0.0
+		for square in pool:
+			levels[square] = low
+	return levels
+
+
+## The level from surface_levels() for the pool at a point: its square's, or
+## the nearest neighbouring square's that has one. `none` if there's none.
+static func level_near(levels: Dictionary, x: float, z: float, none := 0.0) -> float:
+	var square := square_at(x, z)
+	if levels.has(square):
+		return levels[square]
+	var best := INF
+	var level := none
+	for dz in range(-1, 2):
+		for dx in range(-1, 2):
+			var next := square + Vector2i(dx, dz)
+			if levels.has(next):
+				var gap := middle_of(next).distance_squared_to(Vector2(x, z))
+				if gap < best:
+					best = gap
+					level = levels[next]
+	return level
+
+
 var _kind := ""
 var _level := 0.0
 

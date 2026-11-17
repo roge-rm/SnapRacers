@@ -304,13 +304,75 @@ varying vec3 world_normal;
 varying vec3 pattern_position;
 varying vec3 pattern_normal;
 varying flat float pattern;
+varying flat float grain;
 """ + COMMON + """
+// Painted ground's patterns (see Scenery.PAINT_GRAIN): 1 mud, 2 gravel,
+// 3 sand, 4 ice, 5 dark crust round lava, 6 lava, 7 slime. p is in metres.
+// Fine detail fades out with distance so it doesn't shimmer. Lava and slime
+// set how much they glow in glow.
+vec3 painted(vec2 p, vec3 col, float kind, inout float rough, inout float spec, inout vec3 glow) {
+	float crisp = clamp(1.0 - length(fwidth(p)) * 2.5, 0.0, 1.0);
+	if (kind < 1.5) {
+		float w;
+		col = mud(p, col, w);
+		rough = mix(0.9, 0.7, w);
+		spec = mix(0.1, 0.2, w);
+	} else if (kind < 2.5) {
+		// Pebbles about a hand across, each its own shade, darker between.
+		vec2 c = p / 0.3;
+		vec2 i = floor(c);
+		vec2 off = vec2(hash(i + 1.7), hash(i + 5.1)) - 0.5;
+		float d = length(fract(c) - 0.5 - off * 0.3);
+		float stone = 1.0 - smoothstep(0.25, 0.42, d);
+		col *= mix(0.95, mix(0.62, 0.78 + 0.45 * hash(i + 2.3), stone), crisp);
+		col *= 0.9 + 0.2 * blotches(p * 0.35);
+		rough = 0.95;
+		spec = 0.12;
+	} else if (kind < 3.5) {
+		// Wind ripples and a fine grain.
+		float ripple = sin(p.x * 1.4 + 1.8 * sin(p.y * 0.3) + 3.0 * blotches(p * 0.18));
+		col *= 1.0 + 0.06 * ripple * crisp;
+		col *= 0.94 + 0.1 * blotches(p * 0.45) + 0.08 * (hash(floor(p * 14.0)) - 0.5) * crisp;
+		rough = 0.95;
+		spec = 0.1;
+	} else if (kind < 4.5) {
+		// Glassy, with pale streaks and a few white cracks.
+		float streak = blotches(vec2(p.x * 0.35 + p.y * 0.2, p.y * 1.4));
+		col = mix(col, vec3(1.0), 0.3 * smoothstep(0.55, 0.9, streak));
+		float crack = seam(p.x + 1.3 * sin(p.y * 0.7) + 0.6 * sin(p.y * 2.3), 3.7, 0.04) * step(0.45, blotches(p * 0.4));
+		crack = max(crack, seam(p.y + 1.1 * sin(p.x * 0.6), 4.3, 0.04) * step(0.5, blotches(p * 0.4 + 9.1)));
+		col = mix(col, vec3(1.0), 0.6 * crack * crisp);
+		rough = 0.15;
+		spec = 0.5;
+	} else if (kind < 5.5) {
+		// Cooled rock in plates, each its own shade, with dark cracks between.
+		vec2 c = p / 1.2;
+		vec2 i = floor(c + 0.5 * vec2(0.0, mod(floor(c.x), 2.0)));
+		col *= 0.8 + 0.4 * hash(i);
+		col *= 1.0 - 0.35 * max(seam(c.x, 1.0, 0.05), seam(c.y + 0.5 * mod(floor(c.x), 2.0), 1.0, 0.05)) * crisp;
+		rough = 0.95;
+		spec = 0.08;
+	} else {
+		// Molten: a darker cooled skin drifting slowly over it, the rest
+		// glowing and flickering. Slime's skin is lighter.
+		float skin = blotches(p * 0.16 + vec2(TIME * 0.03, TIME * 0.02)) * 0.7 + blotches(p * 0.55 - TIME * 0.05) * 0.3;
+		skin = smoothstep(0.52, 0.72, skin);
+		float flicker = 0.85 + 0.15 * sin(TIME * 2.0 + p.x * 0.4 + p.y * 0.3);
+		glow = col * (1.7 - 1.4 * skin) * flicker;
+		col = mix(col, col * (kind > 6.5 ? 0.5 : 0.22), skin);
+		rough = 0.9;
+		spec = 0.1;
+	}
+	return col;
+}
+
 void vertex() {
 	world = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
 	world_normal = normalize((MODEL_MATRIX * vec4(NORMAL, 0.0)).xyz);
 	pattern_position = world;
 	pattern_normal = world_normal;
 	pattern = INSTANCE_CUSTOM.x;
+	grain = INSTANCE_CUSTOM.y;
 }
 
 void fragment() {
@@ -351,6 +413,10 @@ void fragment() {
 		float flicker = 0.8 + 0.2 * sin(TIME * 2.0 + pattern_position.x * 0.4 + pattern_position.z * 0.3);
 		EMISSION = col * 1.6 * flicker;
 		rough = 0.9;
+	} else if (pattern > 8.5) {
+		vec3 glow = vec3(0.0);
+		col = painted(pattern_position.xz, col, grain, rough, spec, glow);
+		EMISSION = glow;
 	} else if (pattern > 7.5) {
 		rough = 0.9;
 		spec = 0.15;
@@ -381,6 +447,8 @@ void fragment() {
 	// sides.
 	if (pattern < 2.5 || (pattern > 4.5 && pattern < 5.5)) {
 		col = mix(col, SNOW, snow * (top ? 0.95 : (side ? 0.2 : 0.0)));
+	} else if (pattern > 8.5) {
+		col = mix(col, SNOW, snow * 0.8 * smoothstep(0.3, 0.6, blotches(pattern_position.xz * 0.5)));
 	}
 	EMISSION += col * lamp_light(world) * 0.9;
 	ALBEDO = col;

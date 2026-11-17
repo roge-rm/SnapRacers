@@ -2,9 +2,10 @@ class_name DeepWater
 extends RefCounted
 
 ## Where the water is too deep to drive: the sea beside a seaside course or
-## all round an island, and lakes and ponds. A kart that drives in sinks and
-## is put back on the road (see Kart.sink()). Puddles and shallows on the
-## road aren't in here. Scenery fills it in as it builds.
+## all round an island, lakes and ponds, and painted water, lava and slime
+## (see PaintedAreas). A kart that drives in sinks and is put back on the
+## road (see Kart.sink()). Puddles and shallows on the road aren't in here.
+## Scenery fills it in as it builds.
 ##
 ## Every check is a lookup from above, (x, z), so it's cheap enough to do
 ## for every kart every step.
@@ -34,10 +35,19 @@ var _pool_box := Rect2()
 ## How high the ground is at (x, z). On a hillside a lake's tiles run into
 ## the slope, and only count where the water's above the ground.
 var ground: Callable = func(_x: float, _z: float) -> float: return 0.0
+## Ground painted in the track editor (see PaintedAreas), whose water, lava
+## and slime count where their field reaches DEEP, and how high each pool's
+## surface is, as square -> height.
+var paint: PaintedAreas
+var paint_tops := {}
+## What the last deep water level_at() found was: "water" for the sea, a lake
+## or painted water, or the painted type ("lava", "slime"), "" for none. See
+## PaintedAreas.effect_of() for whether it sinks or burns.
+var kind := ""
 
 
 func is_empty() -> bool:
-	return sea.size == Vector2.ZERO and not island and _pools.is_empty()
+	return sea.size == Vector2.ZERO and not island and _pools.is_empty() and (paint == null or not paint.has_deep())
 
 
 ## Sea all round the land inside `shore`, from above, with its surface at
@@ -69,6 +79,7 @@ func add_pool(centre: Vector3, size: Vector2, top: float) -> void:
 ## deep water (or is well above it).
 func level_at(at: Vector3) -> float:
 	var flat := Vector2(at.x, at.z)
+	kind = "water"
 	if island:
 		var x := floori((flat.x - _origin.x) / CELL)
 		var y := floori((flat.y - _origin.y) / CELL)
@@ -82,4 +93,23 @@ func level_at(at: Vector3) -> float:
 			var top: float = pool[1]
 			if (pool[0] as Rect2).has_point(flat) and at.y < top + ABOVE and ground.call(flat.x, flat.y) < top:
 				return top
+	if paint != null and not paint.is_empty():
+		var type := paint.kind_at(at.x, at.z)
+		if type != "" and PaintedAreas.effect_of(type) != "" and paint.level_at(at.x, at.z) >= PaintedAreas.DEEP:
+			var top := paint_top(at.x, at.z)
+			if at.y < top + ABOVE:
+				kind = type
+				return top
+	kind = ""
 	return NAN
+
+
+## What kind of deep water is at `at`, as level_at() leaves in `kind`.
+func kind_at(at: Vector3) -> String:
+	level_at(at)
+	return kind
+
+
+## How high the surface of a painted pool is at (x, z).
+func paint_top(x: float, z: float) -> float:
+	return PaintedAreas.level_near(paint_tops, x, z, Scenery.PAINT_LIFT)

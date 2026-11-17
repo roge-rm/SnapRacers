@@ -32,6 +32,9 @@ const DROP_FULL := 4.0
 const DROP_BANK := 16.0
 const CLIFF := 1.6
 const LEDGE := 7.0
+## How far the ground dips under the middle of painted water or lava, below
+## its surface.
+const BASIN := 1.2
 
 var track: TrackPath
 ## The corner of the grid, and how many points across and down it has.
@@ -39,6 +42,9 @@ var origin := Vector2.ZERO
 var cols := 0
 var rows := 0
 var heights := PackedFloat32Array()
+## How high each painted pool of water or lava sits, as square -> height (see
+## PaintedAreas.surface_levels()).
+var paint_levels := {}
 
 
 func _init(path: TrackPath, reach: float) -> void:
@@ -169,6 +175,57 @@ func _work_out_heights() -> void:
 					inside += 1
 				h = lerpf(sea, h, smoothstep(0.0, float(rings.size()), float(inside)))
 			heights[i] = h
+	_basins(gap, edge)
+
+
+## Under painted water and lava the ground comes down from the hills, from
+## where the field starts, to the pool's level at its deep line, then dips
+## below it in the middle. Ground within a metre of the kerbs of road on the
+## ground, which is `gap` away from it, is left alone.
+func _basins(gap: PackedFloat32Array, edge: float) -> void:
+	var paint := Scenery.paint_of(track)
+	if not paint.has_deep():
+		return
+	paint_levels = paint.surface_levels(height_at)
+	var lo := Vector2i(cols, rows)
+	var hi := Vector2i(-1, -1)
+	for square: Vector2i in paint_levels:
+		var a := ((Vector2(square) * PaintedAreas.CELL - origin) / CELL).floor() - Vector2.ONE * 2.0
+		var b := ((Vector2(square + Vector2i.ONE) * PaintedAreas.CELL - origin) / CELL).ceil() + Vector2.ONE * 2.0
+		lo = lo.min(Vector2i(a))
+		hi = hi.max(Vector2i(b))
+	lo = lo.max(Vector2i.ZERO)
+	hi = hi.min(Vector2i(cols - 1, rows - 1))
+	for z in range(lo.y, hi.y + 1):
+		for x in range(lo.x, hi.x + 1):
+			var at := _point(x, z)
+			var field := paint.deep_field_at(at.x, at.y)
+			var i := z * cols + x
+			if field <= 0.0 or gap[i] < edge + 1.0:
+				continue
+			var level := PaintedAreas.level_near(paint_levels, at.x, at.y)
+			var h := heights[i]
+			if field < PaintedAreas.DEEP:
+				h = lerpf(maxf(h, level), level, smoothstep(0.0, PaintedAreas.DEEP, field))
+			else:
+				h = minf(h, level) - BASIN * smoothstep(PaintedAreas.DEEP, 1.0, field)
+			heights[i] = h
+
+
+## How high the ground's drawn surface is here: the same triangles as the
+## mesh, so something laid on it sits exactly on top.
+func surface_at(x: float, z: float) -> float:
+	var fx := clampf((x - origin.x) / CELL, 0.0, cols - 1.001)
+	var fz := clampf((z - origin.y) / CELL, 0.0, rows - 1.001)
+	var ix := int(fx)
+	var iz := int(fz)
+	var ax := fx - ix
+	var az := fz - iz
+	var i := iz * cols + ix
+	if ax + az <= 1.0:
+		return heights[i] + (heights[i + 1] - heights[i]) * ax + (heights[i + cols] - heights[i]) * az
+	var d := heights[i + cols + 1]
+	return d + (heights[i + cols] - d) * (1.0 - ax) + (heights[i + 1] - d) * (1.0 - az)
 
 
 ## Just under the lower edge of the road at this sample.

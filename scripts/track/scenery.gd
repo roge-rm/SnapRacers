@@ -82,6 +82,18 @@ const LIGHT_EVERY := 12.0
 ## Outdoors, how far apart the lamp posts along the road are. They take turns
 ## on each side.
 const LAMP_EVERY := 20.0
+## Painted ground (see PaintedAreas) lies this far above the ground, and a
+## pool of water or lava this far above its level. Its field is sampled every
+## PAINT_STEP metres.
+const PAINT_LIFT := 0.07
+const PAINT_STEP := 2.0
+## The pattern on each painted type and on its edge band (see "grain" in
+## BrickShaders.BLOCK): 1 mud, 2 gravel, 3 sand, 4 ice, 5 crust, 6 lava,
+## 7 slime. Water has the sea's own surface.
+const PAINT_GRAIN := {
+	"water": [0, 3], "lava": [6, 5], "slime": [7, 5],
+	"mud": [1, 1], "gravel": [2, 2], "sand": [3, 3], "ice": [4, 4],
+}
 
 ## Each theme: ground colour, curb and wall colours, the sky, its landmarks
 ## (placed first, biggest first) and its fillers with how often each turns
@@ -508,6 +520,10 @@ var _sea_level := 0.0
 var only_sea := false
 ## Where the water's too deep to drive, filled in as it builds.
 var water := DeepWater.new()
+## The painted ground it builds, less any squares out in an island's sea.
+var paint := PaintedAreas.new()
+## The hills on a hilly course, so painted ground can lie exactly on them.
+var terrain: Terrain
 var _origin := Vector2.ZERO
 var _cols := 0
 var _rows := 0
@@ -555,6 +571,19 @@ func _ready() -> void:
 		_dry = inside_grid(dry, _origin + Vector2.ONE * CELL * 0.5, _cols, _rows, CELL)
 		_sea_level = island_level(track, _shore)
 		water.set_island(_shore, _sea_level + 0.05)
+	# Painted water and lava are deep water, at the level the hills give
+	# each pool (see Terrain), and nothing else stands on painted ground.
+	if not _floating:
+		paint = paint_of(track)
+	if paint.has_deep():
+		var levels := terrain.paint_levels if terrain != null else paint.surface_levels(ground)
+		for square: Vector2i in levels:
+			water.paint_tops[square] = levels[square] + PAINT_LIFT
+	water.paint = paint
+	if not _dry.is_empty() and not paint.is_empty():
+		for i in _dry.size():
+			if _dry[i] == 1 and paint.covered(_vec3(_centre(i % _cols, i / _cols)), CELL * 0.5):
+				_dry[i] = 0
 	if not only_sea:
 		_dress(indoor)
 	# The sea's waves and boats have their own random numbers, so they sit
@@ -564,6 +593,7 @@ func _ready() -> void:
 		_build_sea()
 	if not _shore.is_empty():
 		_build_island()
+	_build_paint()
 	# Only things near the road need to be solid. And nothing that ended up on
 	# the road itself may be, or karts would pile into it (the walls keep
 	# them off everything else).
@@ -718,7 +748,18 @@ func _free(at: Vector3, radius: float) -> bool:
 	for spot in keep_clear:
 		if Vector2(spot[0].x - at.x, spot[0].z - at.z).length() < spot[1] + radius:
 			return false
-	return not _on_strip(at, radius)
+	return not _on_strip(at, radius) and not _painted(at, radius)
+
+
+## Whether any painted ground is within `radius` of `at`.
+func _painted(at: Vector3, radius: float) -> bool:
+	if paint.is_empty():
+		return false
+	return paint.covered(at, radius) or (radius > PaintedAreas.CELL and paint.covered(at, radius * 0.5))
+
+
+static func _vec3(flat: Vector2) -> Vector3:
+	return Vector3(flat.x, 0.0, flat.y)
 
 
 ## How many small things (ones that come down whole) stand within `radius`
@@ -726,7 +767,7 @@ func _free(at: Vector3, radius: float) -> bool:
 ## something big, on a railway, in the sea, outside the hall or up in the sky.
 ## Without `off_road` it can be right by the road.
 func clutter_at(at: Vector3, radius: float, off_road := true) -> int:
-	if _floating or (off_road and _distance_at(at) < _road_clear + radius) or _on_strip(at, radius) or not _inside_hall(at, radius):
+	if _floating or (off_road and _distance_at(at) < _road_clear + radius) or _on_strip(at, radius) or not _inside_hall(at, radius) or _painted(at, radius):
 		return -1
 	for spot in keep_clear:
 		if Vector2(spot[0].x - at.x, spot[0].z - at.z).length() < spot[1] + radius:
@@ -928,7 +969,7 @@ func _island_props() -> void:
 		flip = -flip
 		# The island's own middle is on the middle line, so only what's
 		# already been put down counts.
-		var clear := true
+		var clear := not _painted(at, 2.0)
 		for spot in _placed:
 			clear = clear and Vector2(spot[0].x - at.x, spot[0].z - at.z).length() >= spot[1] + 3.0
 		if clear:
@@ -992,13 +1033,14 @@ func _tire_lines() -> void:
 			var steps := maxi(1, int(a.distance_to(b) / STACK_EVERY))
 			for i in steps:
 				var at := a.lerp(b, float(i) / steps)
-				if not keep_off.is_empty() and _on_strip(at, 1.0):
+				if (not keep_off.is_empty() and _on_strip(at, 1.0)) or _painted(at, 1.0):
 					continue
 				_kit.begin("tires", false, true)
 				Props.barrier_stack(_kit, at, colours[(stacks / 3) % 2])
 				_kit.done()
 				stacks += 1
-			_placed.append([a, 2.0])
+			if not _painted(a, 1.0):
+				_placed.append([a, 2.0])
 
 
 ## Indoors, a low soft barrier runs along both sides of the road a little way
@@ -1456,7 +1498,7 @@ static func _flat_mesh(triangles: PackedVector2Array, y: float) -> ArrayMesh:
 
 ## One flat mesh drawn as a single instance with the bricks' material, in a
 ## colour and a surface (see SceneryKit), casting no shadow.
-func _flat_draw(mesh: ArrayMesh, colour: Color, surface: int) -> void:
+func _flat_draw(mesh: ArrayMesh, colour: Color, surface: int, grain := 0) -> MultiMeshInstance3D:
 	var multi := MultiMesh.new()
 	multi.transform_format = MultiMesh.TRANSFORM_3D
 	multi.use_colors = true
@@ -1465,12 +1507,13 @@ func _flat_draw(mesh: ArrayMesh, colour: Color, surface: int) -> void:
 	multi.instance_count = 1
 	multi.set_instance_transform(0, Transform3D.IDENTITY)
 	multi.set_instance_color(0, colour)
-	multi.set_instance_custom_data(0, Color(float(surface), 0.0, 0.0, 0.0))
+	multi.set_instance_custom_data(0, Color(float(surface), float(grain), 0.0, 0.0))
 	var draw := MultiMeshInstance3D.new()
 	draw.multimesh = multi
 	draw.material_override = SceneryKit.material()
 	draw.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	add_child(draw)
+	return draw
 
 
 ## The sea all round an island, the beach inside the shore, waves breaking
@@ -1521,6 +1564,189 @@ func _build_island() -> void:
 		if clear:
 			_boat(Vector3(spot.x, level, spot.y), _rng.randf() * TAU)
 			boats += 1
+
+
+# Painted ground.
+
+## The course's painted ground, less any squares whose middle is out in an
+## island's sea.
+static func paint_of(path: TrackPath) -> PaintedAreas:
+	if path.paint.is_empty() or not theme_named(path.theme).get("island", false):
+		return path.paint
+	var shore := island_shore(path)
+	var kept := PaintedAreas.new()
+	if shore.is_empty():
+		return kept
+	var lo := Vector2i(1 << 30, 1 << 30)
+	var hi := -lo
+	for square: Vector2i in path.paint.squares:
+		lo = lo.min(square)
+		hi = hi.max(square)
+	var cols := hi.x - lo.x + 1
+	var land := inside_grid(shore, PaintedAreas.middle_of(lo), cols, hi.y - lo.y + 1, PaintedAreas.CELL)
+	for square: Vector2i in path.paint.squares:
+		if land[(square.y - lo.y) * cols + square.x - lo.x] == 1:
+			kept.squares[square] = path.paint.squares[square]
+	return kept
+
+
+## One mesh for the middle of each painted type and one for its edge band, cut
+## from the field sampled every PAINT_STEP metres (see PaintedAreas). Where
+## two types meet, each takes the side where its field is stronger. Water and
+## lava lie flat at their pool's level, over its whole edge on hills so the
+## shore is where the ground comes up through it; the rest lies on the ground.
+func _build_paint() -> void:
+	if paint.is_empty():
+		return
+	var step := PAINT_STEP
+	var base := terrain.origin if terrain != null else Vector2.ZERO
+	var reach := PaintedAreas.BLUR * 0.5 + step
+	var fields := {}
+	for square: Vector2i in paint.squares:
+		var a := ((Vector2(square) * PaintedAreas.CELL - Vector2.ONE * reach - base) / step).floor()
+		var b := ((Vector2(square + Vector2i.ONE) * PaintedAreas.CELL + Vector2.ONE * reach - base) / step).ceil()
+		for z in range(int(a.y), int(b.y) + 1):
+			for x in range(int(a.x), int(b.x) + 1):
+				var node := Vector2i(x, z)
+				if not fields.has(node):
+					var at := base + Vector2(node) * step
+					fields[node] = paint.weights_at(at.x, at.y)
+	var types := {}
+	for type: String in paint.squares.values():
+		types[type] = true
+	var cell := [Vector2i(0, 0), Vector2i(1, 0), Vector2i(0, 1), Vector2i(1, 1)]
+	for type: String in types:
+		var info: Dictionary = PaintedAreas.TYPES[type]
+		var pool: bool = info.effect != ""
+		var hills := terrain != null
+		var middle: Array = []
+		var band: Array = []
+		# Whole cells in a flat middle, by row, joined up into strips after.
+		var full := {}
+		for node: Vector2i in fields:
+			var corners: Array[Vector4] = []
+			var top := 0.0
+			var low := INF
+			var apart := INF
+			for c: Vector2i in cell:
+				var weights: Dictionary = fields.get(node + c, {})
+				var own: float = weights.get(type, 0.0)
+				var other := 0.0
+				for t: String in weights:
+					if t != type:
+						other = maxf(other, weights[t])
+				var at := base + Vector2(node + c) * step
+				corners.append(Vector4(at.x, at.y, own, own - other))
+				top = maxf(top, own)
+				low = minf(low, own)
+				apart = minf(apart, own - other)
+			if top < PaintedAreas.EDGE:
+				continue
+			var shore := false
+			if pool and hills:
+				var level := water.paint_top(corners[0].x, corners[0].y) - PAINT_LIFT
+				for c: Vector4 in corners:
+					shore = shore or terrain.surface_at(c.x, c.y) > level - 0.05
+			if low >= PaintedAreas.DEEP and apart >= 0.0 and (not hills or (pool and not shore)):
+				if not full.has(node.y):
+					full[node.y] = []
+				full[node.y].append(node.x)
+				continue
+			for tri in [[0, 1, 2], [1, 3, 2]]:
+				var piece: Array[Vector4] = [corners[tri[0]], corners[tri[1]], corners[tri[2]]]
+				piece = _clip(piece, 2, PaintedAreas.EDGE, true)
+				if apart < 0.0:
+					piece = _clip(piece, 3, 0.0, true)
+				if piece.size() < 3:
+					continue
+				if pool and hills:
+					middle.append(piece)
+					# The edge lies on the ground wherever that comes up to the
+					# pool's level, and the pool covers the rest.
+					if shore:
+						band.append(piece)
+				else:
+					middle.append(_clip(piece, 2, PaintedAreas.DEEP, true))
+				band.append(_clip(piece, 2, PaintedAreas.DEEP, false))
+		for z: int in full:
+			var xs: Array = full[z]
+			xs.sort()
+			var from: int = xs[0]
+			for k in xs.size():
+				if k + 1 < xs.size() and xs[k + 1] == xs[k] + 1:
+					continue
+				var a := base + Vector2(from, z) * step
+				var b := base + Vector2(xs[k] + 1, z + 1) * step
+				middle.append([Vector4(a.x, a.y, 1, 1), Vector4(b.x, a.y, 1, 1), Vector4(b.x, b.y, 1, 1), Vector4(a.x, b.y, 1, 1)])
+				if k + 1 < xs.size():
+					from = xs[k + 1]
+		var grain: Array = PAINT_GRAIN[type]
+		var surface := SceneryKit.WATER if info.surface == "water" else SceneryKit.GROUND
+		var mesh := _paint_mesh(middle, pool)
+		if mesh != null:
+			_flat_draw(mesh, info.colour, surface, grain[0]).name = "Paint %s" % type
+		mesh = _paint_mesh(band, false)
+		if mesh != null:
+			_flat_draw(mesh, info.edge, SceneryKit.GROUND, grain[1]).name = "Paint %s edge" % type
+
+
+## What's left of a flat polygon of (x, z, field, field less the strongest
+## other type's) on one side of `cut` in component `which`: at or above it,
+## or at or below.
+static func _clip(piece: Array[Vector4], which: int, cut: float, above: bool) -> Array[Vector4]:
+	var out: Array[Vector4] = []
+	var count := piece.size()
+	for i in count:
+		var a := piece[i]
+		var b := piece[(i + 1) % count]
+		var va := (a[which] - cut) * (1.0 if above else -1.0)
+		var vb := (b[which] - cut) * (1.0 if above else -1.0)
+		if va >= 0.0:
+			out.append(a)
+		if (va >= 0.0) != (vb >= 0.0):
+			out.append(a.lerp(b, va / (va - vb)))
+	return out
+
+
+## A mesh of flat polygons (see _clip()): a pool's at its level, the rest on
+## the ground with its slope, PAINT_LIFT up. Null if there's nothing.
+func _paint_mesh(pieces: Array, pool: bool) -> ArrayMesh:
+	var tool := SurfaceTool.new()
+	tool.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var any := false
+	for piece: Array in pieces:
+		for i in range(1, piece.size() - 1):
+			var corners := [piece[0], piece[i], piece[i + 1]]
+			# Facing up, whichever way round they came.
+			var a := Vector2(corners[0].x, corners[0].y)
+			var turn := (Vector2(corners[1].x, corners[1].y) - a).cross(Vector2(corners[2].x, corners[2].y) - a)
+			if absf(turn) < 0.0001:
+				continue
+			if turn < 0.0:
+				corners = [corners[0], corners[2], corners[1]]
+			for c: Vector4 in corners:
+				if pool:
+					tool.set_normal(Vector3.UP)
+					tool.add_vertex(Vector3(c.x, water.paint_top(c.x, c.y), c.y))
+				else:
+					tool.set_normal(_paint_normal(c.x, c.y))
+					tool.add_vertex(Vector3(c.x, _paint_ground(c.x, c.y) + PAINT_LIFT, c.y))
+			any = true
+	if not any:
+		return null
+	tool.index()
+	return tool.commit()
+
+
+func _paint_ground(x: float, z: float) -> float:
+	return terrain.surface_at(x, z) if terrain != null else ground.call(x, z)
+
+
+func _paint_normal(x: float, z: float) -> Vector3:
+	if terrain == null:
+		return Vector3.UP
+	var d := Terrain.CELL
+	return Vector3(_paint_ground(x - d, z) - _paint_ground(x + d, z), d * 2.0, _paint_ground(x, z - d) - _paint_ground(x, z + d)).normalized()
 
 
 ## The hall around an indoor course: its walls with a coloured band round
@@ -1921,6 +2147,9 @@ func _start_area(edge: float) -> void:
 		# The building goes back away from the road, so that's the way to look.
 		if not _clear_of_other_road(front, fwd, right * side, 32.0, 8.0, start_k):
 			continue
+		var middle := front + right * side * 7.0
+		if _painted(middle, 7.0) or _painted(middle + fwd * 12.0, 7.0) or _painted(middle - fwd * 12.0, 7.0):
+			continue
 		_kit.begin("grandstand" if built == 0 else "pit_building", false)
 		if built == 0:
 			Props.grandstand(_kit, front, 30.0, _facing_for(-right * side), _rng)
@@ -1940,7 +2169,7 @@ func _start_area(edge: float) -> void:
 			at = _grounded(at)
 			# The start straight can bend soon after the line, so check all the
 			# road, not just other bits of it.
-			if not _near_other_road(at, edge + 1.0, start_k, 0.0) and not _on_strip(at, 1.0):
+			if not _near_other_road(at, edge + 1.0, start_k, 0.0) and not _on_strip(at, 1.0) and not _painted(at, 1.0):
 				_kit.begin("flag", true)
 				Props.flag(_kit, at, [Props.RED, Props.YELLOW, Props.BLUE, Props.GREEN][k])
 				_kit.done()
