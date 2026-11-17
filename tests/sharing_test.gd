@@ -65,6 +65,7 @@ func _initialize() -> void:
 	check(unbuildable.is_empty(), "every one of the game's courses passes the check a host's course gets online %s" % str(unbuildable))
 
 	_splits()
+	_ground(data)
 
 	print("-- Road colour")
 	check(not data.has("road_colour") and CourseDesign.from_dict(data).road_colour == "grey", "a course with no road colour is grey and saves no field")
@@ -143,6 +144,61 @@ func _initialize() -> void:
 
 
 ## Courses with splits go through codes and files, and broken splits don't.
+## A course with a ground map shares it, and a map that's too big, the
+## wrong grid or bad data is turned away.
+func _ground(data: Dictionary) -> void:
+	print("-- Ground map")
+	var map := GroundMap.blank(Vector2(-400.0, -400.0), 101, 101)
+	for z in map.rows:
+		for x in map.cols:
+			map.heights[z * map.cols + x] = 12.0 * sin(x * 0.11) * cos(z * 0.07)
+	var mapped := data.duplicate(true)
+	mapped.hills = 10.0
+	mapped.ground = map.to_dict()
+	var code := Sharing.code_for(mapped)
+	var back := Sharing.read(code)
+	check(back.get("kind") == Sharing.COURSE and back.data.get("ground", {}).get("data") == mapped.ground.data and not back.data.has("hills"), "a ground map survives a share code and drops the hills (code %d characters)" % code.length())
+	var limits := {
+		"too many points": func(g): g["size"] = [257, 256],
+		"a size that isn't what's in it": func(g): g["size"] = [100, 101],
+		"another cell size": func(g): g.cell = 4.0,
+		"another step": func(g): g.step = 0.1,
+		"an origin out of reach": func(g): g.origin = [1e9, 0.0],
+		"data that isn't base64": func(g): g.data = "not a map at all!",
+		"data that isn't deflated": func(g): g.data = Marshalls.raw_to_base64("hello there".to_utf8_buffer()),
+		"a size that isn't a whole number": func(g): g["size"] = [100.5, 101],
+		"no data": func(g): g.erase("data"),
+	}
+	for what in limits:
+		var bad := mapped.duplicate(true)
+		limits[what].call(bad.ground)
+		check(Sharing.read(Sharing.code_for(bad)).has("why"), "a ground map with %s is turned away" % what)
+	# 4001 steps up is past GroundMap.HIGHEST: zigzag 8002 as a varint.
+	var high := PackedByteArray([8002 & 0x7f | 0x80, 8002 >> 7])
+	var too_high := mapped.duplicate(true)
+	too_high.ground["size"] = [1, 1]
+	too_high.ground.data = Marshalls.raw_to_base64(high.compress(FileAccess.COMPRESSION_DEFLATE))
+	check(Sharing.read(Sharing.code_for(too_high)).has("why"), "and so is a point over %d m" % GroundMap.HIGHEST)
+	var just := PackedByteArray([8000 & 0x7f | 0x80, 8000 >> 7])
+	too_high.ground.data = Marshalls.raw_to_base64(just.compress(FileAccess.COMPRESSION_DEFLATE))
+	check(not Sharing.read(Sharing.code_for(too_high)).has("why"), "but one at %d m is fine" % GroundMap.HIGHEST)
+	var longer := PackedByteArray()
+	longer.resize(101 * 101 * 3 + 1)
+	longer.fill(0x80)
+	var bomb := mapped.duplicate(true)
+	bomb.ground.data = Marshalls.raw_to_base64(longer.compress(FileAccess.COMPRESSION_DEFLATE))
+	check(Sharing.read(Sharing.code_for(bomb)).has("why"), "and data that unpacks bigger than the map could be")
+	var biggest := GroundMap.blank(Vector2.ZERO, 256, 256)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 7
+	for i in biggest.heights.size():
+		biggest.heights[i] = rng.randi_range(-4000, 4000) * GroundMap.STEP
+	var worst := mapped.duplicate(true)
+	worst.ground = biggest.to_dict()
+	var worst_code := Sharing.code_for(worst)
+	check(worst_code.length() < Sharing.MOST_BYTES and Sharing.read(worst_code).get("kind") == Sharing.COURSE, "the biggest, roughest map still fits in a code (%d KB)" % (worst_code.length() / 1024))
+
+
 func _splits() -> void:
 	print("-- Splits")
 	var data: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://tests/data/split_course.json"))

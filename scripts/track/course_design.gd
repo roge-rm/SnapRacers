@@ -26,6 +26,8 @@ var laps := 3
 var width := TrackPath.WIDTH
 ## How much the ground rises and falls around it (see TrackPath.hills).
 var hills := 0.0
+## Its own ground heights, in place of the hills, or null (see GroundMap).
+var ground: GroundMap
 ## Clockwise orientation of course maps, in degrees.
 var map_rotation := 0.0
 ## The weather and time of day it's raced in, unless the player picks (see
@@ -69,6 +71,7 @@ static func from_dict(data: Dictionary) -> CourseDesign:
 			c.landmarks.append(mark.duplicate())
 	c.start = TrackPath.start_from(data.get("start", []))
 	c.paint = PaintedAreas.from_dict(data.get("paint"), TrackPath.growth(data))
+	c.ground = GroundMap.from_dict(data.get("ground"), TrackPath.growth(data))
 	# One made before the tiles were kart sized comes out twice as big (see
 	# TrackPath.from_dict()).
 	var grow := TrackPath.growth(data)
@@ -90,8 +93,12 @@ func to_dict() -> Dictionary:
 	var out := {
 		"name": name, "made_by": made_by, "theme": theme, "laps": laps, "width": width, "grid": TrackPiece.TILE,
 		"start": position + [turns],
-		"pieces": pieces.duplicate(true), "landmarks": landmarks.duplicate(true), "hills": hills,
+		"pieces": pieces.duplicate(true), "landmarks": landmarks.duplicate(true),
 	}
+	if ground != null:
+		out.ground = ground.to_dict()
+	else:
+		out.hills = hills
 	if road_colour != TrackPath.STOCK_ROAD:
 		out.road_colour = road_colour
 	if map_rotation != 0.0:

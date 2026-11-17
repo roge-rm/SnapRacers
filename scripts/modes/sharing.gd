@@ -23,6 +23,8 @@ const MOST_CONNECTORS := 4096
 const MOST_CONNECTOR_PAIRS := 50000
 const MOST_NAME := 120
 const MOST_ABOUT := 2000
+## The most points a course's ground map can have, 256 x 256 (2 km square).
+const MOST_GROUND_POINTS := GroundMap.MOST_POINTS
 const PIECE_TYPES := ["straight", "half_straight", "quarter_straight", "adjustable_straight", "adjustable_offset", "connector", "curve", "arc", "slant", "crest", "ramp", "jump", "loop", "corkscrew", "crossing", "split", "adjustable_split", "split_bend", "rough_split", "jump_split"]
 const LIMITS := {"length": 12.0, "size": 4.0, "rise": 8.0, "across": 6.0, "height": 10.0, "bank": 90.0}
 
@@ -251,6 +253,8 @@ static func _read_course(data: Dictionary, saved := false) -> Dictionary:
 			return {"why": "That course has an invalid landmark."}
 	if data.has("paint") and not _paint(data.paint):
 		return {"why": "That course has invalid painted ground."}
+	if data.has("ground") and not _ground(data.ground):
+		return {"why": "That course has an invalid ground map."}
 	var canonical := data.duplicate(true)
 	if not canonical.get("start", []).is_empty():
 		canonical.start[3] = roundf(float(canonical.start[3]) * 6.0) / 6.0
@@ -279,6 +283,24 @@ static func _paint(value: Variant) -> bool:
 		if squares > PaintedAreas.MOST_SQUARES:
 			return false
 	return true
+
+
+## A ground map: 8 m cells (16 m once an old course's has grown), 0.05 m
+## steps, up to MOST_GROUND_POINTS, and data that decodes to exactly that many
+## points within GroundMap.HIGHEST.
+static func _ground(value: Variant) -> bool:
+	if not value is Dictionary or not value.get("data") is String:
+		return false
+	if not _number(value.get("cell")) or not float(value.cell) in [GroundMap.CELL, GroundMap.CELL * 2.0]:
+		return false
+	if not _number(value.get("step")) or float(value.step) != GroundMap.STEP:
+		return false
+	var size = value.get("size")
+	if not _vector(value.get("origin"), 100000.0, 2) or not size is Array or size.size() != 2:
+		return false
+	if not _integer(size[0], 1, MOST_GROUND_POINTS) or not _integer(size[1], 1, MOST_GROUND_POINTS) or int(size[0]) * int(size[1]) > MOST_GROUND_POINTS:
+		return false
+	return GroundMap.decode(value.data, int(size[0]), int(size[1])) != null
 
 
 static func _start(value: Variant) -> bool:

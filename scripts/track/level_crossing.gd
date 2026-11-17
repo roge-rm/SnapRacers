@@ -195,7 +195,7 @@ static func cramped(path: TrackPath, at: float) -> bool:
 ## couldn't meet it.
 static func raised(path: TrackPath, at: float) -> bool:
 	var p := path.point_at(at)
-	return p.y - path.ground_height(p.x, p.z) > 1.0
+	return p.y - path.road_ground(p.x, p.z) > 1.0
 
 
 ## What's wrong with the crossings on `path`, as a sentence, or "" if nothing.

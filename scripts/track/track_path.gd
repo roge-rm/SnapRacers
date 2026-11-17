@@ -86,6 +86,8 @@ var width := WIDTH
 ## metres. The road follows it, over gentle hills, and the pieces' own climbs
 ## (ramps, bridges, crests) go on top. 0 is flat.
 var hills := 0.0
+## The course's own ground heights, in place of the hills, or null.
+var ground: GroundMap
 ## Clockwise orientation of course maps, in degrees.
 var map_rotation := 0.0
 ## The weather and time of day it's raced in, unless the player picks (see
@@ -135,7 +137,7 @@ var has_splits := false
 ## Whether it has a loop or a corkscrew: -1 until has_turns_over() looks.
 var _turns_over := -1
 var _corkscrew := -1
-## How high the hills are under each sample (see ground_height()).
+## How high the road's ground is under each sample (see road_ground()).
 var grounds := PackedFloat32Array()
 var length := 0.0
 var _noise: FastNoiseLite
@@ -168,6 +170,7 @@ static func from_dict(data: Dictionary) -> TrackPath:
 	track.landmarks = data.get("landmarks", []).duplicate(true)
 	track.start = start_from(data.get("start", []))
 	track.paint = PaintedAreas.from_dict(data.get("paint"), growth(data))
+	track.ground = GroundMap.from_dict(data.get("ground"), growth(data))
 	# A course made before the tiles were kart sized has the same pieces twice
 	# as big, so where it starts and its landmarks move out to match.
 	var grow := growth(data)
@@ -221,7 +224,9 @@ func to_dict() -> Dictionary:
 	for piece in pieces:
 		specs.append(piece.to_spec())
 	var out := { "name": name, "theme": theme, "about": about, "laps": laps, "width": width, "grid": TrackPiece.TILE, "pieces": specs }
-	if hills > 0.0:
+	if ground != null:
+		out.ground = ground.to_dict()
+	elif hills > 0.0:
 		out.hills = hills
 	if road_colour != STOCK_ROAD:
 		out.road_colour = road_colour
@@ -273,11 +278,19 @@ func _mirror_layout() -> void:
 		mark.facing = posmod(roundi(-atan2(direction.x, direction.z) / (PI * 0.5)), 4)
 
 
-## How high the hills are here, in metres above (or below) the start. The
-## hills are smooth and long, so the road never climbs or drops more steeply
-## than about STEEPEST, however high they are. They're the same every time for
-## a course of this name.
+## Whether the ground rises and falls, from the hills or a map.
+func has_relief() -> bool:
+	return ground != null or hills > 0.0
+
+
+## How high the ground is here, in metres above (or below) the start: the
+## map where there is one, or the hills. The hills are smooth and long, so
+## the road never climbs or drops more steeply than about STEEPEST, however
+## high they are. They're the same every time for a course of this name.
 func ground_height(x: float, z: float) -> float:
+	if ground != null:
+		var at := _laid_out(x, z)
+		return ground.height_at(at.x, at.y)
 	if hills <= 0.0:
 		return 0.0
 	if _noise == null:
@@ -288,12 +301,28 @@ func ground_height(x: float, z: float) -> float:
 		# How far apart the hilltops are, so the slopes stay gentle.
 		var half := hills * 0.9
 		_noise.frequency = minf(STEEPEST / (half * 4.4), 1.0 / 150.0)
-	var sample := Vector3(x, start.origin.y, z)
-	if mirrored:
-		var local := start.basis.inverse() * (sample - start.origin)
-		local.x = -local.x
-		sample = start.origin + start.basis * local
-	return (_noise.get_noise_2d(sample.x, sample.z) - _noise.get_noise_2d(start.origin.x, start.origin.z)) * hills * 0.9
+	var sample := _laid_out(x, z)
+	return (_noise.get_noise_2d(sample.x, sample.y) - _noise.get_noise_2d(start.origin.x, start.origin.z)) * hills * 0.9
+
+
+## The ground the road follows here: the map's smoothed road copy (see
+## GroundMap.road()), or the hills.
+func road_ground(x: float, z: float) -> float:
+	if ground != null:
+		var at := _laid_out(x, z)
+		return ground.road().height_at(at.x, at.y)
+	return ground_height(x, z)
+
+
+## Where a point of the race layout is on the course as made: mirrored
+## courses read the ground mirrored around the start.
+func _laid_out(x: float, z: float) -> Vector2:
+	if not mirrored:
+		return Vector2(x, z)
+	var local := start.basis.inverse() * (Vector3(x, start.origin.y, z) - start.origin)
+	local.x = -local.x
+	var sample := start.origin + start.basis * local
+	return Vector2(sample.x, sample.z)
 
 
 ## How much bigger a course file's tiles are now than when it was made.
@@ -362,7 +391,7 @@ func build() -> void:
 				var ground_delta := _hill(pose, piece, t_ahead) - _hill(pose, piece, t_behind)
 				forward = (local_delta + Vector3.UP * ground_delta).normalized()
 			# Flat connectors use their rigid heading at both ends of a piece.
-			if hills <= 0.0 and piece.bank == 0.0 and (k == 0 or k == steps):
+			if not has_relief() and piece.bank == 0.0 and (k == 0 or k == steps):
 				forward = -(pose.basis * piece.exit().basis).z if k == steps else -pose.basis.z
 			var hill := _hill(pose, piece, t)
 			var base_up := (pose.basis * piece.up(t)).normalized()
@@ -424,14 +453,14 @@ func _rise(lean: float) -> float:
 ## jumps only lean with the hill from one end to the other, so their shape
 ## stays as it was made.
 func _hill(pose: Transform3D, piece: TrackPiece, t: float) -> float:
-	if hills <= 0.0:
+	if not has_relief():
 		return 0.0
 	if TrackPiece.turns_over(piece.type) or piece.type in ["jump", "jump_split"]:
 		var from := pose.origin
 		var to := (pose * piece.exit()).origin
-		return lerpf(ground_height(from.x, from.z), ground_height(to.x, to.z), t)
+		return lerpf(road_ground(from.x, from.z), road_ground(to.x, to.z), t)
 	var p := pose * piece.point(t)
-	return ground_height(p.x, p.z)
+	return road_ground(p.x, p.z)
 
 
 func _index_before(offset: float) -> int:
