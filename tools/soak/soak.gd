@@ -68,6 +68,14 @@ func _ready() -> void:
 		stalls[racer] = 0
 	while race.time < MOST_TIME and not race.racers.all(func(r: Race.Racer) -> bool: return r.progress.finished):
 		await get_tree().physics_frame
+		if OS.has_environment("TRACE_FROM") and Engine.get_physics_frames() % 6 == 0:
+			for racer in race.racers:
+				var at := fposmod(racer.progress.distance(), race.track.length)
+				if at >= float(OS.get_environment("TRACE_FROM")) and at <= float(OS.get_environment("TRACE_TO")):
+					var k: Kart = racer.kart
+					var mid := race.track.point_at(at)
+					var g := k.wheels.filter(func(w) -> bool: return w.grounded).size()
+					print("TRACE %.1f %s at %.1f across %.1f above %.2f v %.1f vy %.1f upy %.2f wheels %d/%d lost %d thr %.1f brk %.1f" % [race.time, racer.name, at, (k.global_position - mid).dot(race.track.right_at(at)), (k.global_position - mid).dot(race.track.up_at(at)), k.linear_velocity.length(), k.linear_velocity.y, k.global_basis.y.y, g, k.wheels.size(), k.lost.size(), k.controls.throttle, k.controls.brake])
 		for racer in race.racers:
 			if racer.progress.finished:
 				continue
