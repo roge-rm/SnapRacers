@@ -428,7 +428,7 @@ static func road_info(track: TrackPath, other: Kart) -> Dictionary:
 	var info: Dictionary = _road.get(key, {})
 	var position := other.global_position
 	var basis := other.global_basis
-	var velocity := other.linear_velocity
+	var velocity: Vector3 = other.remote_velocity if other.remote else other.linear_velocity
 	if not info.is_empty() and info.frame == frame and info.position == position and info.basis == basis and info.velocity == velocity and info.kart_width == other.width():
 		return info
 	var at := -1.0

@@ -1231,7 +1231,11 @@ func _squeezed_at_nose(speed: float) -> bool:
 		var other_across := (other.global_position - track.point_at(offset)).dot(track.right_at(offset))
 		var gap := (other_across - across) * way
 		# Only a kart going on past it, so it can drop in behind.
-		if other.linear_velocity.dot(along) < speed * 0.7:
+		var other_velocity: Vector3 = other.remote_velocity if other.remote else other.linear_velocity
+		if other_velocity.dot(along) < speed * 0.7:
+			continue
+		# Of two karts that block each other, only the one further back yields.
+		if ahead < 0.0 or (ahead == 0.0 and other.grid_slot > kart.grid_slot):
 			continue
 		if gap > 0.0 and gap < (kart.width() + other.width()) * 0.5 + KART_GAP:
 			return true
