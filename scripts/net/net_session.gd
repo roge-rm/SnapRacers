@@ -26,7 +26,7 @@ signal race_begun
 signal race_over(order: Array)
 
 ## Racing uses its own number, so it can't be confused with an older game.
-const VERSION := 24
+const VERSION := 25
 const PORT := 27280
 const MOST_KARTS := 8
 ## How long in ms an ENet connection can go quiet before it's dropped.

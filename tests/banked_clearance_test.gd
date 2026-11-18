@@ -13,18 +13,21 @@ func check(ok: bool, what: String) -> void:
 
 func _ready() -> void:
 	var baseline := "--baseline" in OS.get_cmdline_user_args()
-	var low := _bridge(1, 22, "right", 0)
-	check(_centre_clashes(low).is_empty(), "centre-only check misses the concrete 3 m banked bridge")
+	var low := _bridge(1, 80, "right", 0)
+	check(_centre_clashes(low).is_empty(), "centre-only check misses the concrete 3 m wall ride bridge")
 	if baseline:
 		check(low.clashes().is_empty(), "unmodified clashes confirms the concrete bridge miss")
 	else:
 		for turn in ["left", "right"]:
 			for heading in [0, 3, 6, 13]:
 				for bank in [22, 80]:
+					# A banked bend tilts around its middle, so its low edge
+					# hangs lower than a wall ride's and it needs a level more.
+					var high := 3 if bank < 40 else 2
 					var lower := _bridge(1, bank, turn, heading)
-					var upper := _bridge(2, bank, turn, heading)
+					var upper := _bridge(high, bank, turn, heading)
 					check(not lower.clashes().is_empty(), "%s bank %d at heading %d rejects 3 m clearance" % [turn, bank, heading])
-					check(upper.clashes().is_empty(), "%s bank %d at heading %d allows 6 m clearance" % [turn, bank, heading])
+					check(upper.clashes().is_empty(), "%s bank %d at heading %d allows %d m clearance" % [turn, bank, heading, high * 3])
 		check(_isolated_crossing(5.0).clashes().is_empty(), "flat roads keep the exact 5 m clearance threshold")
 		check(not _isolated_crossing(4.999).clashes().is_empty(), "flat roads below 5 m still clash")
 		var adjacent := CourseDesign.new()

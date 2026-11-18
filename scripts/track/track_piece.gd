@@ -139,6 +139,8 @@ static var _cork_ups := PackedVector3Array()
 
 ## Bends banked steeper than this are wall rides, and stick.
 const STICKY_BANK := deg_to_rad(40.0)
+## How far a banked bend takes to lean all the way in or out, in metres.
+const BANK_EASE := 24.0
 
 # The jump has a kicker, a gap and a landing ramp, in metres along the piece.
 # The landing starts with a short run up from the ground, so a kart that
@@ -702,6 +704,40 @@ func bank_at(t: float) -> float:
 	# karts into the air.
 	var lean := bank * pow(sin(PI * t), 2.0) * turn
 	return -lean if inverted else lean
+
+
+## Whether this is a banked bend that tilts around its middle (see
+## lean_at()). Wall rides lean up from their low edge instead.
+func tilts() -> bool:
+	return type in ["curve", "arc"] and bank != 0.0 and not sticky
+
+
+## How far the road leans `t` of the way through the piece, like bank_at().
+## A banked bend that isn't a wall ride leans in over BANK_EASE metres from
+## `from_lean` and back out to `to_lean`, so a short bend never leans all the
+## way and a run of bends banked the same way stays leaning through the
+## joins (see join_lean()).
+func lean_at(t: float, from_lean := 0.0, to_lean := 0.0) -> float:
+	if not tilts():
+		return bank_at(t)
+	var full := bank_at(0.5)
+	var along := path_length()
+	var into := lerpf(from_lean, full, smoothstep(0.0, BANK_EASE, t * along))
+	var out := lerpf(to_lean, full, smoothstep(0.0, BANK_EASE, (1.0 - t) * along))
+	return signf(full) * minf(absf(into), absf(out))
+
+
+## How far the road leans where this piece meets `next`: the smaller of the
+## two leans when both are banked bends leaning the same way, otherwise
+## level.
+func join_lean(next: TrackPiece) -> float:
+	if not tilts() or not next.tilts():
+		return 0.0
+	var mine := bank_at(0.5)
+	var theirs := next.bank_at(0.5)
+	if mine * theirs <= 0.0:
+		return 0.0
+	return signf(mine) * minf(absf(mine), absf(theirs))
 
 
 ## Whether there's road here. Only the jump has a gap.

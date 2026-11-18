@@ -232,7 +232,8 @@ func _add_grass() -> void:
 	# A sky course floats, with nothing under it.
 	if _theme.get("void", false):
 		return
-	if track.has_relief():
+	# A banked bend needs the ground shaped beside it, even on a flat course.
+	if track.has_relief() or track.has_banks():
 		terrain = Terrain.new(track, Scenery.REACH + 45.0)
 		add_child(terrain)
 		return

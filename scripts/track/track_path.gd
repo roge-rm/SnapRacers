@@ -388,9 +388,20 @@ func build() -> void:
 		end = advance_pose(end, piece)
 	closes = not pieces.is_empty() and end.origin.distance_to(start.origin) < 0.5 \
 		and (-end.basis.z).dot(-start.basis.z) > 0.999
+	# Where each piece meets the next, how far the road leans, so banked
+	# bends running on into each other stay banked through the join.
+	var joins := PackedFloat32Array()
+	joins.resize(pieces.size())
+	for i in pieces.size():
+		if i < pieces.size() - 1:
+			joins[i] = pieces[i].join_lean(pieces[i + 1])
+		elif closes:
+			joins[i] = pieces[i].join_lean(pieces[0])
 	var pose := start
 	for i in pieces.size():
 		var piece := pieces[i]
+		var from_lean := joins[i - 1] if i > 0 or closes else 0.0
+		var to_lean := joins[i]
 		piece_starts.append(pose)
 		var steps := maxi(2, ceili(piece.path_length() / SAMPLE))
 		# Open road includes its final connector; closed road joins the first sample.
@@ -405,8 +416,8 @@ func build() -> void:
 			# climbs with it, or the road's up would lean back off the surface.
 			var base_ahead := (pose.basis * piece.up(t_ahead)).normalized()
 			var base_behind := (pose.basis * piece.up(t_behind)).normalized()
-			ahead += base_ahead * _rise(piece.bank_at(t_ahead))
-			behind += base_behind * _rise(piece.bank_at(t_behind))
+			ahead += base_ahead * _rise(piece, piece.lean_at(t_ahead, from_lean, to_lean))
+			behind += base_behind * _rise(piece, piece.lean_at(t_behind, from_lean, to_lean))
 			var forward := (ahead - behind).normalized()
 			if piece.type in TrackPiece.ADJUSTABLE_TYPES:
 				# Short pieces keep their tangent when far from the world origin.
@@ -420,12 +431,9 @@ func build() -> void:
 			var base_up := (pose.basis * piece.up(t)).normalized()
 			var flat_right := forward.cross(base_up).normalized()
 			var flat_up := flat_right.cross(forward)
-			var lean := piece.bank_at(t)
+			var lean := piece.lean_at(t, from_lean, to_lean)
 			var up := flat_up * cos(lean) + flat_right * sin(lean)
-			# Banked road leans up from its low edge instead of around its
-			# middle, so the inside edge stays at road height instead of
-			# sinking into the ground.
-			var rise := _rise(lean)
+			var rise := _rise(piece, lean)
 			points.append(pose * piece.point(t) + Vector3.UP * hill + flat_up * rise)
 			grounds.append(hill)
 			forwards.append(forward)
@@ -466,10 +474,23 @@ func _make_lookups() -> void:
 		_over[k] = 1 if TrackPiece.turns_over(pieces[piece_of[k]].type) else 0
 
 
-## How far banked road leaning this much lifts its middle, since it leans up
-## from its low edge.
-func _rise(lean: float) -> float:
+## How far road leaning this much lifts its middle. A wall ride leans up from
+## its low edge, so its inside edge stays at road height. A banked bend tilts
+## around its middle, which stays at road height, its high edge going up as
+## far as its low edge goes down, so it doesn't hump up where it leans in.
+func _rise(piece: TrackPiece, lean: float) -> float:
+	if piece.tilts():
+		return 0.0
 	return (width * 0.5 + KERB) * absf(sin(lean))
+
+
+## Whether any bend tilts around its middle (see TrackPiece.tilts()), which
+## needs the ground shaped beside it.
+func has_banks() -> bool:
+	for piece in pieces:
+		if piece.tilts():
+			return true
+	return false
 
 
 ## How high the hills lift the road `t` of the way through a piece. Loops and

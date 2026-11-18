@@ -8,8 +8,9 @@ extends SceneTree
 ##   tools/godot/Godot_v4.7.2-stable_linux.x86_64 --headless --path . -s tests/ground_map_test.gd
 
 ## Terrain and road heights of Timberline (hills 20, no map), to the mm,
-## before ground maps came in.
-const TIMBERLINE_HASH := 477631302
+## the same as before ground maps came in except its banked bend, which tilts
+## around its middle.
+const TIMBERLINE_HASH := 2899931635
 
 var failures := 0
 

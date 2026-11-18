@@ -101,10 +101,11 @@ func _point(x: int, z: int) -> Vector2:
 
 
 ## Whether the road at this sample lies on the ground, rather than up in the
-## air or leaning on a bank. The flat run in and out of a loop does, even
-## though the whole loop is sticky.
+## air or leaning on a wall ride. The flat run in and out of a loop does, even
+## though the whole loop is sticky, and so does a banked bend tilting around
+## its middle (see _banked()).
 func _on_ground(k: int) -> bool:
-	return track.solids[k] and track.ups[k].y > 0.985 \
+	return track.solids[k] and (track.ups[k].y > 0.985 or _banked(k)) \
 		and track.points[k].y - track.grounds[k] < TrackBuilder.RAISED
 
 
@@ -114,9 +115,8 @@ func _up_high(k: int) -> bool:
 	return track.solids[k] and not track.stickies[k] and track.points[k].y - track.grounds[k] >= TrackBuilder.RAISED
 
 
-## Whether the road at this sample is solid but not lying flat on the
-## ground, like a banked bend or a wall ride, which the hills have to keep
-## under.
+## Whether the road at this sample is solid but not on the ground, like a
+## wall ride, which the hills have to keep under.
 func _off_ground(k: int) -> bool:
 	return track.solids[k] and not _on_ground(k)
 
@@ -181,13 +181,17 @@ func _work_out_heights() -> void:
 				h = lerpf(sea, h, smoothstep(from, from + Scenery.ISLAND_RAMP, Scenery.inland_of(at, side)))
 			# Beside road on the ground, the ground comes up to meet its lower
 			# edge, which is the road's height unless it's starting to lean.
+			# Beside a banked bend it follows the lean out to each edge, down
+			# to the low one and up to the high one, so there's nothing to
+			# drop off or wedge under.
 			var k := nearest[i]
 			if k >= 0:
 				# A split's road reaches further out than the road's width.
 				var reach := edge if not track.has_splits else track.outer_half(k) + TrackPath.KERB
-				h = lerpf(_low_edge(k, reach, at), h, smoothstep(reach, reach + BLEND, gap[i]))
-			# Under and beside road that leans, the ground stays below its low
-			# edge.
+				var meet := _leaning_edge(k, reach, at) if _banked(k) else _low_edge(k, reach, at)
+				h = lerpf(meet, h, smoothstep(reach, reach + BLEND, gap[i]))
+			# Under and beside other road that leans, like a wall ride, the
+			# ground stays below its low edge.
 			k = tilted[i]
 			if k >= 0:
 				h = minf(h, lerpf(_low_edge(k, edge, at), h, smoothstep(edge, edge + BLEND, tilted_gap[i])))
@@ -281,6 +285,27 @@ func _low_edge(k: int, edge: float, at := Vector2.INF) -> float:
 			var along := (at - Vector2(track.points[k].x, track.points[k].z)).dot(flat.normalized())
 			y = track.point_at(track.distances[k] + clampf(along, -TrackPath.SAMPLE, TrackPath.SAMPLE)).y
 	return y - edge * absf(track.rights[k].y) - (MAP_SINK if track.ground != null else SINK)
+
+
+## Whether the road at this sample is a banked bend tilting around its
+## middle with the middle on the ground (see TrackPiece.tilts()).
+func _banked(k: int) -> bool:
+	return track.pieces[track.piece_of[k]].tilts() and not track.stickies[k] \
+		and track.points[k].y - track.grounds[k] < TrackBuilder.RAISED
+
+
+## How high the leaning road is at `at`, or at its edge nearest `at` if
+## that's beyond `edge`, just under its surface. It sits as much lower again
+## as the road rises across half a CELL, since the grid's heights in between
+## are drawn straight across and would poke through by the low edge.
+func _leaning_edge(k: int, edge: float, at: Vector2) -> float:
+	var p := track.points[k]
+	var right := track.rights[k]
+	var flat := Vector2(right.x, right.z)
+	var across := 0.0
+	if flat.length() > 0.01:
+		across = (at - Vector2(p.x, p.z)).dot(flat.normalized()) / flat.length()
+	return p.y + clampf(across, -edge, edge) * right.y - absf(right.y) * CELL * 0.5 - (MAP_SINK if track.ground != null else SINK)
 
 
 ## The nearest road sample that `use` picks to every point of the grid, and
