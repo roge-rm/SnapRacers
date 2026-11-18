@@ -1,0 +1,27 @@
+{
+	"about": "Flat and twisty on the reclaimed land of the river delta, along the canal past the fishing huts on stilts.",
+	"landmarks": [
+		{"prop": "grandstand", "at": [-30, 37], "facing": 1},
+		{"prop": "grandstand", "at": [-30, 77], "facing": 1},
+		{"prop": "pit_building", "at": [-29, 138], "facing": 1},
+		{"prop": "kart_office", "at": [-32, -30], "facing": 1},
+		{"prop": "lamp_post", "at": [-14, 57], "facing": 1},
+		{"prop": "lamp_post", "at": [-14, -10], "facing": 1},
+		{"prop": "lamp_post", "at": [194, -95], "facing": 2},
+		{"prop": "lamp_post", "at": [157, 87], "facing": 3},
+		{"prop": "stilt_hut", "at": [-57, -120], "facing": 1},
+		{"prop": "stilt_hut", "at": [-83, 60], "facing": 3},
+		{"prop": "stilt_hut", "at": [-57, 230], "facing": 1},
+		{"prop": "reeds", "at": [-60, -60], "facing": 0},
+		{"prop": "reeds", "at": [-80, 140], "facing": 0},
+		{"prop": "reeds", "at": [-60, 290], "facing": 0},
+		{"prop": "reeds", "at": [-80, -190], "facing": 0},
+		{"prop": "lighthouse", "at": [330, -200], "facing": 3},
+		{"prop": "tire_pile", "at": [116, 207], "facing": 2},
+		{"prop": "billboard", "at": [65, 68], "facing": 3}
+	],
+	"water": [
+		{"kind": "river", "type": "water", "points": [[-70, -244, 8], [-70, 0, 8], [-70, 348, 8]]}
+	],
+	"ground": {"cell": 8.0, "origin": [-144.0, -248.0], "size": [65, 75], "step": 0.05, "data": "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"}
+}
