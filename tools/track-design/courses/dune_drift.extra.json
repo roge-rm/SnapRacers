@@ -1,0 +1,25 @@
+{
+	"about": "A figure eight on the desert edge of the city by the big race track, over the bridge and through the tunnel under it, with towers all round.",
+	"landmarks": [
+		{"prop": "pit_building", "at": [-75, -30], "facing": 1},
+		{"prop": "viewing_deck", "at": [-42, 38], "facing": 1},
+		{"prop": "flag", "at": [-20, -60], "facing": 1},
+		{"prop": "palm", "at": [-30, -125], "facing": 0},
+		{"prop": "palm", "at": [-32, 20], "facing": 0},
+		{"prop": "palm", "at": [60, 40], "facing": 0},
+		{"prop": "city_block", "at": [300, -40], "facing": 3},
+		{"prop": "city_block", "at": [318, 40], "facing": 3},
+		{"prop": "tanks", "at": [219, -320], "facing": 0},
+		{"prop": "tanks", "at": [440, -166], "facing": 0},
+		{"prop": "grandstand", "at": [58, 354], "facing": 0},
+		{"prop": "skyscraper", "at": [-300, -30], "facing": 0},
+		{"prop": "skyscraper", "at": [-390, -60], "facing": 0},
+		{"prop": "skyscraper", "at": [-400, -230], "facing": 0},
+		{"prop": "skyscraper", "at": [600, 300], "facing": 0},
+		{"prop": "skyscraper", "at": [150, -600], "facing": 0},
+		{"prop": "dune", "at": [-220, 230], "facing": 0},
+		{"prop": "dune", "at": [400, -350], "facing": 0},
+		{"prop": "dune", "at": [480, 60], "facing": 0}
+	],
+	"ground": {"cell": 8.0, "origin": [-136.0, -368.0], "size": [70, 84], "step": 0.05, "data": "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"}
+}

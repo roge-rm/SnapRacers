@@ -1,0 +1,28 @@
+{
+	"about": "Round the old army field outside the town in the snow, past red cottages and the woods, with ice out past the fast bends.",
+	"landmarks": [
+		{"prop": "grandstand", "at": [99, -141], "facing": 0},
+		{"prop": "kart_office", "at": [-38, 70], "facing": 1},
+		{"prop": "pit_building", "at": [-67, -8], "facing": 1},
+		{"prop": "flag", "at": [-23, 24], "facing": 1},
+		{"prop": "cottage", "at": [-59, 246], "facing": 1},
+		{"prop": "cottage", "at": [102, 292], "facing": 2},
+		{"prop": "cottage", "at": [-91, 184], "facing": 1},
+		{"prop": "containers", "at": [344, 354], "facing": 3},
+		{"prop": "pallets", "at": [319, 324], "facing": 0},
+		{"prop": "snowy_pine", "at": [-171, 124], "facing": 0},
+		{"prop": "snowy_pine", "at": [-186, 24], "facing": 0},
+		{"prop": "snowy_pine", "at": [-161, 214], "facing": 0},
+		{"prop": "snowy_pine", "at": [384, 104], "facing": 0},
+		{"prop": "snowy_pine", "at": [399, 214], "facing": 0},
+		{"prop": "snowy_pine", "at": [369, 34], "facing": 0},
+		{"prop": "birch", "at": [-151, -56], "facing": 0},
+		{"prop": "birch", "at": [394, 159], "facing": 0}
+	],
+	"water": [
+		{"kind": "river", "type": "water", "points": [[296, 200, 6], [337, 20, 6], [350, -25, 6], [419, -31, 6]]},
+		{"kind": "river", "type": "water", "points": [[274, 227, 6], [185, 262, 6], [160, 286, 6], [114, 334, 6], [39, 385, 6]]}
+	],
+	"paint": {"cell": 8.0, "runs": [[-16, 3, 6, "ice"], [-15, 1, 8, "ice"], [-14, 0, 5, "ice"], [-14, 8, 1, "ice"], [-13, -1, 3, "ice"], [-12, -2, 3, "ice"], [-11, -3, 3, "ice"], [-10, -3, 3, "ice"], [-9, -3, 2, "ice"], [-8, -4, 3, "ice"], [-7, -4, 3, "ice"], [8, 27, 4, "ice"], [9, 27, 7, "ice"], [10, 29, 7, "ice"], [11, 33, 4, "ice"], [12, 35, 2, "ice"], [13, 35, 3, "ice"], [14, 36, 2, "ice"], [15, 36, 2, "ice"], [16, 35, 3, "ice"], [17, 35, 3, "ice"], [18, 34, 3, "ice"], [19, 35, 1, "ice"]]},
+	"ground": {"cell": 8.0, "origin": [-144.0, -224.0], "size": [72, 76], "step": 0.05, "data": "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"}
+}

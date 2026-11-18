@@ -14,9 +14,15 @@ is how far in metres the road may leave the real line (25 by default),
 In the environment, CLEAR is how far apart two bits of road stay middle to
 middle (33 m), SMOOTH how far either way the real line is smoothed (12 m),
 EACH what each piece costs (250) and START the tiles of straight laid first (2).
+BRIDGE=<from>,<to> lets road between those metres of the real line pass
+over road laid earlier, for a bridge; the climb and drop (^1, ^-1) go in
+by hand.
 
 The Baseplate cup came from beam 300, with stray 35 and CLEAR=31.6 for
-Pithead Park and tight 400 for Lemon Lake.
+Pithead Park and tight 400 for Lemon Lake. In the Gearbox cup Timberline
+is at scale 0.95, Dune Drift has BRIDGE=870,1010, and Whistlestop Woods has
+CLEAR=31.6 SMOOTH=20 on its line turned round to run clockwise like the real
+one (its aligned line reversed, with the start on its longest straight).
 """
 import json, math, os, sys
 import numpy as np
@@ -31,6 +37,7 @@ SCALE = float(sys.argv[6]) if len(sys.argv) > 6 else 1.0
 CLEAR = float(os.environ.get("CLEAR", "33"))
 # Road this far back along the lap is what a piece joins onto, so it can be close.
 JOINING = 100.0
+BRIDGE = [float(v) for v in os.environ["BRIDGE"].split(",")] if os.environ.get("BRIDGE") else None
 
 real = np.array(json.load(open(os.path.join(here, name + "_aligned.json")))) * SCALE
 if SCALE != 1.0:
@@ -128,7 +135,8 @@ def step(b, piece):
     if s_end <= b.s + length * 0.3:
         return None
     along0 = b.dist
-    if not clear_of_old(b, world, along0, s_end > total - 3 * TILE):
+    over = BRIDGE is not None and b.s < BRIDGE[1] and s_end > BRIDGE[0]
+    if not over and not clear_of_old(b, world, along0, s_end > total - 3 * TILE):
         return None
     nb = Beam()
     nb.x, nb.y = end

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Makes a course's ground map from the real ground around its circuit.
 
-Usage: dem.py <course id> [--exaggerate N] [--pick <osm name>]
+Usage: dem.py <course id> [--exaggerate N] [--clip N] [--pick <osm name>]
 
 Fits the course (courses/<id>.txt, started where build_courses.py starts it)
 onto its OpenStreetMap line (<id>.json from fetch_picks.py, which has the
@@ -12,6 +12,9 @@ them at every 8 m map point. GLO-30 has the trees and buildings in it, so a
 the start, sized by the fit's scale, times the exaggeration (1.5 by default)
 and squeezed into 25 m top to bottom over the road and the ground within
 60 m of it (ground further out is eased into that range).
+
+--clip N keeps the ground within N m of the road's lowest and highest,
+for flat land where woods the opening can't take out stand up as hills.
 
 Writes "ground" into courses/<id>.extra.json and drops "hills", prints the
 road's height range, its steepest grade and the spots that want a ramp or a
@@ -340,6 +343,11 @@ def main():
         k = args.index("--exaggerate")
         exaggerate = float(args[k + 1])
         del args[k:k + 2]
+    clip = None
+    if "--clip" in args:
+        k = args.index("--clip")
+        clip = float(args[k + 1])
+        del args[k:k + 2]
     pick = None
     if "--pick" in args:
         k = args.index("--pick")
@@ -394,6 +402,9 @@ def main():
     t_out = np.clip((dist - NEAR) / BLEND, 0, 1)
     t_out = t_out * t_out * (3 - 2 * t_out)
     h = h + t_out * (np.clip(h, near.min(), near.max()) - h)
+    if clip is not None:
+        under = height_at(h, lo, line[:, 0], line[:, 1])
+        h = np.clip(h, under.min() - clip, under.max() + clip)
     h = road_bed(h, lo, line)
     h = dig(name, h, lo)
     q = np.round(h / ground_map.STEP) * ground_map.STEP

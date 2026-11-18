@@ -7,10 +7,9 @@ extends SceneTree
 ##
 ##   tools/godot/Godot_v4.7.2-stable_linux.x86_64 --headless --path . -s tests/ground_map_test.gd
 
-## Terrain and road heights of Timberline (hills 20, no map), to the mm,
-## the same as before ground maps came in except its banked bend, which tilts
-## around its middle.
-const TIMBERLINE_HASH := 2899931635
+## Terrain and road heights of the test oval with hills 20 and no map, to
+## the mm, so hills courses keep building the same.
+const HILLS_HASH := 451954597
 
 var failures := 0
 
@@ -29,7 +28,7 @@ func _initialize() -> void:
 	_mirrored()
 	_growth()
 	_sculpting()
-	_timberline()
+	_hills()
 	print("All ground map checks passed." if failures == 0 else "%d ground map checks failed." % failures)
 	quit(1 if failures > 0 else 0)
 
@@ -197,8 +196,10 @@ func _sculpting() -> void:
 
 
 ## Heights of a hills course with no map haven't changed.
-func _timberline() -> void:
-	var track := TrackPath.load_file("res://data/tracks/timberline.json")
+func _hills() -> void:
+	var data := _oval()
+	data.hills = 20.0
+	var track := TrackPath.from_dict(data)
 	var terrain := Terrain.new(track, Scenery.REACH + 45.0)
 	var ints := PackedInt32Array()
 	for h in terrain.heights:
@@ -206,7 +207,7 @@ func _timberline() -> void:
 	for p in track.points:
 		ints.append(roundi(p.y * 1000.0))
 	var got := hash(ints)
-	check(track.ground == null and got == TIMBERLINE_HASH, "Timberline's hills build the same as before (%d)" % got)
+	check(track.ground == null and got == HILLS_HASH, "hills build the same as before (%d)" % got)
 	terrain.free()
 
 

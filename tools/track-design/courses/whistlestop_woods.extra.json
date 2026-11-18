@@ -1,0 +1,21 @@
+{
+	"about": "Through the Ardennes woods beside the old railway line and its little station, with a long straight past the terrace.",
+	"landmarks": [
+		{"prop": "station", "at": [-46, 190], "facing": 3, "angle": 300},
+		{"prop": "viewing_deck", "at": [62, -60], "facing": 3},
+		{"prop": "kart_office", "at": [62, 5], "facing": 3},
+		{"prop": "kart_row", "at": [62, -140], "facing": 3},
+		{"prop": "flag", "at": [-18, -20], "facing": 1},
+		{"prop": "factory", "at": [160, 20], "facing": 3},
+		{"prop": "factory", "at": [240, 130], "facing": 3},
+		{"prop": "chimney", "at": [95, 304], "facing": 0},
+		{"prop": "chimney", "at": [110, 296], "facing": 0},
+		{"prop": "pine", "at": [-250, -40], "facing": 0},
+		{"prop": "broadleaf", "at": [-220, 40], "facing": 0},
+		{"prop": "broadleaf", "at": [-150, 170], "facing": 0},
+		{"prop": "pine", "at": [-300, -150], "facing": 0},
+		{"prop": "broadleaf", "at": [-120, -260], "facing": 0},
+		{"prop": "pine", "at": [-50, -280], "facing": 0}
+	],
+	"ground": {"cell": 8.0, "origin": [-312.0, -376.0], "size": [61, 84], "step": 0.05, "data": "eNqVWGtjmzAM9MnG0KTbt/3o/evJelkGknSszQr4sB6nk8hf7M+vWl4e1FqXf63R+JEPPvrRH0f/U45Hew0GCGTPAZ+ODz0aiJ7HG6iiBVlwMqm0QuXjkVEUhhD9FOvGUn7KT9A4WZvRPzku++Zn4S2UbR5BFtPpguXrb+CNscWBWPHq9ks0Wsm33UzO3PjRLNL2wlniBQOKs4OSeONA33DLj17E42k2yMkmz1Z4q7gJ8TA6UdJOBgSKbgPNrq/osaqRbVASUYptB4gZmgQqdXG2GAmQ95wZ0gyoE+O3JmcVS3AsfEuLEUYYUSrp3hRoGOsHM6pEtY+QA8KVqE7zyOukzvyQxlJpQjvcUwkPELGoYqARbQSBaD6e/+p1M2qCuIYlb/B9p91tk8AvkerY+crBy+uwpUmwKiILGzUzT2vAsXx2VIbim4GWVqWZYeF5UbVbGIFOT75w9F1jUvk5zbGxrJLqEYVUiRt9Z2ePQT31WeTMQozwC6FmZKf8c9Qv/vt39YrqW+VtqyZa+KlGavGQp0Pvc53hu+1u3fEFemxVOEmLwIAmL1wjUfqAkpUSO/y9S8yDoDTBtvP4rPx/1YIxC0vfeV8thqkgZdl6LG8H+7U5RcYJNFazHKhEG4la0fvtSzMilOpPkgT2Wo6dLJGe2Ll1kVUiSJw5LTeivdTDdMwyGASnDC1awnzpqJuo5ii74anpXWgveUqT01NLTe9GYI8tpVBNDaybU63gpDAkQlofzXSRHIIQXyxyR+cGkpLZjBowPZLyoaltuG0mdqN28vBqzSNFrJx6kQvsCNvQV/RSO9xTeNtYO6EKnDYT1gGhlIg3i8DmGasnM2dDMfXyFoShHczr/WElGWuxbqwFQ87oWkR1bDKoB2I5TN2m5MQFJXkVUx0wAtxAaZ/Tzh4E1akmGTHSisSzLS0vRi5reEZ5x17VCz7DpvViClsmMb1kLVPWsRnyEMvrpmLK156PRFOzSrdje1C84oaAj8iqXHGGpe141c4xZemKIbsUHZMdiJnBLHAC00pt57wskIoeCZb0+q1GaTSh2cpdTS1/c+YDJTLOqY/u4D4q2ILaaBnj6G6aSwQQ2Qm1klieBq9lFkp7w0YcTSqHGlubShcj73kmhacKiJhyq0KquNkSyyzMFWsxJ712AEmA6Kp+p2FLqms4rqO5MVr1IWnuKmLGMuMDiBaVc6En3I3UDitZL7EoFF2H9lRmSYEHS7cGTT6dQISL+DrOBsxueUOe+8ijR8kBRECCMqw8W9861o5IU8+xcCzUOBraybxoCnQJd+6cA749mF8Q10sWkvMDM8HLLDgaIx57VJUbORl4AQ0+jubMJBnT7fdzjTiuuaaZNs1Zt2JpQI4YrthZ+dG3eiGdjdA2669Edy9D0a4wp5T6GOU94tN/DVXFvdFRjIgZUmLUIW2+P1F+/ypz8rvajaw52mCkpHvZeR6qVrSXQeoiwBHXMdZCZuDNbuHlyy8huUT+Tgg2oCYivgAGfZA4Rdatz5J9+z6MMIFuapfevi/PnZGF/jM2NQqq8ZIlPDHlQ/v0sk4h4zrOUag8cBuw0IwZEmtTNIMHvPuaIMYQyilrJhX1BTtP+aflvZXMb+DTVxt0E0EZN7b6P8jEk9bK/mlbk9s0uZCp4eWbgXffBhFsNqES7eMjds6/CGqUVu7r+ASULOf3RfzoG6zc0hCDg7ynxFv1cvwDbokPSA=="}
+}
