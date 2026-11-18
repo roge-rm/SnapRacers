@@ -260,6 +260,9 @@ var _recover_from: Kart
 var _leaving := 0.0
 ## How long it's been going with a wheel knocked off.
 var _wheel_gone := 0.0
+## Why it last asked for a reset: "wheel gone", "upside down", "getting
+## nowhere" or "slow". tools/soak reads and clears it.
+var reset_why := ""
 ## Where each brick wall is along the track, worked out once since a wall
 ## doesn't move.
 var _wall_offsets := {}
@@ -1430,8 +1433,9 @@ func _stuck_check(delta: float, speed: float, up: Vector3) -> void:
 		_back_off()
 	_wheel_gone = _wheel_gone + delta if _lost_a_wheel() and not kart.locked and not kart.held.has("repair") else 0.0
 	if _stuck > STUCK_AFTER or _wheel_gone > WHEEL_GONE_FOR:
+		reset_why = "wheel gone" if _wheel_gone > WHEEL_GONE_FOR else "upside down" if upside_down else "getting nowhere" if getting_nowhere else "slow"
 		if OS.has_environment("RACE_DEBUG"):
-			print("AIRESET %s at %.0f m (%s): %s, speed %.1f, up %.2f, across %.1f" % [kart.design.name, offset, track.piece_type_at(offset), "wheel gone" if _wheel_gone > WHEEL_GONE_FOR else "upside down" if upside_down else "getting nowhere" if getting_nowhere else "slow", speed, up.y, (kart.global_position - track.point_at(offset)).dot(track.right_at(offset))])
+			print("AIRESET %s at %.0f m (%s): %s, speed %.1f, up %.2f, across %.1f" % [kart.design.name, offset, track.piece_type_at(offset), reset_why, speed, up.y, (kart.global_position - track.point_at(offset)).dot(track.right_at(offset))])
 		_stuck = 0.0
 		_wheel_gone = 0.0
 		_tries = 0

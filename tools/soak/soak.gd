@@ -1,7 +1,8 @@
 extends Node
 
 ## Races eight AI karts the whole way round a course and says how it went:
-## each kart's resets and finishing time, any kart that stopped getting
+## each kart's driving resets, repairs (resets for a lost wheel) and
+## finishing time, any kart that stopped getting
 ## anywhere, and how long the race took. tools/soak/soak.sh runs it on every
 ## course in a mix of weather and times of day. With "why" it also says what
 ## a kart that's made no headway for a while is doing and what it's touching.
@@ -50,12 +51,24 @@ func _ready() -> void:
 	race.add_child(driver)
 	race.player.ai = driver
 	race.player.kart.controls = driver.controls
+	# A repair is the AI resetting to get a wheel back after a power-up hit;
+	# every other reset is a driving one: upside down, getting nowhere, too
+	# slow, or fallen off, wandered away or sunk (put back by the race).
 	var resets := {}
+	var repairs := {}
 	for racer in race.racers:
 		resets[racer] = 0
+		repairs[racer] = 0
 		racer.kart.was_reset.connect(func() -> void:
-			resets[racer] += 1
-			print("RESET %s: %s at %.0f m, %.0f s" % [course, racer.name, fposmod(racer.progress.distance(), race.track.length), race.time]))
+			var why := "fallen"
+			if racer.ai != null and racer.ai.reset_why != "":
+				why = racer.ai.reset_why
+				racer.ai.reset_why = ""
+			if why == "wheel gone":
+				repairs[racer] += 1
+			else:
+				resets[racer] += 1
+			print("RESET %s: %s at %.0f m, %.0f s, %s" % [course, racer.name, fposmod(racer.progress.distance(), race.track.length), race.time, why]))
 	while not race.started:
 		await get_tree().process_frame
 	print("SOAK %s in %s at %s, reversed=%s mirrored=%s, %s" % [course, race.conditions.weather, race.conditions.time, Game.reversed(), Game.mirrored(), ", ".join(race.racers.map(func(r: Race.Racer) -> String: return "%s in %s" % [r.name, r.kart.design.name]))])
@@ -108,9 +121,9 @@ func _ready() -> void:
 		var kart: String = racer.kart.design.name
 		if racer.progress.finished:
 			finished += 1
-			lines.append("  %-14s %-14s %6.1f s  %d resets" % [racer.name, kart, racer.progress.finish_time, resets[racer]])
+			lines.append("  %-14s %-14s %6.1f s  %d resets, %d repairs" % [racer.name, kart, racer.progress.finish_time, resets[racer], repairs[racer]])
 		else:
-			lines.append("  %-14s %-14s    DNF  %d resets, lap %d" % [racer.name, kart, resets[racer], racer.progress.current_lap()])
+			lines.append("  %-14s %-14s    DNF  %d resets, %d repairs, lap %d" % [racer.name, kart, resets[racer], repairs[racer], racer.progress.current_lap()])
 	print("\n".join(lines))
 	# The fastest lap anyone did, for comparing a course before and after.
 	var best := INF
@@ -122,6 +135,7 @@ func _ready() -> void:
 				best_by = racer.name
 	print("BEST %s: %.2f s by %s" % [course, best, best_by] if best < INF else "BEST %s: none" % course)
 	var total_resets: int = resets.values().reduce(func(a, b): return a + b, 0)
+	var total_repairs: int = repairs.values().reduce(func(a, b): return a + b, 0)
 	var total_stalls: int = stalls.values().reduce(func(a, b): return a + b, 0)
-	print("RESULT %s %s %s reversed=%s mirrored=%s: %d of %d finished, %d resets, %d stalls, %.0f s" % [course, race.conditions.weather, race.conditions.time, Game.reversed(), Game.mirrored(), finished, race.racers.size(), total_resets, total_stalls, race.time])
+	print("RESULT %s %s %s reversed=%s mirrored=%s: %d of %d finished, %d resets, %d repairs, %d stalls, %.0f s" % [course, race.conditions.weather, race.conditions.time, Game.reversed(), Game.mirrored(), finished, race.racers.size(), total_resets, total_repairs, total_stalls, race.time])
 	get_tree().quit()

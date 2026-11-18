@@ -36,6 +36,10 @@ const RAISED := 0.5
 ## shortest run of curb worth putting down.
 const KERB_BEND := 1.0 / 150.0
 const KERB_HEIGHT := 0.1
+## How far the curb's outer edge slopes down to the grass, in metres, gentle
+## enough that a kart sliding off sideways rolls down it instead of tripping.
+const KERB_EASE := 0.8
+const ISLAND_KERB_EASE := 0.2
 const KERB_BLOCK := 1.2
 const KERB_SHORTEST := 6
 ## Curbs get less grip than the road, besides the bumping (see Kart).
@@ -822,7 +826,7 @@ func _add_kerb(run: Array, side: int) -> void:
 	var inner := half * side
 	var outer := (half + TrackPath.KERB) * side
 	var ramp := (half + 0.3) * side
-	var top := (half + TrackPath.KERB - 0.2) * side
+	var top := (half + TrackPath.KERB - KERB_EASE) * side
 	# Across the curb, up a little ramp from the road, over the ridged top and
 	# down to the grass, listed so each edge faces up and out.
 	var across := [
@@ -992,7 +996,10 @@ func _split_kerb_across(k: int, side: int, island: bool, flat := false, fade := 
 	var scale := wide / TrackPath.KERB
 	var height := KERB_HEIGHT * scale
 	var ramp := edge + 0.3 * scale * out
-	var top := edge + (TrackPath.KERB - 0.2) * scale * out
+	# An island's curb keeps a short edge, so the island's grass starts
+	# where karts are used to it.
+	var ease := ISLAND_KERB_EASE if island else KERB_EASE
+	var top := edge + (TrackPath.KERB - ease) * scale * out
 	var across := [
 		[Vector2(edge, 0.0), Vector2(ramp, height)],
 		[Vector2(ramp, height), Vector2(top, height)],
