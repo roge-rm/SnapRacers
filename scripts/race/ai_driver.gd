@@ -199,6 +199,13 @@ const SEE_AHEAD := 24.0 # how far ahead it watches for karts in its way
 ## How far to the side another kart has to be to be out of the way, past
 ## touching. Bikes are narrower, so they get by with less.
 const KART_GAP := 0.8
+## How far ahead it looks for a split's island it might be squeezed onto,
+## in seconds at its speed.
+const NOSE_LOOK := 1.0
+## Below this speed, in metres a second, it doesn't brake to drop in behind.
+const NOSE_SLOWEST := 6.0
+## How hard it brakes then, from 0 to 1.
+const NOSE_BRAKE := 0.3
 ## How quickly it can turn the stick on a straight, in full locks a second.
 ## In a bend it puts the stick where it wants it.
 const STRAIGHT_STEER_RATE := 5.0
@@ -883,6 +890,13 @@ func _drive(delta: float, speed: float) -> void:
 		controls.throttle = 1.0
 		controls.brake = 0.0
 
+	# Squeezed toward a split's island by a kart alongside, it lifts off to
+	# drop in behind that kart instead of being pushed onto the island. It
+	# doesn't brake hard, so the kart behind doesn't run into it.
+	if track.has_splits and not kart.sliding and _backing <= 0.0 and _leaving <= 0.0 and _squeezed_at_nose(speed):
+		controls.throttle = 0.0
+		controls.brake = NOSE_BRAKE
+
 	# Queue braking has to release before the pedal starts reversing.
 	# A little over the following speed it lifts and waits for a gap, and
 	# only brakes when it's closing in.
@@ -1188,6 +1202,40 @@ func _patch_line() -> float:
 			best = cost
 			best_shift = shift
 	return best_shift
+
+
+## Whether the island of a split comes up ahead where it is across the
+## road, with a kart alongside on the side it has to move over to.
+func _squeezed_at_nose(speed: float) -> bool:
+	# Slow or stopped, braking only holds both karts where they are.
+	if speed < NOSE_SLOWEST:
+		return false
+	var ahead_at := offset + clampf(speed * NOSE_LOOK, 6.0, 25.0)
+	var lanes := track.lanes_at(ahead_at)
+	if lanes.size() < 2:
+		return false
+	var across := (kart.global_position - track.point_at(offset)).dot(track.right_at(offset))
+	var half := kart.width() * 0.5
+	# Where the island starts ahead, and which way it has to go to miss it.
+	if across + half <= lanes[0].y or across - half >= lanes[1].x:
+		return false
+	var lane := lane_at(ahead_at)
+	var way := -1.0 if (lane.x + lane.y) * 0.5 < across else 1.0
+	var along := track.forward_at(offset)
+	for other in others:
+		if other == kart or not is_instance_valid(other) or other.ghost_left > 0.0:
+			continue
+		var ahead := (other.global_position - kart.global_position).dot(along)
+		if ahead < -kart.tail_length() or ahead > AITrafficPlanner._front(kart) + 2.0:
+			continue
+		var other_across := (other.global_position - track.point_at(offset)).dot(track.right_at(offset))
+		var gap := (other_across - across) * way
+		# Only a kart going on past it, so it can drop in behind.
+		if other.linear_velocity.dot(along) < speed * 0.7:
+			continue
+		if gap > 0.0 and gap < (kart.width() + other.width()) * 0.5 + KART_GAP:
+			return true
+	return false
 
 
 ## Whether there's no kart alongside or just ahead this far right of its own
