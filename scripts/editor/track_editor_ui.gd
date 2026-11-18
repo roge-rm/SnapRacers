@@ -32,6 +32,8 @@ signal road_colour_chosen(id: String)
 signal hills_chosen(hills: float)
 signal weather_chosen(weather: String)
 signal time_chosen(time: String)
+signal fixed_time_toggled
+signal about_changed(text: String)
 signal close_up_pressed
 signal join_ends_pressed
 signal join_accepted
@@ -44,6 +46,8 @@ signal surface_chosen(surface: String)
 signal edges_chosen(edges: String)
 signal deselect_pressed
 signal turn_landmark_pressed
+signal turn_landmark_back_pressed
+signal size_landmark_pressed
 signal drop_landmark_pressed
 signal remove_landmark_pressed
 signal drive_pressed
@@ -114,7 +118,7 @@ const SURFACES := [["Road", "asphalt"], ["Concrete", "concrete"], ["Dirt", "dirt
 const EDGES := [["Auto", "auto"], ["Walls", "walls"], ["Left open", "left_open"], ["Right open", "right_open"], ["Open", "open"]]
 ## How much the ground rises and falls around the course, in metres (see
 ## TrackPath.hills).
-const HILLS := [["Flat", "0"], ["Rolling", "8"], ["Hilly", "16"]]
+const HILLS := [["Flat", "0"], ["Gentle", "4"], ["Rolling", "8"], ["Lumpy", "12"], ["Hilly", "16"], ["Steep", "20"]]
 ## What each theme is called on its button.
 const THEME_NAMES := {
 	"orchard": "Orchard", "trulli": "Olive groves", "lake": "Lakeside", "mine": "Coal mine",
@@ -173,6 +177,8 @@ var _chip: Button
 var _card: PanelContainer
 var _name_label: Label
 var _about_label: Label
+var _about_edit: LineEdit
+var _fixed_time: Button
 var _problems_label: Label
 var _laps_label: Label
 var _map_rotation_label: Label
@@ -201,6 +207,8 @@ var _steppers := {}
 var _surfaces: Dictionary = {}
 var _edges: Dictionary = {}
 var _landmark_actions: PanelContainer
+var _actions_scroll: ScrollContainer
+var _actions_body: VBoxContainer
 
 var _bottom: VBoxContainer
 var _safe: SafeArea
@@ -246,8 +254,26 @@ func _ready() -> void:
 	safe.flow(_rail_box)
 	safe.flow(_drawer_row, 1)
 	_safe = safe
-	_bottom.resized.connect(_lift_actions)
+	_bottom.resized.connect(_fit_actions)
+	resized.connect(_fit_actions)
 	_lift_actions()
+
+
+## Gives the piece panel's rows as much height as the screen allows, and
+## scrolls them past that.
+func _fit_actions() -> void:
+	if _actions_scroll == null or size.y <= 0.0:
+		return
+	var top := _toolbar.get_global_rect().end.y + 6.0
+	var room := size.y + BOTTOM_GAP - _bottom.size.y - 8.0 - top
+	var chrome := _actions.get_combined_minimum_size().y - _actions_scroll.get_combined_minimum_size().y
+	_actions_scroll.custom_minimum_size.y = 0.0
+	var wanted := _actions_body.get_combined_minimum_size().y
+	chrome = _actions.get_combined_minimum_size().y - _actions_scroll.get_combined_minimum_size().y
+	_actions_scroll.custom_minimum_size.y = clampf(room - chrome, 80.0, wanted)
+	_lift_actions()
+	_actions.offset_top = _actions.offset_bottom - (chrome + _actions_scroll.custom_minimum_size.y)
+	_safe.moved(_actions)
 
 
 ## The piece and landmark panels sit over the race buttons, which they'd
@@ -322,6 +348,10 @@ func show_course(course: CourseDesign, length: float, problems: Array[String], c
 		MenuStyle.mark(_weathers[id], id == course.weather)
 	for id in _times:
 		MenuStyle.mark(_times[id], id == course.time)
+	_fixed_time.disabled = course.time == Conditions.RANDOM
+	MenuStyle.mark(_fixed_time, course.fixed_time and course.time != Conditions.RANDOM)
+	if not _about_edit.has_focus() and _about_edit.text != course.about:
+		_about_edit.text = course.about
 	var listed := problems + warnings
 	_problems_label.text = "\n".join(listed.map(func(p): return "• " + p))
 	_problems_label.visible = not listed.is_empty()
@@ -343,6 +373,7 @@ func show_selection(index: int, spec: Dictionary) -> void:
 	_actions.visible = index != -1
 	if index == -1:
 		return
+	_fit_actions.call_deferred()
 	_action_title.text = "%d · %s" % [index + 1, TrackCatalogue.piece_name(spec)]
 	_action_dimensions.text = TrackCatalogue.dimensions(spec)
 	_action_dimensions.tooltip_text = _action_dimensions.text
@@ -361,6 +392,7 @@ func show_selection(index: int, spec: Dictionary) -> void:
 		_island.set_value_no_signal(float(adjustable.get("island", TrackPiece.SPLIT_ISLAND)))
 	for key in _steppers:
 		_show_stepper(key, spec)
+	_fit_actions.call_deferred()
 	var surface: String = spec.get("surface", "asphalt")
 	for id in _surfaces:
 		MenuStyle.mark(_surfaces[id], id == surface)
@@ -960,6 +992,13 @@ func _build_card() -> void:
 	_about_label = Label.new()
 	_about_label.theme_type_variation = "StatsLabel"
 	box.add_child(_about_label)
+	_about_edit = LineEdit.new()
+	_about_edit.placeholder_text = "About this course"
+	_about_edit.max_length = 200
+	PadKeyboard.attach(_about_edit)
+	_about_edit.text_submitted.connect(func(text: String) -> void: about_changed.emit(text.strip_edges()))
+	_about_edit.focus_exited.connect(func() -> void: about_changed.emit(_about_edit.text.strip_edges()))
+	box.add_child(_about_edit)
 
 	var laps := HBoxContainer.new()
 	laps.add_theme_constant_override("separation", 8)
@@ -1036,7 +1075,7 @@ func _build_card() -> void:
 	hills_heading.text = "Hills"
 	hills_heading.theme_type_variation = "SmallLabel"
 	box.add_child(hills_heading)
-	box.add_child(_choices(HILLS, _hills, func(id: String) -> void: hills_chosen.emit(float(id))))
+	box.add_child(_choices(HILLS, _hills, func(id: String) -> void: hills_chosen.emit(float(id)), 3))
 
 	# The weather and time it's raced in, unless whoever races it picks.
 	for which in [["Weather", Conditions.WEATHERS, Conditions.WEATHER_NAMES, _weathers, weather_chosen], ["Time of day", Conditions.TIMES, Conditions.TIME_NAMES, _times, time_chosen]]:
@@ -1049,6 +1088,10 @@ func _build_card() -> void:
 			items.append([which[2][id].split(" ")[0], id])
 		var picked: Signal = which[4]
 		box.add_child(_choices(items, which[3], func(id: String) -> void: picked.emit(id), 4))
+	_fixed_time = MenuStyle.button("Always this time", func() -> void: fixed_time_toggled.emit())
+	_fixed_time.custom_minimum_size = Vector2(0, 40)
+	_fixed_time.theme_type_variation = "ChoiceButton"
+	box.add_child(_fixed_time)
 
 	_problems_label = Label.new()
 	_problems_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -1088,25 +1131,35 @@ func _build_actions() -> void:
 	_action_dimensions.theme_type_variation = "SmallLabel"
 	_action_dimensions.clip_text = true
 	box.add_child(_action_dimensions)
+	# Everything under the title scrolls when the screen is short.
+	_actions_scroll = ScrollContainer.new()
+	_actions_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	_actions_scroll.follow_focus = true
+	box.add_child(_actions_scroll)
+	var body := VBoxContainer.new()
+	body.add_theme_constant_override("separation", 6)
+	body.size_flags_horizontal = SIZE_EXPAND_FILL
+	_actions_scroll.add_child(body)
+	_actions_body = body
 	_dimension_rows = VBoxContainer.new()
 	_dimension_rows.add_theme_constant_override("separation", 4)
-	box.add_child(_dimension_rows)
+	body.add_child(_dimension_rows)
 	_length = _dimension_control(_dimension_rows, "Length", "metres", 0.25, 512.0)
 	_sideways = _dimension_control(_dimension_rows, "Sideways", "shift", -256.0, 256.0)
 	_sideways_row = _sideways.get_parent()
 	_island = _dimension_control(_dimension_rows, "Island", "island", TrackPiece.SPLIT_LEAST_ISLAND, TrackPiece.SPLIT_MOST_ISLAND)
 	_island_row = _island.get_parent()
-	_step_control(_dimension_rows.get_parent(), "Rise", "rise")
-	_step_control(_dimension_rows.get_parent(), "Bank", "bank")
-	_step_control(_dimension_rows.get_parent(), "Height", "height")
-	_step_control(_dimension_rows.get_parent(), "Length", "hump")
+	_step_control(body, "Rise", "rise")
+	_step_control(body, "Bank", "bank")
+	_step_control(body, "Height", "height")
+	_step_control(body, "Length", "hump")
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 16)
-	box.add_child(row)
+	body.add_child(row)
 	row.add_child(BuilderStyle.word("Add after", UiKit.ACCENT, func() -> void: add_after_pressed.emit()))
 	row.add_child(BuilderStyle.word("Take out", DANGER, func() -> void: delete_pressed.emit()))
-	box.add_child(_choices(SURFACES, _surfaces, func(id: String) -> void: surface_chosen.emit(id)))
-	box.add_child(_choices(EDGES, _edges, func(id: String) -> void: edges_chosen.emit(id)))
+	body.add_child(_choices(SURFACES, _surfaces, func(id: String) -> void: surface_chosen.emit(id), 3))
+	body.add_child(_choices(EDGES, _edges, func(id: String) -> void: edges_chosen.emit(id), 3))
 	_join_actions = PanelContainer.new()
 	_join_actions.add_theme_stylebox_override("panel", BuilderStyle.scrim(10, 8))
 	_join_actions.hide()
@@ -1147,9 +1200,13 @@ func _build_actions() -> void:
 	lm_row.add_theme_constant_override("separation", 10)
 	lm.add_child(lm_row)
 	lm_row.add_child(BuilderStyle.dark_pill("Turn", func() -> void: turn_landmark_pressed.emit()))
-	lm_row.add_child(BuilderStyle.word("Take away", DANGER, func() -> void: remove_landmark_pressed.emit()))
-	var put := BuilderStyle.main_pill("Put it down", func() -> void: drop_landmark_pressed.emit())
-	lm.add_child(put)
+	lm_row.add_child(BuilderStyle.dark_pill("Turn back", func() -> void: turn_landmark_back_pressed.emit()))
+	lm_row.add_child(BuilderStyle.dark_pill("Size", func() -> void: size_landmark_pressed.emit()))
+	var lm_end := HBoxContainer.new()
+	lm_end.add_theme_constant_override("separation", 16)
+	lm.add_child(lm_end)
+	lm_end.add_child(BuilderStyle.word("Take away", DANGER, func() -> void: remove_landmark_pressed.emit()))
+	lm_end.add_child(BuilderStyle.main_pill("Put it down", func() -> void: drop_landmark_pressed.emit()))
 
 
 ## A row of small pills to pick one of, like the surfaces.
@@ -1171,7 +1228,7 @@ func _dimension_control(parent: VBoxContainer, title: String, key: String, minim
 	number.max_value = maximum
 	number.step = 0.001
 	number.suffix = " m"
-	number.custom_minimum_size.x = 116
+	number.custom_minimum_size.x = 150
 	number.size_flags_horizontal = SIZE_EXPAND_FILL
 	number.get_line_edit().add_theme_font_size_override("font_size", UiKit.SMALL)
 	number.update_on_text_changed = false

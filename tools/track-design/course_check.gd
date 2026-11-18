@@ -111,10 +111,12 @@ func _landmarks_in_the_way(track: TrackPath) -> Array:
 	for i in track.landmarks.size():
 		var mark: Dictionary = track.landmarks[i]
 		var at := Vector2(float(mark.at[0]), float(mark.at[1]))
-		var own: float = Props.ROOM.get(mark.prop, 3.0)
+		var own := Props.room_of(mark)
 		var room: float = own + track.width * 0.5 + TrackPath.KERB + TrackBuilder.WALL_THICKNESS + TrackEditor.LANDMARK_GAP
 		var clear := true
 		for p in track.points:
+			if mark.prop in Props.SPANNING:
+				break
 			if Vector2(p.x, p.z).distance_to(at) < room:
 				clear = false
 				break

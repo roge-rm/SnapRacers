@@ -239,6 +239,9 @@ static func _read_course(data: Dictionary, saved := false) -> Dictionary:
 		return {"why": "That course has an invalid grid."}
 	if data.has("laps") and not _integer(data.laps, 1, 9):
 		return {"why": "That course has an invalid lap count."}
+	for key in ["about", "inspired_by"]:
+		if data.has(key) and not _text(data[key], MOST_ABOUT):
+			return {"why": "That course has an invalid description."}
 	if data.has("fixed_time") and not data.fixed_time is bool:
 		return {"why": "That course has an invalid time setting."}
 	if not _start(data.get("start", [])):
@@ -249,7 +252,7 @@ static func _read_course(data: Dictionary, saved := false) -> Dictionary:
 	if not data.get("landmarks", []) is Array or (not saved and data.get("landmarks", []).size() > MOST_LANDMARKS):
 		return {"why": "That course has invalid landmarks."}
 	for mark in data.get("landmarks", []):
-		if not mark is Dictionary or not mark.get("prop") is String or not Props.ROOM.has(mark.prop) or not _vector(mark.get("at", [0, 0]), 100000.0, 2) or not _integer(mark.get("facing", 0), 0, 3):
+		if not mark is Dictionary or not mark.get("prop") is String or not Props.ROOM.has(mark.prop) or not _vector(mark.get("at", [0, 0]), 100000.0, 2) or not _integer(mark.get("facing", 0), 0, 3) or not _mark_turn_and_size(mark):
 			return {"why": "That course has an invalid landmark."}
 	if data.has("paint") and not _paint(data.paint):
 		return {"why": "That course has invalid painted ground."}
@@ -264,6 +267,13 @@ static func _read_course(data: Dictionary, saved := false) -> Dictionary:
 	if not buildable(course, saved):
 		return {"why": "That course has pieces the game can't build."}
 	return {"kind": COURSE, "data": course.to_dict()}
+
+
+## A landmark's turn, in 15 degree steps, and its size, one of the set ones.
+static func _mark_turn_and_size(mark: Dictionary) -> bool:
+	if mark.has("angle") and (not _integer(mark.angle, 0, 345) or int(mark.angle) % Props.TURN_STEP != 0):
+		return false
+	return not mark.has("scale") or (_number(mark.scale) and Props.SCALES.has(float(mark.scale)))
 
 
 ## Painted ground: runs of squares on the current grid, inside MOST_SPAN, with

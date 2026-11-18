@@ -82,6 +82,59 @@ const OFF_THE_GROUND := BELOW_ROAD + ["hot_air_balloon", "airship"]
 const DEPTH := {"falls_isle": 38.0}
 
 
+## Props that reach over the road, so they may be put on it.
+const SPANNING := ["bridge", "cable_car", "rope_bridge", "canopy_walk", "overpass", "lantern_gate"]
+## Landmarks turn in steps of this many degrees, and come in these sizes.
+const TURN_STEP := 15
+const SCALES := [0.5, 0.75, 1.0, 1.5, 2.0]
+
+
+## The room a placed landmark takes, with its size setting.
+static func room_of(mark: Dictionary) -> float:
+	return float(ROOM.get(mark.get("prop", ""), 3.0)) * float(mark.get("scale", 1.0))
+
+
+## How far a placed landmark is turned, in degrees. Old ones only have
+## quarter turns in "facing".
+static func angle_of(mark: Dictionary) -> int:
+	if mark.has("angle"):
+		return posmod(int(mark.angle), 360)
+	return posmod(int(mark.get("facing", 0)), 4) * 90
+
+
+## Builds a placed landmark: turned by its angle and scaled by its size
+## setting about where it stands. Quarter turns go through `facing` as usual
+## and the rest is turned afterwards.
+static func add_mark(kit: SceneryKit, mark: Dictionary, at: Vector3, rng: RandomNumberGenerator) -> void:
+	var angle := angle_of(mark)
+	var facing := posmod(roundi(angle / 90.0), 4)
+	var extra := deg_to_rad(angle - roundi(angle / 90.0) * 90)
+	var grown := float(mark.get("scale", 1.0))
+	var prop := str(mark.get("prop", ""))
+	if is_zero_approx(extra) and is_equal_approx(grown, 1.0):
+		add(kit, prop, at, rng, facing)
+		return
+	var counts := [kit.boxes.size(), kit.cylinders.size(), kit.cones.size(), kit.balls.size(), kit.solids.size(), kit.soft.size(), kit.movers.size(), kit.fans.size()]
+	add(kit, prop, at, rng, facing)
+	var turn := Basis(Vector3.UP, extra)
+	var pivot := Vector3(snappedf(at.x, 0.5), at.y, snappedf(at.z, 0.5))
+	var whole := Transform3D(turn.scaled(Vector3.ONE * grown), pivot - turn.scaled(Vector3.ONE * grown) * pivot)
+	var lists := [kit.boxes, kit.cylinders, kit.cones, kit.balls, kit.solids, kit.soft]
+	for k in lists.size():
+		for i in range(counts[k], lists[k].size()):
+			var entry: Array = lists[k][i]
+			if k >= 4:
+				var where: Transform3D = entry[0]
+				entry[0] = Transform3D(turn * where.basis, pivot + turn * (where.origin - pivot) * grown)
+				entry[1] = entry[1] * grown
+			else:
+				entry[0] = whole * entry[0]
+	for i in range(counts[6], kit.movers.size()):
+		kit.movers[i].pivot = whole * kit.movers[i].pivot
+	for i in range(counts[7], kit.fans.size()):
+		kit.fans[i][0] = whole * kit.fans[i][0]
+
+
 ## Builds the named prop. Unknown names build nothing.
 static func add(kit: SceneryKit, prop: String, at: Vector3, rng: RandomNumberGenerator, facing := 0) -> void:
 	var at_grid := Vector3(snappedf(at.x, 0.5), at.y, snappedf(at.z, 0.5))

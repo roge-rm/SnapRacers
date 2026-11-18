@@ -121,6 +121,7 @@ func _ready() -> void:
 	await _left_out()
 	_hand_out()
 	await _race_menu()
+	await _track_editor_card()
 	Game.show_settings()
 	await frames(4)
 	var settings: SettingsScreen = screen()
@@ -134,6 +135,50 @@ func _ready() -> void:
 		check(missed.is_empty(), "settings %s: the d-pad reaches all %d controls%s" % [SettingsScreen.TABS[tab], seen.size(), "" if missed.is_empty() else ", missed " + ", ".join(names)])
 	print("All pad tour checks passed." if failures == 0 else "%d pad tour checks failed." % failures)
 	get_tree().quit(1 if failures > 0 else 0)
+
+
+## The track editor's course card and the selected piece panel: the d-pad has
+## to reach every setting on them.
+func _track_editor_card() -> void:
+	DirAccess.remove_absolute(TrackEditor.CURRENT)
+	Game.show_track_editor()
+	await frames(6)
+	var editor: TrackEditor = null
+	for child in host.get_children():
+		if child is TrackEditor:
+			editor = child
+	check(editor != null, "track editor opens")
+	if editor == null:
+		return
+	editor.load_course("res://tests/data/split_course.json")
+	await frames(3)
+	var ui := editor.ui
+	ui._chip.pressed.emit()
+	await frames(4)
+	check(ui._card.visible, "the course chip opens the card")
+	var first := PadFocus.first_button(ui._card)
+	check(first != null, "track editor card: something's picked out first")
+	if first != null:
+		var seen := walk(first)
+		var missed := reachable_kinds(ui._card).filter(func(c: Control) -> bool: return not seen.has(c) and not (c is BaseButton and c.disabled))
+		check(missed.is_empty(), "track editor card: the d-pad reaches all %d controls, missed %d" % [seen.size(), missed.size()])
+		var settings := [ui._about_edit, ui._fixed_time] + ui._hills.values() + ui._weathers.values() + ui._times.values() + ui._themes.values() + ui._road_colours.values()
+		var every := settings.all(func(c: Control) -> bool: return seen.has(c) or c.disabled if c is BaseButton else seen.has(c))
+		check(every, "track editor card: laps, rotation, road colour, theme, hills, weather, time, fixed time and about are reached")
+		check(ui._hills.size() == 6, "six hill steps")
+	editor.course.time = "dusk"
+	editor._refresh()
+	await frames(2)
+	check(not ui._fixed_time.disabled, "fixed time is on offer once a time's picked")
+	ui._card.hide()
+	editor._select(1)
+	await frames(3)
+	var panel_first := PadFocus.first_button(ui._actions)
+	check(panel_first != null, "selected piece panel: something's picked out first")
+	if panel_first != null:
+		var seen_panel := walk(panel_first)
+		var missed_panel := reachable_kinds(ui._actions).filter(func(c: Control) -> bool: return not seen_panel.has(c))
+		check(missed_panel.is_empty(), "selected piece panel: the d-pad reaches all %d controls" % seen_panel.size())
 
 
 ## Walks a part of a screen, like a popup, from its first button.

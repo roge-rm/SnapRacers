@@ -622,7 +622,7 @@ func _dress(indoor: bool) -> void:
 	# the theme places its own where you'll see them.
 	for mark in track.landmarks:
 		var at: Array = mark.get("at", [0.0, 0.0])
-		_add(str(mark.get("prop", "")), Vector3(float(at[0]), 0.0, float(at[1])), int(mark.get("facing", 0)))
+		_add(str(mark.get("prop", "")), Vector3(float(at[0]), 0.0, float(at[1])), int(mark.get("facing", 0)), mark)
 	if track.landmarks.is_empty() and not only_landmarks:
 		var landmarks: Array = theme.get("landmarks", [])
 		landmarks = landmarks.duplicate()
@@ -841,7 +841,7 @@ func _grounded_prop(prop: String, at: Vector3) -> Vector3:
 	return Vector3(at.x, low, at.z)
 
 
-func _add(prop: String, at: Vector3, facing := -1) -> void:
+func _add(prop: String, at: Vector3, facing := -1, mark := {}) -> void:
 	at = _grounded_prop(prop, at)
 	var f := facing if facing >= 0 else _facing_road(at)
 	var stack := prop == "tire_stack" or prop == "barrier_stack"
@@ -853,6 +853,8 @@ func _add(prop: String, at: Vector3, facing := -1) -> void:
 	_kit.ground = ground
 	if prop == "lamp_post":
 		lamps.append(Props.lamp_post(_kit, at, f))
+	elif mark.has("angle") or mark.has("scale"):
+		Props.add_mark(_kit, mark, at, _rng)
 	else:
 		Props.add(_kit, prop, at, _rng, f)
 	_kit.done()
@@ -864,10 +866,11 @@ func _add(prop: String, at: Vector3, facing := -1) -> void:
 				var shape: Transform3D = box[0]
 				var size := shape.basis.get_scale()
 				water.add_pool(shape.origin, Vector2(size.x, size.z), shape.origin.y + size.y * 0.5)
+	var room: float = Props.room_of(mark) if not mark.is_empty() else Props.ROOM.get(prop, 3.0)
 	if Props.DEPTH.has(prop):
-		_placed.append([at, Props.ROOM.get(prop, 3.0), Props.DEPTH[prop]])
+		_placed.append([at, room, Props.DEPTH[prop]])
 	else:
-		_placed.append([at, Props.ROOM.get(prop, 3.0)])
+		_placed.append([at, room])
 
 
 # Along the road.

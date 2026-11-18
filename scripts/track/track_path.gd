@@ -276,12 +276,14 @@ func _mirror_layout() -> void:
 		local.x = -local.x
 		world = start.origin + start.basis * local
 		mark.at = [world.x, world.z]
-		var facing := int(mark.get("facing", 0))
-		var direction := Basis(Vector3.UP, facing * PI * 0.5) * Vector3.FORWARD
+		var direction := Basis(Vector3.UP, deg_to_rad(Props.angle_of(mark))) * Vector3.FORWARD
 		var local_direction := start.basis.inverse() * direction
 		local_direction.x = -local_direction.x
 		direction = start.basis * local_direction
-		mark.facing = posmod(roundi(-atan2(direction.x, direction.z) / (PI * 0.5)), 4)
+		var turned := -atan2(direction.x, direction.z)
+		mark.facing = posmod(roundi(turned / (PI * 0.5)), 4)
+		if mark.has("angle"):
+			mark.angle = posmod(roundi(rad_to_deg(turned) / Props.TURN_STEP) * Props.TURN_STEP, 360)
 
 
 ## Whether the ground rises and falls, from the hills or a map.

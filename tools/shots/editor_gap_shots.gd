@@ -34,10 +34,19 @@ func _ready() -> void:
 	editor.course.pieces.append({"type": "crest", "length": 3, "height": 3.0})
 	editor.course.pieces.append({"type": "slant", "turn": "right", "length": 4, "across": 2, "rise": 2})
 	editor._refresh()
-	for pick in [["bend", first], ["hump", first + 1], ["offset", first + 2]]:
+	for pick in [["bend", first], ["hump", first + 1], ["offset", first + 2], ["straight", 1]]:
 		editor._select(pick[1])
 		await _shot("%s_%s" % [pick[0], size])
 		print(size, " ", pick[0], " panel ", editor.ui._actions.get_global_rect())
+	editor._select(-1)
+	editor.pick_up_landmark("overpass")
+	editor.turn_landmark(1)
+	editor.size_landmark()
+	await _shot("landmark_%s" % size)
+	print(size, " landmark panel ", editor.ui._landmark_actions.get_global_rect())
+	editor._drop_holding()
+	editor.ui._chip.pressed.emit()
+	await _shot("card_%s" % size)
 	get_tree().quit()
 
 

@@ -282,9 +282,8 @@ func _controller(editor: TrackEditor) -> void:
 	pad._button(JOY_BUTTON_B)
 	check(not pad.on_road and editor.selected == -1, "B goes back to the drawer")
 	editor.pick_up_landmark("barn")
-	var facing: int = editor._holding.facing
 	pad._button(JOY_BUTTON_X)
-	check(editor._holding.facing == (facing + 1) % 4, "X turns a landmark in hand")
+	check(editor._holding.angle == 15, "X turns a landmark in hand a step")
 	pad._button(JOY_BUTTON_BACK)
 	check(editor._holding.is_empty() and editor.course.landmarks.size() == 1, "and Back takes it away")
 

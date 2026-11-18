@@ -148,8 +148,8 @@ func _network() -> void:
 	var net := NetSession.new()
 	get_tree().root.add_child(net)
 	net.ended.connect(func(_reason: String): refused += 1)
-	check(NetSession.VERSION == 26 and Sharing.VERSION == 1, "engine tuning and reverse or mirrored layouts require network protocol 26 and retain sharing format 1")
-	check(net._check({"version": 25}).contains("different version") and net._check({"version": 26, "players": []}) == "Nobody to race.", "online peers reject protocol 25 and accept the protocol 26 handshake")
+	check(NetSession.VERSION == 27 and Sharing.VERSION == 1, "engine tuning and reverse or mirrored layouts require network protocol 27 and retain sharing format 1")
+	check(net._check({"version": 26}).contains("different version") and net._check({"version": 27, "players": []}) == "Nobody to race.", "online peers reject protocol 26 and accept the protocol 27 handshake")
 	var bad := _course()
 	bad.start[3] = 0.25
 	var values: Array = [bad]

@@ -67,7 +67,7 @@ func _shapes() -> void:
 			for entry in row:
 				all.append(entry[1])
 	check(paired, "each mirrored pair has a complete left/right row")
-	check(all.size() == 131, "131 useful parts are offered (%d)" % all.size())
+	check(all.size() == 133, "133 useful parts are offered (%d)" % all.size())
 	var unique: Array = []
 	var finite := true
 	var round_trip := true
@@ -91,7 +91,7 @@ func _shapes() -> void:
 	var bends := _specs(_category("Bends"))
 	check(bends.has({"type": "curve", "turn": "left", "size": 4}) and bends.has({"type": "curve", "turn": "right", "size": 4}), "extra wide bends are offered")
 	var banked := _specs(_category("Banked"))
-	check(banked.size() == 8 and banked.all(func(spec): return spec.has("bank")) and bends.all(func(spec): return not spec.has("bank") and not spec.has("cut")), "Banked has all eight banking and wall ride parts, Bends has plain bends")
+	check(banked.size() == 10 and banked.all(func(spec): return spec.has("bank")) and bends.all(func(spec): return not spec.has("bank") and not spec.has("cut")), "Banked has all ten banking and wall ride parts, Bends has plain bends")
 	var offsets := _specs(_category("Offsets"))
 	var diagonal := true
 	var gentle := true
@@ -123,7 +123,7 @@ func _shapes() -> void:
 	check(TrackEditorUI.SURFACES.has(["Concrete", "concrete"]), "concrete is offered as a surface")
 	check(specials.size() == 8 and specials.has({"type": "curve", "turn": "right", "size": 2, "cut": true}), "shortcuts sit with the eight Specials")
 	check(TrackCatalogue.CATEGORIES.map(func(c): return c[0]) == ["Straights", "Bends", "Offsets", "Hills", "Banked", "Specials", "Splits"], "seven road tabs keep the agreed family order")
-	check(TrackCatalogue.CATEGORIES.map(func(c): return _specs(_category(c[0])).size()) == [6, 48, 20, 30, 8, 8, 11], "every family has its complete directly pickable parts")
+	check(TrackCatalogue.CATEGORIES.map(func(c): return _specs(_category(c[0])).size()) == [6, 48, 20, 30, 10, 8, 11], "every family has its complete directly pickable parts")
 	var straight_lengths := _specs(_category("Straights")).map(func(spec): return TrackPiece.from_spec(spec).run_length())
 	check(straight_lengths == [8.0, 16.0, 32.0, 64.0, 96.0, 128.0], "straights run from the quarter tile through four tiles")
 	var ramp_order := hills.filter(func(spec): return spec.type == "ramp").map(func(spec): return [spec.length, spec.rise])

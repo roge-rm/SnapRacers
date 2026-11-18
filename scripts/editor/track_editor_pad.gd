@@ -134,10 +134,13 @@ func _button(button: JoyButton) -> bool:
 				editor.delete_selected()
 				if editor.course.pieces.is_empty():
 					on_road = false
-			else:
+			elif not editor.pick_next_landmark():
 				return false
 		JOY_BUTTON_Y:
-			if holding or editor.course.pieces.is_empty():
+			if holding:
+				editor.size_landmark()
+				return true
+			if editor.course.pieces.is_empty():
 				return false
 			on_road = true
 			_release_focus()

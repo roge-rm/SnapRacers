@@ -71,6 +71,7 @@ var _closing := -1
 var _closer_result: Array = []
 var _closer_source: Dictionary = {}
 var _ghost_look: StandardMaterial3D
+var _last_landmark := -1
 var _join_spec: Dictionary = {}
 var _join_source: Dictionary = {}
 var _join_preview: MeshInstance3D
@@ -226,6 +227,16 @@ func _ready() -> void:
 		_remember()
 		course.time = time
 		_refresh())
+	ui.fixed_time_toggled.connect(func() -> void:
+		_remember()
+		course.fixed_time = not course.fixed_time
+		_refresh())
+	ui.about_changed.connect(func(text: String) -> void:
+		if text == course.about:
+			return
+		_remember()
+		course.about = text
+		_refresh())
 	ui.close_up_pressed.connect(close_up)
 	ui.join_ends_pressed.connect(join_ends)
 	ui.join_accepted.connect(accept_join)
@@ -240,10 +251,9 @@ func _ready() -> void:
 	ui.surface_chosen.connect(func(surface: String) -> void: _set_on_selected("surface", surface, "asphalt"))
 	ui.edges_chosen.connect(func(edges: String) -> void: _set_on_selected("edges", edges, "auto"))
 	ui.deselect_pressed.connect(_select.bind(-1))
-	ui.turn_landmark_pressed.connect(func() -> void:
-		if not _holding.is_empty():
-			_holding.facing = (int(_holding.facing) + 1) % 4
-			_show_ghost())
+	ui.turn_landmark_pressed.connect(turn_landmark.bind(1))
+	ui.turn_landmark_back_pressed.connect(turn_landmark.bind(-1))
+	ui.size_landmark_pressed.connect(size_landmark)
 	ui.drop_landmark_pressed.connect(drop_landmark)
 	ui.remove_landmark_pressed.connect(remove_landmark)
 	ui.drive_pressed.connect(test_drive)
@@ -639,10 +649,47 @@ func race() -> void:
 
 # Landmarks.
 
+## Turns the landmark in hand one step (15 degrees).
+func turn_landmark(direction: int) -> void:
+	if _holding.is_empty():
+		return
+	var angle := posmod(Props.angle_of(_holding) + direction * Props.TURN_STEP, 360)
+	_holding.angle = angle
+	_holding.facing = posmod(roundi(angle / 90.0), 4)
+	_show_ghost()
+
+
+## Moves the landmark in hand to the next size.
+func size_landmark() -> void:
+	if _holding.is_empty():
+		return
+	var at := Props.SCALES.find(float(_holding.get("scale", 1.0)))
+	_holding.scale = Props.SCALES[(at + 1) % Props.SCALES.size()]
+	_show_ghost()
+
+
+## Picks up the landmark after the one last picked, for the pad.
+func pick_next_landmark() -> bool:
+	if course.landmarks.is_empty() or not _holding.is_empty():
+		return false
+	_last_landmark = (_last_landmark + 1) % course.landmarks.size()
+	_hold_landmark(_last_landmark)
+	return true
+
+
+func _hold_landmark(index: int) -> void:
+	var mark: Dictionary = course.landmarks[index]
+	_select(-1)
+	_holding = {"prop": mark.prop, "at": mark.at.duplicate(), "facing": int(mark.get("facing", 0)), "angle": Props.angle_of(mark), "scale": float(mark.get("scale", 1.0)), "index": index}
+	_show_ghost()
+	ui.show_landmark_in_hand(true)
+	_update_hint()
+
+
 func pick_up_landmark(prop: String) -> void:
 	_select(-1)
 	var ahead := _ground_point(get_viewport().get_visible_rect().size * 0.5)
-	_holding = {"prop": prop, "at": [ahead.x, ahead.z], "facing": 0, "index": -1}
+	_holding = {"prop": prop, "at": [ahead.x, ahead.z], "facing": 0, "angle": 0, "scale": 1.0, "index": -1}
 	_show_ghost()
 	ui.show_landmark_in_hand(true)
 	_update_hint()
@@ -656,7 +703,9 @@ func drop_landmark() -> void:
 		Sounds.play("fx/nope")
 		return
 	_remember()
-	var mark := {"prop": _holding.prop, "at": [snappedf(_holding.at[0], 0.5), snappedf(_holding.at[1], 0.5)], "facing": _holding.facing}
+	var mark := {"prop": _holding.prop, "at": [snappedf(_holding.at[0], 0.5), snappedf(_holding.at[1], 0.5)], "facing": _holding.facing, "angle": Props.angle_of(_holding)}
+	if not is_equal_approx(float(_holding.get("scale", 1.0)), 1.0):
+		mark.scale = float(_holding.scale)
 	if int(_holding.index) >= 0:
 		course.landmarks[int(_holding.index)] = mark
 	else:
@@ -693,11 +742,13 @@ func _drop_holding() -> void:
 
 func _clear_of_road(mark: Dictionary) -> bool:
 	var at := Vector2(float(mark.at[0]), float(mark.at[1]))
-	var room: float = Props.ROOM.get(mark.prop, 3.0) + course.width * 0.5 + TrackPath.KERB + TrackBuilder.WALL_THICKNESS + LANDMARK_GAP
-	for p in track.points:
-		if Vector2(p.x, p.z).distance_to(at) < room:
-			return false
-	return not _in_paint(at, Props.ROOM.get(mark.prop, 3.0))
+	var own := Props.room_of(mark)
+	var room: float = own + course.width * 0.5 + TrackPath.KERB + TrackBuilder.WALL_THICKNESS + LANDMARK_GAP
+	if not mark.prop in Props.SPANNING:
+		for p in track.points:
+			if Vector2(p.x, p.z).distance_to(at) < room:
+				return false
+	return not _in_paint(at, own)
 
 
 ## Whether ground that sinks or burns is at the point or within `room` of it.
@@ -731,7 +782,7 @@ func _show_ghost() -> void:
 	var ok := _clear_of_road(_holding)
 	var ring := MeshInstance3D.new()
 	var disc := CylinderMesh.new()
-	var room: float = Props.ROOM.get(_holding.prop, 3.0)
+	var room: float = Props.room_of(_holding)
 	disc.top_radius = room
 	disc.bottom_radius = room
 	disc.height = 0.2
@@ -758,14 +809,14 @@ func _landmark_node(mark: Dictionary, index: int) -> Node3D:
 	rng.seed = hash(course.name) + index
 	# Built where it stands, then moved back onto the body, so props seeded
 	# by their spot look the same as in the race.
-	Props.add(kit, str(mark.prop), at, rng, int(mark.get("facing", 0)))
+	Props.add_mark(kit, mark, at, rng)
 	var look := Node3D.new()
 	look.position = -at
 	node.add_child(look)
 	kit.build(look)
 	var shape := CollisionShape3D.new()
 	var ball := SphereShape3D.new()
-	ball.radius = Props.ROOM.get(mark.prop, 3.0)
+	ball.radius = Props.room_of(mark)
 	shape.shape = ball
 	shape.position.y = ball.radius * 0.5
 	if mark.prop in Props.OFF_THE_GROUND:
@@ -1097,13 +1148,8 @@ func _tap(pos: Vector2) -> void:
 		return
 	var body: Object = hit.collider
 	if body.has_meta("landmark") and int(body.get_meta("landmark")) >= 0:
-		var index := int(body.get_meta("landmark"))
-		var mark: Dictionary = course.landmarks[index]
-		_select(-1)
-		_holding = {"prop": mark.prop, "at": mark.at.duplicate(), "facing": int(mark.get("facing", 0)), "index": index}
-		_show_ghost()
-		ui.show_landmark_in_hand(true)
-		_update_hint()
+		_last_landmark = int(body.get_meta("landmark"))
+		_hold_landmark(_last_landmark)
 	elif body.has_meta("piece"):
 		var index := int(body.get_meta("piece"))
 		_select(-1 if index == selected else index)

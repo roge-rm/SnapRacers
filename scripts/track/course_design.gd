@@ -49,6 +49,9 @@ var made_by := ""
 var pieces: Array = []
 ## Landmarks you've put down: { "prop": "windmill", "at": [x, z], "facing": 0 }.
 var landmarks: Array = []
+## A line about the course, and the real track it's drawn from.
+var about := ""
+var inspired_by := ""
 ## Painted ground: lakes, lava, mud (see PaintedAreas).
 var paint := PaintedAreas.new()
 ## Lakes and rivers (see Waters).
@@ -72,6 +75,8 @@ static func from_dict(data: Dictionary) -> CourseDesign:
 	c.time = str(data.get("time", Conditions.RANDOM))
 	c.fixed_time = bool(data.get("fixed_time", false))
 	c.made_by = str(data.get("made_by", ""))
+	c.about = str(data.get("about", ""))
+	c.inspired_by = str(data.get("inspired_by", ""))
 	for spec in data.get("pieces", []):
 		if spec is Dictionary:
 			c.pieces.append(spec.duplicate())
@@ -119,6 +124,10 @@ func to_dict() -> Dictionary:
 		out.time = time
 	if fixed_time:
 		out.fixed_time = true
+	if about != "":
+		out.about = about
+	if inspired_by != "":
+		out.inspired_by = inspired_by
 	if not paint.is_empty():
 		out.paint = paint.to_dict()
 	if not waters.is_empty():

@@ -68,7 +68,8 @@ const CATEGORIES := [
 		[["45° bank 22°\nNormal left", {"type": "arc", "angle": 45, "turn": "left", "size": 2, "bank": 22}], ["45° bank 22°\nNormal right", {"type": "arc", "angle": 45, "turn": "right", "size": 2, "bank": 22}]],
 		[["45° bank 22°\nWide left", {"type": "arc", "angle": 45, "turn": "left", "size": 3, "bank": 22}], ["45° bank 22°\nWide right", {"type": "arc", "angle": 45, "turn": "right", "size": 3, "bank": 22}]],
 		[["90° bank 22°\nWide left", {"type": "curve", "turn": "left", "size": 3, "bank": 22}], ["90° bank 22°\nWide right", {"type": "curve", "turn": "right", "size": 3, "bank": 22}]],
-		[["Wall ride left\n90° · bank 80°", {"type": "curve", "turn": "left", "size": 3, "bank": 80}], ["Wall ride right\n90° · bank 80°", {"type": "curve", "turn": "right", "size": 3, "bank": 80}]],
+		[["Wall ride\nNormal left", {"type": "curve", "turn": "left", "size": 2, "bank": 80}], ["Wall ride\nNormal right", {"type": "curve", "turn": "right", "size": 2, "bank": 80}]],
+		[["Wall ride\nWide left", {"type": "curve", "turn": "left", "size": 3, "bank": 80}], ["Wall ride\nWide right", {"type": "curve", "turn": "right", "size": 3, "bank": 80}]],
 	]],
 	["Specials", "stunts", [
 		[["Jump", {"type": "jump"}], ["Level crossing", {"type": "crossing"}]],
@@ -150,6 +151,8 @@ const _SPEC_ORDER := [
 	"type=loop|side=right",
 	"type=corkscrew|side=left",
 	"type=corkscrew|side=right",
+	"type=curve|turn=left|size=2|bank=80",
+	"type=curve|turn=right|size=2|bank=80",
 	"type=curve|turn=left|size=3|bank=80",
 	"type=curve|turn=right|size=3|bank=80",
 	"type=arc|angle=30|turn=left|size=1",
@@ -421,7 +424,7 @@ static func steps(spec: Dictionary, key: String) -> Array:
 			if kind not in ["curve", "arc"]:
 				return out
 			out = BANKS.duplicate()
-			if kind == "curve" and int(spec.get("size", 2)) == 3:
+			if kind == "curve" and int(spec.get("size", 2)) in [2, 3]:
 				out.append(WALL_BANK)
 		"height":
 			if kind != "crest":

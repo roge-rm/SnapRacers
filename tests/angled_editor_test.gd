@@ -115,6 +115,8 @@ func _controls() -> void:
 	for spec in catalogue:
 		ui.show_selection(96, spec)
 		await frames(3)
+		if not screen.encloses(ui._actions.get_global_rect()):
+			print("Selection panel outside the screen: ", spec, " ", ui._actions.get_global_rect(), " ui ", ui.size, " ", ui._actions.offset_top, " ", ui._actions.offset_bottom, " scroll ", ui._actions_scroll.custom_minimum_size, " bottom ", ui._bottom.size, ui._toolbar.get_global_rect())
 		selections_fit = selections_fit and screen.encloses(ui._actions.get_global_rect())
 		for readout in [ui._action_title, ui._action_dimensions]:
 			var width: float = readout.get_theme_font("font").get_string_size(readout.text, HORIZONTAL_ALIGNMENT_LEFT, -1, readout.get_theme_font_size("font_size")).x
