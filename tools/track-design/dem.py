@@ -50,6 +50,13 @@ BLEND = 30.0
 ROAD_STEEPEST = 0.12
 # Road ground this far off the real profile over a stretch wants a ramp.
 RAMP_GAP = 1.5
+# The road's bed: the real ground under the road, smoothed along it over
+# BED_ALONG metres, flat for BED metres from the middle, and the ground
+# beside it no steeper than BED_SLOPE back to the real ground. Under the 12%
+# of the road copy, so a hillside doesn't lift the road off the ground.
+BED = 10.0
+BED_ALONG = 33
+BED_SLOPE = 0.10
 # metres per degree of latitude, as fetch_picks.py uses
 DEGREE = 111320.0
 
@@ -269,6 +276,47 @@ def draw(h, origin, course, real, out, label):
     im.save(out)
 
 
+def road_bed(h, origin, line):
+    """Cuts and fills the ground along the road to its bed (see BED)."""
+    rows, cols = h.shape
+    under = height_at(h, origin, line[:, 0], line[:, 1])
+    k = BED_ALONG // 2
+    kern = np.ones(BED_ALONG) / BED_ALONG
+    under = np.convolve(np.concatenate([under[-k:], under, under[:k]]), kern, "valid")
+    gx, gz = np.meshgrid(origin[0] + np.arange(cols) * CELL, origin[1] + np.arange(rows) * CELL)
+    flat = np.stack([gx.ravel(), gz.ravel()], axis=1)
+    near = np.empty(len(flat), dtype=int)
+    dist = np.empty(len(flat))
+    for a in range(0, len(flat), 2000):
+        d2 = ((flat[a:a + 2000, None, :] - line[None, ::2, :2]) ** 2).sum(axis=2)
+        near[a:a + 2000] = d2.argmin(axis=1) * 2
+        dist[a:a + 2000] = np.sqrt(d2.min(axis=1))
+    slack = (np.maximum(dist - BED, 0.0) * BED_SLOPE).reshape(rows, cols)
+    bed = under[near].reshape(rows, cols)
+    return np.clip(h, bed - slack, bed + slack)
+
+
+def dig(name, h, origin):
+    """Digs the hollows in courses/<id>.dig.json into the map, so lakes made
+    for a course come back when the map is made again. Each is
+    [x, z, across x, across z, depth, turn in degrees]: a smooth bowl, full
+    depth in the middle and nothing at its edge. A negative depth raises a
+    bank instead."""
+    path = os.path.join(here, "courses", name + ".dig.json")
+    if not os.path.exists(path):
+        return h
+    rows, cols = h.shape
+    gx, gz = np.meshgrid(origin[0] + np.arange(cols) * CELL, origin[1] + np.arange(rows) * CELL)
+    for x, z, rx, rz, depth, turn in json.load(open(path)):
+        c, s = math.cos(math.radians(turn)), math.sin(math.radians(turn))
+        dx, dz = gx - x, gz - z
+        u, v = (dx * c + dz * s) / rx, (-dx * s + dz * c) / rz
+        t = np.clip(1 - (u * u + v * v), 0, 1)
+        h = h - depth * t * t * (3 - 2 * t)
+    print("  dug %d hollows from %s" % (len(json.load(open(path))), os.path.basename(path)))
+    return h
+
+
 def write_extra(name, ground):
     path = os.path.join(here, "courses", name + ".extra.json")
     extra = json.load(open(path)) if os.path.exists(path) else {}
@@ -346,6 +394,8 @@ def main():
     t_out = np.clip((dist - NEAR) / BLEND, 0, 1)
     t_out = t_out * t_out * (3 - 2 * t_out)
     h = h + t_out * (np.clip(h, near.min(), near.max()) - h)
+    h = road_bed(h, lo, line)
+    h = dig(name, h, lo)
     q = np.round(h / ground_map.STEP) * ground_map.STEP
     # The road copy is blurred, so the whole map moves to put the road at
     # the start level with the start line, as with hills.
