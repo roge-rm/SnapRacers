@@ -5,7 +5,7 @@
 	"laps": 3,
 	"width": 13.0,
 	"grid": 32,
-	"paint": {"cell": 8.0, "runs": [[-21, 33, 1, "gravel"], [-20, 31, 5, "gravel"], [-19, 31, 6, "gravel"], [-18, 31, 6, "gravel"], [-17, 32, 5, "gravel"], [-16, 32, 5, "gravel"], [-15, 32, 5, "gravel"], [-14, 32, 5, "gravel"], [-13, 32, 5, "gravel"], [-12, 32, 5, "gravel"], [-11, 31, 6, "gravel"], [-10, 31, 5, "gravel"], [-9, 32, 3, "gravel"], [26, 2, 3, "gravel"], [26, 10, 2, "gravel"], [27, 1, 11, "gravel"], [28, 1, 12, "gravel"], [29, 1, 11, "gravel"], [30, 2, 10, "gravel"], [31, 3, 7, "gravel"]]},
+	"paint": {"cell": 8.0, "runs": [[-31, 0, 7, "gravel"], [-30, -2, 10, "gravel"], [-29, -3, 4, "gravel"], [-29, 6, 2, "gravel"], [-28, -4, 3, "gravel"], [-27, -4, 2, "gravel"], [-26, -4, 2, "gravel"], [-25, -4, 2, "gravel"], [-24, -4, 2, "gravel"], [-23, -4, 2, "gravel"], [-22, -3, 2, "gravel"], [20, -3, 2, "gravel"], [21, -3, 3, "gravel"], [22, -2, 2, "gravel"], [23, -1, 2, "gravel"], [23, 12, 2, "gravel"], [24, -1, 3, "gravel"], [24, 11, 3, "gravel"], [25, 0, 3, "gravel"], [25, 11, 2, "gravel"], [26, 1, 4, "gravel"], [26, 10, 3, "gravel"], [27, 3, 9, "gravel"], [28, 5, 6, "gravel"]]},
 	"landmarks": [
 		{"prop": "slag_heap", "at": [212, -25], "facing": 0},
 		{"prop": "slag_heap", "at": [240, 45], "facing": 2},
