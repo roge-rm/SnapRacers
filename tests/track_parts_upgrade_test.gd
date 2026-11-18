@@ -55,7 +55,7 @@ func _run() -> void:
 	for spec in offered:
 		if spec not in unique:
 			unique.append(spec)
-	check(specs.size() == 15 and offered.size() == 125 and unique.size() == 125 and specs.all(func(spec): return spec in offered), "the catalogue adds all 15 standard parts once")
+	check(specs.size() == 15 and offered.size() == 131 and unique.size() == 131 and specs.all(func(spec): return spec in offered), "the catalogue adds all 15 standard parts once")
 	_geometry(specs)
 	_half_cursor()
 	_meshes(specs)
@@ -225,7 +225,7 @@ func _hosts(ready: Dictionary, cup: Dictionary) -> void:
 	invalid.pieces[1].length = 1
 	var net := NetSession.new()
 	get_tree().root.add_child(net)
-	check(NetSession.VERSION == 25 and net._check({"version": 24}).contains("different version") and net._check({"version": 25}) == "Nobody to race.", "current online peers accept engine tuning and reverse or mirrored layouts and reject protocol 24")
+	check(NetSession.VERSION == 26 and net._check({"version": 25}).contains("different version") and net._check({"version": 26}) == "Nobody to race.", "current online peers accept engine tuning and reverse or mirrored layouts and reject protocol 25")
 	net._begin({"course": invalid})
 	check(net.setup.is_empty() and net.last_problem == "The host's course can't be built.", "online raw validation rejects a malformed fixed-length piece before construction")
 	net.free()

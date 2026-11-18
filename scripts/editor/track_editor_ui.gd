@@ -37,6 +37,7 @@ signal join_ends_pressed
 signal join_accepted
 signal join_cancelled
 signal dimension_changed(key: String, metres: float)
+signal setting_stepped(key: String, direction: int)
 signal delete_pressed
 signal add_after_pressed
 signal surface_chosen(surface: String)
@@ -196,6 +197,7 @@ var _sideways: SpinBox
 var _sideways_row: HBoxContainer
 var _island: SpinBox
 var _island_row: HBoxContainer
+var _steppers := {}
 var _surfaces: Dictionary = {}
 var _edges: Dictionary = {}
 var _landmark_actions: PanelContainer
@@ -357,6 +359,8 @@ func show_selection(index: int, spec: Dictionary) -> void:
 		_sideways.set_value_no_signal(float(adjustable.get("shift", 0.0)))
 		_island_row.visible = split
 		_island.set_value_no_signal(float(adjustable.get("island", TrackPiece.SPLIT_ISLAND)))
+	for key in _steppers:
+		_show_stepper(key, spec)
 	var surface: String = spec.get("surface", "asphalt")
 	for id in _surfaces:
 		MenuStyle.mark(_surfaces[id], id == surface)
@@ -1092,6 +1096,10 @@ func _build_actions() -> void:
 	_sideways_row = _sideways.get_parent()
 	_island = _dimension_control(_dimension_rows, "Island", "island", TrackPiece.SPLIT_LEAST_ISLAND, TrackPiece.SPLIT_MOST_ISLAND)
 	_island_row = _island.get_parent()
+	_step_control(_dimension_rows.get_parent(), "Rise", "rise")
+	_step_control(_dimension_rows.get_parent(), "Bank", "bank")
+	_step_control(_dimension_rows.get_parent(), "Height", "height")
+	_step_control(_dimension_rows.get_parent(), "Length", "hump")
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 16)
 	box.add_child(row)
@@ -1175,6 +1183,61 @@ func _dimension_control(parent: VBoxContainer, title: String, key: String, minim
 	more.tooltip_text = "Increase %s by 0.25 m" % title.to_lower()
 	row.add_child(more)
 	return number
+
+
+## A row with - and + pills round a value, for the settings that go in steps.
+func _step_control(parent: Node, title: String, key: String) -> void:
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 4)
+	parent.add_child(row)
+	var label := Label.new()
+	label.text = title
+	label.theme_type_variation = "SmallLabel"
+	label.custom_minimum_size.x = 80
+	row.add_child(label)
+	var less := BuilderStyle.pill("−", Color(BuilderStyle.SCRIM, 0.7), UiKit.WHITE, func() -> void: _step(key, -1), 40.0)
+	less.custom_minimum_size.x = 40
+	row.add_child(less)
+	var value := Label.new()
+	value.theme_type_variation = "SmallLabel"
+	value.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	value.custom_minimum_size.x = 90
+	row.add_child(value)
+	var more := BuilderStyle.pill("+", Color(BuilderStyle.SCRIM, 0.7), UiKit.WHITE, func() -> void: _step(key, 1), 40.0)
+	more.custom_minimum_size.x = 40
+	row.add_child(more)
+	_steppers[key] = {"row": row, "value": value, "less": less, "more": more}
+
+
+func _step(key: String, direction: int) -> void:
+	var held: Button = _steppers[key].less if direction < 0 else _steppers[key].more
+	var other: Button = _steppers[key].more if direction < 0 else _steppers[key].less
+	var had_focus := held.has_focus()
+	setting_stepped.emit(key, direction)
+	if had_focus and held.disabled and not other.disabled:
+		other.grab_focus()
+
+
+func _show_stepper(key: String, spec: Dictionary) -> void:
+	var values := TrackCatalogue.steps(spec, key)
+	var stepper: Dictionary = _steppers[key]
+	stepper.row.visible = not values.is_empty()
+	if values.is_empty():
+		return
+	var now := TrackCatalogue.setting(spec, key)
+	var text: String
+	match key:
+		"rise":
+			text = "%s m" % TrackCatalogue.signed_metres(now * TrackPiece.LEVEL)
+		"bank":
+			text = "%s°" % TrackCatalogue._number(snappedf(now, 0.1))
+		"height":
+			text = "%s m" % TrackCatalogue._number(snappedf(now, 0.1))
+		_:
+			text = "%s m" % TrackCatalogue._number(now * TrackPiece.TILE)
+	stepper.value.text = text
+	stepper.less.disabled = now <= float(values[0]) + 0.0001
+	stepper.more.disabled = now >= float(values[values.size() - 1]) - 0.0001
 
 
 func _choices(items: Array, keep: Dictionary, picked: Callable, columns := 0) -> Container:

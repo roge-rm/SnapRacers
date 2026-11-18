@@ -38,6 +38,16 @@ func _ready() -> void:
 	get_tree().quit(1 if failed else 0)
 
 
+## The pieces (as "number:type") the editor's drawer and piece panel can't make.
+func _not_makeable(data: Dictionary) -> Array:
+	var out := []
+	var pieces: Array = data.get("pieces", [])
+	for k in pieces.size():
+		if not TrackCatalogue.makeable(pieces[k]):
+			out.append("%d:%s" % [k + 1, JSON.stringify(pieces[k])])
+	return out
+
+
 ## Prints the line for one course and gives back what failed.
 func _check(id: String, data: Dictionary) -> Array:
 	var bad := []
@@ -52,6 +62,7 @@ func _check(id: String, data: Dictionary) -> Array:
 	var behind := _straight_behind(track)
 	var bad_marks := _landmarks_in_the_way(track)
 	var bad_paint := _paint_too_close(track)
+	var unmakeable := _not_makeable(data)
 	var layouts := []
 	for layout in [[true, false, "mirrored"], [false, true, "reversed"], [true, true, "both"]]:
 		var turned := TrackPath.from_dict(data)
@@ -75,6 +86,8 @@ func _check(id: String, data: Dictionary) -> Array:
 		bad.append("start")
 	if behind < GRID_BEHIND - 0.01:
 		bad.append("grid")
+	if not unmakeable.is_empty():
+		bad.append("editor can't make %s" % " ".join(unmakeable))
 	if not bad_marks.is_empty():
 		bad.append("landmarks %s" % " ".join(bad_marks))
 	if bad_paint > 0:

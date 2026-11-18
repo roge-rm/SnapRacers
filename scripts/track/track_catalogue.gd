@@ -41,6 +41,8 @@ const CATEGORIES := [
 		[["Left offset\n128 × 32 m", {"type": "slant", "turn": "left", "length": 4, "across": 1}], ["Right offset\n128 × 32 m", {"type": "slant", "turn": "right", "length": 4, "across": 1}]],
 		[["Left offset\n128 × 64 m", {"type": "slant", "turn": "left", "length": 4, "across": 2}], ["Right offset\n128 × 64 m", {"type": "slant", "turn": "right", "length": 4, "across": 2}]],
 		[["Left offset\n128 × 96 m", {"type": "slant", "turn": "left", "length": 4, "across": 3}], ["Right offset\n128 × 96 m", {"type": "slant", "turn": "right", "length": 4, "across": 3}]],
+		[["Left offset\n160 × 64 m", {"type": "slant", "turn": "left", "length": 5, "across": 2}], ["Right offset\n160 × 64 m", {"type": "slant", "turn": "right", "length": 5, "across": 2}]],
+		[["Left offset\n192 × 96 m", {"type": "slant", "turn": "left", "length": 6, "across": 3}], ["Right offset\n192 × 96 m", {"type": "slant", "turn": "right", "length": 6, "across": 3}]],
 		[["Left +3 m\n96 × 32 m", {"type": "slant", "turn": "left", "length": 3, "across": 1, "rise": 1}], ["Right +3 m\n96 × 32 m", {"type": "slant", "turn": "right", "length": 3, "across": 1, "rise": 1}]],
 		[["Left −3 m\n96 × 32 m", {"type": "slant", "turn": "left", "length": 3, "across": 1, "rise": -1}], ["Right −3 m\n96 × 32 m", {"type": "slant", "turn": "right", "length": 3, "across": 1, "rise": -1}]],
 	]],
@@ -50,6 +52,7 @@ const CATEGORIES := [
 		[["Up 3 m\n96 m long", {"type": "ramp", "length": 3, "rise": 1}], ["Down 3 m\n96 m long", {"type": "ramp", "length": 3, "rise": -1}]],
 		[["Up 6 m\n64 m long", {"type": "ramp", "length": 2, "rise": 2}], ["Down 6 m\n64 m long", {"type": "ramp", "length": 2, "rise": -2}]],
 		[["Up 6 m\n96 m long", {"type": "ramp", "length": 3, "rise": 2}], ["Down 6 m\n96 m long", {"type": "ramp", "length": 3, "rise": -2}]],
+		[["Up 6 m\n32 m long", {"type": "ramp", "length": 1, "rise": 2}]],
 		[["45° up 3 m\nNormal left", {"type": "arc", "angle": 45, "turn": "left", "size": 2, "rise": 1}], ["45° up 3 m\nNormal right", {"type": "arc", "angle": 45, "turn": "right", "size": 2, "rise": 1}]],
 		[["45° down 3 m\nNormal left", {"type": "arc", "angle": 45, "turn": "left", "size": 2, "rise": -1}], ["45° down 3 m\nNormal right", {"type": "arc", "angle": 45, "turn": "right", "size": 2, "rise": -1}]],
 		[["45° up 3 m\nWide left", {"type": "arc", "angle": 45, "turn": "left", "size": 3, "rise": 1}], ["45° up 3 m\nWide right", {"type": "arc", "angle": 45, "turn": "right", "size": 3, "rise": 1}]],
@@ -59,6 +62,7 @@ const CATEGORIES := [
 		[["90° up 3 m\nWide left", {"type": "curve", "turn": "left", "size": 3, "rise": 1}], ["90° up 3 m\nWide right", {"type": "curve", "turn": "right", "size": 3, "rise": 1}]],
 		[["90° down 3 m\nWide left", {"type": "curve", "turn": "left", "size": 3, "rise": -1}], ["90° down 3 m\nWide right", {"type": "curve", "turn": "right", "size": 3, "rise": -1}]],
 		[["Hump 1.5 m\n96 m long", {"type": "crest", "length": 3, "height": 1.5}], ["Hump 3 m\n96 m long", {"type": "crest", "length": 3, "height": 3.0}]],
+		[["Hump 1.5 m\n64 m long", {"type": "crest", "length": 2, "height": 1.5}]],
 	]],
 	["Banked", "banked", [
 		[["45° bank 22°\nNormal left", {"type": "arc", "angle": 45, "turn": "left", "size": 2, "bank": 22}], ["45° bank 22°\nNormal right", {"type": "arc", "angle": 45, "turn": "right", "size": 2, "bank": 22}]],
@@ -212,7 +216,24 @@ const _SPEC_ORDER := [
 	"type=arc|angle=75|turn=right|size=3",
 	"type=arc|angle=75|turn=left|size=4",
 	"type=arc|angle=75|turn=right|size=4",
+	"type=slant|length=5|turn=left|across=2",
+	"type=slant|length=5|turn=right|across=2",
+	"type=slant|length=6|turn=left|across=3",
+	"type=slant|length=6|turn=right|across=3",
+	"type=crest|length=2|height=1.5",
+	"type=ramp|length=1|rise=2",
 ]
+
+## Most a bend or offset climbs for its length, as rise over distance.
+const MAX_SLOPE := 0.12
+const MAX_RISE := 12.0
+const RISE_STEP := 1.5
+const BANKS := [0.0, 8.0, 15.0, 22.0, 30.0]
+const WALL_BANK := 80.0
+const MIN_HEIGHT := 1.5
+const MAX_HEIGHT := 6.0
+const HEIGHT_STEP := 0.3
+const HUMP_LENGTHS := [2, 3]
 
 const BEND_ANGLES := [15, 30, 45, 60, 75, 90]
 const BEND_SIZES := [1, 2, 3, 4]
@@ -367,9 +388,90 @@ static func dimensions(spec: Dictionary) -> String:
 	return " · ".join(parts)
 
 
+static func signed_metres(value: float) -> String:
+	return ("+" if value > 0.0 else "−" if value < 0.0 else "") + _metres(absf(value))
+
+
 static func _metres(value: float) -> String:
 	return _number(snappedf(value, 0.1))
 
 
 static func _number(value: float) -> String:
 	return str(int(value)) if value == roundf(value) else String.num(value, 4)
+
+
+## The values the selected piece panel steps through for `key` (rise in
+## drawer levels, bank in degrees, height in metres, hump length in tiles),
+## lowest first. Empty if the piece has no such setting.
+static func steps(spec: Dictionary, key: String) -> Array:
+	var kind: String = spec.get("type", "")
+	var out := []
+	match key:
+		"rise":
+			if kind not in ["curve", "arc", "slant", "adjustable_offset"]:
+				return out
+			var flat := spec.duplicate()
+			flat.erase("rise")
+			var piece := TrackPiece.from_spec(flat)
+			var most := minf(MAX_RISE, floorf(MAX_SLOPE * piece.path_length() / RISE_STEP + 0.000001) * RISE_STEP)
+			var count := roundi(most / RISE_STEP)
+			for k in range(-count, count + 1):
+				out.append(k * RISE_STEP / TrackPiece.LEVEL)
+		"bank":
+			if kind not in ["curve", "arc"]:
+				return out
+			out = BANKS.duplicate()
+			if kind == "curve" and int(spec.get("size", 2)) == 3:
+				out.append(WALL_BANK)
+		"height":
+			if kind != "crest":
+				return out
+			for k in roundi((MAX_HEIGHT - MIN_HEIGHT) / HEIGHT_STEP) + 1:
+				out.append(snappedf(MIN_HEIGHT + k * HEIGHT_STEP, 0.1))
+		"hump":
+			if kind == "crest":
+				out = HUMP_LENGTHS.duplicate()
+	return out
+
+
+## The current value of a setting in `steps`.
+static func setting(spec: Dictionary, key: String) -> float:
+	match key:
+		"rise":
+			return float(spec.get("rise", 0))
+		"bank":
+			return float(spec.get("bank", 0.0))
+		"height":
+			return float(spec.get("height", 1.5))
+		_:
+			return float(spec.get("length", 2))
+
+
+static func setting_key(key: String) -> String:
+	return "length" if key == "hump" else key
+
+
+## Whether the editor can make this piece: a drawer piece, an adjustable one,
+## or a drawer piece with its rise, bank, height, surface and edges changed
+## within what the selected piece panel allows.
+static func makeable(spec: Dictionary) -> bool:
+	var kind: String = spec.get("type", "")
+	var base := spec.duplicate(true)
+	for key in ["surface", "edges", "sticky"]:
+		base.erase(key)
+	if kind in TrackPiece.ADJUSTABLE_TYPES:
+		return not base.has("rise") or (kind == "adjustable_offset" and _within(spec, "rise"))
+	if kind == "crest":
+		return int(setting(spec, "hump")) in HUMP_LENGTHS and _within(spec, "height")
+	for key in ["rise", "bank"]:
+		if base.has(key) and _within(spec, key):
+			base.erase(key)
+	return _spec_key(base) in _SPEC_ORDER
+
+
+static func _within(spec: Dictionary, key: String) -> bool:
+	var value := setting(spec, key)
+	for step in steps(spec, key):
+		if absf(float(step) - value) < 0.0001:
+			return true
+	return false

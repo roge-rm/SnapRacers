@@ -231,6 +231,7 @@ func _ready() -> void:
 	ui.join_accepted.connect(accept_join)
 	ui.join_cancelled.connect(cancel_join)
 	ui.dimension_changed.connect(set_dimension)
+	ui.setting_stepped.connect(step_setting)
 	ui.delete_pressed.connect(delete_selected)
 	ui.add_after_pressed.connect(func() -> void:
 		insert_after = selected
@@ -333,6 +334,37 @@ func set_dimension(key: String, value: float) -> void:
 			ui.toast("That offset is too tight. Increase its length or reduce Sideways.")
 		ui.show_selection(selected, course.pieces[selected])
 		return
+	_remember()
+	course.pieces[selected] = spec
+	ui.show_selection(selected, spec)
+	_refresh()
+
+
+## Moves the selected piece's rise, bank, height or hump length one step
+## along what TrackCatalogue.steps allows.
+func step_setting(key: String, direction: int) -> void:
+	if selected < 0 or selected >= course.pieces.size():
+		return
+	var spec: Dictionary = course.pieces[selected].duplicate(true)
+	var values := TrackCatalogue.steps(spec, key)
+	if values.is_empty():
+		return
+	var now := TrackCatalogue.setting(spec, key)
+	var at := 0
+	for k in values.size():
+		if absf(float(values[k]) - now) < absf(float(values[at]) - now):
+			at = k
+	var to := clampi(at + direction, 0, values.size() - 1)
+	if to == at and absf(float(values[at]) - now) < 0.0001:
+		return
+	var value: float = values[to]
+	var field := TrackCatalogue.setting_key(key)
+	if key in ["rise", "bank"] and is_zero_approx(value):
+		spec.erase(field)
+	elif key == "hump":
+		spec[field] = int(value)
+	else:
+		spec[field] = value
 	_remember()
 	course.pieces[selected] = spec
 	ui.show_selection(selected, spec)

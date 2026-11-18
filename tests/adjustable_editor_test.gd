@@ -54,6 +54,52 @@ func _split(editor: TrackEditor) -> void:
 	editor._refresh()
 
 
+## Rise, Bank, Height and hump Length steps in the selected piece panel.
+func _steps(editor: TrackEditor) -> void:
+	var was := editor.course
+	var stepped := CourseDesign.new()
+	stepped.name = "Stepped"
+	stepped.pieces = [{"type": "straight", "length": 1}, {"type": "arc", "angle": 45, "turn": "left", "size": 2}, {"type": "crest", "length": 3, "height": 3.0}, {"type": "slant", "turn": "right", "length": 4, "across": 2}, {"type": "curve", "turn": "left", "size": 1}]
+	editor.course = stepped
+	editor._select(-1)
+	editor._refresh()
+	editor._select(1)
+	var rise: Dictionary = editor.ui._steppers.rise
+	check(rise.row.visible and editor.ui._steppers.bank.row.visible and not editor.ui._steppers.height.row.visible, "a bend has Rise and Bank, not Height")
+	editor.step_setting("rise", 1)
+	editor.step_setting("rise", 1)
+	check(is_equal_approx(float(editor.course.pieces[1].rise), 1.0) and rise.value.text == "+3 m", "two Rise steps of 1.5 m make 3 m")
+	for k in 6:
+		editor.step_setting("rise", 1)
+	check(is_equal_approx(float(editor.course.pieces[1].rise), 1.5) and rise.more.disabled, "Rise stops at 12 percent of the bend's length (4.5 m)")
+	editor.step_setting("bank", 1)
+	editor.step_setting("bank", 1)
+	check(is_equal_approx(float(editor.course.pieces[1].bank), 15.0), "Bank steps 0, 8, 15")
+	for k in 3:
+		editor.step_setting("rise", -1)
+	check(not editor.course.pieces[1].has("rise"), "Rise at 0 leaves no rise in the piece")
+	check(TrackCatalogue.makeable(editor.course.pieces[1]), "a stepped bend is still makeable")
+	editor._select(2)
+	check(editor.ui._steppers.height.row.visible and editor.ui._steppers.hump.row.visible and not rise.row.visible, "a hump has Height and Length")
+	editor.step_setting("height", 1)
+	editor.step_setting("hump", -1)
+	check(is_equal_approx(float(editor.course.pieces[2].height), 3.3) and editor.course.pieces[2].length == 2, "Height goes up 0.3 m and the hump shortens to 64 m")
+	editor._select(3)
+	editor.step_setting("rise", 1)
+	check(is_equal_approx(float(editor.course.pieces[3].rise), 0.5), "an offset takes a rise")
+	editor.set_dimension("metres", 150.0)
+	check(editor.course.pieces[3].type == "adjustable_offset" and is_equal_approx(float(editor.course.pieces[3].rise), 0.5) and editor.ui._steppers.rise.row.visible, "an adjustable offset keeps its rise")
+	check(TrackPiece.from_spec(editor.course.pieces[3]).exit().origin.y > 1.4, "and its road climbs")
+	editor._select(4)
+	for k in 5:
+		editor.step_setting("rise", 1)
+	check(is_equal_approx(float(editor.course.pieces[4].rise), 1.0), "a tight 90 degree bend climbs 3 m at most")
+	check(not TrackCatalogue.makeable({"type": "curve", "turn": "left", "size": 1, "rise": 2}) and TrackCatalogue.makeable({"type": "slant", "turn": "left", "length": 4, "across": 2, "rise": -4}), "makeable follows the slope limit")
+	editor.course = was
+	editor._select(-1)
+	editor._refresh()
+
+
 func _run() -> void:
 	var course := CourseDesign.new()
 	course.name = "Adjustable editor test"
@@ -92,6 +138,7 @@ func _run() -> void:
 	check(editor.course.to_dict() == safe, "nonfinite and out-of-range dimensions leave the course unchanged")
 	editor._select(1)
 	check(not editor.ui._dimension_rows.visible, "bends do not offer unsupported dimension editing")
+	await _steps(editor)
 	await _split(editor)
 	var join_course := CourseDesign.new()
 	join_course.name = "Join preview"

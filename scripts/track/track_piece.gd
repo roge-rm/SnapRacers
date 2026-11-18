@@ -163,6 +163,8 @@ static func from_spec(spec: Dictionary) -> TrackPiece:
 		"adjustable_straight", "adjustable_offset":
 			piece.metres = float(spec.get("metres", 32.0))
 			piece.shift = float(spec.get("shift", 0.0))
+			if piece.type == "adjustable_offset":
+				piece.rise = float(spec.get("rise", 0)) * LEVEL
 		"adjustable_split":
 			piece.metres = float(spec.get("metres", SPLIT_LEAST_METRES))
 			piece.island = float(spec.get("island", SPLIT_ISLAND))
@@ -264,6 +266,8 @@ func to_spec() -> Dictionary:
 			spec.metres = metres
 			if type == "adjustable_offset":
 				spec.shift = shift
+				if rise != 0.0:
+					spec["rise"] = _levels()
 		"adjustable_split":
 			spec.metres = metres
 			spec.island = island
@@ -281,10 +285,10 @@ func to_spec() -> Dictionary:
 			if cut:
 				spec["cut"] = true
 			if rise != 0.0:
-				spec["rise"] = int(round(rise / LEVEL))
+				spec["rise"] = _levels()
 		"ramp":
 			spec["length"] = tiles
-			spec["rise"] = int(round(rise / LEVEL))
+			spec["rise"] = _levels()
 		"crest":
 			spec["length"] = tiles
 			spec["height"] = crest_height
@@ -300,7 +304,7 @@ func to_spec() -> Dictionary:
 			spec["turn"] = "left" if across < 0 else "right"
 			spec["across"] = absi(across)
 			if rise != 0.0:
-				spec["rise"] = int(round(rise / LEVEL))
+				spec["rise"] = _levels()
 		"split":
 			spec["length"] = tiles
 			if island != SPLIT_ISLAND:
@@ -315,6 +319,12 @@ func to_spec() -> Dictionary:
 	if edges != "auto" and not (cut and edges in ["left_open", "right_open"]):
 		spec["edges"] = edges
 	return spec
+
+
+## The rise in drawer levels, a whole number when it is one.
+func _levels() -> float:
+	var levels := rise / LEVEL
+	return roundf(levels) if absf(levels - roundf(levels)) < 0.000001 else levels
 
 
 ## Whether the walls go all the way along, wherever the road is.
@@ -483,7 +493,7 @@ func _forward_point(t: float) -> Vector3:
 		"adjustable_offset":
 			var u := clampf(t, 0.0, 1.0)
 			var sideways := u * u * u * (10.0 + u * (-15.0 + 6.0 * u))
-			return Vector3(shift * sideways, 0.0, -metres * u)
+			return Vector3(shift * sideways, rise * smoothstep(0.0, 1.0, u), -metres * u)
 		"connector":
 			var a := Vector3.FORWARD * handles.x
 			var b := connector_end - _connector_forward() * handles.y
@@ -829,8 +839,10 @@ static func adjustable_spec(spec: Dictionary) -> Dictionary:
 	var out := spec.duplicate(true)
 	if piece.type in ["straight", "half_straight", "quarter_straight", "adjustable_straight"] and not piece.crossing:
 		out = {"type": "adjustable_straight", "metres": piece.run_length()}
-	elif piece.type in ["slant", "adjustable_offset"] and piece.rise == 0.0:
+	elif piece.type in ["slant", "adjustable_offset"]:
 		out = {"type": "adjustable_offset", "metres": piece.run_length(), "shift": piece.shift if piece.type == "adjustable_offset" else piece.across * TILE}
+		if piece.rise != 0.0:
+			out["rise"] = piece._levels()
 	elif piece.type in ["split", "adjustable_split"]:
 		out = {"type": "adjustable_split", "metres": piece.run_length(), "island": piece.island}
 	else:

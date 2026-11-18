@@ -307,7 +307,7 @@ func _raised_split(path: TrackPath) -> bool:
 ## Every entry keeps its spec and level.
 func _units() -> Array:
 	var units := []
-	var level := 0
+	var level := 0.0
 	for spec in pieces:
 		if spec.get("type") == "straight" and not spec.has("surface") and not spec.has("edges"):
 			for k in int(spec.get("length", 1)):
@@ -325,7 +325,7 @@ func _units() -> Array:
 		else:
 			units.append([spec, level])
 			if spec.get("type") in ["ramp", "curve", "arc", "slant"]:
-				level += int(spec.get("rise", 0))
+				level += float(spec.get("rise", 0))
 	return units
 
 
