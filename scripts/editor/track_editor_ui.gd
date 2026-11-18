@@ -382,7 +382,7 @@ func show_selection(index: int, spec: Dictionary) -> void:
 	if not adjustable.is_empty():
 		var split: bool = adjustable.type == "adjustable_split"
 		_length.set_block_signals(true)
-		_length.min_value = TrackPiece.SPLIT_LEAST_METRES if split else 2.0 if adjustable.type == "adjustable_offset" else 0.25
+		_length.min_value = TrackPiece.SPLIT_LEAST_METRES if split else TrackCatalogue.least_metres(adjustable) if adjustable.type == "adjustable_offset" else 0.25
 		_length.max_value = TrackPiece.SPLIT_MOST_METRES if split else TrackPiece.MAX_METRES
 		_length.set_value_no_signal(float(adjustable.metres))
 		_length.set_block_signals(false)

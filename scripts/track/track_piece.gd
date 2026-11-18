@@ -16,6 +16,8 @@ const TILE := 32.0
 ## without a "grid" in it was made with these.
 const OLD_TILE := 16.0
 const LEVEL := 3.0
+## Most a bend or offset climbs for its length, as rise over distance.
+const MAX_SLOPE := 0.12
 const ARC_ANGLES := [15, 30, 45, 60, 75, 90]
 const ADJUSTABLE_TYPES := ["adjustable_straight", "adjustable_offset", "connector", "adjustable_split"]
 const MAX_METRES := 512.0
@@ -920,6 +922,8 @@ func safe_dimensions(width: float) -> bool:
 			and island >= SPLIT_LEAST_ISLAND - 0.001 and island <= SPLIT_MOST_ISLAND + 0.001 \
 			and split_ramp(width) <= run * SPLIT_RAMP_SHARE + 0.001
 	if type != "adjustable_offset":
+		return false
+	if absf(rise) > MAX_SLOPE * path_length() + 0.001:
 		return false
 	for k in 97:
 		var t := k / 96.0

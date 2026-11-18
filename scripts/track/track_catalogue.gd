@@ -227,8 +227,7 @@ const _SPEC_ORDER := [
 	"type=ramp|length=1|rise=2",
 ]
 
-## Most a bend or offset climbs for its length, as rise over distance.
-const MAX_SLOPE := 0.12
+const MAX_SLOPE := TrackPiece.MAX_SLOPE
 const MAX_RISE := 12.0
 const RISE_STEP := 1.5
 const BANKS := [0.0, 8.0, 15.0, 22.0, 30.0]
@@ -435,6 +434,24 @@ static func steps(spec: Dictionary, key: String) -> Array:
 			if kind == "crest":
 				out = HUMP_LENGTHS.duplicate()
 	return out
+
+
+## The shortest length an adjustable offset can have and keep its rise.
+static func least_metres(spec: Dictionary) -> float:
+	if spec.get("type", "") != "adjustable_offset" or not spec.has("rise"):
+		return 2.0
+	var lo := 2.0
+	var hi := TrackPiece.MAX_METRES
+	for k in 24:
+		var mid := (lo + hi) * 0.5
+		var test := spec.duplicate()
+		test.metres = mid
+		var values := steps(test, "rise")
+		if not values.is_empty() and float(values[values.size() - 1]) >= absf(float(spec.rise)) - 0.0001:
+			hi = mid
+		else:
+			lo = mid
+	return ceilf(hi * 100.0) / 100.0
 
 
 ## The current value of a setting in `steps`.

@@ -82,11 +82,35 @@ const OFF_THE_GROUND := BELOW_ROAD + ["hot_air_balloon", "airship"]
 const DEPTH := {"falls_isle": 38.0}
 
 
-## Props that reach over the road, so they may be put on it.
-const SPANNING := ["bridge", "cable_car", "rope_bridge", "canopy_walk", "overpass", "lantern_gate"]
+## Props that reach over the road, so they may be put on it when none of
+## their solid parts is near the road. Only the canopy walk at 1.5 times its
+## size or more has trunks far enough apart.
+const SPANNING := ["canopy_walk"]
 ## Landmarks turn in steps of this many degrees, and come in these sizes.
 const TURN_STEP := 15
+## Their deep water is drawn as straight rectangles, so these only turn in quarters.
+const QUARTER_ONLY := ["lake", "pond"]
 const SCALES := [0.5, 0.75, 1.0, 1.5, 2.0]
+
+
+## Whether the solid parts of a placed landmark, as turned and sized, come
+## within `clear` metres of any of the road's `points` (x and z are used).
+static func solid_near(mark: Dictionary, points: PackedVector3Array, clear: float) -> bool:
+	var kit := SceneryKit.new()
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 1
+	var at := Vector3(float(mark.at[0]), 0.0, float(mark.at[1]))
+	add_mark(kit, mark, at, rng)
+	for solid in kit.solids:
+		var where: Transform3D = solid[0]
+		var half: Vector3 = solid[1] * 0.5
+		var back := where.affine_inverse()
+		for p: Vector3 in points:
+			var local := back * Vector3(p.x, where.origin.y, p.z)
+			var out := Vector2(maxf(absf(local.x) - half.x, 0.0), maxf(absf(local.z) - half.z, 0.0))
+			if out.length() < clear:
+				return true
+	return false
 
 
 ## The room a placed landmark takes, with its size setting.
@@ -97,6 +121,8 @@ static func room_of(mark: Dictionary) -> float:
 ## How far a placed landmark is turned, in degrees. Old ones only have
 ## quarter turns in "facing".
 static func angle_of(mark: Dictionary) -> int:
+	if mark.get("prop", "") in QUARTER_ONLY:
+		return posmod(roundi(float(mark.get("angle", int(mark.get("facing", 0)) * 90)) / 90.0), 4) * 90
 	if mark.has("angle"):
 		return posmod(int(mark.angle), 360)
 	return posmod(int(mark.get("facing", 0)), 4) * 90
@@ -120,15 +146,21 @@ static func add_mark(kit: SceneryKit, mark: Dictionary, at: Vector3, rng: Random
 	var pivot := Vector3(snappedf(at.x, 0.5), at.y, snappedf(at.z, 0.5))
 	var whole := Transform3D(turn.scaled(Vector3.ONE * grown), pivot - turn.scaled(Vector3.ONE * grown) * pivot)
 	var lists := [kit.boxes, kit.cylinders, kit.cones, kit.balls, kit.solids, kit.soft]
+	var follows := prop == "tree_clump" and kit.ground.is_valid()
 	for k in lists.size():
 		for i in range(counts[k], lists[k].size()):
 			var entry: Array = lists[k][i]
+			var was: Vector3 = entry[0].origin
 			if k >= 4:
 				var where: Transform3D = entry[0]
 				entry[0] = Transform3D(turn * where.basis, pivot + turn * (where.origin - pivot) * grown)
 				entry[1] = entry[1] * grown
 			else:
 				entry[0] = whole * entry[0]
+			if follows:
+				# Trees stand on the ground at their new spot.
+				var now: Vector3 = entry[0].origin
+				entry[0].origin.y += kit.ground.call(now.x, now.z) - kit.ground.call(was.x, was.z)
 	for i in range(counts[6], kit.movers.size()):
 		kit.movers[i].pivot = whole * kit.movers[i].pivot
 	for i in range(counts[7], kit.fans.size()):

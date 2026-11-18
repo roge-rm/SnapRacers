@@ -355,8 +355,10 @@ static func _piece(spec: Variant) -> bool:
 			if not _number(spec.get("metres")) or spec.metres < least or spec.metres > TrackPiece.MAX_METRES:
 				return false
 			if kind == "adjustable_offset":
-				allowed.append("shift")
+				allowed.append_array(["shift", "rise"])
 				if not _number(spec.get("shift")) or absf(spec.shift) > TrackPiece.MAX_SHIFT:
+					return false
+				if spec.has("rise") and (not _number(spec.rise) or absf(spec.rise * 2.0 - roundf(spec.rise * 2.0)) > 0.0001):
 					return false
 		for key in spec:
 			if key not in allowed:

@@ -38,7 +38,12 @@ func _run() -> void:
 	var on_road: Vector3 = editor.track.points[editor.track.points.size() / 2]
 	for prop in ["house", "overpass", "cable_car", "rope_bridge", "canopy_walk", "bridge"]:
 		var mark := {"prop": prop, "at": [on_road.x, on_road.z], "facing": 0, "angle": 0}
-		check(editor._clear_of_road(mark) == (prop in Props.SPANNING), "%s on the road: %s" % [prop, prop in Props.SPANNING])
+		check(not editor._clear_of_road(mark), "%s on the road: refused, its solid parts are in the way" % prop)
+	var wide := {"prop": "canopy_walk", "at": [on_road.x, on_road.z], "facing": 0, "angle": 0, "scale": 2.0}
+	check(editor._clear_of_road(wide), "a canopy walk at double size spans the road on its trunks")
+	wide.angle = 90
+	wide.facing = 1
+	check(not editor._clear_of_road(wide), "but not turned along the road")
 
 	# Turning and size in hand.
 	editor.pick_up_landmark("house")

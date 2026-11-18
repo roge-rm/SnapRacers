@@ -114,12 +114,13 @@ func _landmarks_in_the_way(track: TrackPath) -> Array:
 		var own := Props.room_of(mark)
 		var room: float = own + track.width * 0.5 + TrackPath.KERB + TrackBuilder.WALL_THICKNESS + TrackEditor.LANDMARK_GAP
 		var clear := true
-		for p in track.points:
-			if mark.prop in Props.SPANNING:
-				break
-			if Vector2(p.x, p.z).distance_to(at) < room:
-				clear = false
-				break
+		if mark.prop in Props.SPANNING:
+			clear = not Props.solid_near(mark, track.points, track.width * 0.5 + TrackPath.KERB + TrackBuilder.WALL_THICKNESS + TrackEditor.LANDMARK_GAP)
+		else:
+			for p in track.points:
+				if Vector2(p.x, p.z).distance_to(at) < room:
+					clear = false
+					break
 		if clear and track.waters.has_real():
 			track.waters.ensure(track)
 			clear = not track.waters.covered(Vector3(at.x, 0.0, at.y), own)

@@ -226,6 +226,8 @@ func _ready() -> void:
 	ui.time_chosen.connect(func(time: String) -> void:
 		_remember()
 		course.time = time
+		if time == Conditions.RANDOM:
+			course.fixed_time = false
 		_refresh())
 	ui.fixed_time_toggled.connect(func() -> void:
 		_remember()
@@ -337,6 +339,14 @@ func set_dimension(key: String, value: float) -> void:
 		ui.show_selection(selected, course.pieces[selected])
 		return
 	spec[key] = value
+	if key == "metres" and spec.has("rise"):
+		var values := TrackCatalogue.steps(spec, "rise")
+		var most: float = values[values.size() - 1] if not values.is_empty() else 0.0
+		if absf(float(spec.rise)) > most + 0.0001:
+			if is_zero_approx(most):
+				spec.erase("rise")
+			else:
+				spec.rise = signf(float(spec.rise)) * most
 	if not TrackPiece.from_spec(spec).safe_dimensions(course.width):
 		if split:
 			ui.toast("That island is too wide for its length. Make it longer or the island narrower.")
@@ -653,7 +663,8 @@ func race() -> void:
 func turn_landmark(direction: int) -> void:
 	if _holding.is_empty():
 		return
-	var angle := posmod(Props.angle_of(_holding) + direction * Props.TURN_STEP, 360)
+	var step: int = 90 if _holding.prop in Props.QUARTER_ONLY else Props.TURN_STEP
+	var angle := posmod(Props.angle_of(_holding) + direction * step, 360)
 	_holding.angle = angle
 	_holding.facing = posmod(roundi(angle / 90.0), 4)
 	_show_ghost()
@@ -744,7 +755,10 @@ func _clear_of_road(mark: Dictionary) -> bool:
 	var at := Vector2(float(mark.at[0]), float(mark.at[1]))
 	var own := Props.room_of(mark)
 	var room: float = own + course.width * 0.5 + TrackPath.KERB + TrackBuilder.WALL_THICKNESS + LANDMARK_GAP
-	if not mark.prop in Props.SPANNING:
+	if mark.prop in Props.SPANNING:
+		if Props.solid_near(mark, track.points, course.width * 0.5 + TrackPath.KERB + TrackBuilder.WALL_THICKNESS + LANDMARK_GAP):
+			return false
+	else:
 		for p in track.points:
 			if Vector2(p.x, p.z).distance_to(at) < room:
 				return false

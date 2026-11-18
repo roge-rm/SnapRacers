@@ -333,7 +333,7 @@ func _units() -> Array:
 			units.append([last, level])
 		else:
 			units.append([spec, level])
-			if spec.get("type") in ["ramp", "curve", "arc", "slant"]:
+			if spec.get("type") in ["ramp", "curve", "arc", "slant", "adjustable_offset"]:
 				level += float(spec.get("rise", 0))
 	return units
 
