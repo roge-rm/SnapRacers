@@ -1,0 +1,25 @@
+{
+	"about": "Through the pines like the wooden coaster at the park on the state line, round the banked sweepers past the drop tower, over the bridge and round by the carousel, then either side of the split and over the top in the corkscrew on the way home.",
+	"ground": {"cell": 8.0, "origin": [-248.0, -216.0], "size": [61, 86], "step": 0.05, "data": "eNqVWIty6jgMlY7tJJDSzty5f7f//x9rPa1QaHfdDgGCHpaOpOP80ztoLp6rMZMtAF3+et/6Jktfj3np8nuVmCJA/J7Yv5O3cmHIxb6cb+cvoXJwaVBnckX6vYhQ2HdZtpv+Z5dwkF011HiRFXG4bqYwSlWaEKpVk/in/5zurEuavhpOcd9g7n4JsusP+1RdTN3pMMxbjZntR292j8dyvpo3tbD7KosVQt1SoxfLMuJBDkdTJ4eCJcs1MOTb8mQjImHaNPtFVuEQu6txs29hOxbnGWF5CQck5834JcXVcIOIAfjJ6cYZCHggl3TgkFcEl7W5Rt03KKCu9kKD59gAXyHYogQYAV+KjIIQ6Yz9qoIEVqOKxMAtSqXQKp0V3QiYxgCcuGNQ5sjXNlHRaGzI4Kbbso+IWIZoOcD3dpsKZyxHv0LKHBH7WJmJzBnUjq/IxN6pbkIyBduDZwK9uSKTBk7wIYHpbOERQz2wgkSuSG+7KOPwYZoj/hgL1pLmwBpWjFl0bbepNlvXxNyN6HPX345NUsNhxZEXcFCdjXtTcV33k+jjRtVspJazaEKWbsf8B29tHI7Fz92bQ7XLFpNOASXdjb0B6FujmKlGW8jwSqIsQfl6WjwPjm5VhRnNRaMSeFWCqWzTFZGOnpI9xAqS0+taSJpEeRlzy+d2rTG732DeM0cTXvc5HL+DH/dVztCya5aRxpEp1KZBYRr7lB7Znb0F6IUvrQeXAWehYNq33lrvAZSpcRvZdeXV7nAWOqKpio4Zte1xLyOJ1/CiGIWM6ziS2uQ1V+v0uHRpH53XAWs9ptm3rQwWXlPTJg7nAPUdWCtJ9LZirbjNSQxKu8GawC5ocbXXDHZpcXXYadYvg1LnmfSGlvX8PLjWlhHSgfZm8WfmOrJxCWKWSKEsHCNhorJFCWuWjH5cpXVqd60Vle8qKJZbQB+8Zk8AGoUVdGluiWgewJgdUTat6MK18Y5Sll5JuvW2jSk/JO1wu9m6BKD6YbdA1W6tYdvGJnEai0VEqB1K4vTN/O3FI/14/mGdgQ3RORJQ8AHIfPPi1HmCVWxda3jiUINtxbSIlI+FE4Ygd9fEZwWK2w7r3pIaES5IPNe4RU9+x3TfjXrBhDk6A7I7zetJtYd3k2ayTbQrmBBdL0B4BkgdPKJgmtpKszCIoDTMkD6j5Eq2pst3Lg0iZwueqOvparN7KHL7MeBMWYO+OBqcAujnk6+lKhAfCnLl8cTHDUcrVCV5DwRh7VqbjDlm/z6ksFRIlB/N6oWDejigh3frAD3jOLU6hIbIdMJ8SQBiTQJxeHD060TnwIf1/CEmtUg3ZlQ+SXVkK47hnITGR7MTQxeSBQdgGHYKyqU82/BuOcu3x6gxhoBCrILXFRpo4kYfjj2hD16BrceNIGCX8a3Ss4g22emMNXfrWKh80nvKt8Wn/ajZaG+CVG6bbLgOIOsp/O14cmpLYk3rHHcsvKgDtJg4BZnFd+unMiGx3JUFdfXhqdU8T7Bcj1nVbQ+iOUkj9k0oU7+QDHq57Rm1O/B1TiG+z/ZHx5jMzwIHXI9yL8Qf+JixmkgB72K5G0G1sHfLHL8zvj+OT5V+jBkq7mlHU9YLj3/l+PngA7RzF2I/2c2kKHEgw4UX4tWZcHzx9NZT0Q7sYzv6LU/WcR5/KTvXbVUp7pJxoxrKgzhc4DfSQwe784K/ncctnwYwXabWqyXPLZqNgwfdsWNbzyF+MHohg3o9Gx8HBy0BJzTfaWhVC9vZaZnlct59ZdkGmG2PkxIvFXiX6MWlkpalJFdgvfeb13OCkAuf+LeQDVyqhy9bYvpltXyy44caH6BYvOy9DmO/XAyjPM/hX7LNmRtzHn5CDnAzfvK+UX2eYOcT5ED+yesi7eNCSBldaTv9jNKazaYtmf67+FOxXZ6T/W9pDz9+xcnbIESw8S8w3RMr"},
+	"landmarks": [
+		{"prop": "flag", "at": [18, 40], "facing": 1},
+		{"prop": "drop_tower", "at": [45, -25], "facing": 0},
+		{"prop": "carousel", "at": [-75, 240], "facing": 0},
+		{"prop": "station", "at": [-32, 20], "facing": 1},
+		{"prop": "ferris_wheel", "at": [105, 50], "facing": 3},
+		{"prop": "pond", "at": [-20, -150], "facing": 0},
+		{"prop": "pond", "at": [-160, 120], "facing": 0},
+		{"prop": "parasols", "at": [-180, 40], "facing": 0},
+		{"prop": "water_tower", "at": [-170, 240], "facing": 0},
+		{"prop": "pine", "at": [-90, -30], "facing": 0},
+		{"prop": "pine", "at": [75, 340], "facing": 0},
+		{"prop": "pine", "at": [-150, -80], "facing": 0},
+		{"prop": "pine", "at": [120, -60], "facing": 0},
+		{"prop": "pine", "at": [110, 190], "facing": 0},
+		{"prop": "pine", "at": [110, 300], "facing": 0},
+		{"prop": "pine", "at": [-140, 330], "facing": 0},
+		{"prop": "pine", "at": [-30, 360], "facing": 0},
+		{"prop": "pine", "at": [100, 120], "facing": 0},
+		{"prop": "cabin", "at": [-130, -150], "facing": 0}
+	]
+}

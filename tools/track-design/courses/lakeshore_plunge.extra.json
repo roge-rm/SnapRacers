@@ -1,0 +1,27 @@
+{
+	"about": "Round the lakeshore like the giga coaster on the point, up over the lagoon, round the helix on the island and back over the bridge, through the corkscrew and home past the lake.",
+	"ground": {"cell": 8.0, "origin": [-136.0, -296.0], "size": [76, 86], "step": 0.05, "data": "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"},
+	"landmarks": [
+		{"prop": "lighthouse", "at": [-60, -165], "facing": 1},
+		{"prop": "reeds", "at": [-40, 175], "facing": 0},
+		{"prop": "station", "at": [40, -60], "facing": 1},
+		{"prop": "carousel", "at": [150, -100], "facing": 0},
+		{"prop": "carousel", "at": [140, 110], "facing": 0},
+		{"prop": "drop_tower", "at": [200, 90], "facing": 0},
+		{"prop": "drop_tower", "at": [385, -80], "facing": 3},
+		{"prop": "ferris_wheel", "at": [165, -150], "facing": 2},
+		{"prop": "tent", "at": [200, -80], "facing": 0},
+		{"prop": "tent", "at": [150, 240], "facing": 0},
+		{"prop": "broadleaf", "at": [130, 180], "facing": 0},
+		{"prop": "broadleaf", "at": [-40, 265], "facing": 0},
+		{"prop": "broadleaf", "at": [250, 165], "facing": 0},
+		{"prop": "broadleaf", "at": [420, 10], "facing": 0},
+		{"prop": "parasols", "at": [-55, 205], "facing": 1},
+		{"prop": "bush", "at": [32, 180], "facing": 0},
+		{"prop": "broadleaf", "at": [230, -150], "facing": 0}
+	],
+	"water": [
+		{"kind": "lake", "type": "water", "at": [365, 105], "level": -0.9},
+		{"kind": "lake", "type": "water", "at": [-105, 10], "level": -2.0}
+	]
+}

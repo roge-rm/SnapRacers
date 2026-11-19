@@ -1,0 +1,26 @@
+{
+	"about": "Out and back like the giga coaster at the big park north of the city, over the bridge by the drop tower, down a banked bend into the corkscrew and round the hammerhead at the end, past the mountain, the ferris wheel and the pond.",
+	"ground": {"cell": 8.0, "origin": [-128.0, -304.0], "size": [92, 80], "step": 0.05, "data": "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"},
+	"landmarks": [
+		{"prop": "station", "at": [-45, 40], "facing": 1},
+		{"prop": "carousel", "at": [-40, -70], "facing": 1},
+		{"prop": "kart_row", "at": [-45, 130], "facing": 1},
+		{"prop": "flag", "at": [-20, -20], "facing": 1},
+		{"prop": "drop_tower", "at": [370, 95], "facing": 2},
+		{"prop": "ferris_wheel", "at": [260, 120], "facing": 2},
+		{"prop": "mountain", "at": [500, -180], "facing": 2},
+		{"prop": "tent", "at": [110, 230], "facing": 0},
+		{"prop": "tent", "at": [175, 245], "facing": 0},
+		{"prop": "broadleaf", "at": [205, -10], "facing": 0},
+		{"prop": "broadleaf", "at": [120, -110], "facing": 0},
+		{"prop": "broadleaf", "at": [300, -150], "facing": 0},
+		{"prop": "bush", "at": [60, -210], "facing": 0},
+		{"prop": "pine", "at": [-60, -160], "facing": 0},
+		{"prop": "pine", "at": [-50, 200], "facing": 0},
+		{"prop": "bush", "at": [330, -10], "facing": 0},
+		{"prop": "broadleaf", "at": [420, 130], "facing": 0}
+	],
+	"water": [
+		{"kind": "lake", "type": "water", "at": [170, 150], "level": -2.6}
+	]
+}

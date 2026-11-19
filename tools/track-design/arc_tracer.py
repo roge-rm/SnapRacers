@@ -16,7 +16,7 @@ middle (33 m), SMOOTH how far either way the real line is smoothed (12 m),
 EACH what each piece costs (250) and START the tiles of straight laid first (2).
 BRIDGE=<from>,<to> lets road between those metres of the real line pass
 over road laid earlier, for a bridge; the climb and drop (^1, ^-1) go in
-by hand.
+by hand. More than one bridge goes as BRIDGE=<from>,<to>;<from>,<to>.
 FORCE=<piece>:<from>:<to>[,...] makes the lap use that piece once, starting
 between those metres of the real line: J for a jump (laid like a 96 m
 straight), JR or JL for a jump split (a 128 m straight), OL or OR for a
@@ -41,6 +41,12 @@ In the Hangar cup Neon Nights is at scale 0.91 with CLEAR=31.6 and stray 35,
 its tight hook at the far end tidied by hand. The other three halls are too
 tight to follow with whole tiles at about 1700 m, so they were laid by hand
 in the style of the real ones.
+In the Corkscrew cup the coasters' legs run too close together to follow, so
+Serpent Summit (scale 1.2) and Lakeshore Plunge (scale 0.95) were traced on
+lines with the legs pushed 40 m apart, Red Rocket on a line drawn by hand in
+the style of the real one with BRIDGE=760,800;1085,1125 and stray 20, and
+Twister Pines on the old course's line with stray 30 and three bridges. The
+corkscrews, loops and wall rides went in by hand.
 """
 import json, math, os, sys
 import numpy as np
@@ -55,7 +61,7 @@ SCALE = float(sys.argv[6]) if len(sys.argv) > 6 else 1.0
 CLEAR = float(os.environ.get("CLEAR", "33"))
 # Road this far back along the lap is what a piece joins onto, so it can be close.
 JOINING = 100.0
-BRIDGE = [float(v) for v in os.environ["BRIDGE"].split(",")] if os.environ.get("BRIDGE") else None
+BRIDGE = [[float(v) for v in r.split(",")] for r in os.environ.get("BRIDGE", "").split(";") if r]
 
 real = np.array(json.load(open(os.path.join(here, name + "_aligned.json")))) * SCALE
 if SCALE != 1.0:
@@ -169,7 +175,7 @@ def step(b, piece):
     if s_end <= b.s + length * 0.3:
         return None
     along0 = b.dist
-    over = BRIDGE is not None and b.s < BRIDGE[1] and s_end > BRIDGE[0]
+    over = any(b.s < z and s_end > a for a, z in BRIDGE)
     if not over and not clear_of_old(b, world, along0, s_end > total - 3 * TILE):
         return None
     token = piece[0]
