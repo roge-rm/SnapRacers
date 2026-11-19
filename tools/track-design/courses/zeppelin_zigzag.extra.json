@@ -1,0 +1,14 @@
+{
+	"about": "The Bahrain kart track up in the clouds, zigzagging over a rise past the airship dock and the sky lighthouses, and round the loop.",
+	"landmarks": [
+		{"prop": "sky_dock", "at": [-29, 52], "facing": 1},
+		{"prop": "airship", "at": [221, -105], "facing": 1},
+		{"prop": "airship", "at": [405, 64], "facing": 0},
+		{"prop": "airship", "at": [130, 105], "facing": 1},
+		{"prop": "sky_lighthouse", "at": [386, -88], "facing": 0},
+		{"prop": "sky_lighthouse", "at": [127, 217], "facing": 0},
+		{"prop": "cloud_puff", "at": [251, 125], "facing": 0},
+		{"prop": "sky_isle", "at": [120, -18], "facing": 0},
+		{"prop": "cloud_puff", "at": [21, -42], "facing": 0}
+	]
+}

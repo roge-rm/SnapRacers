@@ -21,7 +21,8 @@ FORCE=<piece>:<from>:<to>[,...] makes the lap use that piece once, starting
 between those metres of the real line: J for a jump (laid like a 96 m
 straight), JR or JL for a jump split (a 128 m straight), OL or OR for a
 loop, or any piece above, like A90R2 for a bend to bank. The piece comes
-out marked with a star, to swap by hand.
+out marked with a star, to swap by hand. ANGLES=30,60,90 keeps the bends to
+those angles.
 
 The Baseplate cup came from beam 300, with stray 35 and CLEAR=31.6 for
 Pithead Park and tight 400 for Lemon Lake. In the Gearbox cup Timberline
@@ -81,6 +82,15 @@ beam 600, stray 35: Lantern Lane tight 100, Skyline Sprint and Double Decker
 Dash tight 400, and Tuk Tuk Turns CLEAR=31.6 with beam 1000, stray 50 and
 tight 30 at scale 1.06. The banking, Tuk Tuk's split bend and its tight 45
 went in by hand.
+In the Sky cup the lines were aligned by tracer.py at scales of 1.3 (Cumulus
+Curl, turned round to run clockwise like the real one), 2.35 (Weathervane
+Way), 1.3 (Zeppelin Zigzag, its two ways joined) and 1.9 (Skylark Swoop),
+then traced with SMOOTH=20 EACH=800 and beam 600, stray 35: Cumulus Curl
+tight 400 FORCE=J:1300:1350, Weathervane Way tight 400 FORCE=J:1450:1515,
+Zeppelin Zigzag ANGLES=15,30,60,90 tight 600 FORCE=OL:955:1010, and Skylark
+Swoop CLEAR=31.6 tight 1000 FORCE=JL:1610:1665,OR:1385:1440. The rises, open
+edges and the jump split's side went in by hand, and one tight left on
+Zeppelin Zigzag was widened.
 """
 import json, math, os, sys
 import numpy as np
@@ -123,12 +133,14 @@ REAL_SQ = (REAL2 * REAL2).sum(axis=1)
 # Pieces: token, local points (right, forward) about every 2 m, exit, turn in
 # 15 degree steps (right positive) and length.
 PIECES = []
+# ANGLES=30,60,90 keeps the bends to those angles.
+ANGLES = [int(a) for a in os.environ.get("ANGLES", "15,30,45,60,75,90").split(",")]
 for token, run in (("S1", TILE), ("S2", 2 * TILE), ("S3", 3 * TILE), ("H", TILE / 2), ("Q", TILE / 4)):
     k = max(2, int(run / 2))
     PIECES.append((token, np.array([(0.0, run * (i + 1) / k) for i in range(k)]), (0.0, run), 0, run))
 for size in (1, 2, 3, 4):
     r = (size - 0.5) * TILE
-    for angle in (15, 30, 45, 60, 75, 90):
+    for angle in ANGLES:
         a_end = math.radians(angle)
         length = r * a_end
         k = max(3, int(length / 2))

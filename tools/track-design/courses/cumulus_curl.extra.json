@@ -1,0 +1,16 @@
+{
+	"about": "The kart track in the hills by Chiva up in the clouds, a spiral that climbs round and round past the waterfalls, then down to the jump under the rainbow.",
+	"landmarks": [
+		{"prop": "falls_isle", "at": [87, -140], "facing": 0},
+		{"prop": "rainbow", "at": [236, 76], "facing": 1},
+		{"prop": "falls_isle", "at": [253, 112], "facing": 0},
+		{"prop": "falls_isle", "at": [73, 250], "facing": 0},
+		{"prop": "rainbow", "at": [-32, 60], "facing": 1},
+		{"prop": "hot_air_balloon", "at": [-28, -65], "facing": 0},
+		{"prop": "hot_air_balloon", "at": [191, -80], "facing": 0},
+		{"prop": "hot_air_balloon", "at": [-10, 216], "facing": 0},
+		{"prop": "sky_lighthouse", "at": [100, -56], "facing": 0},
+		{"prop": "cloud_puff", "at": [159, 183], "facing": 0},
+		{"prop": "cloud_puff", "at": [66, -29], "facing": 0}
+	]
+}

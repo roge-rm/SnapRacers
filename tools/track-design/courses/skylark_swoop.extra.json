@@ -1,0 +1,17 @@
+{
+	"about": "The Oakleigh kart track up among the hot air balloons, swooping down from the top end through wider bends, round the loop and over the jump split above the clouds.",
+	"landmarks": [
+		{"prop": "hot_air_balloon", "at": [-22, -60], "facing": 0},
+		{"prop": "hot_air_balloon", "at": [-31, -231], "facing": 0},
+		{"prop": "hot_air_balloon", "at": [38, -91], "facing": 0},
+		{"prop": "hot_air_balloon", "at": [227, -43], "facing": 0},
+		{"prop": "hot_air_balloon", "at": [249, 72], "facing": 0},
+		{"prop": "hot_air_balloon", "at": [113, 220], "facing": 0},
+		{"prop": "hot_air_balloon", "at": [97, 152], "facing": 0},
+		{"prop": "rainbow", "at": [102, -58], "facing": 0},
+		{"prop": "sky_lighthouse", "at": [-18, 162], "facing": 0},
+		{"prop": "cloud_puff", "at": [135, 194], "facing": 0},
+		{"prop": "cloud_puff", "at": [76, 155], "facing": 0},
+		{"prop": "sky_isle", "at": [54, 71], "facing": 0}
+	]
+}

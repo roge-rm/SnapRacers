@@ -1,0 +1,16 @@
+{
+	"about": "Goodwood Kartways up in the sky and anticlockwise, out on the long straights with no walls between the windmill islands, past the weather vanes and over the jump.",
+	"landmarks": [
+		{"prop": "weather_vane", "at": [-104, -118], "facing": 0},
+		{"prop": "weather_vane", "at": [-213, 254], "facing": 1},
+		{"prop": "weather_vane", "at": [-206, 0], "facing": 2},
+		{"prop": "windmill_isle", "at": [-312, -28], "facing": 0},
+		{"prop": "windmill_isle", "at": [-9, 211], "facing": 0},
+		{"prop": "windmill_isle", "at": [24, -68], "facing": 0},
+		{"prop": "hot_air_balloon", "at": [-210, -127], "facing": 0},
+		{"prop": "hot_air_balloon", "at": [-40, 80], "facing": 0},
+		{"prop": "cloud_puff", "at": [-320, 204], "facing": 0},
+		{"prop": "cloud_puff", "at": [-265, 129], "facing": 0},
+		{"prop": "sky_isle", "at": [-105, 201], "facing": 0}
+	]
+}
