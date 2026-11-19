@@ -815,8 +815,7 @@ func _drive(delta: float, speed: float) -> void:
 		_slid_this_bend = true
 		var ahead_of := track.point_at(offset + 15.0) - track.point_at(offset)
 		var way := 1.0 if ahead_of.dot(track.right_at(offset)) > 0.0 else -1.0
-		# Nor when its line is already over to the inside just ahead.
-		if (kart.global_position - track.point_at(offset)).dot(track.right_at(offset)) * way < SLIDE_INSIDE and line_at(offset + 12.0) * way < SLIDE_INSIDE:
+		if (kart.global_position - track.point_at(offset)).dot(track.right_at(offset)) * way < SLIDE_INSIDE:
 			_slide_left = slide_time
 			_slide_way = way
 
