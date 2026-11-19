@@ -1,0 +1,30 @@
+{
+	"about": "Over the drawbridge and the moat by the castle walls, round the 90s, the horseshoe and the shark fin, and down the long straight.",
+	"road_colour": "black",
+	"landmarks": [
+		{"prop": "castle", "at": [-150, -100], "facing": 1},
+		{"prop": "tower", "at": [-112, -40], "facing": 1},
+		{"prop": "castle_wall", "at": [-124, -52], "facing": 1},
+		{"prop": "castle_wall", "at": [-112, -69], "facing": 1},
+		{"prop": "castle_wall", "at": [-112, -83], "facing": 1},
+		{"prop": "tower", "at": [-112, -98], "facing": 1},
+		{"prop": "castle_wall", "at": [-112, -113], "facing": 1},
+		{"prop": "castle_wall", "at": [-112, -127], "facing": 1},
+		{"prop": "castle_wall", "at": [-112, -141], "facing": 1},
+		{"prop": "tower", "at": [-112, -156], "facing": 1},
+		{"prop": "kart_row", "at": [-78, 97], "facing": 1},
+		{"prop": "pit_building", "at": [-70, 156], "facing": 1},
+		{"prop": "kart_office", "at": [20, 200], "facing": 2},
+		{"prop": "flag", "at": [18, -10], "facing": 3},
+		{"prop": "tent", "at": [220, -40], "facing": 3},
+		{"prop": "tent", "at": [120, -60], "facing": 0},
+		{"prop": "broadleaf", "at": [-130, 40], "facing": 1},
+		{"prop": "broadleaf", "at": [230, -240], "facing": 3},
+		{"prop": "barn", "at": [250, -280], "facing": 0}
+	],
+	"water": [
+		{"kind": "lake", "type": "water", "at": [-45, -27], "level": -2.0},
+		{"kind": "lake", "type": "water", "at": [-78, -100], "level": -2.0}
+	],
+	"ground": {"cell": 8.0, "origin": [-168.0, -320.0], "size": [61, 76], "step": 0.05, "data": "eNqNV8mOIzcM5SMlubrtnunZgQEyt2CuOeSeHwiQU/7/V8JNW9kdTLXbVlWJEpfHR+rfo7Fe7SiFiUhHrRUb2JhLK/ptI/KLy/GcQ0Ktxeb5BCCekQ/gH1+OSg7tXR/aja+Z0vGEBEI05phauRDgIx6y1GBiJp7SItKVCNm+ERZ14pcbqVZsC8YsFSahIUv+GF3avtGXJRyu9nyI1M6WQ7iQkeauwi52ixHU1JgwNA7rmBY9+xocb/ldvhdbEtPYR1eqlAZrfD7D1oCYqBqbCtsvP5KmdXX+qi43D9vDLtsnMvyzSnc/xvg76Oniom75AgKKqPKmA/oL/77JZVvZrOZQ2gBDGf7+65qge+x0uQ6xnfsPEX8VKAEEdiHQnU/SY1PTiIAPDUllCHDic5H1uWsSuSpis0qieCh/vioU1RzX2AHiwvHpAbi/LtW0sySOPToMJf1Y6GHsfduLTlJCcE5gsby3/Dhq7QIyjXGfzYWu1WSb/qlapRIHOtq177YruwFQcUL84fW1WaLZvkVzWpP9otoGbvROysyXdaH3utXTy/EjI0RNTAGztcxkKfJgW6IvRa8Pwt95uElVtrAfNdIUb7iK5FszyvzEOG5hXZEmuqdbLkNV8H2uXT+0dijFfiko7wKcZmZBuokNoy4kPGVj8P6qok31fTlEXqdHXABbJi5ScX2qx+EsL7WJBClpRIVbXdA7+LQzXtx9ux0RAZEGOVxNdbT4nAyu3vaK0bkk3jwZLDrxIQne5IM7fVbBSGXGToc8bxErxyx3FmOlz8Lpus60PJjRQhTJrvhslSYyp5NKqJ0hDF4wMHI1J7mP3T88yQcJk5JkMhkeCaFWW3uKomkFoNDCGxJstjEBRnnSnV9raS8tipD6F8ydd50J0ZwbBnzh3KRVGsY1n3Wzl8Orrjj7lQUXSLBteMFhr6RKrd+pPV2SbbCzfPLXXTm6eQDkUuvnW/km1B3lPtXMDlQU3krkFNY2RM2u8vxRfvvrZ/njT06LPKtMcmTwWkbtgdZnbVt0ltSP15/vDzz9uFG6xiHhjBqU3LuDgJb+uYeKpZWZ/fdX/P7PdfQCQbZC7kIegp6jRnbNtjfm41ovFjSizpJZahR3Wy/CWRtKZIJSzk0XqZcKTGFgmrf7KSvYwNBxRCO0hXZGdaOwRPSkByN7bNUdO4U8IrCRLTMLpk8jzHs7sgFhNgEd+QzJ+ULMo0nZNOdHXMxldmuzIsW2Mj3EmyZjwULZ/yEKBq/2t5quYibQfaXlzUsdGYI57hyBJXlAvDvTChsvbSgw24mTwWLOKTSLupRzC+DVMzodxlp0DZfWEZTOp+EseCdtcLJGegnNzkduVZkde2/LeVi55HIP1OgZsj2efEuLS/yFtaf8sE/wvifjPLZcZhgtALT0WCu4XffstNgTs7Ztec/EtUXDVgmyDiMdyhtZmhlC/SiyJwl7MVO/Fa6T7rEmJGPYMyM64aqbX56twAaBoC69d6KKH6BSiw2sa9D/Mp1snRBjPee8cYwo0SLT9cZbnsZeQYX8KBu8+B9OJILL4eXeTaynswE/3hj0bNQP7yI7+pB7r4SF+0hZst4MwdEhc/IAVgM2kd144ednsmrphzPGxFhvMU5ns1UcUvQkbT1BlbvD1JDGyDecMpoPb3q1XK+ITy1SWrpSfD7YGHmXfqqwisK9fVu4DImpE1ysHbKjSJYmngfv5RDZ85t3hPbSWXLnXgpwCg8Tv33acGIcx99JV+MhvyW5QpqXmtdbdubtYPZga8Zom7EfMufJ8txJj6thSNPSXNL/K7wovuZ8P8X9guSZKOYBkM+nz1+40LsfjD4oYfsf5fsUVg=="}
+}

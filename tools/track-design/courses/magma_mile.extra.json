@@ -1,0 +1,29 @@
+{
+	"about": "Round the hotel and the grandstands on the flat plain below the volcano, over the jump across the lava pool, with a lava river beside the straight.",
+	"landmarks": [
+		{"prop": "volcano", "at": [280, -150], "facing": 0},
+		{"prop": "villa", "at": [-112, -100], "facing": 1},
+		{"prop": "pond", "at": [-78, -40], "facing": 1},
+		{"prop": "pond", "at": [-100, 0], "facing": 1},
+		{"prop": "grandstand", "at": [-34, 140], "facing": 1},
+		{"prop": "grandstand", "at": [-36, 185], "facing": 1},
+		{"prop": "grandstand", "at": [150, -95], "facing": 0},
+		{"prop": "pit_building", "at": [-52, 64], "facing": 1},
+		{"prop": "kart_office", "at": [55, -100], "facing": 0},
+		{"prop": "bridge", "at": [-92, -172], "facing": 1},
+		{"prop": "ruins", "at": [-119, 296], "facing": 1},
+		{"prop": "ruins", "at": [-100, 360], "facing": 1},
+		{"prop": "lamp_post", "at": [101, 18], "facing": 2},
+		{"prop": "lamp_post", "at": [59, 128], "facing": 3},
+		{"prop": "cypress", "at": [-60, -130], "facing": 0},
+		{"prop": "cypress", "at": [20, -130], "facing": 0},
+		{"prop": "cypress", "at": [230, 40], "facing": 3},
+		{"prop": "lava_pool", "at": [90, 180], "facing": 1},
+		{"prop": "rocks", "at": [140, 150], "facing": 1}
+	],
+	"water": [
+		{"kind": "lake", "type": "lava", "at": [80, -68], "level": -0.8},
+		{"kind": "river", "type": "lava", "points": [[170, -48, 6], [130, -47, 6], [100, -50, 6], [84, -58, 6]]}
+	],
+	"ground": {"cell": 8.0, "origin": [-136.0, -200.0], "size": [59, 76], "step": 0.05, "data": "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"}
+}

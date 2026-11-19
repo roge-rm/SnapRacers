@@ -17,12 +17,21 @@ EACH what each piece costs (250) and START the tiles of straight laid first (2).
 BRIDGE=<from>,<to> lets road between those metres of the real line pass
 over road laid earlier, for a bridge; the climb and drop (^1, ^-1) go in
 by hand.
+FORCE=<piece>:<from>:<to>[,...] makes the lap use that piece once, starting
+between those metres of the real line: J for a jump (laid like a 96 m
+straight), OL or OR for a loop, or any piece above, like A90R2 for a bend
+to bank. The piece comes out marked with a star, to swap by hand.
 
 The Baseplate cup came from beam 300, with stray 35 and CLEAR=31.6 for
 Pithead Park and tight 400 for Lemon Lake. In the Gearbox cup Timberline
 is at scale 0.95, Dune Drift has BRIDGE=870,1010, and Whistlestop Woods has
 CLEAR=31.6 SMOOTH=20 on its line turned round to run clockwise like the real
 one (its aligned line reversed, with the start on its longest straight).
+In the Keystone cup each line was turned so its start straight faces north,
+Windmill Ridge has FORCE=A90R2:40:90 (its wall ride), Magma Mile FORCE=J:110:140
+at scale 0.92, Launchpad Loop CLEAR=31.6 FORCE=OL:520:600 with stray 40 at
+scale 1.12 on its line turned round to run clockwise, and Castle Keep tight 300,
+with its jump put in by hand over the last three straights.
 """
 import json, math, os, sys
 import numpy as np
@@ -79,6 +88,19 @@ for size in (1, 2, 3, 4):
             PIECES.append(("A%d%s%d" % (angle, letter, size), np.array(pts), pts[-1], turn * angle // 15, length))
 
 
+# Pieces the lap has to use once (FORCE), and where.
+FORCED = {}
+for f in filter(None, os.environ.get("FORCE", "").split(",")):
+    token, a, b = f.split(":")
+    FORCED[token] = (float(a), float(b))
+    if token == "J":
+        PIECES.append(("J", np.array([(0.0, 96.0 * (i + 1) / 48) for i in range(48)]), (0.0, 96.0), 0, 96.0))
+    elif token in ("OL", "OR"):
+        # A loop comes out a tile to its side, easing across its middle.
+        side = 1 if token == "OR" else -1
+        ts = np.linspace(0, 1, 49)[1:]
+        pts = [(side * TILE * (u * u * (3 - 2 * u)), 3 * TILE * t) for t, u in ((t, min(max((t - 0.3) / 0.4, 0.0), 1.0)) for t in ts)]
+        PIECES.append((token, np.array(pts), pts[-1], 0, 3 * TILE))
 HEADINGS = [(round(math.sin(math.radians(k * 15)), 12), round(math.cos(math.radians(k * 15)), 12)) for k in range(24)]
 
 
@@ -138,6 +160,13 @@ def step(b, piece):
     over = BRIDGE is not None and b.s < BRIDGE[1] and s_end > BRIDGE[0]
     if not over and not clear_of_old(b, world, along0, s_end > total - 3 * TILE):
         return None
+    token = piece[0]
+    if token in ("J", "OL", "OR") and (not FORCED[token][0] <= b.s <= FORCED[token][1] or token + "*" in b.tokens):
+        return None
+    # Past a forced piece's stretch without it, this lap can't be used.
+    for want, (a, z) in FORCED.items():
+        if b.s <= z < s_end and want + "*" not in b.tokens and not (token == want and a <= b.s <= z):
+            return None
     nb = Beam()
     nb.x, nb.y = end
     nb.steps = steps
@@ -156,6 +185,9 @@ def step(b, piece):
     # A small flick one way straight after a small one the other is a wiggle.
     if tok.startswith("A") and last.startswith("A") and last[-2] != tok[-2] and int(tok[1:3]) <= 30 and int(last[1:3]) <= 30:
         extra += 200.0
+    if tok in FORCED and FORCED[tok][0] <= b.s <= FORCED[tok][1] and tok + "*" not in b.tokens:
+        tok += "*"
+        extra -= EACH
     nb.cost = b.cost + float((near ** 2).sum()) * 2.0 + extra
     nb.tokens = b.tokens + [tok]
     nb.chunks = b.chunks + [(world.min(axis=0), world.max(axis=0), world, along0, along0 + length)]

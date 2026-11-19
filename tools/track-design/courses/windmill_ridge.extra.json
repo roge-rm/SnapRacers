@@ -1,0 +1,23 @@
+{
+	"about": "Down the gentle slope past the windmills on the high side, starting with a wall ride banked almost on its side.",
+	"landmarks": [
+		{"prop": "big_windmill", "at": [-80, 250], "facing": 1},
+		{"prop": "big_windmill", "at": [-100, 160], "facing": 1},
+		{"prop": "big_windmill", "at": [-95, 60], "facing": 1},
+		{"prop": "big_windmill", "at": [-70, -60], "facing": 1},
+		{"prop": "windmill", "at": [-40, 300], "facing": 2},
+		{"prop": "windmill", "at": [30, 300], "facing": 2},
+		{"prop": "pit_building", "at": [-45, -5], "facing": 1},
+		{"prop": "kart_office", "at": [-40, 130], "facing": 1},
+		{"prop": "grandstand", "at": [10, -110], "facing": 0},
+		{"prop": "flag", "at": [18, 30], "facing": 3},
+		{"prop": "olive", "at": [110, 120], "facing": 0},
+		{"prop": "olive", "at": [110, 35], "facing": 3},
+		{"prop": "olive", "at": [140, -40], "facing": 3},
+		{"prop": "olive", "at": [250, 0], "facing": 3},
+		{"prop": "house", "at": [260, 140], "facing": 3},
+		{"prop": "rocks", "at": [230, -60], "facing": 3},
+		{"prop": "bush", "at": [120, 230], "facing": 3}
+	],
+	"ground": {"cell": 8.0, "origin": [-136.0, -216.0], "size": [62, 71], "step": 0.05, "data": "eNp1V8mS4zYMxUaKWuyenkmlcsgphxxS+c38d7BKlN3t6kWmCGJ7eAD/wwcSjeP5PI4xuhDqh7npZ1nWxf81bsv+2NeF9QXC/PljCImIPjWTYXZxe0NAhIBIYBJ2rC/ePn8NEX2PbVGVGML61bbZTn2oH1sk4Jv0P111sJqIKsgmqSKhDgnDBgyN/pWWWfpf3dXMH1fJaZ5Zcwr7WRSL5uEk/bfJlk5M5wTNQpydJBDzQ8+kSfxP08omHOIRGVdD6UFYrcrDdaTL958WJ9vM5mcYCyl1E68loClpw3VChAlePrP45cK01MGTcC3gnFQTz4PnxUva9YbJafotWAj3tN3Fe6QhdOAbmNyaE2RvLztiHYh4f53aMiJUSLgHwTdFOuz5NCuEyyUHj0H/3TZbfhX2kJXN5pSmVBFDr2G5/oQowg7SJy2GM2bIuNIdhHn6aezOh3hxUeDNfmUby64bDMCG2ZtsVJYL4+Mp77hRkd+s+s38SZrKLXSvAfcnUFu5K8+cmSVifXmk8JS5KMCEqgos0Gl/jK1MosjI0EqSqKLZa4qU2JrozrYexJ9HUIlGiCIf/tAE4Q1QBU8TxhUHrL3ShtQozuBOnJiYs1qV56lUpuiCTVjcILVnW9DNF1P9HZbpxImxHJYWJno+3FHVLlfNwJeAQ8n0kFcdiVLg75+ABXK3ml9OmKLo4ko9EiZ2Rchvj6RX96DYPrcX/idp4wtJVSuMrqyZ8XFyY5ylgQv6iW2uckLoSpo/V4bTI7px8nASJ1+nlG59yZMBjh2wq/+U5tsebBOvFYK0n2Wn4IRQV6v0pGONo7wSrC00nqmpekXBYOJ7kmYGtjA6/iCcrVQ8i/mmlYORBl/edpXWN1sjcf7Ca6MrxYmOr3oVC2cE+2DF3A9Gx79niE9xKrqeU3nSHWyrbhkfAD9UIycieVJe1MIX+O18Geb4rq4PlAfQjxXLvqlQQvxqO5LGa7b18AMV673DThfXza2QCtwX4qJq2cp/wPbZsCtyICnR9/JrZyGc8Upj0aJXsB3QPzXmGrB+ttAXyMJEWN6sNeQ2B8hKvIHYaJWWe51S1oNvxnvNabY6aLC6QeVBeGzK0xJTg1RKsJhvek7NQXjOmEOBehw2U5k1YQGeDY4i44hn+24jDBwBqa7i27HHSCS+2xtbBoliHEoYobOaGi0Vi+1DMbPtRTB0eqw/ElV7sYZ964uSOFenef7SI7Z1QsnlaHX2OQNq2MGwUWv+5flpvu8xlVVukp4r5KELLdEaa8KxYx8+fdLxSbSJP9fwhjE9EEYGESWbnOJwEMtqX7tVOJBrX4KpyaHMlJPhOeURR0IpX/clmUPh/nGOcx43pNNljDyLBo40WOcgwgOVVZs3Gu0yREGYiG8QNXQKrKB90KsghikLhvKbtTJYhk9H0wBZfZiC7WnXMm5uWYuONFYMcieLi7cFfKkuSWLT0lAOfa4Y07YzkTB29bLjMgLTOShMHSmqiqiTxrY/QW8jlCOFKRHn6cI4XkPDNQj6Cb3/smWhml+tq14kFOI+4ly0EAXlmenbxx71Sw54NUltF29mV4HRhNpiebJ+Qpva3SwWSwwuZMnCMi/IAek+kvv40MmuZGYBwLIkiDDjRDU3Ek7wzroQV0wFJuS8pmSQJe4WWLz4Mvmz2HyJ2UzxjHiQdaSaIViBEOk+wqAyl4SXGeBkCyhIpzDdoXaKE5FcA+I5F9b0e86j9LV4eJeDVUx5ZSknD1MN9fTFLcJrN68nMsGBrWDPoBC+3RPOUaYmJIKX+R5y9oRvheG0nWofXHm72v1rxm/ied+YNFz37+m+84XpNV3d8gkJ0uLhb6dOcSCliwEczIZzBf77mVW8Yqyqo09wTnSItyvBt+KRb0kTOYKYN4MM3Lfjso1xmVXMIqOqC5oo7X9i+Rd9"}
+}
