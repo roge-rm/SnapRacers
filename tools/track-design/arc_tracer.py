@@ -74,6 +74,13 @@ Plunge the same with FORCE=J:1380:1480, and Monsoon Mire CLEAR=31.6 with beam
 400, stray 40 and tight 200, on its line with the inner leg from 700 to 980 m
 moved 8 m out so it clears the start straight. The raised bend, jump, banking,
 mud pieces and closing slants went in by hand.
+In the City cup the small real laps were aligned by tracer.py at scales of
+1.8 (Lantern Lane), 2.0 (Skyline Sprint, its two ways joined), 4.5 (Double
+Decker Dash) and 4.4 (Tuk Tuk Turns), then traced with SMOOTH=20 EACH=800 and
+beam 600, stray 35: Lantern Lane tight 100, Skyline Sprint and Double Decker
+Dash tight 400, and Tuk Tuk Turns CLEAR=31.6 with beam 1000, stray 50 and
+tight 30 at scale 1.06. The banking, Tuk Tuk's split bend and its tight 45
+went in by hand.
 """
 import json, math, os, sys
 import numpy as np

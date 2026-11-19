@@ -1,0 +1,23 @@
+{
+	"about": "The old kart track at Jebel Ali among the towers of the city at night, quick and twisty with three banked sweepers, under the expressway on the long straight.",
+	"road_colour": "black",
+	"landmarks": [
+		{"prop": "overpass", "at": [0, -40], "facing": 0},
+		{"prop": "spire_tower", "at": [101, 123], "facing": 0},
+		{"prop": "spire_tower", "at": [36, 168], "facing": 0},
+		{"prop": "spire_tower", "at": [121, 318], "facing": 0},
+		{"prop": "skyscraper", "at": [51, -76], "facing": 0},
+		{"prop": "skyscraper", "at": [-28, -111], "facing": 0},
+		{"prop": "skyscraper", "at": [1, 308], "facing": 0},
+		{"prop": "neon_tower", "at": [96, 43], "facing": 1},
+		{"prop": "neon_tower", "at": [166, 233], "facing": 3},
+		{"prop": "palm", "at": [-18, 20], "facing": 0},
+		{"prop": "palm", "at": [-18, 60], "facing": 0},
+		{"prop": "palm", "at": [18, 20], "facing": 0},
+		{"prop": "palm", "at": [18, 60], "facing": 0},
+		{"prop": "neon_sign", "at": [-22, -80], "facing": 1},
+		{"prop": "neon_sign", "at": [160, -110], "facing": 3},
+		{"prop": "city_block", "at": [-60, 150], "facing": 1},
+		{"prop": "city_block", "at": [230, 200], "facing": 3}
+	]
+}

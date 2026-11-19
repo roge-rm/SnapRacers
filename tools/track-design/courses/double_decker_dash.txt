@@ -1,3 +1,3 @@
 Double Decker Dash
-width=13 laps=3 theme=city_london hills=4
-SR2.1!w SL2.1!w L1 SL4.1!w L1 SR3.1!w L1 S1!w L1!w S1!w R1!w S1!w R1!w S1!w SR2.1!w R2 S1!w R1!w SL3.1!w S2!w R1 L1!w R2!w SL2.1!w SL3.1!w R1 SL4.1!w S1!w SR2.1!w SL2.1!w SR2.1!w R1 R2 SR4.1!w
+width=13 laps=3 theme=city_london hills=0
+S1!w S1!w A30R1 H A90L1 A60L4!w S1!w A90L3!w A90L1!w A60L2!w A60R2!w A90R1!w A15R3!w A60R4!w A15L2!w A45R2!w A90R2!w S2!w A30R4!w H!w A60R4!w S1!w H!w A30L3!w A90R2!w A45R3!w S3 A15R4 A30L4 A75R3 A90R1!w A30R3!w SR76.075m22.903!w S1!w

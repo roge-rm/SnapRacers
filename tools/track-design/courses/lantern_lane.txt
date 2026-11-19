@@ -1,3 +1,3 @@
 Lantern Lane
-width=13 laps=3 theme=city_tokyo hills=6
-S1!w SR2.1!w SL3.1!w L2 S1!w SL2.1!w L2 S1!w SL2.1!w L1 S1!w L1!w SL2.1!w R1 L1!w R1!w S1!w R1!w S1!w SR3.1!w SL2.1!w SR3.1!w R1 L1!w R1!w SL2.1!w S3!w L2 L1 S3!w S1!w SR2.1!w L2 SR2.1!w SR4.1!w S2!w
+width=13 laps=3 theme=city_tokyo hills=0
+S1!w S1!w A30R1 A45L3!w S2!w A30L1!w A60L2!w S2!w A30L4!w A75L2!w A15R1!w A45L4!w A90L1 A45L2!w H!w A15R3 A90R2 A60R1!w A60R3!w A30L1!w S3 S1 A45R4!w S1!w A45R4!w S2!w A75L2!w A90L1!w A30L4!w Q!w A45R4 A75L2 A30L4!w S3!w A15L4!w SR46.164m10.706!w S1!w

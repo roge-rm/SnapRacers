@@ -1,0 +1,24 @@
+{
+	"about": "The little kart track in the middle of Bangkok made bigger, tight hairpins and quick wiggles among the towers at night, a split bend under the expressway, the golden temple spires and the canal to the south.",
+	"road_colour": "red",
+	"landmarks": [
+		{"prop": "overpass", "at": [-4, -166], "facing": 0, "angle": 30},
+		{"prop": "chedi", "at": [-50, -8], "facing": 0},
+		{"prop": "chedi", "at": [-155, 126], "facing": 0},
+		{"prop": "spire_tower", "at": [-184, -23], "facing": 0},
+		{"prop": "spire_tower", "at": [24, -13], "facing": 0},
+		{"prop": "spire_tower", "at": [-180, -138], "facing": 0},
+		{"prop": "spire_tower", "at": [24, 61], "facing": 0},
+		{"prop": "skyscraper", "at": [32, -185], "facing": 0},
+		{"prop": "skyscraper", "at": [-185, 71], "facing": 0},
+		{"prop": "neon_tower", "at": [-5, -68], "facing": 1},
+		{"prop": "neon_tower", "at": [-95, 136], "facing": 0},
+		{"prop": "city_block", "at": [-55, -235], "facing": 0},
+		{"prop": "city_block", "at": [-130, -173], "facing": 1},
+		{"prop": "tuk_tuk", "at": [-20, 20], "facing": 0},
+		{"prop": "tuk_tuk", "at": [-150, -230], "facing": 1},
+		{"prop": "neon_sign", "at": [-75, -143], "facing": 2},
+		{"prop": "neon_sign", "at": [-25, 126], "facing": 0}
+	],
+	"water": [{"kind": "river", "type": "water", "points": [[-260, 222, 16], [-100, 218, 16], [60, 214, 16], [140, 212, 16]]}]
+}

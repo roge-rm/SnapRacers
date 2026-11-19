@@ -1,0 +1,25 @@
+{
+	"about": "The kart track in the Chiba hills made into Tokyo streets at night, gently downhill through tight corners, the S bends and the hairpin, under the lantern gates and the neon signs.",
+	"road_colour": "black",
+	"landmarks": [
+		{"prop": "lantern_gate", "at": [0, 30], "facing": 0},
+		{"prop": "lantern_gate", "at": [-43, 45], "facing": 0},
+		{"prop": "lantern_gate", "at": [167, -167], "facing": 1},
+		{"prop": "neon_tower", "at": [150, -195], "facing": 0},
+		{"prop": "neon_tower", "at": [28, 20], "facing": 1},
+		{"prop": "tunnel_mouth", "at": [-85, 40], "facing": 1},
+		{"prop": "pagoda", "at": [40, 285], "facing": 0},
+		{"prop": "neon_sign", "at": [-62, -10], "facing": 1},
+		{"prop": "neon_sign", "at": [-22, 70], "facing": 1},
+		{"prop": "neon_sign", "at": [18, -20], "facing": 3},
+		{"prop": "neon_sign", "at": [150, -145], "facing": 2},
+		{"prop": "neon_sign", "at": [100, -245], "facing": 0},
+		{"prop": "city_block", "at": [95, 10], "facing": 0},
+		{"prop": "city_block", "at": [-110, 150], "facing": 1},
+		{"prop": "city_block", "at": [260, -150], "facing": 3},
+		{"prop": "city_block", "at": [-60, -150], "facing": 1},
+		{"prop": "street_tree", "at": [-60, 80], "facing": 0},
+		{"prop": "street_tree", "at": [16, 60], "facing": 0}
+	],
+	"ground": {"cell": 8.0, "origin": [-192.0, -368.0], "size": [72, 94], "step": 0.05, "data": "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"}
+}

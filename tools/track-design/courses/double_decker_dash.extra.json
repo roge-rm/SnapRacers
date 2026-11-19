@@ -1,0 +1,23 @@
+{
+	"about": "The little kart track at Mile End made bigger, a spiral of long bends round and round the London streets at night, down the straight past the clock tower and the parked buses, with the canal alongside.",
+	"landmarks": [
+		{"prop": "clock_tower", "at": [-20, 10], "facing": 1},
+		{"prop": "double_decker", "at": [20, 30], "facing": 0},
+		{"prop": "double_decker", "at": [20, -5], "facing": 0},
+		{"prop": "double_decker", "at": [95, -26], "facing": 1},
+		{"prop": "double_decker", "at": [240, 68], "facing": 2},
+		{"prop": "townhouses", "at": [25, -221], "facing": 2},
+		{"prop": "townhouses", "at": [-15, -116], "facing": 1},
+		{"prop": "townhouses", "at": [90, -186], "facing": 0},
+		{"prop": "townhouses", "at": [187, 108], "facing": 0},
+		{"prop": "townhouses", "at": [105, 138], "facing": 0},
+		{"prop": "city_block", "at": [160, -76], "facing": 0},
+		{"prop": "city_block", "at": [-60, -40], "facing": 1},
+		{"prop": "phone_box", "at": [-16, -20], "facing": 1},
+		{"prop": "street_tree", "at": [70, -91], "facing": 0},
+		{"prop": "street_tree", "at": [130, -141], "facing": 0},
+		{"prop": "street_tree", "at": [195, 3], "facing": 0},
+		{"prop": "street_tree", "at": [5, 128], "facing": 0}
+	],
+	"water": [{"kind": "river", "type": "water", "points": [[320, -320, 14], [318, -100, 14], [316, 100, 14], [314, 320, 14]]}]
+}

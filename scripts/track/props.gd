@@ -66,8 +66,8 @@ const ROOM := {
 	"jungle_tree": 3.0, "jungle_sapling": 1.6, "jungle_bush": 1.6, "fern": 1.2, "parrots": 1.6, "stepped_pyramid": 17.5, "stone_head": 4.6,
 	"waterfall": 14.0, "rope_bridge": 18.0, "canopy_walk": 15.0, "karst": 13.0, "jungle_hut": 5.0,
 	"city_block": 7.5, "townhouses": 7.0, "traffic_light": 1.2, "neon_sign": 2.6, "street_tree": 1.4, "armco": 3.4,
-	"phone_box": 1.0, "double_decker": 5.6, "tuk_tuk": 2.0, "neon_tower": 9.0, "lantern_gate": 5.0,
-	"tunnel_mouth": 13.0, "spire_tower": 10.5, "clock_tower": 5.0, "overpass": 17.0, "chedi": 7.5,
+	"phone_box": 1.0, "double_decker": 5.6, "tuk_tuk": 2.0, "neon_tower": 9.0, "lantern_gate": 14.0,
+	"tunnel_mouth": 13.0, "spire_tower": 10.5, "clock_tower": 5.0, "overpass": 19.0, "chedi": 7.5,
 	"hot_air_balloon": 5.0, "airship": 14.0, "falls_isle": 16.0, "rainbow": 17.0, "weather_vane": 7.0,
 	"windmill_isle": 9.0, "sky_lighthouse": 8.0, "sky_dock": 14.0, "sky_isle": 6.0, "cloud_puff": 6.0,
 }
@@ -83,9 +83,10 @@ const DEPTH := {"falls_isle": 38.0}
 
 
 ## Props that reach over the road, so they may be put on it when none of
-## their solid parts is near the road: the cable car and rope bridge put
-## across the road, and the canopy walk at 1.5 times its size or more.
-const SPANNING := ["canopy_walk", "cable_car", "rope_bridge"]
+## their solid parts is near the road: the cable car, rope bridge, lantern
+## gate and overpass put across the road, and the canopy walk at 1.5 times its
+## size or more.
+const SPANNING := ["canopy_walk", "cable_car", "rope_bridge", "lantern_gate", "overpass"]
 ## Landmarks turn in steps of this many degrees, and come in these sizes.
 const TURN_STEP := 15
 ## Their deep water is drawn as straight rectangles, so these only turn in quarters.
@@ -2487,14 +2488,15 @@ static func neon_tower(kit: SceneryKit, at: Vector3, facing: int, rng: RandomNum
 
 
 ## A red gate with two cross beams and paper lanterns glowing along the
-## lower one.
+## lower one, its posts 13 m either side of the middle so a road fits
+## through (see SPANNING).
 static func lantern_gate(kit: SceneryKit, at: Vector3, facing: int) -> void:
-	for x in [-3.0, 3.0]:
-		_box(kit, at, Vector3(x, 0.0, 0.0), Vector3(0.6, 6.0, 0.6), facing, RED)
-	_box(kit, at, Vector3(0.0, 4.6, 0.0), Vector3(7.4, 0.5, 0.5), facing, RED, SceneryKit.SMOOTH, false)
-	_box(kit, at, Vector3(0.0, 6.0, 0.0), Vector3(9.0, 0.6, 0.8), facing, BLACK, SceneryKit.SMOOTH, false)
-	for x in [-1.8, -0.6, 0.6, 1.8]:
-		_box(kit, at, Vector3(x, 3.5, 0.0), Vector3(0.6, 0.9, 0.6), facing, LANTERN, SceneryKit.GLOW, false)
+	for x in [-13.0, 13.0]:
+		_box(kit, at, Vector3(x, 0.0, 0.0), Vector3(0.8, 8.0, 0.8), facing, RED)
+	_box(kit, at, Vector3(0.0, 6.4, 0.0), Vector3(27.0, 0.6, 0.6), facing, RED, SceneryKit.SMOOTH, false)
+	_box(kit, at, Vector3(0.0, 8.0, 0.0), Vector3(29.0, 0.7, 1.0), facing, BLACK, SceneryKit.SMOOTH, false)
+	for k in 9:
+		_box(kit, at, Vector3(-9.6 + k * 2.4, 5.2, 0.0), Vector3(0.7, 1.0, 0.7), facing, LANTERN, SceneryKit.GLOW, false)
 
 
 ## A road going into a tunnel under a grassy bank: a concrete face with a
@@ -2536,16 +2538,17 @@ static func clock_tower(kit: SceneryKit, at: Vector3, facing: int) -> void:
 	kit.cylinder(at + Vector3.UP * 41.0, 0.12, 2.0, YELLOW, SceneryKit.SMOOTH)
 
 
-## A stretch of raised expressway beside the road, on concrete pillars, with
-## its own lamps.
+## A stretch of raised expressway on concrete pillars, with its own lamps.
+## The pillars stand 14 m either side of the middle, so a road can run
+## under it (see SPANNING).
 static func overpass(kit: SceneryKit, at: Vector3, facing: int) -> void:
-	for x in [-11.0, 0.0, 11.0]:
+	for x in [-14.0, 14.0]:
 		_box(kit, at, Vector3(x, 0.0, 0.0), Vector3(2.0, 8.0, 2.0), facing, CONCRETE)
 		_box(kit, at, Vector3(x, 7.0, 0.0), Vector3(2.4, 1.0, 9.0), facing, CONCRETE.darkened(0.1), SceneryKit.SMOOTH, false)
-	_box(kit, at, Vector3(0.0, 8.0, 0.0), Vector3(30.0, 1.2, 10.0), facing, CONCRETE, SceneryKit.SMOOTH, false)
+	_box(kit, at, Vector3(0.0, 8.0, 0.0), Vector3(34.0, 1.2, 10.0), facing, CONCRETE, SceneryKit.SMOOTH, false)
 	for z in [-4.8, 4.8]:
-		_box(kit, at, Vector3(0.0, 9.2, z), Vector3(30.0, 0.9, 0.4), facing, LIGHT_GREY, SceneryKit.SMOOTH, false)
-	for x in [-10.0, 0.0, 10.0]:
+		_box(kit, at, Vector3(0.0, 9.2, z), Vector3(34.0, 0.9, 0.4), facing, LIGHT_GREY, SceneryKit.SMOOTH, false)
+	for x in [-12.0, 0.0, 12.0]:
 		_box(kit, at, Vector3(x, 9.2, 4.8), Vector3(0.2, 3.0, 0.2), facing, LIGHT_GREY, SceneryKit.SMOOTH, false)
 		_box(kit, at, Vector3(x, 12.0, 4.2), Vector3(0.5, 0.25, 1.2), facing, Color("#fff1d6"), SceneryKit.LAMP, false)
 

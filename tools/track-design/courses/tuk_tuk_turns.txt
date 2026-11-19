@@ -1,3 +1,3 @@
 Tuk Tuk Turns
-width=13 laps=3 theme=city_bangkok
-L2 L2 R1!w R1!w S1!w R2!w L3!w L3!w L3!w L1!w L2!w R1!w R2!w R1!w L1!w R1!w L3!w S2!w L2!w L1!w R1!w L1!w S1!w R1!w R1!w S1!w SR3.1!w L1 L1 R1!w L1!w S3!w
+width=13 laps=3 theme=city_bangkok hills=0
+S1 S1 S1 A90L1 A15L2!w A30L3!w A45L4!w A75R1!w A90R1!w A45R4!w A30R2!w S3!w A30L2 A60L2 S19.138m PL3 S7.426m!w A30R1!w A60L1!w A60L3!w A75L1!w A75L1!w A15R3!w S3.882m!w A45R1!w S14.797m!w A90R2!w A90R1!w S3!w A15L3 A45L4!w S1!w A15L3!w A45L2!w A90L2!w A30L3!w A90R1!w A90R1!w Q!w A45R4!w A75L1!w Q!w A60L1!w A90L2!w SR53.038m1.272!w

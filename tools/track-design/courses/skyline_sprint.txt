@@ -1,3 +1,3 @@
 Skyline Sprint
-width=13 laps=3 theme=city_dubai
-S1!w S3!w R2 S1!w S3!w R1 S1!w S3!w R2 R1 S2!w L1 L1 SR3.1!w S1!w L1 SR2.1!w R1 S2!w SR2.1!w SL3.2!w SL2.1!w R2 R1 SL3.1!w L1 SR2.1!w R1 SL4.1!w S3!w S2!w
+width=13 laps=3 theme=city_dubai hills=0
+S1 S1 A30L2 A75R1 A45R3!w H!w A15L4!w A45R2!w A90R1!w A45L2!w A30R4!w A15R3!w A75R1!w A60R1!w A30R3!w H!w A90L1 A90L1!w S2!w A30L4!w A90L1!w A90R2!w A45R1!w A75L4b22!w A45R3!w A60R2!w A15R4!w A90R3b22!w A30R2!w A90R1!w A30R4!w A90L1 A90L1!w S1!w A30L2!w A75R3b22!w SL63.796m12.532!w S1 S1 S1
