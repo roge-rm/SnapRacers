@@ -101,7 +101,8 @@ func _ready() -> void:
 	(_column.get_parent().get_parent() as Control).resized.connect(_fit)
 	margin.theme_changed.connect(_fit)
 	_fit()
-	PadFocus.focus_first(self)
+	# The cards come first, not the conditions buttons above them.
+	PadFocus.focus_first(_grid)
 
 
 func _title() -> String:
