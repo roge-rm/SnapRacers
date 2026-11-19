@@ -62,9 +62,9 @@
 		{"type": "arc", "turn": "right", "size": 3, "angle": 15},
 		{"type": "arc", "turn": "right", "size": 2, "angle": 30},
 		{"type": "curve", "turn": "left", "size": 1},
-		{"type": "arc", "turn": "right", "size": 4, "angle": 15},
-		{"type": "straight", "length": 2},
-		{"type": "arc", "turn": "right", "size": 4, "angle": 15},
+		{"type": "straight", "length": 1},
+		{"type": "arc", "turn": "right", "size": 4, "angle": 30},
+		{"type": "adjustable_straight", "metres": 34.2},
 		{"type": "quarter_straight"},
 		{"type": "arc", "turn": "right", "size": 3, "angle": 15},
 		{"type": "half_straight"},
@@ -93,7 +93,7 @@
 		{"type": "straight", "length": 1},
 		{"type": "curve", "turn": "right", "size": 1},
 		{"type": "arc", "turn": "right", "size": 1, "angle": 60},
-		{"type": "adjustable_offset", "metres": 38.151, "shift": 1.534},
+		{"type": "adjustable_offset", "metres": 38.5145, "shift": 1.9761},
 		{"type": "straight", "length": 3}
 	]
 }
