@@ -818,11 +818,19 @@ func _holding_back(ai: AIDriver, rival: Dictionary, speed: float) -> bool:
 	return _slipstreaming(ai, rival, speed)
 
 
+## The speed it could reach with the road clear, under its top speed share.
+static func _could_go(ai: AIDriver) -> float:
+	var could := minf(ai.free_speed, ai.kart.stats.top_speed() * pow(maxf(ai.kart.push, 0.0), 0.4))
+	if ai.top_share < 1.0:
+		could = minf(could, ai.speed_cap())
+	return could
+
+
 ## How much quicker it is than its rival, in m/s: going now, or could go
 ## with the road clear, whichever is more.
 static func _quicker(ai: AIDriver, rival: Dictionary, speed: float) -> float:
 	var kart := ai.kart
-	var could := minf(ai.free_speed, kart.stats.top_speed() * pow(maxf(kart.push, 0.0), 0.4))
+	var could := _could_go(ai)
 	return maxf(speed, could) - rival.speed
 
 
@@ -892,7 +900,7 @@ func _worth_going(ai: AIDriver, rival: Dictionary, chosen: float, speed: float) 
 		return false
 	if _bend.x < speed * BEND_TIME + BEND_SEE:
 		return _side_of(ai, chosen, rival) == int(_bend.y)
-	var could := minf(ai.free_speed, ai.kart.stats.top_speed() * pow(maxf(ai.kart.push, 0.0), 0.4))
+	var could := _could_go(ai)
 	if could < rival.speed + CLOSING:
 		return false
 	return speed - rival.speed > CLOSING or could - rival.speed > QUICKER or _was_slipping
