@@ -60,6 +60,14 @@ then moved out by hand, and Summit Switchback CLEAR=31.6 EACH=800 with stray
 30 and tight 150 at scale 1.0. Slalom Slopes is laid by hand round the small
 summer track scaled up to a whole lap. The slaloms, jump, ramps and rise bends
 went in by hand.
+In the Canyon cup the lines were traced with SMOOTH=20 EACH=800: Cactus Canyon
+with stray 35 and tight 400 at scale 1.0, Rattlesnake Ridge on its line turned
+so its start straight faces north, stray 40 and tight 800 at scale 1.13, Mirage
+Mesa stray 35 and tight 400 at scale 1.0, and Gold Rush Gulch BRIDGE=1520,1690
+FORCE=S2:660:700 with stray 35 and tight 400 at scale 1.07. Gold Rush Gulch's
+line was joined by hand: way 879902542 to node 24, way 879902543 backwards,
+then 879902542 from node 26, and aligned at scale 1.5. The crossings, banked
+bowl, rim, crests, bridge climb, dirt split and rise bends went in by hand.
 """
 import json, math, os, sys
 import numpy as np
