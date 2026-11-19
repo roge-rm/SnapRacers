@@ -685,23 +685,29 @@ func _physics_process(delta: float) -> void:
 		if racer.ai != null:
 			racer.ai.lap = racer.progress.laps
 
+		var middle := track.point_at(racer.offset)
+		var below := (kart.global_position - middle).dot(track.up_at(racer.offset))
 		# Off the road in deep water, it sinks and is then put back (see
-		# Kart.sink()). Its own device decides, and tells the others.
-		if not kart.remote and kart.sinking_left <= 0.0 and not kart.on_road and not track.on_road_across(racer.offset, across, -TrackPath.KERB):
+		# Kart.sink()). Its own device decides, and tells the others. Fallen
+		# well below a raised road it sinks even right under it.
+		if not kart.remote and kart.sinking_left <= 0.0 and not kart.on_road and (below < -FALLEN or not track.on_road_across(racer.offset, across, -TrackPath.KERB)):
 			var level := builder.water.level_at(kart.global_position)
 			if is_finite(level):
 				kart.sink(level, builder.water.kind)
 				if racer.hud != null:
 					racer.hud.flash("Back on the track")
 		# If it's fallen off or wandered far away, put it back.
-		var middle := track.point_at(racer.offset)
-		var below := (kart.global_position - middle).dot(track.up_at(racer.offset))
 		var fallen := below < -FALLEN
+		var pos := kart.global_position
 		# Beside road on rolling ground a valley can drop well below the road,
 		# so there it's only fallen once it's under the ground itself.
 		if fallen and builder.terrain != null and track.grounded_at(racer.offset, TrackBuilder.RAISED):
-			var pos := kart.global_position
 			fallen = pos.y < builder.ground_at(pos.x, pos.z) - UNDERGROUND
+		# Over deep water or lava however far down, it falls in and sinks or
+		# burns there instead.
+		if fallen:
+			var pool := builder.water.level_at(Vector3(pos.x, -1.0e6, pos.z))
+			fallen = not (is_finite(pool) and pos.y > pool - Kart.SINK_DEPTH)
 		if kart.slowdown_left <= 0.0 and kart.sinking_left <= 0.0 and (fallen or kart.global_position.distance_to(middle) > LOST):
 			if OS.has_environment("RACE_DEBUG"):
 				var truly := track.offset_of(kart.global_position)
