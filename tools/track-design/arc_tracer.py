@@ -47,6 +47,12 @@ lines with the legs pushed 40 m apart, Red Rocket on a line drawn by hand in
 the style of the real one with BRIDGE=760,800;1085,1125 and stray 20, and
 Twister Pines on the old course's line with stray 30 and three bridges. The
 corkscrews, loops and wall rides went in by hand.
+In the Island cup each line was turned so its start straight faces north and
+traced with SMOOTH=20 EACH=800: Windsurf Way CLEAR=31.6 with stray 35 and
+tight 200 at scale 0.97, Coral Cove stray 35 and tight 400 at scale 1.07,
+Blue Lagoon stray 30 and tight 150 at scale 0.93, and Penguin Point (the whole
+GP circuit, its line already scaled down to about 1.7 km) tight 1000 at
+scale 1.03, with the crest on the straight and a wider 45 put in by hand.
 """
 import json, math, os, sys
 import numpy as np
