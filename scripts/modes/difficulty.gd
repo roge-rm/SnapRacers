@@ -11,6 +11,8 @@ extends RefCounted
 ##   Prix (see Game.draw_ranks()).
 ## - pace: how hard they push their engines, as a fraction. Lower levels take
 ##   it easier on the straights too, not just in the bends.
+## - top_speed: the share of their kart's top speed they go no faster than,
+##   so they're slower on flowing courses too. 1 if it isn't set.
 ## - mistakes: the chance of going into a bend too fast or too slow.
 ## - loop_nerves: the chance of losing their nerve on the way up a loop,
 ##   backing off and falling off it.
@@ -58,6 +60,7 @@ const SETTINGS := {
 		"about": "Relaxed drivers who make mistakes and wait for you.",
 		"skill": [0.42, 0.51],
 		"pace": 0.61,
+		"top_speed": 0.65,
 		"mistakes": 0.25,
 		"loop_nerves": 0.15,
 		"gadgets": 0.3,
@@ -86,6 +89,7 @@ const SETTINGS := {
 		"about": "A fair race, with the odd slip.",
 		"skill": [0.55, 0.64],
 		"pace": 0.65,
+		"top_speed": 0.9,
 		"mistakes": 0.1,
 		"loop_nerves": 0.0,
 		"gadgets": 0.7,
@@ -181,6 +185,7 @@ static func apply(ai: AIDriver, level: String, rank: int, field: int, traits: Dr
 	var skill: Array = s.skill
 	ai.skill = lerpf(skill[1], skill[0], float(rank) / maxf(field - 1, 1))
 	ai.pace = s.pace
+	ai.top_share = s.get("top_speed", 1.0)
 	ai.mistakes = s.mistakes
 	ai.loop_nerves = s.loop_nerves
 	ai.gadget_sense = s.gadgets

@@ -45,6 +45,9 @@ var _seeded := false
 var _aim := NAN
 ## How hard it pushes its engine, as a fraction (see Difficulty).
 var pace := 1.0
+## The share of its kart's top speed it goes no faster than (see
+## Difficulty), raised by any catch-up push.
+var top_share := 1.0
 ## The chance of misjudging a bend, going in too fast or too slow (see
 ## Difficulty).
 var mistakes := 0.0
@@ -658,6 +661,11 @@ func _physics_process(delta: float) -> void:
 	# reaches the top of a loop and clears a jump's landing ramp.
 	if (_on_loop and not _lost_nerve) or _jump_run_in:
 		kart.push = maxf(kart.push, 1.0)
+	# Over its top speed share it eases off the throttle, over the last metre
+	# a second, but never on a loop or a jump's run in.
+	elif top_share < 1.0 and not kart.sliding and _slide_left <= 0.0:
+		var top := kart.stats.top_speed() * top_share * Difficulty.push_for(behind, catch_up, 0.0, track.length)
+		controls.throttle = minf(controls.throttle, clampf(top - speed, 0.0, 1.0))
 
 
 ## Notices being knocked by another kart, outside a pass it chose to lean
