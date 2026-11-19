@@ -19,8 +19,9 @@ over road laid earlier, for a bridge; the climb and drop (^1, ^-1) go in
 by hand.
 FORCE=<piece>:<from>:<to>[,...] makes the lap use that piece once, starting
 between those metres of the real line: J for a jump (laid like a 96 m
-straight), OL or OR for a loop, or any piece above, like A90R2 for a bend
-to bank. The piece comes out marked with a star, to swap by hand.
+straight), JR or JL for a jump split (a 128 m straight), OL or OR for a
+loop, or any piece above, like A90R2 for a bend to bank. The piece comes
+out marked with a star, to swap by hand.
 
 The Baseplate cup came from beam 300, with stray 35 and CLEAR=31.6 for
 Pithead Park and tight 400 for Lemon Lake. In the Gearbox cup Timberline
@@ -32,6 +33,10 @@ Windmill Ridge has FORCE=A90R2:40:90 (its wall ride), Magma Mile FORCE=J:110:140
 at scale 0.92, Launchpad Loop CLEAR=31.6 FORCE=OL:520:600 with stray 40 at
 scale 1.12 on its line turned round to run clockwise, and Castle Keep tight 300,
 with its jump put in by hand over the last three straights.
+In the Gravel cup each OSM line was joined by hand from the ways of the
+real lap, scaled 1.45 to 1.7 and turned so its start straight faces north,
+Menhir Meadow with START=3 FORCE=JR:740:1000, Oast Hill FORCE=J:600:660 and
+Pine Hill Leap START=3 FORCE=J:1320:1400.
 """
 import json, math, os, sys
 import numpy as np
@@ -95,6 +100,9 @@ for f in filter(None, os.environ.get("FORCE", "").split(",")):
     FORCED[token] = (float(a), float(b))
     if token == "J":
         PIECES.append(("J", np.array([(0.0, 96.0 * (i + 1) / 48) for i in range(48)]), (0.0, 96.0), 0, 96.0))
+    elif token in ("JR", "JL"):
+        # A jump split, laid like a 128 m straight.
+        PIECES.append((token, np.array([(0.0, 128.0 * (i + 1) / 64) for i in range(64)]), (0.0, 128.0), 0, 128.0))
     elif token in ("OL", "OR"):
         # A loop comes out a tile to its side, easing across its middle.
         side = 1 if token == "OR" else -1
@@ -161,7 +169,7 @@ def step(b, piece):
     if not over and not clear_of_old(b, world, along0, s_end > total - 3 * TILE):
         return None
     token = piece[0]
-    if token in ("J", "OL", "OR") and (not FORCED[token][0] <= b.s <= FORCED[token][1] or token + "*" in b.tokens):
+    if token in ("J", "JR", "JL", "OL", "OR") and (not FORCED[token][0] <= b.s <= FORCED[token][1] or token + "*" in b.tokens):
         return None
     # Past a forced piece's stretch without it, this lap can't be used.
     for want, (a, z) in FORCED.items():
