@@ -60,7 +60,7 @@ const ROOM := {
 	"watchtower": 3.0, "lamp_post": 1.0, "grandstand": 14.0, "pit_building": 14.0, "billboard": 3.2, "marshal_post": 2.0,
 	"flag": 1.0, "fans": 3.0, "tire_stack": 1.0, "barrier_stack": 1.0, "boats": 6.0,
 	"chalet": 6.0, "snowy_chalet": 6.0, "alpine_church": 8.0, "cows": 2.8, "snowy_peak": 40.0,
-	"cable_car": 35.0, "ski_jump": 33.0,
+	"cable_car": 45.0, "ski_jump": 33.0,
 	"mesa": 38.0, "butte": 16.0, "saloon": 8.0, "water_tower": 3.5, "saguaro": 1.6, "mine_carts": 8.0,
 	"windpump": 3.0, "red_rocks": 2.4,
 	"jungle_tree": 3.0, "jungle_sapling": 1.6, "jungle_bush": 1.6, "fern": 1.2, "parrots": 1.6, "stepped_pyramid": 17.5, "stone_head": 4.6,
@@ -83,9 +83,9 @@ const DEPTH := {"falls_isle": 38.0}
 
 
 ## Props that reach over the road, so they may be put on it when none of
-## their solid parts is near the road. Only the canopy walk at 1.5 times its
-## size or more has trunks far enough apart.
-const SPANNING := ["canopy_walk"]
+## their solid parts is near the road: the cable car put across the road, and
+## the canopy walk at 1.5 times its size or more.
+const SPANNING := ["canopy_walk", "cable_car"]
 ## Landmarks turn in steps of this many degrees, and come in these sizes.
 const TURN_STEP := 15
 ## Their deep water is drawn as straight rectangles, so these only turn in quarters.
@@ -1663,14 +1663,16 @@ static func _crag(kit: SceneryKit, foot: Vector3, height: float, snow_line: floa
 
 ## A cable car line up to a peak: a station at the bottom, two pylons, a
 ## station up on a rocky crag, and two cars going up and down the cables.
+## The pylons stand 15 m either side of the middle, so it can span a
+## road put across it (see SPANNING).
 static func cable_car(kit: SceneryKit, at: Vector3, facing: int) -> void:
-	var bottom := -24.0
-	var station := 16.0
-	var low := Vector3(bottom + 2.0, 4.2, 0.0)
+	var bottom := -27.0
+	var station := 27.0
+	var low := Vector3(bottom + 2.0, 7.2, 0.0)
 	var high := Vector3(station - 2.0, 21.6, 0.0)
 	# The bottom station, sunk a little so it sits on a slope.
-	_box(kit, at, Vector3(bottom, -2.0, 0.0), Vector3(7.0, 6.0, 6.0), facing, TAN)
-	_box(kit, at, Vector3(bottom, 4.0, 0.0), Vector3(7.6, 0.4, 6.6), facing, RED, SceneryKit.SMOOTH, false)
+	_box(kit, at, Vector3(bottom, -2.0, 0.0), Vector3(7.0, 9.0, 6.0), facing, TAN)
+	_box(kit, at, Vector3(bottom, 7.0, 0.0), Vector3(7.6, 0.4, 6.6), facing, RED, SceneryKit.SMOOTH, false)
 	_box(kit, at, Vector3(bottom, 0.0, 3.0), Vector3(2.4, 2.4, 0.1), facing, GLASS, SceneryKit.SMOOTH, false)
 	# The top station stands on legs against a steep crag. The crag has its
 	# own random numbers, the same wherever it is.
@@ -1689,7 +1691,7 @@ static func cable_car(kit: SceneryKit, at: Vector3, facing: int) -> void:
 		var a := at + _turn(low + Vector3(0.0, 0.0, z), facing)
 		var b := at + _turn(high + Vector3(0.0, 0.0, z), facing)
 		kit.turned_box((a + b) * 0.5, Vector3(0.12, (b - a).length(), 0.12), Basis(Quaternion(Vector3.UP, (b - a).normalized())), BLACK)
-	for t in [0.33, 0.66]:
+	for t in [0.2, 0.8]:
 		var top: Vector3 = low + along * t
 		_box(kit, at, Vector3(top.x, -3.0, 0.0), Vector3(1.0, top.y + 2.4, 1.0), facing, LIGHT_GREY)
 		_box(kit, at, Vector3(top.x, top.y - 0.6, 0.0), Vector3(0.6, 0.5, 2.8), facing, LIGHT_GREY)

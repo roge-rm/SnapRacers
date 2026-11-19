@@ -169,6 +169,8 @@ func at_spot(offset: float) -> void:
 	var eye := t.point_at(offset - 18.0) + t.up_at(offset - 18.0) * 3.0
 	await with_camera(Transform3D(Basis.IDENTITY, eye).looking_at(t.point_at(offset + 12.0), t.up_at(offset)), "at_%d" % roundi(offset))
 	var side := t.point_at(offset) + t.right_at(offset) * 28.0 + Vector3.UP * 6.0
+	# Kept above the ground there, so a cutting or a hillside doesn't hide the road.
+	side.y = maxf(side.y, t.ground_height(side.x, side.z) + 4.0)
 	await with_camera(Transform3D(Basis.IDENTITY, side).looking_at(t.point_at(offset), Vector3.UP), "at_%d_side" % roundi(offset))
 
 

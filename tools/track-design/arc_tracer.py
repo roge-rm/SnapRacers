@@ -53,6 +53,13 @@ tight 200 at scale 0.97, Coral Cove stray 35 and tight 400 at scale 1.07,
 Blue Lagoon stray 30 and tight 150 at scale 0.93, and Penguin Point (the whole
 GP circuit, its line already scaled down to about 1.7 km) tight 1000 at
 scale 1.03, with the crest on the straight and a wider 45 put in by hand.
+In the Alpine cup the lines were traced with SMOOTH=20: Cowbell Meadow
+EACH=800 with stray 35 and tight 400 at scale 1.0, Gondola Gorge EACH=500
+START=3 with stray 40 and tight 100 at scale 0.98, a stretch near the far leg
+then moved out by hand, and Summit Switchback CLEAR=31.6 EACH=800 with stray
+30 and tight 150 at scale 1.0. Slalom Slopes is laid by hand round the small
+summer track scaled up to a whole lap. The slaloms, jump, ramps and rise bends
+went in by hand.
 """
 import json, math, os, sys
 import numpy as np

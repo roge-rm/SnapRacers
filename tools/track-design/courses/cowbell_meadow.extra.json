@@ -1,0 +1,25 @@
+{
+	"about": "The little kart track in the valley under the cliffs made three times the size, with rise bends over the green hills, round the pond and past the cows and chalets.",
+	"landmarks": [
+		{"prop": "mountain", "at": [-150, -420], "facing": 0},
+		{"prop": "alpine_church", "at": [-70, -250], "facing": 1},
+		{"prop": "chalet", "at": [-55, -110], "facing": 1},
+		{"prop": "chalet", "at": [-55, 60], "facing": 1},
+		{"prop": "chalet", "at": [165, -40], "facing": 3},
+		{"prop": "chalet", "at": [165, 90], "facing": 3},
+		{"prop": "barn", "at": [185, -300], "facing": 3},
+		{"prop": "cows", "at": [42, -250], "facing": 0},
+		{"prop": "cows", "at": [55, -15], "facing": 0},
+		{"prop": "cows", "at": [60, -70], "facing": 0},
+		{"prop": "hay", "at": [42, -215], "facing": 0},
+		{"prop": "pine", "at": [-55, -330], "facing": 0},
+		{"prop": "pine", "at": [60, -420], "facing": 0},
+		{"prop": "pine", "at": [170, -390], "facing": 0},
+		{"prop": "birch", "at": [-45, 180], "facing": 0},
+		{"prop": "birch", "at": [150, 200], "facing": 0}
+	],
+	"water": [
+		{"kind": "lake", "type": "water", "at": [55, 75], "level": -0.3}
+	],
+	"ground": {"cell": 8.0, "origin": [-152.0, -504.0], "size": [53, 103], "step": 0.05, "data": "eNp9WFmPG7kRrioW2exjJM2Mr8RZLxZ2sAZ2gIW9b4mBAHnIW4Dk//+Z1EU2W9Kk7dHR4tesu77iy7ffPj4kIAIAxGme4O7F2yJXrbXUwvzv07vLRoQoGPm31PuYCqQLwF7w29NpUYyi9Le7V6m2mAyWAN+eij4DkVzEuxhdAoTg0giKfV+EV69awDCGSvpS9AkiXnodw9QxooTqsQGSKZRjzdWWtLCuIEWJYMlWnFxORAfpo+TVtJMX4kqxi1k4uZmf1AiykGBWKNlaxRqEOSQzw/lCef0gcJQHyII0yU03oW8oyuwGbW7Rv0+KQbGhrKaUsXkwmYj9T6VAV1f2/SKfk4SRPtU/YkiSmmIh8I6hr+0bueMchSFgmAN2pygGX0xnjDW6VWoQdCMCDQv8erGbstijQkAZ5X+Yq6MaxF+/WyCqNTyYBJGn1NeEC4ZLf/juuxvKQHnGKadQX+UFDb0ezCb63xKYxwSlBlkfHrY8JiJxXjcFjagfsYOqA/P7CS6E5zComkgz6WE77IXwz6QKqHng+e26JL4QPCbslsob44qFoEeHCPWvZCg8P57laUnyra4ffnZ7mxXmJ8S1RniFN7cP73h+Pj9a6Mu9jRL8/ikVYlNZA7bgRHyTzRNhE5gq5P/+qBfLUIIJqz+dPKmO2ea3JbAZ0hkuJU0zsuTfWh2i3iW8cpf/ZM5PqTKcUbyTFjHpApN4KtFrRSTuF8mUOqttW8IWzyS6XRtZA7BI5rPsmdyCCLuxh5hqnkysDmLTWCQDXrG2vIFrnFvB8kVCsFiZE3dKxNOyNv+EdNjeycRnQ81RG1W+jJTjwTyo0VAiGMtzs3iG6T//iAdZ4YYhf8Ht3tCaDUWDkjxII21bYQAvloPdfmHkskikWEESUVS+7AGwg7y8UKDOl0MZlpulFfpoLtc+Ch1vLhIzsodPl2l0E78SHdbliBLe7Qu32xiGLVCtpfCu3E1kDE8kl0ukoInkLQ17Id3Zpf9gQLEncy/K1k/wTqTrTak+7kaGWRJzAPUef6WPBBSTiSQfVqJNOh62fe72S+2yWQsksWiTaQJeUqgUnRb2Zrtfm+SqVh8FPACddCOCxgjsw3wL0gbumSIJdqK1ydOJTbplQ8tphWqWk6rLKV17HXfpUtMULyA23rKZ0Us80tGduVmD7UdZVKWpy91quYyO8jCPOkvNLBBO09ojN4tkLRXvC8qGPHYt3bSBYHeQRkGuEyzJAihpMdPbaZSPvX9Qiz+PnKn1FL3PoS3STmKi3++lXJSZxu/+ay9B3qYMGaQsbqc0BL44hsOvhEPal2M1BJIiNvU7dBNl5JWb2mPsDS1Oe82CXKDv0xepYe3dO7Y6zout1Ud+hXMWD4ZWdVumuZWlukwV6ZCthHfLRMJWvtFwo2n+D9vFPUYoUediwYDvQpprHJZoJx8DTbqtLkZXoWUeQWcfd8hSBmOt6lSvK9RrTY+uK8wkcWeTw95PrOOHQNRMOl7nRFyYD2XTIxq7qnQ0f36WBBIMHauvGWGglYSDHNOj9KVaaA8wcxI7H8C7pS6/d0yoiU5rkIpUFuzzzFXJ/4l8H7qO6N5sB8tEFfqJZG7j1itgNxNhKylOTCLP9eOf0lIXFWNvxoR5oV46dgti2+jtvGxL0QpC2PvxH+dPX2lIvN4QdUmG53U7md1SG70E+/NHxu9b1C17WPKwN5Pn9/PpIhgr0dhLyOdSH5Y/cw/SwWyy5q902RRDVhf7MPNc6pzfmGDccqsxFvi1bptPcK1L9LnLUoPAxyTsXFKu98tS9sCVKS/E+7DOtbzViNB5DQ/SSQUog8g6NvmXr7hujx91WJMxW8mysx4PKHY1e7GQAcXM9+YF8t8zOZlYoqD6iIdUjxzO1ZJOTV/efP6IbSxfmgZow9eGA41xyiocYPWJ2aiV03UOVq49BJ/ySGCsbEyW7dbBGKNAcGxlnoS/rPkQ824HPwCQLM4Yxb5p7rPsuzl3KqKDtgYWKC2XJGZ6ABuGoE+Rjj4tk0dPe6CMALjJnCzuqfMsXBu8X49tgHhrw61RIZFdCMebVT4UfgQb7kXNY9oWbQG5WQ9FKFqFqTwJ557OQldE3IRXya68jAhTDyyS0emsJzWk3HerNtF37tUCziakHOlqvLfW9cHm2HLi7ON8umJfeuLAKgKFdUgJ95T1FCCnoOc7afPgWVRGzKkltmWCJNiE3rOpTxg9mvVARBWZU+SfYbzFmJ1pZ/EtCTSfpRLAMk0+LhEPA62eOQAPLdNRFEc8hRRlLHTvQOjjVDv9gYN2OjcsWWYUo0sDh0EcmqbfxcaBa5XYRz0coCit1NgTdvJKfTyJgx8ZvYsdKrSmRN0mMZEn2ll5iMonYxOOsq10vVwM+zHInqnhaYkWrw/BIMjPjLgfICQraIiH9vm02kSB3XsSgcTDSQ56ftDhLMSNtnscubnZd4pTkBuCcxjL5JF+BY3tx1avDeMUbE4ri7XpNnghvYrBnQqpGXuBOCTUIeYbdad+ZjSOxXHrf7ODJWU="}
+}

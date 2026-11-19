@@ -36,7 +36,7 @@ func _run() -> void:
 
 	# On the road: only the spanning props are allowed.
 	var on_road: Vector3 = editor.track.points[editor.track.points.size() / 2]
-	for prop in ["house", "overpass", "cable_car", "rope_bridge", "canopy_walk", "bridge"]:
+	for prop in ["house", "overpass", "rope_bridge", "canopy_walk", "bridge"]:
 		var mark := {"prop": prop, "at": [on_road.x, on_road.z], "facing": 0, "angle": 0}
 		check(not editor._clear_of_road(mark), "%s on the road: refused, its solid parts are in the way" % prop)
 	var wide := {"prop": "canopy_walk", "at": [on_road.x, on_road.z], "facing": 0, "angle": 0, "scale": 2.0}
@@ -44,6 +44,11 @@ func _run() -> void:
 	wide.angle = 90
 	wide.facing = 1
 	check(not editor._clear_of_road(wide), "but not turned along the road")
+	var cable := {"prop": "cable_car", "at": [on_road.x, on_road.z], "facing": 0, "angle": 0}
+	check(editor._clear_of_road(cable), "a cable car spans the road between its pylons")
+	cable.angle = 90
+	cable.facing = 1
+	check(not editor._clear_of_road(cable), "but not turned along the road")
 
 	# Turning and size in hand.
 	editor.pick_up_landmark("house")
