@@ -64,7 +64,7 @@ const ROOM := {
 	"mesa": 38.0, "butte": 16.0, "saloon": 8.0, "water_tower": 3.5, "saguaro": 1.6, "mine_carts": 8.0,
 	"windpump": 3.0, "red_rocks": 2.4,
 	"jungle_tree": 3.0, "jungle_sapling": 1.6, "jungle_bush": 1.6, "fern": 1.2, "parrots": 1.6, "stepped_pyramid": 17.5, "stone_head": 4.6,
-	"waterfall": 14.0, "rope_bridge": 11.0, "canopy_walk": 15.0, "karst": 13.0, "jungle_hut": 5.0,
+	"waterfall": 14.0, "rope_bridge": 18.0, "canopy_walk": 15.0, "karst": 13.0, "jungle_hut": 5.0,
 	"city_block": 7.5, "townhouses": 7.0, "traffic_light": 1.2, "neon_sign": 2.6, "street_tree": 1.4, "armco": 3.4,
 	"phone_box": 1.0, "double_decker": 5.6, "tuk_tuk": 2.0, "neon_tower": 9.0, "lantern_gate": 5.0,
 	"tunnel_mouth": 13.0, "spire_tower": 10.5, "clock_tower": 5.0, "overpass": 17.0, "chedi": 7.5,
@@ -83,9 +83,9 @@ const DEPTH := {"falls_isle": 38.0}
 
 
 ## Props that reach over the road, so they may be put on it when none of
-## their solid parts is near the road: the cable car put across the road, and
-## the canopy walk at 1.5 times its size or more.
-const SPANNING := ["canopy_walk", "cable_car"]
+## their solid parts is near the road: the cable car and rope bridge put
+## across the road, and the canopy walk at 1.5 times its size or more.
+const SPANNING := ["canopy_walk", "cable_car", "rope_bridge"]
 ## Landmarks turn in steps of this many degrees, and come in these sizes.
 const TURN_STEP := 15
 ## Their deep water is drawn as straight rectangles, so these only turn in quarters.
@@ -2258,13 +2258,11 @@ static func _rope_span(kit: SceneryKit, from: Vector3, to: Vector3, wide: float,
 				kit.box(deck[k] + side * s * wide * 0.5, Vector3(0.05, 1.0, 0.05), ROPE.darkened(0.15), SceneryKit.SMOOTH, false)
 
 
-## A rope bridge over a little creek, between two banks of rock with
-## wooden posts on them.
+## A rope bridge between two banks of rock with wooden posts on them, far
+## enough apart for a road through the middle (see SPANNING).
 static func rope_bridge(kit: SceneryKit, at: Vector3, facing: int, rng: RandomNumberGenerator) -> void:
-	var span := 7.0
-	var bank := 2.0
-	# The creek running under it, and the banks either side.
-	_box(kit, at, Vector3(0.0, -0.1, 0.0), Vector3(2.0 * span - 3.0, 0.2, 16.0), facing, WATER, SceneryKit.WATER, false)
+	var span := 15.0
+	var bank := 6.0
 	for s in [-1.0, 1.0]:
 		_box(kit, at, Vector3(s * (span + 0.5), -1.0, 0.0), Vector3(5.0, bank + 1.0, 7.0), facing, ROCKS[1], SceneryKit.PLAIN)
 		_box(kit, at, Vector3(s * (span + 0.8), bank, 0.0), Vector3(4.0, 0.3, 6.0), facing, MOSS, SceneryKit.PLAIN, false)

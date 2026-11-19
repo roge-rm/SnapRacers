@@ -68,6 +68,12 @@ FORCE=S2:660:700 with stray 35 and tight 400 at scale 1.07. Gold Rush Gulch's
 line was joined by hand: way 879902542 to node 24, way 879902543 backwards,
 then 879902542 from node 26, and aligned at scale 1.5. The crossings, banked
 bowl, rim, crests, bridge climb, dirt split and rise bends went in by hand.
+In the Jungle cup the lines were traced with SMOOTH=20 EACH=800 at scale 1.0:
+Parrot Perch and Cascade Creek with beam 600, stray 35 and tight 400, Pyramid
+Plunge the same with FORCE=J:1380:1480, and Monsoon Mire CLEAR=31.6 with beam
+400, stray 40 and tight 200, on its line with the inner leg from 700 to 980 m
+moved 8 m out so it clears the start straight. The raised bend, jump, banking,
+mud pieces and closing slants went in by hand.
 """
 import json, math, os, sys
 import numpy as np

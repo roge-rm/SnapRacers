@@ -1,0 +1,28 @@
+{
+	"about": "The kart track by the airport, quick bends and tight hairpins through the palms, under the walkway up in the treetops on the back straight, with mud past the hairpins and a pond off to the west.",
+	"landmarks": [
+		{"prop": "canopy_walk", "at": [-103, 175], "facing": 0, "scale": 2.0},
+		{"prop": "parrots", "at": [50, 120], "facing": 0},
+		{"prop": "parrots", "at": [-55, 230], "facing": 1},
+		{"prop": "parrots", "at": [130, -20], "facing": 2},
+		{"prop": "jungle_hut", "at": [-160, 120], "facing": 1},
+		{"prop": "jungle_hut", "at": [260, 10], "facing": 3},
+		{"prop": "karst", "at": [100, -30], "facing": 0},
+		{"prop": "karst", "at": [-210, 340], "facing": 0},
+		{"prop": "karst", "at": [300, -170], "facing": 0},
+		{"prop": "jungle_tree", "at": [55, 5], "facing": 0},
+		{"prop": "jungle_tree", "at": [-60, 120], "facing": 0},
+		{"prop": "jungle_tree", "at": [-180, 0], "facing": 0},
+		{"prop": "jungle_tree", "at": [230, -100], "facing": 0},
+		{"prop": "jungle_tree", "at": [20, 280], "facing": 0},
+		{"prop": "palm", "at": [60, 320], "facing": 0},
+		{"prop": "palm", "at": [130, 330], "facing": 0},
+		{"prop": "palm", "at": [180, 260], "facing": 0},
+		{"prop": "palm", "at": [0, 360], "facing": 0}
+	],
+	"paint": {"cell": 8.0, "runs": [[-21, 0, 4, "mud"], [-20, -1, 6, "mud"], [-19, -1, 6, "mud"], [3, 28, 2, "mud"], [4, 28, 2, "mud"], [5, 28, 2, "mud"], [6, 28, 2, "mud"], [7, 28, 2, "mud"], [16, -4, 5, "mud"], [17, -4, 5, "mud"], [18, -3, 3, "mud"]]},
+	"water": [
+		{"kind": "lake", "type": "water", "at": [-225, -160], "level": 0.6}
+	],
+	"ground": {"cell": 8.0, "origin": [-256.0, -256.0], "size": [76, 91], "step": 0.05, "data": "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"}
+}

@@ -1,0 +1,26 @@
+{
+	"inspired_by": "Aut\u00f3dromo Internacional de Canc\u00fan, Quintana Roo, Mexico",
+	"about": "Round the autodrome by the Canc\u00fan coast where the karts race too, long and flat with wide bends on the zigzag back past the stone heads, then off the jump over the slime pool beside the old stepped pyramid.",
+	"landmarks": [
+		{"prop": "stepped_pyramid", "at": [-27, 300], "facing": 1},
+		{"prop": "stone_head", "at": [-110, 60], "facing": 1},
+		{"prop": "stone_head", "at": [-20, 200], "facing": 1},
+		{"prop": "stone_head", "at": [0, 430], "facing": 0},
+		{"prop": "stone_head", "at": [78, 300], "facing": 3},
+		{"prop": "stone_head", "at": [-135, 250], "facing": 1},
+		{"prop": "ruins", "at": [-110, 470], "facing": 0},
+		{"prop": "ruins", "at": [-130, 30], "facing": 1},
+		{"prop": "karst", "at": [-220, 180], "facing": 0},
+		{"prop": "karst", "at": [160, -120], "facing": 0},
+		{"prop": "parrots", "at": [-30, -120], "facing": 0},
+		{"prop": "jungle_tree", "at": [-30, -60], "facing": 0},
+		{"prop": "jungle_tree", "at": [-60, 380], "facing": 0},
+		{"prop": "jungle_tree", "at": [90, 420], "facing": 0},
+		{"prop": "jungle_tree", "at": [-150, 400], "facing": 0},
+		{"prop": "jungle_tree", "at": [70, 100], "facing": 0},
+		{"prop": "palm", "at": [60, -50], "facing": 0},
+		{"prop": "palm", "at": [-140, -120], "facing": 0}
+	],
+	"paint": {"cell": 8.0, "runs": [[38, 3, 5, "slime"], [39, 2, 7, "slime"], [40, 2, 7, "slime"], [41, 2, 7, "slime"], [42, 3, 5, "slime"]]},
+	"ground": {"cell": 8.0, "origin": [-232.0, -352.0], "size": [52, 133], "step": 0.05, "data": "eNqNWYty5DAIs5Sk7fT/P/gS24DAzvZ2Ou1u6gfGQgL2aq2x//SX/W3A/eF+zSe4HzyPnhE+Jl4cY4jxqf9B/zP/Y+PmAB97v7MN5AUfa6P6szn7tquvjdUOsJoVT55JUHPGKvaR3aRumQ+o1uTFsX+vH8aKfLa933Fnsu1cHzyPXiZs16B7iO1/Zs5du4XDTbsZ4P/tD8rQceDkjsV9wzG+JydcDDAv206bm0KGvphO9PP4tfpGOksAR727fgP23yPHiDgGac3Yfyx91FnpWHMriEVzt22IvTl+ARZ3QJ1eaIbH7sWDgp71huyCRrTSPpvbuL0kJPR3L5CHo4NyM3VKxHofAabDFPuQThsswQ+eWnDzgs0EYyhLzdEsB32FKgsVYYuF7n2aZQFwYhPGDhYawTqOKLEH2cZAyRcis7P03/PC3Ul+7zreuVMgzIiiGdtObBN7jCOAxYGc94PFtnx2LjOywKQgVFFqE8NtmVL4PbEFYtLz5khCqZ5GLEQwIN3fIqKlwpglWsw/w2EVzvhIweKeEFpbYhcZI6iL+ENwg9dIQlu4DA74ZS9YDIF+0Of3oTGrs5SbubulBtHxwPEEIxcM+SZT6nRPvknqnHdUfWdIJj/wclrNgPSRoTJe2586oLtshfNlNxNMLIKBT5smlc9YtljYiSQTAYkA5BRwLwp5J0RCyQ2UmS9vEQskTjaG4lx4OQ8iCKnZBJTrZqyKqZLMwEKs7Byghd4dJHWmRmeJkcI+M/yGsft7NanjALVj+w0wYi0thXiR4hbnO4+ahiQ1y4TyfHZGZQ59vOEvMiYmrsOSehtMUGSzTBHT1mzgekSVNEdB0ke0bZ51j7pO9ElNVV0BWJc4zj7p9MtN9QdSfUAl6IPv3LUtj57H565MelEXQ+111n2YCzssmc99s9W4r8zeGUYDuAeJhJwfZ/pevmXiuJ/dvvv+mfFih/ky04frIALgJz+o2sL2C3EsxpwqTJBk5pn0I7H+TD88ThjZb8RiB99v1Hs9lb7a7Sgw1Rvwa+7T+Buq+dTh7cpkzJCCwWHP3XzR0fY4Aud3+zqQ6qMl5un1/SwZLlEJi51wUs1vpyu8GBsGMlUqBZfTPi9CK2/hNTun091cxOzEwjObVkVbWxNvOzGsIEoMSsWW7Jq1uKXOrOTU710nEdcvHhpYNzEZuD9eKrP3m1N5AW2bSV45Q8BPu77e/DKv99lHZ3GXIzGXNbhyFnqiMZWIDlVYe+KJZ5V6UtM4v/6Z1TIYLOokNEbhzpovswouZgeIoO6ERm0J8GFI0vOxyT3nrNMktYjchFyyqI7Cc0Eik3VsSxHlESenca5iPlRKh5maEIxygEv6KuVhSrfy4prjLNVekv5UTi9dwaS2VmJ2idzW8p6xB6OkYpRZz0PrJUls2iAcTrtnHoJ0emByNjshlVxo3BHZlFfpLIfJ7cNHcaSuoBC+cEmztHBAGkdR1mHQ2SClGChVGayWGfgV3x1bPUeqL7gvErwnuF70W0UB04hcm71WFPCoi6Zd6la0P9qQFKWGVq/ChTij5TSTUjsN2qY2NPIYSvT0q0o4JTy7yozsFZSWbUnoE5dHlhkBDeVE6mUqUgrRC889sDyEOzUR9ghGiCw1+c45kTUIO+ohzeE4+pk1GlH4YOlBagt7y1lIjVl3inkE3KptZdQpstpoqvUESqueiC8fEJodx9KyelckmSrTqwm0oKk/2vROZAP32HXNkdKyECikDBMlQvR/TfuATCSPF0/WbyFSwpJbp3j/xsWrlWnrdE5kfmhVpg0l8HBM30msxSy1fwOtkbwsQXIg83dbhaX+ARIcDLg="}
+}

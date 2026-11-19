@@ -1,0 +1,28 @@
+{
+	"inspired_by": "P1 Speedway, La Uruca, San Jos\u00e9, Costa Rica",
+	"about": "The new kart track above the river gorge, with fewer tight bends than before, up over the creek from the waterfall on a raised bend, under the rope bridge and through the mud on the river bank.",
+	"landmarks": [
+		{"prop": "waterfall", "at": [92, -40], "facing": 2},
+		{"prop": "waterfall", "at": [-100, -60], "facing": 1},
+		{"prop": "rope_bridge", "at": [150, 91], "facing": 1},
+		{"prop": "jungle_hut", "at": [-80, 60], "facing": 1},
+		{"prop": "jungle_hut", "at": [280, 10], "facing": 3},
+		{"prop": "karst", "at": [300, 200], "facing": 0},
+		{"prop": "karst", "at": [-90, 250], "facing": 0},
+		{"prop": "parrots", "at": [26, 40], "facing": 0},
+		{"prop": "parrots", "at": [110, 230], "facing": 2},
+		{"prop": "jungle_tree", "at": [-60, -150], "facing": 0},
+		{"prop": "jungle_tree", "at": [100, -170], "facing": 0},
+		{"prop": "jungle_tree", "at": [200, -170], "facing": 0},
+		{"prop": "jungle_tree", "at": [290, -100], "facing": 0},
+		{"prop": "jungle_tree", "at": [-60, 160], "facing": 0},
+		{"prop": "jungle_tree", "at": [230, 230], "facing": 0},
+		{"prop": "palm", "at": [100, -10], "facing": 0},
+		{"prop": "palm", "at": [26, -40], "facing": 0}
+	],
+	"water": [
+		{"kind": "river", "type": "water", "points": [[-136, -216, 14], [-60, -220, 14], [18, -224, 14], [154, -240, 14], [258, -267, 14], [364, -300, 14]]},
+		{"kind": "river", "type": "water", "points": [[92, -60, 6], [72, -88, 6], [48, -112, 6], [32, -150, 6], [22, -195, 6], [18, -222, 6]]}
+	],
+	"ground": {"cell": 8.0, "origin": [-136.0, -248.0], "size": [65, 72], "step": 0.05, "data": "eNqVWOlu40YM5jEzGsny0TQIgsWiaP8VBbqP0vd/nPKaQ7az2UiBZckih8fHb8j8ty7LuuScmRHlD0EunPMij9fT6XzO8PPj3wSUEpH8yZ3J22FX2C+X8omCv0Rc5YFClEFPEaZ93+Hz4zddmwiJETjkZfm0bRV+6eCkn6iny6v121bgV4+EdrEAgsmnsj285S/RMwXFllcL1HhCEI/QXqYmKyfZA4kLuRoMla7AYw/2miYD45G+Kh+op4kl+83VY9NQ3QAVlzVU3ta2V8UhwrAB7VFfV/TG9y3k1brkllMs0h0IE8OoiAk1BbKOeae/qQb3F2Ll0BAf1Ewwr7oF5qk8U3GKlzDCEJpCAqfoN2XVgxdxFy0WTrOZIrAanbYiPqQx8GZKyFJlaCIcRtKweTy8V6AayCPNeFyJhtf4BEgd8WjuI+CjnQ6qHoXIUXhem/0YSyAb3GYTDoYHvjqw6wiNy+fNYmjBJF9lkpeA8tCrl72l2aCFsO4OLBfSmFAAuXkWeAp5uGCDsv8m3LAmnMJ/iOiAUnfhpjwwgOelbev34lWEITU9nDxk7fdX49Ke4qir4WJgMTVGyKkD0b18QzYuhibdVNFEJS5vaUz31fTOQUbkzNEtmBAab1OLatyHgtgMCKNgAaY0e9Aaapxg/GHng+8qyNC3g2E2uTPjMkIfhtr3P813Z+QejHACJ8gg0cGznrO/zZms0syMgRR6LIeDAU609tIPX19kczPBtR+qATqmR3Li938U9Lq2WcADxjN/RvSbJsJZw+s32xFNmvMA9dH+tjT1MsGB6T+qmJDZopgPW9EjqxjtEdzRRotQIma/ZRq5nFilRYIOtTOVzSh2nOmjSdGcVoSnDBf6RFFhHHzdoUgTvhkeLJiJq4V7JjAaaXnuwoBhWSnxtH1Y+BITzBSNHzYNZFkqkdHmAUkz0sjkSPL02E1QyrFfWiVFSsij3G4/dMESlgSbxqcYBWztAdJUrx8H0VVQ25EpehPtGFKAEH/eObkEQuN027hZYUZwxLE3WnfimZT78Pjcy6zmR/FHFwQjJcw/Znej5VDKXcHNOsROlKwBw45A6mW03gGoHxd9i1m6VYUPW9Ct98G+s3aOeLrNU0kCEgEKWpkIhk4iWHotpGXmUnzSeGqnJDpEQ7EGA+t11k8Fh+2d/onmfjVp16x2pGxw2YRhoDdG1LtExL6dz1naouv2qWFpMPWKpLrY3tblW/ebDo2O36G2vhmSmMQnp1GtB01ryLd24AifSg1Sgtu0oHA8bLeztb+wra1l83EAn8AHq60meWAJKJNMUJDSy6KI3k4rXBbjFR9KAB/Rxzuh91ayOr+Lz1WmrXJTSrjmlJTflOcYhzzxrODSaPOU80uVqQP28yIElLRpo5cGwb4D0x33iwLtctWM38X2rUjN7MvVM7jdMg95m6mcIXkutZvRho5/JxE1CNZ6EiPKlnC1CGgrNLoIOpbU+m77txwlwbkhrRRTmx0CbK2MD5Temk9DaS7ihB9pyejYk5tqXhjJ6mzLzQQ3VtDSwXD6rhHTmWcNmJCe5nxSdsm6ffpQaRRPxc6ugPkbgdZfNvSYNFFET9zSrVs5LSY6HXdVOg04LPWNBMhZMlhIByjtWTmKuJK3MFGE5qldZzyJhqKMoqcHaWXfF0TDjtF96JTtlN3OmUtftjDdHq9jzkHauMfe+3KCOwMMDftrTPJqEUMfNMQ5hkYAxN57moqHTWm/7B4ZXKaeTpJQ0cf83o97MJ7tKlsVADGX0a4v6wlea8y11qWiB/IDDY1pi+2GnB1wb9WDE51OqPvKcbskCsc9CXS/93x21NuWHAKph/f8JRug7JcL2T9tpJHDfD1fM3z1oMsuUaa8Xs+Wp/8BcGwXDQ=="}
+}

@@ -775,10 +775,10 @@ func _clear_spot(racer: Racer) -> Transform3D:
 	if backed:
 		start -= RUN_UP
 	var backs := [0.0, 5.0, 10.0, 15.0, 20.0]
-	# Up in the sky there's nothing in a jump's gap to land on, and a kart put
-	# back on the kicker with no speed only rolls in again. So one that's
-	# fallen into the gap, or off just before it, goes on past the gap to the
-	# landing instead, and looks further on for room.
+	# Up in the sky or over a raised jump there's nothing in the gap to land
+	# on, and a kart put back on the kicker with no speed only rolls in again.
+	# So one that's fallen into the gap, or off just before it, goes on past
+	# the gap to the landing instead, and looks further on for room.
 	if not backed and _fell_in_gap(racer, start):
 		var ahead := 0.0
 		while track.solid_at(start + ahead) and ahead < GAP_REACH:
@@ -826,10 +826,11 @@ func _by_the_road(racer: Racer, across: float) -> bool:
 	return absf(below) < RUNOFF_HEIGHT and track.on_road_across(racer.offset, across, -TrackPath.KERB - RUNOFF)
 
 
-## Whether this kart is on a course up in the sky, below the road at `at`,
-## and over a jump's gap or just short of one.
+## Whether this kart is on a course up in the sky or a jump raised over the
+## ground, below the road at `at`, and over a jump's gap or just short of one.
 func _fell_in_gap(racer: Racer, at: float) -> bool:
-	if not Scenery.theme_named(track.theme).get("void", false):
+	var road := track.point_at(at)
+	if not Scenery.theme_named(track.theme).get("void", false) and road.y - builder.ground_at(road.x, road.z) <= TrackBuilder.RAISED:
 		return false
 	var below := (racer.kart.global_position - track.point_at(at)).dot(track.up_at(at))
 	if below > -GAP_BELOW:
