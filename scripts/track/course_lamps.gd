@@ -24,8 +24,9 @@ const HIGHEST := 64.0
 
 
 ## The map, and where it is: [x, z of its corner, 1 / its width, 1 / its
-## depth], for the shaders. Null with no lamps.
-static func light_map(lamps: Array[Vector3]) -> Array:
+## depth], for the shaders. Null with no lamps. `colours` gives the colour of
+## any lamp that isn't COLOUR, by its index in `lamps`.
+static func light_map(lamps: Array[Vector3], colours := {}) -> Array:
 	if lamps.is_empty():
 		return []
 	var low := Vector2(INF, INF)
@@ -41,8 +42,13 @@ static func light_map(lamps: Array[Vector3]) -> Array:
 	light.resize(SIZE * SIZE)
 	var tops := PackedFloat32Array()
 	tops.resize(SIZE * SIZE)
+	# Where coloured lamps reach, the colour is the mix of the lamps there,
+	# weighted by how much light each gives.
+	var tints := {}
 	var reach := ceili(REACH / per_pixel)
-	for lamp in lamps:
+	for n in lamps.size():
+		var lamp := lamps[n]
+		var tint: Color = colours.get(n, COLOUR)
 		var cx := int((lamp.x - low.x) / per_pixel)
 		var cy := int((lamp.z - low.y) / per_pixel)
 		for y in range(maxi(cy - reach, 0), mini(cy + reach + 1, SIZE)):
@@ -54,14 +60,21 @@ static func light_map(lamps: Array[Vector3]) -> Array:
 				# Bright under the lamp and right across the road, fading
 				# out towards the edge of the pool.
 				var fall := 1.0 - (d / REACH) * (d / REACH)
+				if not colours.is_empty():
+					var mix: Color = tints.get(i, Color(0.0, 0.0, 0.0, 0.0))
+					tints[i] = mix + Color(tint.r, tint.g, tint.b, 1.0) * fall * fall
 				light[i] = minf(light[i] + fall * fall * BRIGHTNESS, MOST)
 				tops[i] = maxf(tops[i], lamp.y)
 	var bytes := PackedByteArray()
 	bytes.resize(SIZE * SIZE * 4)
 	for i in SIZE * SIZE:
-		bytes[i * 4] = int(COLOUR.r * light[i] / MOST * 255.0)
-		bytes[i * 4 + 1] = int(COLOUR.g * light[i] / MOST * 255.0)
-		bytes[i * 4 + 2] = int(COLOUR.b * light[i] / MOST * 255.0)
+		var colour := COLOUR
+		if tints.has(i):
+			var mix: Color = tints[i]
+			colour = Color(mix.r / mix.a, mix.g / mix.a, mix.b / mix.a)
+		bytes[i * 4] = int(colour.r * light[i] / MOST * 255.0)
+		bytes[i * 4 + 1] = int(colour.g * light[i] / MOST * 255.0)
+		bytes[i * 4 + 2] = int(colour.b * light[i] / MOST * 255.0)
 		bytes[i * 4 + 3] = int(clampf(tops[i] / HIGHEST, 0.0, 1.0) * 255.0)
 	var image := Image.create_from_data(SIZE, SIZE, false, Image.FORMAT_RGBA8, bytes)
 	var size := Vector2(per_pixel * SIZE, per_pixel * SIZE)
@@ -69,8 +82,8 @@ static func light_map(lamps: Array[Vector3]) -> Array:
 
 
 ## Lights the course around these lamps, for the shaders.
-static func light(lamps: Array[Vector3]) -> void:
-	var made := light_map(lamps)
+static func light(lamps: Array[Vector3], colours := {}) -> void:
+	var made := light_map(lamps, colours)
 	if made.is_empty():
 		RenderingServer.global_shader_parameter_set("lamp_area", Vector4.ZERO)
 		return

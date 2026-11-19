@@ -37,6 +37,9 @@ const SMALL := 3.2
 ## Props too big to break, like hills and lakes.
 ## Where each lamp along the road is (see _lamp_posts()).
 var lamps: Array[Vector3] = []
+## The colour of the lamps that aren't the usual warm white, by their index
+## in `lamps`, like the glow round lava (see CourseLamps.light_map()).
+var lamp_colours := {}
 const UNBREAKABLE := ["mountain", "snowy_peak", "mesa", "butte", "karst", "waterfall", "volcano", "slag_heap", "dune", "lake", "pond", "lava_pool", "old_banking", "red_roof", "bridge",
 	"hot_air_balloon", "airship", "falls_isle", "rainbow", "weather_vane", "windmill_isle", "sky_lighthouse", "sky_dock", "sky_isle", "cloud_puff"]
 ## Two stretches of road closer than this (middle to middle) get a line of
@@ -93,6 +96,8 @@ const PAINT_LIFT := 0.07
 ## apart along their edge and this high over them, in metres.
 const PAINT_LAMP_GAP := 16.0
 const PAINT_LAMP_HEIGHT := 3.0
+## The colour of the glow round each type that burns.
+const GLOW_LIGHT := {"lava": Color("#ff7a2e"), "slime": Color("#9cf060")}
 const PAINT_STEP := 2.0
 ## The pattern on each painted type and on its edge band (see "grain" in
 ## BrickShaders.BLOCK): 1 mud, 2 gravel, 3 sand, 4 ice, 5 crust, 6 lava,
@@ -1804,6 +1809,7 @@ func _build_waters() -> void:
 		var grain: int = PAINT_GRAIN["lava"][0] if lava else 0
 		_flat_draw(mesh, Color.WHITE, surface, grain).name = "%s %s %d" % [body.type.capitalize(), body.kind, b]
 	for spot in waters.lava_edges(PAINT_LAMP_GAP):
+		lamp_colours[lamps.size()] = GLOW_LIGHT.lava
 		lamps.append(spot + Vector3.UP * PAINT_LAMP_HEIGHT)
 
 
@@ -1836,6 +1842,7 @@ func _paint_lamps() -> void:
 			continue
 		taken[square] = square
 		var middle := PaintedAreas.middle_of(square)
+		lamp_colours[lamps.size()] = GLOW_LIGHT.get(paint.squares[square], CourseLamps.COLOUR)
 		lamps.append(Vector3(middle.x, water.paint_top(middle.x, middle.y) + PAINT_LAMP_HEIGHT, middle.y))
 
 

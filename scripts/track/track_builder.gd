@@ -223,7 +223,7 @@ func _build() -> void:
 	add_child(dressing)
 	# At night the lamps light the course around them.
 	if conditions.dark():
-		CourseLamps.light(dressing.lamps)
+		CourseLamps.light(dressing.lamps, dressing.lamp_colours)
 
 
 ## How high the ground is here: the hills or the map on a course with them,
