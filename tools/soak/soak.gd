@@ -15,6 +15,9 @@ const MOST_TIME := 600.0
 const STALL_TIME := 20.0
 const STALL_DISTANCE := 5.0
 
+## Physics frames a reset reason stays good for.
+const ASKED_WINDOW := 6
+
 var host: Node
 
 
@@ -56,14 +59,20 @@ func _ready() -> void:
 	# slow, or fallen off, wandered away or sunk (put back by the race).
 	var resets := {}
 	var repairs := {}
+	# The frame each AI last gave a reason. A reason that never led to a reset
+	# goes stale and isn't given to a later one.
+	var asked := {}
 	for racer in race.racers:
+		asked[racer] = -1000
 		resets[racer] = 0
 		repairs[racer] = 0
 		racer.kart.was_reset.connect(func() -> void:
 			var why := "fallen"
-			if racer.ai != null and racer.ai.reset_why != "":
+			if racer.ai != null and racer.ai.reset_why != "" and Engine.get_physics_frames() - asked[racer] <= ASKED_WINDOW:
 				why = racer.ai.reset_why
+			if racer.ai != null:
 				racer.ai.reset_why = ""
+				asked[racer] = -1000
 			if why == "wheel gone":
 				repairs[racer] += 1
 			else:
@@ -90,6 +99,14 @@ func _ready() -> void:
 					var g := k.wheels.filter(func(w) -> bool: return w.grounded).size()
 					print("TRACE %.1f %s at %.1f across %.1f above %.2f v %.1f vy %.1f upy %.2f wheels %d/%d lost %d thr %.1f brk %.1f" % [race.time, racer.name, at, (k.global_position - mid).dot(race.track.right_at(at)), (k.global_position - mid).dot(race.track.up_at(at)), k.linear_velocity.length(), k.linear_velocity.y, k.global_basis.y.y, g, k.wheels.size(), k.lost.size(), k.controls.throttle, k.controls.brake])
 		for racer in race.racers:
+			if racer.ai != null:
+				if racer.ai.reset_why == "":
+					asked[racer] = -1000
+				elif asked[racer] < 0:
+					asked[racer] = Engine.get_physics_frames()
+				elif Engine.get_physics_frames() - asked[racer] > ASKED_WINDOW:
+					racer.ai.reset_why = ""
+					asked[racer] = -1000
 			if racer.progress.finished:
 				continue
 			var now: float = racer.progress.distance()
