@@ -8,7 +8,8 @@ extends RefCounted
 ##
 ## Where the road is unusual (jumps, loops, corkscrews, wall rides) it keeps
 ## to the middle, and it eases over to the middle before them. Beside a drop
-## with no wall it keeps further in from the edge.
+## with no wall, or anywhere on a course in the sky, it keeps further in from
+## an edge with no wall.
 ##
 ## TrackPath makes one the first time it's asked for, after the layout is
 ## applied, and keeps it until the road is built again.
@@ -232,21 +233,30 @@ func _times(track: TrackPath, line: PackedFloat32Array, line_bends: PackedFloat3
 func _bounds(track: TrackPath, side: int, low_of: PackedFloat32Array, high_of: PackedFloat32Array) -> void:
 	var count := track.points.size()
 	var half := track.width * 0.5
+	# Up in the sky there's nothing beside the road at any height.
+	var floating: bool = Scenery.theme_named(track.theme).get("void", false)
+	# Whether the outer edge of branch `side` is a drop, at each sample.
+	var drop: Array[bool] = []
+	drop.resize(count)
+	drop.fill(false)
 	for k in count:
 		var piece := track.pieces[track.piece_of[k]]
 		if not track.solids[k] or piece.type == "jump" or TrackPiece.turns_over(piece.type) or track.stickies[k]:
 			continue
-		# Same test the builder uses for road you could fall off.
-		var raised := track.points[k].y - track.grounds[k] > RAISED or track.ups[k].y < 0.985
-		var walls := piece.forced_walls() or raised
+		# Same test the builder uses for walls.
+		var high := track.points[k].y - track.grounds[k] > RAISED or track.ups[k].y < 0.985
+		var raised := high or floating
+		var walls := piece.forced_walls() or high
 		var right := MARGIN if not raised or (walls and piece.wall_right) else OPEN_MARGIN
 		var left := MARGIN if not raised or (walls and piece.wall_left) else OPEN_MARGIN
+		drop[k] = (side == 0 and left > MARGIN) or (side == 1 and right > MARGIN)
 		high_of[k] = maxf(half - right, 0.0)
 		low_of[k] = minf(-(half - left), 0.0)
 		if side >= 0 and track.split_sample(k):
+			# The island side is road; the outer side can be a drop.
 			var branch := track.branch_lefts[k] if side == 0 else track.branch_rights[k]
-			low_of[k] = branch.x - branch.y * 0.5 + MARGIN
-			high_of[k] = maxf(branch.x + branch.y * 0.5 - MARGIN, low_of[k])
+			low_of[k] = branch.x - branch.y * 0.5 + (left if side == 0 else MARGIN)
+			high_of[k] = maxf(branch.x + branch.y * 0.5 - (right if side == 1 else MARGIN), low_of[k])
 	if side >= 0 and track.has_splits:
 		_clear_noses(track, side, low_of, high_of)
 		_straight_jumps(track, side, low_of, high_of)
@@ -285,6 +295,22 @@ func _bounds(track: TrackPath, side: int, low_of: PackedFloat32Array, high_of: P
 			high_of[k] = low_of[k]
 		low_of[k] += base[k]
 		high_of[k] += base[k]
+	# Where a split's branches join, a branch's outer edge can sweep in faster
+	# than a kart can follow. Beside a drop it moves over ahead of that, even
+	# if it then cuts closer to the island's nose.
+	if side < 0 or not track.has_splits:
+		return
+	for n in count * 2:
+		var k := count - 1 - n % count
+		var ahead := (k + 1) % count
+		if not drop[k] or not track.split_sample(k):
+			continue
+		if side == 0:
+			low_of[k] = maxf(low_of[k], low_of[ahead] - steps[k])
+			high_of[k] = maxf(high_of[k], low_of[k])
+		else:
+			high_of[k] = minf(high_of[k], high_of[ahead] + steps[k])
+			low_of[k] = minf(low_of[k], high_of[k])
 
 
 ## On a split it keeps as far from the island's edge as it'll need to be
