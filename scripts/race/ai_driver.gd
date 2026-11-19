@@ -145,6 +145,9 @@ const BEND_STEER := 1.0
 ## SLIDE_INSIDE metres over to the inside.
 const SLIDE_LINE := 0.5
 const SLIDE_INSIDE := 3.0
+## How far past the start of a bend it looks for a swinging split before
+## sliding round it, in metres.
+const SWING_LOOK := 56.0
 ## How much further in from the road's edges than the racing line may go it
 ## keeps, in metres, since it never drives its line exactly and the verges
 ## have kerbs and tire stacks to catch it.
@@ -782,7 +785,7 @@ func _drive(delta: float, speed: float) -> void:
 			var on_line := lerpf(bend, _line_bends[k], line_follow * LINE_TRUST)
 			bend = maxf(bend, on_line) if _jump_run_in else on_line
 		# A bend it slides round it takes round the middle (see SLIDE_LINE).
-		var slid := _slides() and _bends[k] > slide_bend
+		var slid := _slides() and _bends[k] > slide_bend and not _swing_near(offset + BEND_EVERY * k)
 		if slid:
 			bend = maxf(bend, _bends[k])
 		if bend > 0.002:
@@ -811,7 +814,7 @@ func _drive(delta: float, speed: float) -> void:
 	if tight < slide_bend * 0.5 and not kart.sliding:
 		_slid_this_bend = false
 		_slide_way = 0.0
-	if _slides() and not _slid_this_bend and tight > slide_bend and speed > Kart.SLIDE_SPEED + 3.0 and not _loop_within(LOOP_AHEAD):
+	if _slides() and not _slid_this_bend and tight > slide_bend and speed > Kart.SLIDE_SPEED + 3.0 and not _loop_within(LOOP_AHEAD) and not _swing_near(offset):
 		# Into the tightest bends a top driver kicks the tail out and slides
 		# round on the gas.
 		# Only from the outside half of the road, as a slide carries it in
@@ -1023,6 +1026,21 @@ func _slides() -> bool:
 	if _sky < 0:
 		_sky = 1 if Scenery.theme_named(track.theme).get("void", false) else 0
 	return _sky == 0
+
+
+## Whether a split's branches swing across anywhere in the SWING_LOOK metres
+## from `at`. The turbo out of a slide there carries it wide off its branch,
+## so it brakes for those bends instead.
+func _swing_near(at: float) -> bool:
+	var swings := track.racing_line().swings
+	if swings.is_empty() or not track.has_splits:
+		return false
+	var ahead := 0.0
+	while ahead <= SWING_LOOK:
+		if swings[track._index_before(at + ahead)] == 1:
+			return true
+		ahead += 4.0
+	return false
 
 
 ## Whether it's on a jump or close enough to build up speed for one.
