@@ -114,6 +114,8 @@ static var slide_bend := 0.06
 static var slide_time := 0.25
 static var slide_plan := 1.15
 var _slide_left := 0.0
+## How long since it was last sliding, in seconds.
+var _out_of_slide := INF
 ## 1 on a course up in the sky, 0 elsewhere, -1 before it's looked.
 var _sky := -1
 var _slid_this_bend := false
@@ -216,6 +218,14 @@ const NOSE_BRAKE := 0.3
 const STRAIGHT_STEER_RATE := 5.0
 ## How bent the road can be and still count as a straight for that.
 const STRAIGHT_BEND := 0.01
+## For this long out of a slide, in seconds, skating sideways more than
+## SLIP_LEAST radians (up to SLIP_MOST), it aims SLIP_SHARE of the way from
+## where it's pointing to where it's going. The tires soon pull where it's
+## going round to where it points, so all the way overcorrects.
+const SLIP_AFTER := 1.0
+const SLIP_LEAST := 0.1
+const SLIP_MOST := 1.0
+const SLIP_SHARE := 0.3
 ## Pointing further than this from where it's going, it slows down enough
 ## to turn onto it, though never below TURN_ROUND_SPEED.
 const TURN_ROUND_ANGLE := 0.5
@@ -715,6 +725,14 @@ func _drive(delta: float, speed: float) -> void:
 	to_target -= up * to_target.dot(up)
 	var facing := -kart.global_basis.z
 	var angle := facing.signed_angle_to(to_target, up)
+	# Skating sideways out of a slide, it aims partly where it's going, or it
+	# turns further the way it's already going and runs wide.
+	_out_of_slide = 0.0 if kart.sliding else _out_of_slide + delta
+	var going := kart.linear_velocity - up * kart.linear_velocity.dot(up)
+	if not kart.sliding and _slide_left <= 0.0 and _out_of_slide < SLIP_AFTER and going.length() > 5.0:
+		var slip := facing.signed_angle_to(going, up)
+		if absf(slip) > SLIP_LEAST and absf(slip) < SLIP_MOST:
+			angle -= (slip - signf(slip) * SLIP_LEAST) * SLIP_SHARE
 	# Pointing at a point further round a bend cuts inside it. On its line
 	# the way to go is along the line, which is turned from the way to that
 	# point by half as much as the line turns on the way there, so it takes
