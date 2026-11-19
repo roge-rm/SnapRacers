@@ -114,6 +114,8 @@ static var slide_bend := 0.06
 static var slide_time := 0.25
 static var slide_plan := 1.15
 var _slide_left := 0.0
+## 1 on a course up in the sky, 0 elsewhere, -1 before it's looked.
+var _sky := -1
 var _slid_this_bend := false
 ## Which way the bend it's sliding round goes, 1 right and -1 left, or 0.
 var _slide_way := 0.0
@@ -733,8 +735,10 @@ func _drive(delta: float, speed: float) -> void:
 	var straight := piece != "corkscrew" and not TrackPiece.turns_over(piece) and track.bend_at(offset) < STRAIGHT_BEND and track.bend_at(offset + look * 0.4) < STRAIGHT_BEND
 	# On a straight the kart's lock shrinks with speed, so aiming with that
 	# lock slams the stick for a tiny heading error and the wheels wiggle.
+	# It aims from where it'll be pointing a moment on, so it eases off a
+	# swing instead of steering further into it.
 	if straight:
-		angle += kart.angular_velocity.dot(up) * 0.12
+		angle -= kart.angular_velocity.dot(up) * 0.12
 	var lock := Kart.MAX_STEER if straight else kart.full_lock
 	# A kart with no wheels left has no lock (see Kart._pose_driver()).
 	controls.steer = clampf(-angle / maxf(lock, 0.001) * 1.2 + bend_steer * BEND_STEER, -1.0, 1.0)
@@ -778,7 +782,7 @@ func _drive(delta: float, speed: float) -> void:
 			var on_line := lerpf(bend, _line_bends[k], line_follow * LINE_TRUST)
 			bend = maxf(bend, on_line) if _jump_run_in else on_line
 		# A bend it slides round it takes round the middle (see SLIDE_LINE).
-		var slid := slides and _bends[k] > slide_bend
+		var slid := _slides() and _bends[k] > slide_bend
 		if slid:
 			bend = maxf(bend, _bends[k])
 		if bend > 0.002:
@@ -807,7 +811,7 @@ func _drive(delta: float, speed: float) -> void:
 	if tight < slide_bend * 0.5 and not kart.sliding:
 		_slid_this_bend = false
 		_slide_way = 0.0
-	if slides and not _slid_this_bend and tight > slide_bend and speed > Kart.SLIDE_SPEED + 3.0 and not _loop_within(LOOP_AHEAD):
+	if _slides() and not _slid_this_bend and tight > slide_bend and speed > Kart.SLIDE_SPEED + 3.0 and not _loop_within(LOOP_AHEAD):
 		# Into the tightest bends a top driver kicks the tail out and slides
 		# round on the gas.
 		# Only from the outside half of the road, as a slide carries it in
@@ -1009,6 +1013,16 @@ func _loop_within(distance: float) -> bool:
 					break
 				ahead += 4.0
 	return _loop_at <= distance
+
+
+## Whether it slides round the tightest bends here. Up in the sky a slide
+## that runs wide or spins out goes over the edge, so it brakes instead.
+func _slides() -> bool:
+	if not slides:
+		return false
+	if _sky < 0:
+		_sky = 1 if Scenery.theme_named(track.theme).get("void", false) else 0
+	return _sky == 0
 
 
 ## Whether it's on a jump or close enough to build up speed for one.
