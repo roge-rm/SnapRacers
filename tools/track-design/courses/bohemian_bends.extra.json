@@ -1,0 +1,25 @@
+{
+	"about": "Packed with bends like a real kart hall in an old greenhouse, folding back on each other in 75 and 15 degree pairs, with a split bend at the top.",
+	"road_colour": "blue",
+	"landmarks": [
+		{"prop": "grandstand", "at": [-29, -32], "facing": 1},
+		{"prop": "kart_office", "at": [23, 56], "facing": 3},
+		{"prop": "kart_row", "at": [15, 135], "facing": 2},
+		{"prop": "kart_row", "at": [82, 109], "facing": 3},
+		{"prop": "viewing_deck", "at": [155, 67], "facing": 3},
+		{"prop": "billboard", "at": [90, 24], "facing": 2},
+		{"prop": "billboard", "at": [53, 177], "facing": 0},
+		{"prop": "tire_pile", "at": [50, -29], "facing": 3},
+		{"prop": "tire_pile", "at": [99, -99], "facing": 3},
+		{"prop": "tire_pile", "at": [250, 6], "facing": 3},
+		{"prop": "tire_pile", "at": [112, -48], "facing": 1},
+		{"prop": "tire_pile", "at": [-45, 153], "facing": 0},
+		{"prop": "pallets", "at": [217, -15], "facing": 3},
+		{"prop": "marshal_post", "at": [249, -79], "facing": 3},
+		{"prop": "barrier_stack", "at": [132, 157], "facing": 3},
+		{"prop": "kart_row", "at": [174, -90], "facing": 1},
+		{"prop": "tire_stack", "at": [142, 19], "facing": 3},
+		{"prop": "flag", "at": [14, -48], "facing": 3},
+		{"prop": "pallets", "at": [76, 161], "facing": 3}
+	]
+}

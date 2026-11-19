@@ -1093,7 +1093,12 @@ func _barrier_lines() -> void:
 			var p := track.points[k]
 			var spot := Vector3.INF
 			if track.solids[k] and not track.stickies[k] and p.y < TrackBuilder.RAISED and track.ups[k].y > 0.95:
-				spot = _grounded(p + track.rights[k] * side * out)
+				# On a split it goes outside that side's branch.
+				var reach := out
+				if track.split_sample(k):
+					var branch: Vector2 = track.branch_lefts[k] if side < 0.0 else track.branch_rights[k]
+					reach = maxf(out, branch.x * side + branch.y * 0.5 + TrackPath.KERB + INDOOR_RUNOFF)
+				spot = _grounded(p + track.rights[k] * side * reach)
 				if _near_other_road(spot, out - 0.5, k, 30.0):
 					spot = Vector3.INF
 			if spot != Vector3.INF and last != Vector3.INF and last.distance_to(spot) < BARRIER_STEP * 2.0:

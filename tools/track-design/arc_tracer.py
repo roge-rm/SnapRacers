@@ -37,6 +37,10 @@ In the Gravel cup each OSM line was joined by hand from the ways of the
 real lap, scaled 1.45 to 1.7 and turned so its start straight faces north,
 Menhir Meadow with START=3 FORCE=JR:740:1000, Oast Hill FORCE=J:600:660 and
 Pine Hill Leap START=3 FORCE=J:1320:1400.
+In the Hangar cup Neon Nights is at scale 0.91 with CLEAR=31.6 and stray 35,
+its tight hook at the far end tidied by hand. The other three halls are too
+tight to follow with whole tiles at about 1700 m, so they were laid by hand
+in the style of the real ones.
 """
 import json, math, os, sys
 import numpy as np

@@ -1,0 +1,24 @@
+{
+	"about": "Half and quarter straights and tight 45s round a real indoor kart hall, made longer, with a raised deck on the long back straight.",
+	"road_colour": "pink",
+	"landmarks": [
+		{"prop": "grandstand", "at": [0, -74], "facing": 0},
+		{"prop": "grandstand", "at": [-27, -1], "facing": 2},
+		{"prop": "kart_office", "at": [23, 56], "facing": 3},
+		{"prop": "kart_row", "at": [16, 124], "facing": 3},
+		{"prop": "kart_row", "at": [-31, 113], "facing": 3},
+		{"prop": "viewing_deck", "at": [-82, -320], "facing": 0},
+		{"prop": "neon_sign", "at": [-73, -182], "facing": 1},
+		{"prop": "neon_sign", "at": [73, -275], "facing": 3},
+		{"prop": "neon_sign", "at": [-110, 18], "facing": 1},
+		{"prop": "neon_sign", "at": [-111, -363], "facing": 2},
+		{"prop": "billboard", "at": [-20, -266], "facing": 2},
+		{"prop": "tire_pile", "at": [-39, -115], "facing": 3},
+		{"prop": "tire_pile", "at": [6, -235], "facing": 0},
+		{"prop": "tire_pile", "at": [-119, -119], "facing": 1},
+		{"prop": "tire_pile", "at": [-151, 25], "facing": 3},
+		{"prop": "pallets", "at": [-165, -287], "facing": 2},
+		{"prop": "marshal_post", "at": [-10, -317], "facing": 2},
+		{"prop": "barrier_stack", "at": [-122, -28], "facing": 0}
+	]
+}
