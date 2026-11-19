@@ -704,10 +704,11 @@ func _physics_process(delta: float) -> void:
 		if fallen and builder.terrain != null and track.grounded_at(racer.offset, TrackBuilder.RAISED):
 			fallen = pos.y < builder.ground_at(pos.x, pos.z) - UNDERGROUND
 		# Over deep water or lava however far down, it falls in and sinks or
-		# burns there instead.
+		# burns there instead, unless it has landed on something solid.
 		if fallen:
 			var pool := builder.water.level_at(Vector3(pos.x, -1.0e6, pos.z))
-			fallen = not (is_finite(pool) and pos.y > pool - Kart.SINK_DEPTH)
+			var dropping := kart.linear_velocity.y < 0.0 and not kart.wheels.any(func(w: Kart.Wheel) -> bool: return w.grounded)
+			fallen = not (is_finite(pool) and pos.y > pool - Kart.SINK_DEPTH and dropping)
 		if kart.slowdown_left <= 0.0 and kart.sinking_left <= 0.0 and (fallen or kart.global_position.distance_to(middle) > LOST):
 			if OS.has_environment("RACE_DEBUG"):
 				var truly := track.offset_of(kart.global_position)
