@@ -434,7 +434,7 @@ const THEMES := {
 	"jungle_falls": {
 		"ground": "#3b6e31", "curbs": ["#a5ca18", "#f2f3f2"], "wall": "#0d69ab",
 		"sky": ["#5590c8", "#e2ece2"], "karsts": true,
-		"landmarks": ["waterfall", "rope_bridge", "waterfall", "jungle_hut", "pond"],
+		"landmarks": ["waterfall", "canopy_walk", "waterfall", "jungle_hut", "pond"],
 		"fillers": {"jungle_tree": 4, "jungle_sapling": 4, "palm": 1, "bush": 1},
 		"filler_reach": 34.0, "litter": true,
 		"undergrowth": {"fern": 3, "jungle_sapling": 2, "jungle_bush": 3},
@@ -450,7 +450,7 @@ const THEMES := {
 	"jungle_swamp": {
 		"ground": "#5a6a34", "curbs": ["#a5ca18", "#694030"], "wall": "#694030",
 		"sky": ["#6a8aa8", "#d8e0d8"], "karsts": true, "floor": "mud",
-		"landmarks": ["karst", "rope_bridge", "jungle_hut", "jungle_hut", "karst"],
+		"landmarks": ["karst", "jungle_hut", "jungle_hut", "jungle_hut", "karst"],
 		"fillers": {"jungle_tree": 4, "jungle_sapling": 3, "pond": 1, "palm": 1, "bush": 1},
 		"filler_reach": 34.0,
 		"undergrowth": {"fern": 2, "reeds": 1, "jungle_sapling": 2, "jungle_bush": 3},
@@ -458,7 +458,7 @@ const THEMES := {
 	"city_tokyo": {
 		"ground": "#5d6266", "curbs": ["#c4281c", "#f2f3f2"], "wall": "#f2f3f2",
 		"sky": ["#3f6aa8", "#dfe6ee"], "skyline": true, "floor": "dirt",
-		"landmarks": ["tunnel_mouth", "neon_tower", "neon_tower", "lantern_gate", "pagoda", "lantern_gate"],
+		"landmarks": ["tunnel_mouth", "neon_tower", "neon_tower", "pagoda", "neon_tower"],
 		"fillers": {"city_block": 6, "neon_sign": 2, "street_tree": 2, "armco": 1},
 		"filler_reach": 44.0,
 		"undergrowth": {"street_tree": 2, "traffic_light": 1, "neon_sign": 1},
@@ -618,9 +618,15 @@ func _dress(indoor: bool) -> void:
 		_trackside()
 		if not _floating:
 			_under_jumps()
-	# Landmarks put down by hand go exactly where they were put. Without any,
-	# the theme places its own where you'll see them.
-	for mark in track.landmarks:
+	# Landmarks put down by hand go exactly where they were put, though a
+	# spanning one beside the road may be turned or made smaller to keep off
+	# it (see Props.fitted()). Without any, the theme places its own where
+	# you'll see them.
+	var clear := track.width * 0.5 + TrackPath.KERB + TrackBuilder.WALL_THICKNESS + Props.LANDMARK_GAP
+	for placed in track.landmarks:
+		var mark := Props.fitted(placed, track.points, clear)
+		if mark.is_empty():
+			continue
 		var at: Array = mark.get("at", [0.0, 0.0])
 		_add(str(mark.get("prop", "")), Vector3(float(at[0]), 0.0, float(at[1])), int(mark.get("facing", 0)), mark)
 	if track.landmarks.is_empty() and not only_landmarks:

@@ -24,7 +24,7 @@ const GRAB_RADIUS := 90.0
 const LANDMARK_LAYER := 1 << 19
 ## A landmark keeps this far from the edge of the road, as well as its own
 ## room.
-const LANDMARK_GAP := 3.0
+const LANDMARK_GAP := Props.LANDMARK_GAP
 const HIGHLIGHT := Color(0.702, 0.616, 1.0, 0.45)
 
 ## Each kind of piece's road, made once: key -> [mesh, collision shape].
@@ -851,7 +851,11 @@ func _rebuild_landmarks() -> void:
 		# The one in hand is shown as the ghost instead.
 		if not _holding.is_empty() and int(_holding.index) == i:
 			continue
-		_marks.add_child(_landmark_node(course.landmarks[i], i))
+		# Drawn as the race draws it, or as placed if the race leaves it out,
+		# so it can still be picked up.
+		var mark: Dictionary = course.landmarks[i]
+		var drawn := mark if track == null else Props.fitted(mark, track.points, course.width * 0.5 + TrackPath.KERB + TrackBuilder.WALL_THICKNESS + LANDMARK_GAP)
+		_marks.add_child(_landmark_node(mark if drawn.is_empty() else drawn, i))
 
 
 # Laying the course out.

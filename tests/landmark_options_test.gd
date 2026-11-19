@@ -61,6 +61,36 @@ func _run() -> void:
 		span.facing = 1
 		check(not editor._clear_of_road(span), "but not turned along the road")
 
+	# Older courses: a lantern gate and rope bridge put beside the road, as
+	# close as the editor allowed when they were narrow, crossways to it.
+	var kerb := editor.course.width * 0.5 + TrackPath.KERB
+	var old_marks := [
+		{"prop": "lantern_gate", "at": [on_road.x + 16.5, on_road.z], "facing": 0},
+		{"prop": "rope_bridge", "at": [on_road.x + 22.5, on_road.z], "facing": 0},
+	]
+	var beside := editor.course.track()
+	beside.landmarks = old_marks
+	var drawn_kit := SceneryKit.new()
+	for mark: Dictionary in old_marks:
+		check(Props.solid_near(mark, beside.points, kerb), "an old %s at full width would stand on the road" % mark.prop)
+		var drawn := Props.fitted(mark, beside.points, kerb + TrackBuilder.WALL_THICKNESS + TrackEditor.LANDMARK_GAP)
+		check(not drawn.is_empty() and not Props.solid_near(drawn, beside.points, kerb), "so it's drawn clear of the road and kerb (%s)" % str(drawn))
+		Props.add_mark(drawn_kit, drawn, Vector3(float(mark.at[0]), 0.0, float(mark.at[1])), RandomNumberGenerator.new())
+	var scenery := Scenery.new(beside, "jungle_falls")
+	scenery.only_landmarks = true
+	add_child(scenery)
+	var on_kerb := 0
+	for solid: Array in scenery._kit.solids:
+		var back: Transform3D = solid[0].affine_inverse()
+		var half: Vector3 = solid[1] * 0.5
+		for p in beside.points:
+			var local := back * Vector3(p.x, solid[0].origin.y, p.z)
+			if Vector2(maxf(absf(local.x) - half.x, 0.0), maxf(absf(local.z) - half.z, 0.0)).length() < kerb:
+				on_kerb += 1
+				break
+	check(on_kerb == 0 and scenery._kit.solids.size() == drawn_kit.solids.size(), "the race draws them so, with nothing solid on the road or kerb (%d of %d solids)" % [on_kerb, scenery._kit.solids.size()])
+	scenery.queue_free()
+
 	# Turning and size in hand.
 	editor.pick_up_landmark("house")
 	for k in 3:

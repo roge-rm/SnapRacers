@@ -87,6 +87,8 @@ const DEPTH := {"falls_isle": 38.0}
 ## gate and overpass put across the road, and the canopy walk at 1.5 times its
 ## size or more.
 const SPANNING := ["canopy_walk", "cable_car", "rope_bridge", "lantern_gate", "overpass"]
+## How far past the wall a placed landmark keeps from the road.
+const LANDMARK_GAP := 3.0
 ## Landmarks turn in steps of this many degrees, and come in these sizes.
 const TURN_STEP := 15
 ## Their deep water is drawn as straight rectangles, so these only turn in quarters.
@@ -112,6 +114,27 @@ static func solid_near(mark: Dictionary, points: PackedVector3Array, clear: floa
 			if out.length() < clear:
 				return true
 	return false
+
+
+## A placed spanning landmark as it's drawn: as placed if its solid parts
+## keep `clear` of the road's `points`, else turned a quarter or made
+## smaller until they do, or empty to leave it out. That keeps one put
+## beside the road, not across it, off the road. Anything else comes back
+## as placed.
+static func fitted(mark: Dictionary, points: PackedVector3Array, clear: float) -> Dictionary:
+	if not mark.get("prop", "") in SPANNING or not solid_near(mark, points, clear):
+		return mark
+	var angle := angle_of(mark)
+	var grown := float(mark.get("scale", 1.0))
+	for size in [1.0, 0.75, 0.5]:
+		for turn in [0, 90]:
+			var tried := mark.duplicate()
+			tried["angle"] = posmod(angle + turn, 360)
+			tried["facing"] = posmod(roundi((angle + turn) / 90.0), 4)
+			tried["scale"] = grown * size
+			if not solid_near(tried, points, clear):
+				return tried
+	return {}
 
 
 ## The room a placed landmark takes, with its size setting.
