@@ -563,14 +563,14 @@ func _pick_branches() -> void:
 		if not _picks.has(key):
 			_picks[key] = pick_branch(zone, visit)
 		branches[zone] = _picks[key]
-	# Where it'll be a moment on, so a kart still in line with the other
-	# branch as the island comes up takes that one before it's too late to
-	# turn away from the nose.
-	var ahead := fposmod(offset + maxf(kart.linear_velocity.length() * BRANCH_SWITCH_TIME, 6.0), track.length)
-	var lanes := track.lanes_at(ahead)
+	# On a split it goes by the lanes where it is. Before one it looks a
+	# moment on, so a kart still in line with the other branch as the island
+	# comes up takes that one before it's too late to turn away from the nose.
+	var ahead := offset
+	var lanes := track.lanes_at(offset)
 	if lanes.size() < 2 or lanes[1].x - lanes[0].y < 3.0:
-		ahead = offset
-		lanes = track.lanes_at(offset)
+		ahead = fposmod(offset + maxf(kart.linear_velocity.length() * BRANCH_SWITCH_TIME, 6.0), track.length)
+		lanes = track.lanes_at(ahead)
 	if lanes.size() < 2 or lanes[1].x - lanes[0].y < 3.0:
 		return
 	var zone := racing.zones[track._index_before(ahead)]
