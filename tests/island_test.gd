@@ -36,7 +36,13 @@ func _initialize() -> void:
 		# has to reach.
 		var track := TrackPath.from_dict(data)
 		var far := track.points[0] + track.rights[0] * 110.0
-		data.landmarks = data.get("landmarks", []) + [{"prop": "lighthouse", "at": [far.x, far.z], "facing": 0}]
+		var lighthouse := {"prop": "lighthouse", "at": [far.x, far.z], "facing": 0}
+		# The shore with only that landmark, for how near the sea comes, as
+		# the island reaches out to every landmark the course has.
+		var bare: Dictionary = data.duplicate(true)
+		bare.landmarks = [lighthouse]
+		var bare_shore := Scenery.island_shore(TrackPath.from_dict(bare))
+		data.landmarks = data.get("landmarks", []) + [lighthouse]
 		track = TrackPath.from_dict(data)
 		var started := Time.get_ticks_msec()
 		var made := _island(track, id)
@@ -68,7 +74,7 @@ func _initialize() -> void:
 				if _other_road_near(road, wet, track.distances[k], track.length):
 					continue
 				samples += 1
-				if not Scenery.inside(shore, Vector2(wet.x, wet.z)):
+				if not Scenery.inside(bare_shore, Vector2(wet.x, wet.z)):
 					near += 1
 		check(runoff_dry, "%s: the runoff is all on the island" % id)
 		check(near > samples * 0.125, "%s: the sea's within 21 m of the road along much of it (%d of %d open sides)" % [id, near, samples])
