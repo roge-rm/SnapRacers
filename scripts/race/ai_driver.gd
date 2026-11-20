@@ -914,6 +914,12 @@ func _train_limit(speed: float, braking: float) -> float:
 	return limit
 
 
+## Which way the road's turning here: 1 to the right, -1 to the left.
+func _turn_way(at: float) -> float:
+	var turn := track.forward_at(at + 3.0) - track.forward_at(at - 3.0)
+	return 1.0 if turn.dot(track.right_at(at)) > 0.0 else -1.0
+
+
 ## Whether it's on the way around a loop, or about to start up one.
 func _looping() -> bool:
 	var looping := _loop_within(LOOP_AHEAD)
