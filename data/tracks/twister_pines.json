@@ -71,8 +71,9 @@
 		{"type": "curve", "turn": "left", "size": 1},
 		{"type": "arc", "turn": "left", "size": 1, "angle": 75},
 		{"type": "split", "length": 2},
+		{"type": "adjustable_straight", "metres": 28.0},
 		{"type": "corkscrew", "side": "left"},
-		{"type": "adjustable_offset", "metres": 58.443, "shift": -21.666},
-		{"type": "straight", "length": 3}
+		{"type": "adjustable_offset", "metres": 62.443, "shift": -21.666},
+		{"type": "straight", "length": 2}
 	]
 }
