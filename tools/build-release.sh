@@ -107,7 +107,7 @@ if [ "$WEB" = 1 ]; then
 	run tools/build-web.sh
 	if [ "$DRY" = 0 ]; then
 		rm -rf "${OUT:?}/web"
-		cp -r build/web "$OUT/web"
+		cp -rL build/web "$OUT/web"
 	fi
 fi
 
