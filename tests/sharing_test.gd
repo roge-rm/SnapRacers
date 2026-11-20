@@ -42,7 +42,8 @@ func _initialize() -> void:
 
 	print("-- Codes")
 	var code := Sharing.code_for(data)
-	var plain := CourseDesign.from_dict(JSON.parse_string(FileAccess.get_file_as_string(Tracks.path_of("castle_keep")))).to_dict()
+	# A course without a ground map.
+	var plain := CourseDesign.from_dict(JSON.parse_string(FileAccess.get_file_as_string(Tracks.path_of("hairpin_hall")))).to_dict()
 	var plain_code := Sharing.code_for(plain)
 	check(plain_code.begins_with(Sharing.CODE_START) and plain_code.length() < 1000, "a course's code is short (%d characters)" % plain_code.length())
 	check(code.begins_with(Sharing.CODE_START) and code.length() < 12000, "and one with a ground map isn't too long (%d characters)" % code.length())
