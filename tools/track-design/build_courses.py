@@ -69,10 +69,11 @@ INFO = {
  "red_rocket": "A figure eight out of the desert, up over the top hat and down under the big red roof.",
  "twister_pines": "Twisting around and around itself in the pines, upside down on the way.",
 }
-def rotate_to_longest_straight(pieces):
+def rotate_to_longest_straight(pieces, ahead=None):
     """Moves the start line into the longest run of straights at ground level,
     with three tiles behind it for the grid where it can, and up to four in
-    front so the pack spreads out before the first corner.
+    front so the pack spreads out before the first corner, or the course's
+    own ahead= count.
     The lap is the same, it just starts somewhere else. Straights with walls
     all along count too, and keep their walls."""
     units = []  # one entry per straight tile, or the piece itself
@@ -95,7 +96,8 @@ def rotate_to_longest_straight(pieces):
             j += 1
         if j - i > best_len:
             best, best_len = i, j - i
-    ahead = max(1, min(4, best_len - 3))
+    if ahead is None:
+        ahead = max(1, min(4, best_len - 3))
     split = (best + best_len - ahead) % n
     rotated = units[split:] + units[:split]
     out = []
@@ -149,7 +151,7 @@ def value_lines(key, value):
 out_dir = sys.argv[1]
 for name in sys.argv[2:]:
     data = design["parse"](open(os.path.join(here, "courses", name + ".txt")).read())
-    data["pieces"], run = rotate_to_longest_straight(data["pieces"])
+    data["pieces"], run = rotate_to_longest_straight(data["pieces"], data.get("ahead"))
     line, end = design["walk"](data["pieces"])
     import math
     assert math.hypot(end[0], end[1]) < 0.5 and abs(end[2]) < 0.1 and end[5] == 0, name + " doesn't close after turning"

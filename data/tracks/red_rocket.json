@@ -59,7 +59,7 @@
 		{"type": "curve", "turn": "left", "size": 2, "bank": 80},
 		{"type": "arc", "turn": "left", "size": 3, "angle": 60},
 		{"type": "arc", "turn": "right", "size": 3, "angle": 60},
-		{"type": "adjustable_offset", "metres": 4.029, "shift": -0.42},
-		{"type": "straight", "length": 3}
+		{"type": "adjustable_offset", "metres": 36.029, "shift": -0.42},
+		{"type": "straight", "length": 2}
 	]
 }
