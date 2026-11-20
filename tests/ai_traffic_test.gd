@@ -254,7 +254,6 @@ func _pass(level: String, contested: bool, stock := false, shielded := false) ->
 	var ai := _ai(own, 100.0, level)
 	ai.pace = 1.0
 	ai.mistakes = 0.0
-	ai.slides = false
 	if shielded:
 		own.shield_left = 20.0
 		leader.shield_left = 20.0

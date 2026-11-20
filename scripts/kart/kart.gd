@@ -87,8 +87,7 @@ const RESET_LIFT := 1.0
 ## A held slide keeps its speed, losing slide_scrub a second, and corners up
 ## to slide_corner times as hard as gripping, so it's quicker round a hairpin
 ## than braking for it, but the longer it's held the more it loses, so it's
-## slower round a gentle bend. These were tuned with
-## tools/stock-karts/slide_bench.gd, so they can be changed from there.
+## slower round a gentle bend.
 const SLIDE_SPEED := 6.0
 const SLIDE_REAR_GRIP := 0.2
 static var slide_hold_grip := 0.5
@@ -117,7 +116,7 @@ static var slide_brake := 1.0
 ## Time held is counted in physics steps, so it's the same on every machine.
 const SLIDE_LEVELS := [0.6, 1.3, 2.1]
 const SLIDE_BOOSTS := [0.6, 1.0, 1.5]
-## Scales every slide boost, for tools/stock-karts/slide_bench.gd.
+## Scales every slide boost.
 static var slide_boost := 1.0
 ## After a reset the kart drives at RESET_SLOWDOWN power for
 ## RESET_SLOWDOWN_TIME seconds.

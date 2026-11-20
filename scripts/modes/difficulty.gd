@@ -23,8 +23,6 @@ extends RefCounted
 ## - catch_up: how much extra push they get when they're a long way behind
 ##   you, as a fraction.
 ## - ease_off: how much they lift off when they're a long way ahead of you.
-## - slides: whether they slide round the tightest bends (see Kart.sliding),
-##   which only Hard and Expert drivers do, and only where it's quicker.
 ## - line_follow: how much of the racing line they take, 1 right on it and 0
 ##   the middle of the road.
 ## - line_wander: how far they slowly wander either side of it, in metres,
@@ -126,7 +124,6 @@ const SETTINGS := {
 		"gadget_confidence": 0.78,
 		"catch_up": 0.06,
 		"ease_off": 0.0,
-		"slides": true,
 	},
 	"expert": {
 		"racecraft": 1.0,
@@ -155,7 +152,6 @@ const SETTINGS := {
 		"gadget_confidence": 0.68,
 		"catch_up": 0.0,
 		"ease_off": 0.0,
-		"slides": true,
 	},
 }
 ## How far behind you (or ahead) the AI have to be, in metres, before catch
@@ -194,7 +190,6 @@ static func apply(ai: AIDriver, level: String, rank: int, field: int, traits: Dr
 	ai.gadget_confidence = s.gadget_confidence
 	for setting in ["traffic_reaction", "traffic_planning", "traffic_clearance", "traffic_mass_ratio", "traffic_contact_closing", "traffic_contact_side", "traffic_contact_time", "traffic_contact_cooldown"]:
 		ai.set(setting, s[setting])
-	ai.slides = s.get("slides", false)
 	ai.line_follow = s.line_follow
 	ai.line_wander = s.line_wander * lerpf(0.8, 1.2, float(rank) / maxf(field - 1, 1))
 	ai.line_late = s.line_late

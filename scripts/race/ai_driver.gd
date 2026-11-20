@@ -104,26 +104,6 @@ var traits := DriverTraits.new()
 ## How much more braking than BRAKING it counts on, as a share, so above 1
 ## it brakes later for bends.
 var brake_late := 1.0
-## Whether it slides round the tightest bends instead of braking for them
-## (see Kart.sliding). Only Hard and Expert drivers do.
-var slides := false
-## How tight a bend has to be to slide round it (its curvature, one over its
-## radius), and how long it kicks the brake to start the slide, tuned with
-## tools/stock-karts/slide_bench.gd. It plans to take a bend it'll slide this
-## much faster than it could grip round it. With the turbo at the end of a
-## slide it comes out about even with braking: a little quicker on some
-## courses, a little slower on Hairpin Hall, where it runs wide.
-static var slide_bend := 0.06
-static var slide_time := 0.25
-static var slide_plan := 1.15
-var _slide_left := 0.0
-## How long since it was last sliding, in seconds.
-var _out_of_slide := INF
-## 1 on a course up in the sky, 0 elsewhere, -1 before it's looked.
-var _sky := -1
-var _slid_this_bend := false
-## Which way the bend it's sliding round goes, 1 right and -1 left, or 0.
-var _slide_way := 0.0
 ## How much extra push it gets a long way behind the people racing, and how
 ## much it lifts off a long way ahead of them.
 var catch_up := 0.0
@@ -144,15 +124,6 @@ const LOOK_FAR := 26.0
 const NEAR_TIME := 0.3
 const NEAR_LEAST := 3.0
 const BEND_STEER := 1.0
-## A slide goes round the bend of the middle of the road, so whether to
-## slide and how fast to go in go by that. It holds the slide this much of
-## the way from the middle to its line, and only starts one less than
-## SLIDE_INSIDE metres over to the inside.
-const SLIDE_LINE := 0.5
-const SLIDE_INSIDE := 3.0
-## How far past the start of a bend it looks for a swinging split before
-## sliding round it, in metres.
-const SWING_LOOK := 56.0
 ## How much further in from the road's edges than the racing line may go it
 ## keeps, in metres, since it never drives its line exactly and the verges
 ## have kerbs and tire stacks to catch it.
@@ -224,14 +195,6 @@ const STRAIGHT_BEND := 0.01
 ## How far ahead, in seconds, it looks for an island it's in line with
 ## the other side of (see _pick_branches()).
 const BRANCH_SWITCH_TIME := 1.2
-## For this long out of a slide, in seconds, skating sideways more than
-## SLIP_LEAST radians (up to SLIP_MOST), it aims SLIP_SHARE of the way from
-## where it's pointing to where it's going. The tires soon pull where it's
-## going round to where it points, so all the way overcorrects.
-const SLIP_AFTER := 1.0
-const SLIP_LEAST := 0.1
-const SLIP_MOST := 1.0
-const SLIP_SHARE := 0.3
 ## Pointing further than this from where it's going, it slows down enough
 ## to turn onto it, though never below TURN_ROUND_SPEED.
 const TURN_ROUND_ANGLE := 0.5
@@ -673,7 +636,7 @@ func _physics_process(delta: float) -> void:
 		kart.push = maxf(kart.push, 1.0)
 	# Over its top speed share it eases off the throttle, over the last metre
 	# a second, but never on a loop or a jump's run in.
-	elif top_share < 1.0 and not kart.sliding and _slide_left <= 0.0:
+	elif top_share < 1.0 and not kart.sliding:
 		var top := speed_cap()
 		controls.throttle = minf(controls.throttle, clampf(top - speed, 0.0, 1.0))
 
@@ -749,14 +712,6 @@ func _drive(delta: float, speed: float) -> void:
 	to_target -= up * to_target.dot(up)
 	var facing := -kart.global_basis.z
 	var angle := facing.signed_angle_to(to_target, up)
-	# Skating sideways out of a slide, it aims partly where it's going, or it
-	# turns further the way it's already going and runs wide.
-	_out_of_slide = 0.0 if kart.sliding else _out_of_slide + delta
-	var going := kart.linear_velocity - up * kart.linear_velocity.dot(up)
-	if not kart.sliding and _slide_left <= 0.0 and _out_of_slide < SLIP_AFTER and going.length() > 5.0:
-		var slip := facing.signed_angle_to(going, up)
-		if absf(slip) > SLIP_LEAST and absf(slip) < SLIP_MOST:
-			angle -= (slip - signf(slip) * SLIP_LEAST) * SLIP_SHARE
 	# Pointing at a point further round a bend cuts inside it. On its line
 	# the way to go is along the line, which is turned from the way to that
 	# point by half as much as the line turns on the way there, so it takes
@@ -826,12 +781,8 @@ func _drive(delta: float, speed: float) -> void:
 		if line_follow > 0.0:
 			var on_line := lerpf(bend, _line_bends[k], line_follow * LINE_TRUST)
 			bend = maxf(bend, on_line) if _jump_run_in else on_line
-		# A bend it slides round it takes round the middle (see SLIDE_LINE).
-		var slid := _slides() and _bends[k] > slide_bend and not _swing_near(offset + BEND_EVERY * k)
-		if slid:
-			bend = maxf(bend, _bends[k])
 		if bend > 0.002:
-			var corner := sqrt(grip * (slide_plan if slid else 1.0) / bend)
+			var corner := sqrt(grip / bend)
 			allowed = minf(allowed, sqrt(corner * corner + 2.0 * slowing * BEND_EVERY * (k + 1)))
 	# The bend it's in counts too, or it floors it on the way out of a hairpin
 	# while it's still turning and runs wide.
@@ -850,53 +801,7 @@ func _drive(delta: float, speed: float) -> void:
 	if not crossings.is_empty():
 		allowed = minf(allowed, _train_limit(speed, braking))
 
-	# The bend coming up next, for sliding into.
-	var slide_here := 0.0 if TrackPiece.turns_over(piece) else maxf(track.bend_at(offset), track.bend_at(offset + 2.0))
-	var tight := maxf(slide_here, track.bend_at(offset + speed * 0.3))
-	if tight < slide_bend * 0.5 and not kart.sliding:
-		_slid_this_bend = false
-		_slide_way = 0.0
-	if _slides() and not _slid_this_bend and tight > slide_bend and speed > Kart.SLIDE_SPEED + 3.0 and not _loop_within(LOOP_AHEAD) and not _swing_near(offset):
-		# Into the tightest bends a top driver kicks the tail out and slides
-		# round on the gas.
-		# Only from the outside half of the road, as a slide carries it in
-		# and from the inside it slides off the road.
-		_slid_this_bend = true
-		var ahead_of := track.point_at(offset + 15.0) - track.point_at(offset)
-		var way := 1.0 if ahead_of.dot(track.right_at(offset)) > 0.0 else -1.0
-		if (kart.global_position - track.point_at(offset)).dot(track.right_at(offset)) * way < SLIDE_INSIDE:
-			_slide_left = slide_time
-			_slide_way = way
-
-	if _slide_left > 0.0:
-		# The kick: gas and brake together, steering round.
-		_slide_left -= delta
-		controls.throttle = 1.0
-		controls.brake = 1.0
-		controls.steer = _slide_way
-	elif kart.sliding and _slide_way != 0.0 and slide_here > slide_bend * 0.4 and _turn_way(offset + maxf(speed * 0.4, 4.0)) == _slide_way and _slide_on_line():
-		# Holding the slide on the gas, steering harder the tighter the bend
-		# and if it's running wide.
-		controls.throttle = 1.0
-		controls.brake = 0.0
-		# Enough to go round the bend at this speed, and more if it's running
-		# wide (see Kart._hold_slide).
-		var wide := -((kart.global_position - track.point_at(offset)).dot(track.right_at(offset)) - _slide_line()) * _slide_way
-		var slide_grip := kart.stats.cornering() * KartStats.gravity() * Kart.slide_corner
-		controls.steer = _slide_way * clampf(speed * speed * maxf(here, _bend_here(offset + 6.0)) / slide_grip + maxf(wide - 1.5, 0.0) * 0.15 + minf(wide + 1.5, 0.0) * 0.15, 0.25, 1.0)
-	elif kart.sliding and _slide_way != 0.0 and (slide_here <= slide_bend * 0.4 or _turn_way(offset + maxf(speed * 0.4, 4.0)) != _slide_way):
-		# Out of the hairpin, or where the road's about to bend back the
-		# other way, it straightens up, which ends the slide with a little
-		# turbo, and drives on.
-		controls.throttle = 1.0
-		controls.brake = 0.0
-		controls.steer = 0.0
-	elif kart.sliding and _slide_way != 0.0:
-		# Running wide with the bend still going, it lifts off, which ends
-		# the slide, and steers round the rest of it on its tires.
-		controls.throttle = 0.0
-		controls.brake = 0.0
-	elif _backing > 0.0:
+	if _backing > 0.0:
 		# Backing off whatever it ran into, steering the other way. Off a
 		# kart beside it, it steers toward that kart, which in reverse swings
 		# its nose away from it, then pulls away to the free side.
@@ -1009,31 +914,6 @@ func _train_limit(speed: float, braking: float) -> float:
 	return limit
 
 
-## Which way the road's turning here: 1 to the right, -1 to the left.
-func _turn_way(at: float) -> float:
-	var turn := track.forward_at(at + 3.0) - track.forward_at(at - 3.0)
-	return 1.0 if turn.dot(track.right_at(at)) > 0.0 else -1.0
-
-
-## Whether a slide's still following the road: not turned in past it, or
-## cut right across the inside of its line.
-func _slide_on_line() -> bool:
-	var road := track.point_at(offset + 6.0) - track.point_at(offset)
-	var flat := kart.linear_velocity - kart.global_basis.y * kart.linear_velocity.dot(kart.global_basis.y)
-	if road.length() < 0.1 or flat.length() < 1.0:
-		return false
-	# Going round to the right, the way it's going turned in past the road is
-	# negative.
-	var turned_in := -road.signed_angle_to(flat, kart.global_basis.y) * _slide_way
-	var inside := ((kart.global_position - track.point_at(offset)).dot(track.right_at(offset)) - _slide_line()) * _slide_way
-	return turned_in < deg_to_rad(25.0) and inside < 4.0
-
-
-## How far right of the middle it holds a slide, in metres.
-func _slide_line() -> float:
-	return line_at(offset) * SLIDE_LINE
-
-
 ## Whether it's on the way around a loop, or about to start up one.
 func _looping() -> bool:
 	var looping := _loop_within(LOOP_AHEAD)
@@ -1058,31 +938,6 @@ func _loop_within(distance: float) -> bool:
 					break
 				ahead += 4.0
 	return _loop_at <= distance
-
-
-## Whether it slides round the tightest bends here. Up in the sky a slide
-## that runs wide or spins out goes over the edge, so it brakes instead.
-func _slides() -> bool:
-	if not slides:
-		return false
-	if _sky < 0:
-		_sky = 1 if Scenery.theme_named(track.theme).get("void", false) else 0
-	return _sky == 0
-
-
-## Whether a split's branches swing across anywhere in the SWING_LOOK metres
-## from `at`. The turbo out of a slide there carries it wide off its branch,
-## so it brakes for those bends instead.
-func _swing_near(at: float) -> bool:
-	var swings := track.racing_line().swings
-	if swings.is_empty() or not track.has_splits:
-		return false
-	var ahead := 0.0
-	while ahead <= SWING_LOOK:
-		if swings[track._index_before(at + ahead)] == 1:
-			return true
-		ahead += 4.0
-	return false
 
 
 ## Whether it's on a jump or close enough to build up speed for one.

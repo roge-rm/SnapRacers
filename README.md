@@ -69,7 +69,7 @@ Grand Prix has 14 cups of four races, with points and trophies. From the second 
 
 Single race is one race against the AI, time trial keeps your best times and practice lets you drive on your own for as long as you like.
 
-There are four AI levels, from Easy drivers who wait for you and make mistakes to Expert drivers who drive on the limit and slide through bends. They use all 15 power-ups, choosing when to boost, attack, repair or protect themselves, and wait for an active boost or protection to finish before using another of the same kind. Higher levels react sooner and judge moving targets and threats further ahead.
+There are four AI levels, from Easy drivers who wait for you and make mistakes to Expert drivers who drive on the limit. They use all 15 power-ups, choosing when to boost, attack, repair or protect themselves, and wait for an active boost or protection to finish before using another of the same kind. Higher levels react sooner and judge moving targets and threats further ahead.
 
 AI drivers watch karts ahead and behind, allowing for their weight, braking distance and the room to pass. Easy and Normal try for clean passes. Hard and Expert can hold a contested line when their kart is heavier and its body or a shield protects the wheels.
 
@@ -77,7 +77,7 @@ Two players can race one course or a whole Grand Prix from the Multiplayer menu.
 
 There are seven camera views: close chase, far chase, first person, hood, bumper, overhead and TV cameras beside the track. Hold look back to see behind you. First person, hood and bumper have a small rear-view mirror at the top when one person plays on the device, including online races and test drives. Hold the change-view button for half a second to turn it off or on, or tap to change view. The mirror setting is kept for next time. After the finish the AI keeps driving your kart. The camera circles it for a moment, then follows behind. Results slide in after two seconds, beside the kart on a wide screen or below it on a smaller one.
 
-To slide, hold the gas and brake together while steering. On a touch screen you can slide your thumb from GO down onto the brake and back up. Keep the gas on and steer into the bend to hold the slide, then straighten up to grip again. Smoke comes off the drive wheels, and sparks show the turbo charging in blue, then orange, then purple. Hold it for at least half a second and straighten up with the gas still on for a turbo. A longer slide gives a longer turbo, up to one and a half seconds, but loses more speed. Hard and Expert AI drivers slide too.
+To slide, hold the gas and brake together while steering. On a touch screen you can slide your thumb from GO down onto the brake and back up. Keep the gas on and steer into the bend to hold the slide, then straighten up to grip again. Smoke comes off the drive wheels, and sparks show the turbo charging in blue, then orange, then purple. Hold it for at least half a second and straighten up with the gas still on for a turbo. A longer slide gives a longer turbo, up to one and a half seconds, but loses more speed.
 
 Grass and sand slow you down, and a slide ends as soon as a wheel leaves the road. Sand slows you more than grass. If you get stuck or lose parts, reset puts you upright and repairs the kart. You slow down briefly and go through other karts for one second.
 

@@ -259,13 +259,8 @@ func _time(course: String, level: String, key := "") -> Array:
 	driver.track = race.track
 	driver.others.assign([race.player.kart])
 	Difficulty.apply(driver, level, RANK, FIELD, DriverTraits.for_roster(key) if key != "" else null)
-	if OS.has_environment("SLIDE_BEND"):
-		AIDriver.slide_bend = float(OS.get_environment("SLIDE_BEND"))
 	if OS.has_environment("LINE_TRUST"):
 		AIDriver.LINE_TRUST = float(OS.get_environment("LINE_TRUST"))
-	# AI_SLIDES=0 or 1 overrides whether it slides round the tightest bends.
-	if OS.has_environment("AI_SLIDES"):
-		driver.slides = OS.get_environment("AI_SLIDES") == "1"
 	if driver.has_method("seed_line"):
 		driver.call("seed_line", 1234)
 	race.add_child(driver)

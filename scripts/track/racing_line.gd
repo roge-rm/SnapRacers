@@ -71,10 +71,6 @@ var build_usec := 0
 var pair_offsets := PackedFloat32Array()
 var pair_lows := PackedFloat32Array()
 var pair_highs := PackedFloat32Array()
-## 1 at each sample of a split whose branches swing across faster than EASE
-## and that eases from its branch's middle for that (see _swift_splits()),
-## else 0.
-var swings := PackedByteArray()
 
 ## The rough lap the branches are timed on: top speed and how hard it
 ## corners, speeds up and brakes, in m/s and m/s².
@@ -104,8 +100,6 @@ func _init(track: TrackPath) -> void:
 	lows.fill(0.0)
 	highs.resize(count)
 	highs.fill(0.0)
-	swings.resize(count)
-	swings.fill(0)
 	_find_splits(track)
 	var solved := count >= 8 and track.closes and track.length > 64.0
 	for side in (2 if track.has_splits else 1):
@@ -274,8 +268,6 @@ func _bounds(track: TrackPath, side: int, low_of: PackedFloat32Array, high_of: P
 		var swift := _swift_splits(track, side)
 		for k in count:
 			var uneven := track.pieces[track.piece_of[k]].type in TrackPiece.UNEVEN_SPLITS
-			if track.split_sample(k) and not uneven and swift.has(track.piece_of[k]):
-				swings[k] = 1
 			if track.split_sample(k) and (uneven or swift.has(track.piece_of[k])):
 				base[k] = (track.branch_lefts[k] if side == 0 else track.branch_rights[k]).x
 				low_of[k] -= base[k]
