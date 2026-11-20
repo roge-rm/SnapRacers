@@ -200,6 +200,8 @@ func _sky_resets() -> void:
 	check(landed > gap_end and landed <= gap_end + 10.5, "one last on the road before the jump is never put back on the kicker (%.0f m)" % landed)
 	var fell_after: float = put_back.call(gap + 3.0, 6.0, gap - 25.0)
 	check(fell_after > gap_end, "and one that falls in the gap after it goes past it (%.0f m)" % fell_after)
+	var lip: float = put_back.call(gap_end, -0.4, gap_end)
+	check(lip >= gap_end + Race.LANDING - 0.5, "one on the landing's lip goes on to where the landing's under all of it (%.0f m)" % lip)
 	kart.global_transform = was
 	racer.offset = was_offset
 	kart.run_up_reset = false

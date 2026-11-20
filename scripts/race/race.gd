@@ -40,6 +40,9 @@ const RUN_UP := 110.0
 ## a jump's gap, to be put back past the gap (see _fell_in_gap()).
 const GAP_BELOW := 2.0
 const GAP_REACH := 12.0
+## How much landing past a jump's gap a kart is put back on, in metres, so
+## none of it hangs over the gap.
+const LANDING := 6.0
 ## How far past the kerb the runoff goes, in metres. Running wide onto it
 ## isn't a cut, so a reset there puts you back about where you are.
 const RUNOFF := 8.0
@@ -794,6 +797,11 @@ func _clear_spot(racer: Racer) -> Transform3D:
 			ahead += 1.0
 		start += ahead + 6.0
 		backs = [0.0, -5.0, -10.0, -15.0, -20.0]
+	elif not backed and _past_lip(start) != start:
+		# Right on a landing's lip its back hangs over the gap and it tips
+		# back in, so it goes on to where the landing's under all of it.
+		start = _past_lip(start)
+		backs = [0.0, -5.0, -10.0, -15.0, -20.0]
 	# Never onto the rails or between the barriers with a train coming.
 	for crossing in builder.crossings:
 		var to_rails := fposmod(crossing.offset - start + LevelCrossing.STOP_BACK, track.length)
@@ -803,6 +811,8 @@ func _clear_spot(racer: Racer) -> Transform3D:
 			backs = [0.0, 5.0, 10.0, 15.0, 20.0]
 	racer.kart.run_up_reset = backed
 	for back in backs:
+		if back > 0.0 and _past_lip(start - back) != start - back:
+			continue
 		for side in track.reset_spots(start - back, across_now):
 			var spot := track.place_at(start - back)
 			spot.origin += spot.basis.x * side
@@ -848,6 +858,23 @@ func _fell_in_gap(racer: Racer, at: float) -> bool:
 			return true
 		ahead += 1.0
 	return false
+
+
+## Where to put a kart back that would go at `at`: there, if there's road
+## under it and LANDING metres back, or else LANDING metres on from the
+## start of the landing past the gap.
+func _past_lip(at: float) -> float:
+	var back := 0.0
+	while back <= LANDING and track.solid_at(at - back):
+		back += 1.0
+	if back > LANDING:
+		return at
+	if back > 0.0:
+		return at - back + 1.0 + LANDING
+	var ahead := 0.0
+	while not track.solid_at(at + ahead) and ahead < 200.0:
+		ahead += 1.0
+	return at + ahead + LANDING
 
 
 ## Whether a brick wall still standing is here or just in front, so a kart
