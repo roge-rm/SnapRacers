@@ -226,6 +226,13 @@ func _controller(editor: TrackEditor) -> void:
 	check(editor._undo.size() <= undo_before + 1, "as one undo step at most")
 	if editor._undo.size() > undo_before:
 		editor.undo()
+	PadFocus.using_pad = false
+	var mouse_at := Vector3(123.0, 0.0, -77.0)
+	editor.move_brush(mouse_at)
+	pad.slide_brush(Vector2.ZERO, 0.1)
+	check(editor._brush_at == mouse_at, "a plugged in controller leaves the brush where the mouse put it")
+	pad.slide_brush(Vector2(1.0, 0.0), 0.1)
+	check(PadFocus.using_pad and editor._brush_at != mouse_at, "and pushing the stick takes it back")
 	pad._button(JOY_BUTTON_B)
 	await frames(2)
 	check(editor.ui._category == 0, "B leaves the Paint tab")

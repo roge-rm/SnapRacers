@@ -221,18 +221,7 @@ func _process(delta: float) -> void:
 	if right.length() > 0.2:
 		editor._orbit(right * ORBIT * delta)
 	if _brush_free():
-		var push := Vector2(Input.get_joy_axis(pad, JOY_AXIS_LEFT_X), Input.get_joy_axis(pad, JOY_AXIS_LEFT_Y))
-		if editor._stroke and editor.water_tool() and editor.ui.ground_tool == "lake":
-			if absf(push.y) > 0.2:
-				editor.water_lift(-push.y * LAKE_LIFT * delta)
-			return
-		var rect := editor.get_viewport().get_visible_rect()
-		_brush = (_brush_screen() + (push * SLIDE * delta if push.length() > 0.2 else Vector2.ZERO)).clamp(Vector2.ZERO, rect.size)
-		var at := editor._ground_point(_brush)
-		if editor._stroke:
-			editor.paint_to(at)
-		else:
-			editor.move_brush(at)
+		slide_brush(Vector2(Input.get_joy_axis(pad, JOY_AXIS_LEFT_X), Input.get_joy_axis(pad, JOY_AXIS_LEFT_Y)), delta)
 		return
 	if editor._holding.is_empty():
 		return
@@ -246,3 +235,23 @@ func _process(delta: float) -> void:
 		to = editor._ground_point(middle)
 	editor._holding.at = [to.x, to.z]
 	editor._show_ghost()
+
+
+## Moves the brush by the left stick's push. A plugged in controller leaves
+## the brush to the mouse or finger until it's used.
+func slide_brush(push: Vector2, delta: float) -> void:
+	if push.length() > 0.2:
+		PadFocus.using_pad = true
+	if not PadFocus.using_pad:
+		return
+	if editor._stroke and editor.water_tool() and editor.ui.ground_tool == "lake":
+		if absf(push.y) > 0.2:
+			editor.water_lift(-push.y * LAKE_LIFT * delta)
+		return
+	var rect := editor.get_viewport().get_visible_rect()
+	_brush = (_brush_screen() + (push * SLIDE * delta if push.length() > 0.2 else Vector2.ZERO)).clamp(Vector2.ZERO, rect.size)
+	var at := editor._ground_point(_brush)
+	if editor._stroke:
+		editor.paint_to(at)
+	else:
+		editor.move_brush(at)
