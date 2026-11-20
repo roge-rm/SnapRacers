@@ -44,7 +44,6 @@ func _initialize() -> void:
 			var line := track.racing_line()
 			var what := "%s%s%s" % [file.get_basename(), " mirrored" if layout[0] else "", " reversed" if layout[1] else ""]
 			var count := track.points.size()
-			var half := track.width * 0.5
 			var problems := []
 			var biggest_step := 0.0
 			var biggest_kink := 0.0
@@ -53,7 +52,11 @@ func _initialize() -> void:
 				if not is_finite(o) or not is_finite(line.bends[k]):
 					problems.append("not a number at %d" % k)
 					break
-				if o > line.highs[k] + SLACK or o < line.lows[k] - SLACK or absf(o) > half - RacingLine.MARGIN + SLACK:
+				# On a split it keeps to the branch it takes.
+				var road := Vector2(0.0, track.width)
+				if track.split_sample(k):
+					road = track.branch_lefts[k] if line.side_of(k) == 0 else track.branch_rights[k]
+				if o > line.highs[k] + SLACK or o < line.lows[k] - SLACK or absf(o - road.x) > road.y * 0.5 - RacingLine.MARGIN + SLACK:
 					problems.append("off the road at %.0f m (%.2f)" % [track.distances[k], o])
 					break
 				var next := (k + 1) % count
