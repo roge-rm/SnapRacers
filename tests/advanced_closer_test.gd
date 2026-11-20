@@ -25,14 +25,14 @@ func _initialize() -> void:
 			var physical := TrackPath.advance_pose(Transform3D(TrackPath.heading_basis(h), Vector3.ZERO), piece)
 			endpoint_ok = endpoint_ok and exact.origin.distance_to(physical.origin) < 0.0001 and exact.basis.is_equal_approx(physical.basis)
 	check(trig_ok, "exact coefficient table matches sine and cosine at all 24 headings")
-	check(endpoint_ok, "exact cursor matches physical exits for all 125 drawer specs at all 24 headings")
+	check(endpoint_ok, "exact cursor matches physical exits for all 133 drawer specs at all 24 headings")
 	var presets := 0
 	for category in TrackCatalogue.CATEGORIES:
 		for row in category[2]:
 			presets += row.size()
-	check(presets == 125 and TrackCatalogue.specs().size() == 125, "all 125 drawer parts appear once in the canonical catalogue")
+	check(presets == 133 and TrackCatalogue.specs().size() == 133, "all 133 drawer parts appear once in the canonical catalogue (%d, %d)" % [presets, TrackCatalogue.specs().size()])
 	check(not options.any(func(spec): return spec.type in TrackPiece.SPLIT_TYPES), "closer choices leave out splits")
-	check(options.size() == 71, "71 standard closer choices include half straights, five descending ramps and the 15 and 75 degree bends")
+	check(options.size() == 75, "75 standard closer choices include half straights, five descending ramps and the 15 and 75 degree bends (%d)" % options.size())
 	var nearby := ClosureCursor.start(0)
 	nearby[0] = 99
 	nearby[1] = -70
