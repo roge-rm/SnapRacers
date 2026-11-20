@@ -55,7 +55,9 @@ class Round:
 		var cost := super(across, most / 100.0) * 100.0
 		var see := maxf(SEE_PATCH, kart.linear_velocity.length() * SEE_PATCH_TIME)
 		var half := kart.width() * 0.5 + 0.3
-		var ahead := -PATCH_STEP
+		# On whole steps along the track, so the same spots are looked at as
+		# it moves and a thin tip isn't seen one step and missed the next.
+		var ahead := 0.4 * ceilf(offset / 0.4) - offset - PATCH_STEP
 		while ahead <= see:
 			var at := offset + ahead
 			var right := track.right_at(at)

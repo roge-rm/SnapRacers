@@ -221,6 +221,9 @@ const NOSE_BRAKE := 0.3
 const STRAIGHT_STEER_RATE := 5.0
 ## How bent the road can be and still count as a straight for that.
 const STRAIGHT_BEND := 0.01
+## How far ahead, in seconds, it looks for an island it's in line with
+## the other side of (see _pick_branches()).
+const BRANCH_SWITCH_TIME := 1.2
 ## For this long out of a slide, in seconds, skating sideways more than
 ## SLIP_LEAST radians (up to SLIP_MOST), it aims SLIP_SHARE of the way from
 ## where it's pointing to where it's going. The tires soon pull where it's
@@ -597,10 +600,17 @@ func _pick_branches() -> void:
 		if not _picks.has(key):
 			_picks[key] = pick_branch(zone, visit)
 		branches[zone] = _picks[key]
-	var lanes := track.lanes_at(offset)
+	# Where it'll be a moment on, so a kart still in line with the other
+	# branch as the island comes up takes that one before it's too late to
+	# turn away from the nose.
+	var ahead := fposmod(offset + maxf(kart.linear_velocity.length() * BRANCH_SWITCH_TIME, 6.0), track.length)
+	var lanes := track.lanes_at(ahead)
+	if lanes.size() < 2 or lanes[1].x - lanes[0].y < 3.0:
+		ahead = offset
+		lanes = track.lanes_at(offset)
 	if lanes.size() < 2 or lanes[1].x - lanes[0].y < 3.0:
 		return
-	var zone := racing.zones[track._index_before(offset)]
+	var zone := racing.zones[track._index_before(ahead)]
 	var across := (kart.global_position - track.point_at(offset)).dot(track.right_at(offset))
 	var other := 1 - branches[zone]
 	if across > lanes[other].x and across < lanes[other].y:
@@ -1184,11 +1194,12 @@ func _dodge() -> float:
 		_planned_for = wall_trap
 	# The aim slides over at a rate to suit the speed instead of jumping.
 	# Getting clear of a kart it's stuck against, it goes at once, and round
-	# a wall or a trap twice as fast.
+	# a wall or a trap, or out from its line round a deep patch, twice as fast.
 	if _tries > 0 or kart.linear_velocity.length() < 2.0:
 		_eased = want
 	else:
-		var rate := clampf(kart.linear_velocity.length() * 0.16, 1.5, 4.0) * (2.0 if is_finite(wall) or is_finite(trap) else 1.0)
+		var out_of_patch := _patch_eased != 0.0 and absf(want) > absf(_eased) and want * _eased >= 0.0
+		var rate := clampf(kart.linear_velocity.length() * 0.16, 1.5, 4.0) * (2.0 if is_finite(wall) or is_finite(trap) or out_of_patch else 1.0)
 		_eased = move_toward(_eased, want, rate * maxf(_since_drive, 1.0 / 60.0))
 	# Still easing back from a move it made before a split, it doesn't carry
 	# it over onto the island. Where the road widens out ahead it also keeps

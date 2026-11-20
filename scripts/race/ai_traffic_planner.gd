@@ -585,13 +585,15 @@ func _evaluate(ai: AIDriver, across: float, here: float, speed: float, horizon: 
 		if contact_ok:
 			touching = body.kart
 			continue
+		var toward: bool = absf(across - body.across) < absf(here - body.across) or (across - body.across) * (here - body.across) < 0.0
 		if path_conflict and absf(body.ahead) < own_front + body.back + clearance and absf(across - here) > 0.25:
-			if not anyway and (absf(across - body.across) < absf(here - body.across) or (across - body.across) * (here - body.across) < 0.0):
+			if not anyway and toward:
 				return {"safe": false}
 		if rear_conflict:
 			# Holding an existing lane is safer than swerving across a faster
-			# kart. Existing overlap is handled by slowing and recovery.
-			if absf(across - here) > 0.25 and not anyway:
+			# kart, though moving further away from it is fine. Existing
+			# overlap is handled by slowing and recovery.
+			if absf(across - here) > 0.25 and not anyway and toward:
 				return {"safe": false}
 		# Only the line it's judging counts: one that stays in line with the
 		# kart follows it, and one moving out from behind it only has to be
