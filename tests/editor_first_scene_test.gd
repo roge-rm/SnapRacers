@@ -41,6 +41,8 @@ func _ready() -> void:
 		get_tree().process_frame.connect(_capture)
 	var saved := CourseDesign.load_file(Tracks.path_of("peach_pit"))
 	saved.made_by = "First scene test"
+	# Hills in place of Peach Pit's ground map, which would grow to cover the moved start.
+	saved.ground = null
 	saved.hills = 7.0
 	saved.start.origin = Vector3(240, 0, -160)
 	saved.landmarks = [{"prop": "barn", "at": [100, 240], "facing": 1}]
