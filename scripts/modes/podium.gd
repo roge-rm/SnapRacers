@@ -211,31 +211,35 @@ static func find_spot(track: TrackPath, builder: TrackBuilder) -> Array:
 	if scenery != null:
 		var best := []
 		var best_score := -INF
-		for step in range(-10, 11):
-			var along := step * 6.0
-			var frame := track.frame_at(fposmod(along, track.length))
-			for side in [1.0, -1.0]:
-				var out: Vector3 = frame.basis.x * side
-				out.y = 0.0
-				out = out.normalized()
-				for extra in range(0, 30, 3):
-					var at := frame.origin + out * (track.width * 0.5 + ROOM + 8.0 + extra)
-					at.y = builder.ground_at(at.x, at.z)
-					var clutter := scenery.clutter_at(at, ROOM)
-					if clutter < 0:
-						continue
-					var turns := _turns_toward(-out)
-					var front := _turned(Vector3.BACK, turns)
-					var view := scenery.clutter_at(at + front * CAMERA_OUT, 2.0, false)
-					if view < 0:
-						continue
-					var spread := _bumpiness(at, builder.ground_at)
-					if spread > 1.2:
-						continue
-					var score := -clutter * 1.5 - view - absf(along) * 0.12 - extra * 0.25 - spread * 4.0
-					if score > best_score:
-						best_score = score
-						best = [at, turns, true]
+		# Within 60 m of the line, or 150 m where road runs close all round it.
+		for reach in [10, 25]:
+			if not best.is_empty():
+				break
+			for step in range(-reach, reach + 1):
+				var along := step * 6.0
+				var frame := track.frame_at(fposmod(along, track.length))
+				for side in [1.0, -1.0]:
+					var out: Vector3 = frame.basis.x * side
+					out.y = 0.0
+					out = out.normalized()
+					for extra in range(0, 30, 3):
+						var at := frame.origin + out * (track.width * 0.5 + ROOM + 8.0 + extra)
+						at.y = builder.ground_at(at.x, at.z)
+						var clutter := scenery.clutter_at(at, ROOM)
+						if clutter < 0:
+							continue
+						var turns := _turns_toward(-out)
+						var front := _turned(Vector3.BACK, turns)
+						var view := scenery.clutter_at(at + front * CAMERA_OUT, 2.0, false)
+						if view < 0:
+							continue
+						var spread := _bumpiness(at, builder.ground_at)
+						if spread > 1.2:
+							continue
+						var score := -clutter * 1.5 - view - absf(along) * 0.12 - extra * 0.25 - spread * 4.0
+						if score > best_score:
+							best_score = score
+							best = [at, turns, true]
 		if not best.is_empty():
 			for damage in builder.get_tree().get_nodes_in_group("world_damage"):
 				damage.clear_around(best[0], ROOM + 1.0)
