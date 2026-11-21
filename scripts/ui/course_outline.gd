@@ -8,28 +8,19 @@ extends RefCounted
 ## worked out again when the course changes.
 ##
 ## An outline is { name, summary, line, heights, start, across, loops, splits,
-## paint, box }: the course's name and a line about it (see describe()), the middle
+## box }: the course's name and a line about it (see describe()), the middle
 ## of the road as (x, z) points that come back round to the first, how high
 ## the road is at each, where the start line is and which way is across it
 ## there, where any loops and corkscrews are, each split's branches (see
-## _splits_of()), the painted ground as runs (see PaintedAreas.to_dict()), and
-## the box around it all. Asked for, a course with a ground map gets "shade"
-## too, a hillshade of its ground (see _shade_of()); saved outlines don't
-## keep it.
+## _splits_of()) and the box around it all.
 
 const SAVED := "user://pictures/outlines"
 ## Every how many of the course's samples (a metre apart) go in the line.
 const EVERY := 4
 ## Goes up when outlines are worked out differently, so the saved ones go.
-const LOOK := 5
+const LOOK := 6
 ## The island's colour, drawn between a split's branches.
 const ISLAND := Color("#4b9f4a")
-## The hillshade's pixels, how far past the road it reaches, in metres, and
-## how strong its light and dark are at most.
-const SHADE_CELL := 8.0
-const SHADE_REACH := 128.0
-const SHADE_LIGHT := 0.35
-const SHADE_DARK := 0.6
 
 static var _kept := {}
 static var _tidied := false
@@ -67,9 +58,8 @@ static func is_ready(path: String) -> bool:
 	return _kept.has(_key(path))
 
 
-## The outline of a course that's already built, with its hillshade if
-## `shade` and it has a ground map.
-static func of_track(track: TrackPath, shade := false) -> Dictionary:
+## The outline of a course that's already built.
+static func of_track(track: TrackPath) -> Dictionary:
 	var line := PackedVector2Array()
 	var heights := PackedFloat32Array()
 	var loops: Array[Vector2] = []
@@ -93,98 +83,11 @@ static func of_track(track: TrackPath, shade := false) -> Dictionary:
 	for p in line:
 		box = box.expand(p.rotated(rotation))
 	var across := Vector2(track.start.basis.x.x, track.start.basis.x.z)
-	var out := {
+	return {
 		"name": track.name, "summary": describe(track), "map_rotation": track.map_rotation,
 		"line": line, "heights": heights, "loops": loops, "splits": _splits_of(track), "box": box,
-		"paint": _paint_and_water(track).to_dict().runs,
 		"start": line[0], "across": across.normalized() if across.length() > 0.01 else Vector2.RIGHT,
 	}
-	if shade and track.ground != null:
-		out.shade = _shade_of(track, line)
-	return out
-
-
-## The painted ground with lakes and rivers drawn in as squares of their
-## type, for the map.
-static func _paint_and_water(track: TrackPath) -> PaintedAreas:
-	var all := track.all_paint()
-	if not track.waters.has_real():
-		return all
-	all = all.duplicate_areas()
-	var waters := track.waters
-	waters.ensure(track)
-	if waters.cols < 2:
-		return all
-	var cell := PaintedAreas.CELL
-	var lo := PaintedAreas.square_at(waters.origin.x, waters.origin.y)
-	var hi := PaintedAreas.square_at(waters.origin.x + waters.cols * Waters.CELL, waters.origin.y + waters.rows * Waters.CELL)
-	for z in range(lo.y, hi.y + 1):
-		for x in range(lo.x, hi.x + 1):
-			var middle := PaintedAreas.middle_of(Vector2i(x, z))
-			if not is_nan(waters.surface_at(middle.x, middle.y)) and not all.full():
-				all.squares[Vector2i(x, z)] = waters.kind
-	return all
-
-
-## A hillshade of the ground round the road: one pixel every SHADE_CELL
-## metres, white where the ground faces the light and dark where it faces
-## away, clear where it's flat. { rect, size, data }: the world rect the
-## pixels cover, their count and RGBA8 bytes. Read through the course's
-## layout, so a mirrored race gets it mirrored.
-static func _shade_of(track: TrackPath, line: PackedVector2Array) -> Dictionary:
-	var lo := Vector2(INF, INF)
-	var hi := Vector2(-INF, -INF)
-	for p in line:
-		lo = lo.min(p)
-		hi = hi.max(p)
-	lo -= Vector2.ONE * SHADE_REACH
-	hi += Vector2.ONE * SHADE_REACH
-	var cols := clampi(ceili((hi.x - lo.x) / SHADE_CELL) + 1, 2, 256)
-	var rows := clampi(ceili((hi.y - lo.y) / SHADE_CELL) + 1, 2, 256)
-	var h := PackedFloat32Array()
-	h.resize(cols * rows)
-	for z in rows:
-		for x in cols:
-			h[z * cols + x] = track.ground_height(lo.x + x * SHADE_CELL, lo.y + z * SHADE_CELL)
-	var light := Vector3(-1.0, 1.4, -1.0).normalized()
-	var data := PackedByteArray()
-	data.resize(cols * rows * 4)
-	for z in rows:
-		for x in cols:
-			var dx := (h[z * cols + mini(x + 1, cols - 1)] - h[z * cols + maxi(x - 1, 0)]) / (2.0 * SHADE_CELL)
-			var dz := (h[mini(z + 1, rows - 1) * cols + x] - h[maxi(z - 1, 0) * cols + x]) / (2.0 * SHADE_CELL)
-			var normal := Vector3(-dx, 1.0, -dz).normalized()
-			# How much more or less lit than flat ground, made stronger to show.
-			var lit := clampf((normal.dot(light) - light.y) * 4.0, -1.0, 1.0)
-			var i := (z * cols + x) * 4
-			var grey := 255 if lit > 0.0 else 0
-			data[i] = grey
-			data[i + 1] = grey
-			data[i + 2] = grey
-			data[i + 3] = int(absf(lit) * (SHADE_LIGHT if lit > 0.0 else SHADE_DARK) * 255.0)
-	var rect := Rect2(lo - Vector2.ONE * SHADE_CELL * 0.5, Vector2(cols, rows) * SHADE_CELL)
-	return {"rect": rect, "size": Vector2i(cols, rows), "data": data}
-
-
-## Draws an outline's hillshade, if it has one, with `to_view`, only inside
-## `area` (in the same pixels as `to_view` gives).
-static func draw_shade(item: CanvasItem, outline: Dictionary, to_view: Transform2D, area: Rect2) -> void:
-	var shade = outline.get("shade")
-	if not shade is Dictionary:
-		return
-	if not shade.has("texture"):
-		var image := Image.create_from_data(shade.size.x, shade.size.y, false, Image.FORMAT_RGBA8, shade.data)
-		shade.texture = ImageTexture.create_from_image(image)
-	var rect: Rect2 = shade.rect
-	var quad := PackedVector2Array([to_view * rect.position, to_view * Vector2(rect.end.x, rect.position.y),
-		to_view * rect.end, to_view * Vector2(rect.position.x, rect.end.y)])
-	var box := PackedVector2Array([area.position, Vector2(area.end.x, area.position.y), area.end, Vector2(area.position.x, area.end.y)])
-	var from_view := to_view.affine_inverse()
-	for piece: PackedVector2Array in Geometry2D.intersect_polygons(quad, box):
-		var uvs := PackedVector2Array()
-		for p in piece:
-			uvs.append(((from_view * p) - rect.position) / rect.size)
-		item.draw_colored_polygon(piece, Color.WHITE, uvs, shade.texture)
 
 
 ## Each split as { middle, across, left, right }: points down its middle line
@@ -258,47 +161,6 @@ static func draw_splits(item: CanvasItem, outline: Dictionary, to_view: Transfor
 			item.draw_polyline(side, road, width, true)
 
 
-## Fills the painted squares of an outline in their colours, drawn with
-## `to_view` after `under`, the transform `item` is drawing with. The squares
-## are one mesh, made the first time and kept in the outline under "paint_mesh".
-static func draw_paint(item: CanvasItem, outline: Dictionary, to_view: Transform2D, under := Transform2D.IDENTITY) -> void:
-	if not outline.get("paint") is Array or outline.paint.is_empty():
-		return
-	if not outline.has("paint_mesh"):
-		outline.paint_mesh = _paint_mesh(outline.paint)
-	if outline.paint_mesh == null:
-		return
-	item.draw_set_transform_matrix(under * to_view)
-	item.draw_mesh(outline.paint_mesh, null)
-	item.draw_set_transform_matrix(under)
-
-
-## A flat mesh of a quad for each run, in metres, coloured by type. Null if
-## there's none it knows.
-static func _paint_mesh(runs: Array) -> ArrayMesh:
-	var cell := PaintedAreas.CELL
-	var points := PackedVector2Array()
-	var colours := PackedColorArray()
-	for run in runs:
-		if not run is Array or run.size() < 4 or not PaintedAreas.TYPES.has(str(run[3])):
-			continue
-		var low := Vector2(float(run[1]), float(run[0])) * cell
-		var high := low + Vector2(float(run[2]) * cell, cell)
-		points.append_array([low, Vector2(high.x, low.y), high, low, high, Vector2(low.x, high.y)])
-		var colour: Color = PaintedAreas.TYPES[str(run[3])].colour
-		for k in 6:
-			colours.append(colour)
-	if points.is_empty():
-		return null
-	var arrays := []
-	arrays.resize(Mesh.ARRAY_MAX)
-	arrays[Mesh.ARRAY_VERTEX] = points
-	arrays[Mesh.ARRAY_COLOR] = colours
-	var mesh := ArrayMesh.new()
-	mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
-	return mesh
-
-
 ## The game's own courses never change while it runs, but yours can.
 static func _key(path: String) -> String:
 	if path.begins_with("user://"):
@@ -337,7 +199,6 @@ static func _read(saved: String) -> Dictionary:
 	return {
 		"name": str(data.get("name", "")), "summary": str(data.summary), "map_rotation": float(data.get("map_rotation", 0.0)),
 		"line": line, "heights": PackedFloat32Array(data.heights), "loops": loops, "splits": splits, "box": box,
-		"paint": data.get("paint", []),
 		"start": line[0], "across": Vector2(data.across[0], data.across[1]),
 	}
 
@@ -368,7 +229,7 @@ static func _write(saved: String, outline: Dictionary) -> void:
 	file.store_string(JSON.stringify({
 		"name": outline.name, "summary": outline.summary, "map_rotation": outline.get("map_rotation", 0.0),
 		"line": flat.call(Array(outline.line)), "heights": heights, "loops": flat.call(outline.loops), "splits": splits,
-		"across": [outline.across.x, outline.across.y], "paint": outline.get("paint", []),
+		"across": [outline.across.x, outline.across.y],
 	}))
 
 
