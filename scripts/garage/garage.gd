@@ -442,8 +442,32 @@ func _turned_in_place(id: String, place: Transform3D, turn: Basis) -> Transform3
 	return _clamped(id, KartDesign.box_place(id, basis, at))
 
 
-## What the next engine adds, by how many are already on (see KartStats).
-const ENGINE_NOTES: Array[String] = ["Adds half its push", "Adds a quarter of its push", "Adds an eighth of its push"]
+## What an engine adds by where it ranks, strongest first (see KartStats).
+const ENGINE_NOTES: Array[String] = ["", "Adds half its push", "Adds a quarter of its push", "Adds an eighth of its push", "Adds a sixteenth of its push"]
+const ENGINE_FIRST := "Now your strongest, the others add less"
+const ENGINE_LAST := "Adds very little"
+
+
+## The note for the engines just put on, as the last `added` parts, or "".
+func _engine_note(added: int) -> String:
+	var defs: Array = []
+	for entry in design.parts:
+		var def := PartCatalog.get_part(entry.id)
+		if KartStats.is_engine(def):
+			defs.append(def)
+	var new_engines := 0
+	for entry in design.parts.slice(design.parts.size() - added):
+		if KartStats.is_engine(PartCatalog.get_part(entry.id)):
+			new_engines += 1
+	if new_engines == 0 or defs.size() == new_engines:
+		return ""
+	# The first of the new ones, which is the one the note is about.
+	var rank := KartStats.engine_rank(defs, defs.size() - new_engines)
+	if rank == 0:
+		return ENGINE_FIRST
+	if rank >= ENGINE_NOTES.size():
+		return ENGINE_LAST
+	return ENGINE_NOTES[rank]
 
 
 func _engine_count() -> int:
@@ -473,14 +497,15 @@ func place() -> void:
 	KartDesign.set_suspension(entry, _holding_suspension)
 	# Across the middle from before the part goes on, the same as its ghost.
 	var middle := design.middle()
-	var engines_before := _engine_count()
 	design.parts.append(entry)
 	var placed := design.parts.size() - 1
+	var added := 1
 	if mirror and _moving.is_empty():
 		var twin := mirrored(entry, middle)
 		var twin_place := KartDesign.place_of(twin)
 		if not twin_place.is_equal_approx(_ghost_place) and design.fits_place(twin.id, twin_place):
 			design.parts.append(twin)
+			added = 2
 	if not _moving.is_empty():
 		# A part that was being moved is done, so pick it out where it landed.
 		_moving = {}
@@ -490,8 +515,9 @@ func place() -> void:
 		_rebuild()
 		return
 	_rebuild()
-	if engines_before > 0 and KartStats.is_engine(PartCatalog.get_part(entry.id)):
-		ui.toast(ENGINE_NOTES[mini(engines_before, ENGINE_NOTES.size()) - 1])
+	var note := _engine_note(added)
+	if note != "":
+		ui.toast(note)
 	# Keep holding the same part, so you can put down a row of them.
 	_find_spots()
 	_show_ghost()

@@ -225,7 +225,7 @@ func _hosts(ready: Dictionary, cup: Dictionary) -> void:
 	invalid.pieces[1].length = 1
 	var net := NetSession.new()
 	get_tree().root.add_child(net)
-	check(NetSession.VERSION == 29 and net._check({"version": 28}).contains("different version") and net._check({"version": 29}) == "Nobody to race.", "current online peers accept engine tuning and reverse or mirrored layouts and reject protocol 28")
+	check(NetSession.VERSION == 30 and net._check({"version": 29}).contains("different version") and net._check({"version": 30}) == "Nobody to race.", "current online peers accept engine tuning and reverse or mirrored layouts and reject protocol 29")
 	net._begin({"course": invalid})
 	check(net.setup.is_empty() and net.last_problem == "The host's course can't be built.", "online raw validation rejects a malformed fixed-length piece before construction")
 	net.free()

@@ -394,6 +394,28 @@ func _weigh_engines() -> void:
 		weight *= 0.5
 
 
+## Where the engine at `index` in a list of part defs ranks by push, 0 for the
+## strongest. An equal engine ranks after the ones before it.
+static func engine_rank(defs: Array, index: int) -> int:
+	var mine := _push_at(engine_of(defs[index]), RANK_SPEED)
+	var rank := 0
+	for i in defs.size():
+		if i == index:
+			continue
+		var other := _push_at(engine_of(defs[i]), RANK_SPEED)
+		if other > mine or (other == mine and i < index):
+			rank += 1
+	return rank
+
+
+static func engine_of(def: Dictionary) -> Dictionary:
+	return {
+		"power": def.get("power", 0.0) * POWER_SCALE,
+		"max_force": def.get("max_force", 0.0),
+		"thrust": def.get("thrust", 0.0) * THRUST_SCALE,
+	}
+
+
 static func _push_at(engine: Dictionary, speed: float) -> float:
 	return minf(engine.max_force, engine.power / maxf(speed, 0.1)) + engine.thrust
 

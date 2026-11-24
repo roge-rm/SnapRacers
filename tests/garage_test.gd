@@ -275,6 +275,25 @@ func _loose_and_new(parts: int) -> void:
 	garage.undo()
 	check(garage.design.parts.size() == parts, "undo takes it off again")
 
+	# The note follows the engines' ranking, strongest first.
+	var saved := garage.design.parts.duplicate()
+	garage.design.parts.clear()
+	var notes: Array[String] = []
+	for id in ["engine_small", "engine_v8", "engine_small", "engine_small", "engine_small", "engine_small"]:
+		garage.design.parts.append(KartDesign.placed_entry(id, Transform3D(Basis.IDENTITY, Vector3(notes.size() * 40, 0, 0))))
+		notes.append(garage._engine_note(1))
+	check(notes[0] == "", "a first engine has no note: [%s]" % notes[0])
+	check(notes[1] == garage.ENGINE_FIRST, "a stronger second engine says it is now the strongest: %s" % notes[1])
+	check(notes[2] == "Adds a quarter of its push", "a weaker one after those two ranks third and adds a quarter: %s" % notes[2])
+	check(notes[3] == "Adds an eighth of its push", "then an eighth: %s" % notes[3])
+	check(notes[4] == "Adds a sixteenth of its push", "then a sixteenth: %s" % notes[4])
+	check(notes[5] == garage.ENGINE_LAST, "past that it adds very little: %s" % notes[5])
+	garage.design.parts.clear()
+	for id in ["engine_v8", "engine_small"]:
+		garage.design.parts.append(KartDesign.placed_entry(id, Transform3D(Basis.IDENTITY, Vector3(notes.size() * 40, 0, 0))))
+	check(garage._engine_note(1) == "Adds half its push", "a weaker engine on a stronger one adds half")
+	garage.design.parts.assign(saved)
+
 
 ## A bike frame on the floor takes a wheel on its back axle, from a finger
 ## near the dot, and the kart goes up to make room under it.
