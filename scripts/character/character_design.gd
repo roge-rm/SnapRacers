@@ -11,7 +11,9 @@ extends RefCounted
 ## twitchier one.
 
 const PIECES_PATH := "res://data/characters/pieces.json"
-## "head" is the face and the skin colour.
+## "head" is the face and the skin colour. Its style is a named face from
+## FacePrint.FACES. A face built from separate parts keeps them in "face" as
+## well (see face()), and the style is the named face it started from.
 const SLOTS := ["head", "hair", "facial_hair", "headgear", "neck", "torso", "back", "arms", "legs"]
 ## What a driver saved without a slot gets for it.
 const DEFAULTS := {
@@ -20,6 +22,8 @@ const DEFAULTS := {
 	"neck": ["none", "#c4281c"],
 	"back": ["none", "#3c3f44"],
 }
+## The face's parts, in the order FacePrint has them.
+const FACE_PARTS := ["eyes", "brows", "mouth", "extras"]
 ## Headgear styles that are hair now, for drivers saved with them as headgear.
 const HAIR_THAT_WAS_HEADGEAR := { "spiky_hair": "spiky", "ponytail": "ponytail" }
 const LIGHT_BELOW := 36.0
@@ -86,6 +90,9 @@ static func from_dict(data: Dictionary) -> CharacterDesign:
 		if piece(slot, style).is_empty() and not styles(slot).is_empty():
 			style = fallback[0] if not piece(slot, fallback[0]).is_empty() else styles(slot)[0]
 		design.pieces[slot] = { "style": style, "color": Paints.read(entry.get("color", fallback[1]), Color(fallback[1])) }
+		if slot == "head" and entry.get("face") is Dictionary:
+			design.pieces.head["face"] = _read_face(entry.face, style)
+			design._settle_face()
 	# Spiky hair and the ponytail move from headgear to hair.
 	var old_gear := str(data.get("headgear", {}).get("style", ""))
 	if HAIR_THAT_WAS_HEADGEAR.has(old_gear) and not data.has("hair"):
@@ -109,7 +116,45 @@ static func well_formed(data: Dictionary) -> bool:
 			return false
 		if entry.has("color") and not (entry.color is String and Color.html_is_valid(entry.color)):
 			return false
+		if slot == "head" and entry.has("face") and not face_well_formed(entry.face):
+			return false
 	return true
+
+
+## Whether a face's parts have the shape from_dict reads: text for the eyes,
+## brows and mouth and a short list of text for the extras. Names it doesn't
+## know are fine, as they're swapped for the named face's own.
+static func face_well_formed(face: Variant) -> bool:
+	if not face is Dictionary or face.size() > 8:
+		return false
+	for part in ["eyes", "brows", "mouth"]:
+		if face.has(part) and not (face[part] is String and face[part].length() <= 40):
+			return false
+	if face.has("extras"):
+		if not face.extras is Array or face.extras.size() > 16:
+			return false
+		for extra in face.extras:
+			if not (extra is String and extra.length() <= 40):
+				return false
+	return true
+
+
+## The parts saved for a face, with any it doesn't know (from a later
+## version, say) swapped for the named face's own.
+static func _read_face(data: Dictionary, style: String) -> Array:
+	var named := FacePrint.parts_of(style)
+	var out := named.duplicate(true)
+	for i in 3:
+		var value = data.get(FACE_PARTS[i])
+		if value is String and value in FacePrint.PARTS[FACE_PARTS[i]]:
+			out[i] = value
+	if data.get("extras") is Array:
+		var extras := []
+		for extra in data.extras:
+			if extra is String and (extra in FacePrint.EXTRAS or extra == "blush") and not extras.has(extra):
+				extras.append(extra)
+		out[3] = extras
+	return out
 
 
 static func load_file(path: String) -> CharacterDesign:
@@ -124,6 +169,9 @@ func to_dict() -> Dictionary:
 	var out := { "name": name }
 	for slot in SLOTS:
 		out[slot] = { "style": style_of(slot), "color": "#" + color_of(slot).to_html(false) }
+	var own = pieces.get("head", {}).get("face")
+	if own is Array:
+		out.head["face"] = { "eyes": own[0], "brows": own[1], "mouth": own[2], "extras": own[3].duplicate() }
 	return out
 
 
@@ -143,9 +191,52 @@ func set_piece(slot: String, style := "", color := Color(0, 0, 0, 0)) -> void:
 	var entry: Dictionary = pieces.get(slot, {}).duplicate()
 	if style != "":
 		entry["style"] = style
+		# Picking a named face takes all of it.
+		entry.erase("face")
 	if color.a > 0.0:
 		entry["color"] = color
 	pieces[slot] = entry
+
+
+## Whether the face is built from parts that aren't a named face.
+func has_own_face() -> bool:
+	return pieces.get("head", {}).get("face") is Array
+
+
+## The face's parts, [eyes, brows, mouth, extras]: its own if they've been
+## picked separately, or else the named face's.
+func face() -> Array:
+	var own = pieces.get("head", {}).get("face")
+	return own.duplicate(true) if own is Array else FacePrint.parts_of(style_of("head")).duplicate(true)
+
+
+## Changes one part of the face: "eyes", "brows" or "mouth" to a shape's
+## name, or "extras" to a list of them. If that makes a named face, it
+## becomes that face.
+func set_face_part(part: String, value: Variant) -> void:
+	var i := FACE_PARTS.find(part)
+	if i < 0:
+		return
+	var parts := face()
+	parts[i] = value.duplicate() if value is Array else value
+	var entry: Dictionary = pieces.get("head", {}).duplicate()
+	entry["face"] = parts
+	pieces["head"] = entry
+	_settle_face()
+
+
+## Drops the face's own parts when they're the same as a named face's, its
+## own first.
+func _settle_face() -> void:
+	var own = pieces.get("head", {}).get("face")
+	if not own is Array:
+		return
+	var names: Array = [style_of("head")] + FacePrint.FACES.keys()
+	for named in names:
+		if not piece("head", named).is_empty() and FacePrint.parts_of(named) == own:
+			pieces.head["style"] = named
+			pieces.head.erase("face")
+			return
 
 
 ## Whether this piece has a flag set in the catalogue, like bare arms or boots.

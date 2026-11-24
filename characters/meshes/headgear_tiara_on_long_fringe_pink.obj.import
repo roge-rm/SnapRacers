@@ -1,0 +1,25 @@
+[remap]
+
+importer="wavefront_obj"
+importer_version=1
+type="Mesh"
+uid="uid://1p4i4vqt345f"
+path="res://.godot/imported/headgear_tiara_on_long_fringe_pink.obj-c7960aed16fc511cbc7eda6af7f0193d.mesh"
+
+[deps]
+
+files=["res://.godot/imported/headgear_tiara_on_long_fringe_pink.obj-c7960aed16fc511cbc7eda6af7f0193d.mesh"]
+
+source_file="res://characters/meshes/headgear_tiara_on_long_fringe_pink.obj"
+dest_files=["res://.godot/imported/headgear_tiara_on_long_fringe_pink.obj-c7960aed16fc511cbc7eda6af7f0193d.mesh", "res://.godot/imported/headgear_tiara_on_long_fringe_pink.obj-c7960aed16fc511cbc7eda6af7f0193d.mesh"]
+
+[params]
+
+generate_tangents=true
+generate_lods=true
+generate_shadow_mesh=true
+generate_lightmap_uv2=false
+generate_lightmap_uv2_texel_size=0.2
+scale_mesh=Vector3(1, 1, 1)
+offset_mesh=Vector3(0, 0, 0)
+force_disable_mesh_compression=false

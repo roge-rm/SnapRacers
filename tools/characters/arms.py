@@ -122,8 +122,10 @@ def make(side, arm, hand, flags):
     if flags.get("two_tone"):
         p.paint("dark", forearm(side))
     if flags.get("gauntlet") == "white":
-        p.paint("white", path.band(0.012, 1.0))
-        lift("white", outside(side, path.ring(0.012, 0.026, 0.045)))
+        # Under a rolled cuff the glove starts lower, with skin between.
+        top, ring = (0.045, 0.059) if sleeve == "rolled" else (0.012, 0.026)
+        p.paint("white", path.band(top, 1.0))
+        lift("white", outside(side, path.ring(top, ring, 0.045)))
     if flags.get("stripes"):
         for y in (-0.04, -0.07):
             p.paint("white", upper_band(y - 0.007, y + 0.007))

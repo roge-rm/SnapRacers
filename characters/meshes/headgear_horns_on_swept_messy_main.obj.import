@@ -1,0 +1,25 @@
+[remap]
+
+importer="wavefront_obj"
+importer_version=1
+type="Mesh"
+uid="uid://bslgnnxkf46ij"
+path="res://.godot/imported/headgear_horns_on_swept_messy_main.obj-c042e5d2bd61f56f2ce5683888e51b0d.mesh"
+
+[deps]
+
+files=["res://.godot/imported/headgear_horns_on_swept_messy_main.obj-c042e5d2bd61f56f2ce5683888e51b0d.mesh"]
+
+source_file="res://characters/meshes/headgear_horns_on_swept_messy_main.obj"
+dest_files=["res://.godot/imported/headgear_horns_on_swept_messy_main.obj-c042e5d2bd61f56f2ce5683888e51b0d.mesh", "res://.godot/imported/headgear_horns_on_swept_messy_main.obj-c042e5d2bd61f56f2ce5683888e51b0d.mesh"]
+
+[params]
+
+generate_tangents=true
+generate_lods=true
+generate_shadow_mesh=true
+generate_lightmap_uv2=false
+generate_lightmap_uv2_texel_size=0.2
+scale_mesh=Vector3(1, 1, 1)
+offset_mesh=Vector3(0, 0, 0)
+force_disable_mesh_compression=false

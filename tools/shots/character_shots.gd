@@ -8,8 +8,8 @@ extends SceneTree
 ##   DISPLAY=:0 tools/godot/Godot_v4.7.2-stable_linux.x86_64 --path . -s tools/shots/character_shots.gd
 ## Add --out=/some/folder to save them there as well, and --only=necks,faces
 ## (any of figure, looks, closeup, necks, faces, hair, facial_hair, combos,
-## headgear, headgear_hair, headgear_karts, torsos, arms, outfits, legs,
-## backs)
+## headgear, headgear_hair, headgear_karts, torsos, arms, arm_closeups,
+## outfits, legs, backs, long_hair)
 ## for just those sheets.
 
 const OUT := "res://build/shots/characters"
@@ -156,12 +156,16 @@ func _run() -> void:
 		await _torsos()
 	if wanted("arms"):
 		await _arms()
+	if wanted("arm_closeups"):
+		await _arm_closeups()
 	if wanted("outfits"):
 		await _outfits()
 	if wanted("legs"):
 		await _legs()
 	if wanted("backs"):
 		await _backs()
+	if wanted("long_hair"):
+		await _long_hair()
 	if wanted("closeup"):
 		await _closeup()
 	quit()
@@ -435,6 +439,21 @@ func _arms() -> void:
 	save(sheet(shots, 5, TILE), "arms.png")
 
 
+## The sleeved arm styles close up by the elbow from a few sides, to see where
+## two colours meet.
+func _arm_closeups() -> void:
+	var shots := []
+	for style in ["short_sleeves", "wristbands", "puffed", "rolled", "furry", "long_gloves", "rolled_long_gloves", "short_long_gloves"]:
+		var design := bare()
+		design.set_piece("arms", style, Color("#0d69ab"))
+		var r := rig(design, false)
+		await process_frame
+		var elbow: Vector3 = r._arm[0].global_transform * CharacterRig.elbow(0)
+		for view in [Vector3(-1.0, 0.2, -0.6), Vector3(-0.6, -0.3, -1.0), Vector3(-1.0, 0.6, 0.4)]:
+			shots.append(await snap(style, elbow + view.normalized() * 0.45, elbow))
+	save(sheet(shots, 3, TILE), "arm_closeups.png")
+
+
 ## A few whole outfits on drivers in karts and astride a bike.
 func _outfits() -> void:
 	var shots := []
@@ -565,3 +584,47 @@ func _backs() -> void:
 				await process_frame
 			shots.append(await snap("%s in the %s" % [style, kart], seat + (ride[2] as Vector3).normalized() * 3.0, seat))
 		save(sheet(shots, 5, TILE), "backs_%s.png" % ride[0])
+
+
+## The long hairdos and newer short ones standing from the front, side and
+## behind, then the long ones in a kart from the side, lying back and on a
+## bike, and under a racing helmet, a cap and with a cape.
+func _long_hair() -> void:
+	var middle := Vector3(0.0, 0.62, 0.0)
+	var styles := ["long_straight", "long_wavy", "long_swept", "long_fringe", "long_curly", "low_ponytail", "messy_side_part", "swept_messy", "slicked_back"]
+	var shots := []
+	for style in styles:
+		var design := bare()
+		design.set_piece("hair", style, Color("#6b4430"))
+		rig(design, false)
+		for view in [["front", Vector3(-0.35, 0.2, -1.0)], ["side", Vector3(-1.0, 0.15, 0.0)], ["behind", Vector3(0.4, 0.25, 1.0)]]:
+			shots.append(await snap("%s %s" % [style, view[0]], middle + (view[1] as Vector3).normalized() * 2.2, middle))
+	save(sheet(shots, 3, TILE), "long_hair_standing.png")
+	var long := styles.slice(0, 6)
+	shots = []
+	for style in long:
+		for ride in [["kart_kid", Vector3(-1.0, 0.2, 0.05)], ["redline", Vector3(-1.0, 0.3, 0.3)], ["night_shift", Vector3(-1.0, 0.4, 0.5)], ["streak", Vector3(-1.0, 0.3, 0.4)]]:
+			var design := bare()
+			design.set_piece("hair", style, Color("#c47a3a"))
+			design.set_piece("torso", "racing_suit", Color("#c4281c"))
+			clear()
+			var model := KartModel.make(KartDesign.load_file("res://data/karts/stock/%s.json" % ride[0]), design)
+			_stand.add_child(model)
+			await process_frame
+			var seat := Vector3(0.0, 0.6, 0.0)
+			var found := model.find_children("*", "CharacterRig", true, false)
+			if not found.is_empty():
+				seat = (found[0] as Node3D).global_position + Vector3(0.0, 0.4, 0.0)
+			for frame in 10:
+				await process_frame
+			shots.append(await snap("%s in the %s" % [style, ride[0]], seat + (ride[1] as Vector3).normalized() * 2.6, seat))
+	save(sheet(shots, 4, TILE), "long_hair_karts.png")
+	shots = []
+	for style in long:
+		for wear in [["headgear", "racing_helmet", "#f4f4f4", Vector3(-0.8, 0.25, 0.9)], ["headgear", "cap", "#0d69ab", Vector3(-0.8, 0.25, 0.9)], ["back", "cape", "#c4281c", Vector3(0.5, 0.25, 1.0)]]:
+			var design := bare()
+			design.set_piece("hair", style, Color("#6b4430"))
+			design.set_piece(wear[0], wear[1], Color(wear[2]))
+			rig(design, false)
+			shots.append(await snap("%s, %s" % [style, wear[1]], middle + (wear[3] as Vector3).normalized() * 2.2, middle))
+	save(sheet(shots, 3, TILE), "long_hair_gear.png")

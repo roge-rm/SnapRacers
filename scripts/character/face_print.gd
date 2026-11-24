@@ -52,17 +52,49 @@ const FACES := {
 	"laughing": ["closed", "raised", "laugh", []],
 	"nervous": ["dots", "sad", "wobbly", ["sweat"]],
 	"monocle": ["dots", "raised_left", "small", ["monocle"]],
+	"plain": ["dots", "", "flat", []],
+	"no_mouth": ["dots", "", "none", []],
+	"unamused": ["half", "flat", "small_frown", []],
+	"cat": ["dots", "", "cat", []],
+	"blank": ["lines", "", "flat", []],
+	"kiss": ["dots", "", "pucker", []],
+}
+
+## The shapes a face can be built from, for picking them one at a time. ""
+## brows are none. Rosy cheeks go on every face without shades, so they
+## aren't an extra to pick.
+const EYES := ["dots", "big", "round", "lashes", "half", "sleepy", "lines", "closed", "wink", "glasses", "shades"]
+const BROWS := ["", "flat", "thin", "raised", "raised_left", "determined", "sad", "angry"]
+const MOUTHS := ["smile", "grin", "flat", "small", "smirk", "open", "laugh", "o", "frown", "small_frown", "wobbly", "gritted", "fangs", "tongue", "lipstick", "cat", "pucker", "none"]
+const EXTRAS := ["freckles", "scar", "sweat", "monocle"]
+## What each kind of part is called, and the list of its shapes.
+const PARTS := {"eyes": EYES, "brows": BROWS, "mouth": MOUTHS}
+## A shape's name in the driver editor.
+const SHAPE_NAMES := {
+	"dots": "Dots", "big": "Big", "round": "Round", "lashes": "Lashes", "half": "Half closed", "sleepy": "Sleepy", "lines": "Lines", "closed": "Closed", "wink": "Wink", "glasses": "Glasses", "shades": "Shades",
+	"": "None", "flat": "Flat", "thin": "Thin", "raised": "Raised", "raised_left": "One raised", "determined": "Determined", "sad": "Sad", "angry": "Angry",
+	"smile": "Smile", "grin": "Grin", "small": "Small smile", "smirk": "Smirk", "open": "Open", "laugh": "Laugh", "o": "Oh", "frown": "Frown", "small_frown": "Small frown", "wobbly": "Wobbly", "gritted": "Gritted", "fangs": "Toothy", "tongue": "Tongue out", "lipstick": "Lipstick", "cat": "Cat", "pucker": "Pucker", "none": "None",
+	"freckles": "Freckles", "scar": "Scar", "sweat": "Sweat drop", "monocle": "Monocle",
 }
 
 
+## A face's parts, [eyes, brows, mouth, extras], from a named face or the
+## parts themselves. Anything else is the smile.
+static func parts_of(face: Variant) -> Array:
+	if face is Array and face.size() == 4:
+		return face
+	return FACES.get(str(face), FACES.smile)
+
+
 ## The face texture for this face, skin, and facial hair in its colour, in a
-## mood or its own look.
-static func paint(style: String, skin: Color, radius: float, height: float, beard := "none", beard_colour := INK, mood := "") -> ImageTexture:
+## mood or its own look. `face` is a name from FACES or its parts (see
+## parts_of()).
+static func paint(style: Variant, skin: Color, radius: float, height: float, beard := "none", beard_colour := INK, mood := "") -> ImageTexture:
 	return ImageTexture.create_from_image(paint_image(style, skin, radius, height, beard, beard_colour, mood))
 
 
 ## The same as an Image, which is safe to make on another thread.
-static func paint_image(style: String, skin: Color, radius: float, height: float, beard := "none", beard_colour := INK, mood := "") -> Image:
+static func paint_image(style: Variant, skin: Color, radius: float, height: float, beard := "none", beard_colour := INK, mood := "") -> Image:
 	var image := Image.create_empty(WIDE, TALL, true, Image.FORMAT_RGBA8)
 	image.fill(skin)
 	var across := WIDE / (TAU * radius) # pixels per metre around the head
@@ -75,11 +107,25 @@ static func paint_image(style: String, skin: Color, radius: float, height: float
 
 ## Whether this face looks any different in this mood. Shades hide the eyes,
 ## so they never blink, and closed eyes are already closed.
-static func changes(style: String, mood: String) -> bool:
-	var eyes: String = FACES.get(style, FACES.smile)[0]
-	if mood == "blink":
-		return eyes != "shades" and eyes != "closed"
-	return MOODS.has(mood)
+static func changes(style: Variant, mood: String) -> bool:
+	return MOODS.has(mood) and _in_mood(parts_of(style), mood) != _in_mood(parts_of(style), "")
+
+
+## A small picture of just the front of the face, `size` pixels, for the
+## driver editor's tiles.
+static func picture(face: Variant, skin: Color, size := Vector2i(120, 90), beard := "none", beard_colour := INK) -> Image:
+	var image := Image.create_empty(size.x, size.y, true, Image.FORMAT_RGBA8)
+	image.fill(Color(skin, 0.0))
+	# 0.24 m across, on a rounded patch of skin the size of the front of the
+	# head.
+	var scale := size.x / 0.24
+	var middle := Vector2(size.x * 0.5, size.y * 0.5 + 0.006 * scale)
+	var half := Vector2(0.11, size.y * 0.5 / scale - 0.008)
+	var front := _box(Vector2(0.0, -0.006), half, 0.04, skin)
+	for shape in [front] + _beard(beard, beard_colour) + _shapes(face):
+		_draw_at(image, shape, middle, scale)
+	image.generate_mipmaps()
+	return image
 
 
 ## Paints one shape, [distance function, colour, patch], blending its soft
@@ -100,43 +146,77 @@ static func _draw(image: Image, shape: Array, across: float, up: float) -> void:
 				image.set_pixel(px, py, image.get_pixel(px, py).lerp(Color(colour, 1.0), cover))
 
 
-## The face's features in drawing order.
-static func _shapes(style: String, mood := "") -> Array:
-	var parts: Array = FACES.get(style, FACES.smile)
+## Paints one shape on a picture where `middle` is the middle of the face
+## and `scale` is pixels per metre.
+static func _draw_at(image: Image, shape: Array, middle: Vector2, scale: float) -> void:
+	var patch: Rect2 = shape[2].grow(0.004)
+	var colour: Color = shape[1]
+	var x0 := clampi(int(middle.x + patch.position.x * scale), 0, image.get_width() - 1)
+	var x1 := clampi(int(middle.x + patch.end.x * scale) + 1, 0, image.get_width() - 1)
+	var y0 := clampi(int(middle.y - patch.end.y * scale), 0, image.get_height() - 1)
+	var y1 := clampi(int(middle.y - patch.position.y * scale) + 1, 0, image.get_height() - 1)
+	for py in range(y0, y1 + 1):
+		for px in range(x0, x1 + 1):
+			var p := Vector2((px + 0.5 - middle.x) / scale, (middle.y - py - 0.5) / scale)
+			var d: float = shape[0].call(p)
+			var cover := clampf(0.5 - d * scale, 0.0, 1.0) * colour.a
+			if cover > 0.0:
+				image.set_pixel(px, py, image.get_pixel(px, py).lerp(Color(colour, 1.0), cover))
+
+
+## The face's parts as a mood changes them, [eyes, brows, mouth, extras].
+## No mouth stays no mouth, and line eyes are already as good as shut.
+static func _in_mood(parts: Array, mood: String) -> Array:
 	var eyes: String = parts[0]
 	var brows: String = parts[1]
 	var mouth: String = parts[2]
-	var extras: Array = parts[3].duplicate()
-	# Glasses are frames over ordinary eyes, so they stay on whatever the
-	# eyes do.
-	if eyes == "glasses":
-		eyes = "dots"
-		extras.append("frames")
-	if not extras.has("blush") and eyes != "shades":
-		extras.append("blush")
 	var hidden := eyes == "shades"
+	var shut := eyes == "closed" or eyes == "lines"
 	match mood:
 		"blink":
-			if not hidden:
+			if not hidden and not shut:
 				eyes = "closed"
 		"surprised":
 			if not hidden and eyes != "big":
 				eyes = "round"
 			brows = "raised"
-			mouth = "o"
+			if mouth != "none":
+				mouth = "o"
 		"happy":
-			if mouth != "fangs":
+			if eyes == "half":
+				eyes = "dots"
+			if mouth not in ["fangs", "cat", "none"]:
 				mouth = "grin"
-			if brows in ["angry", "sad", "determined"]:
+			if brows in ["angry", "sad", "determined", "flat"]:
 				brows = ""
 		"laugh":
 			if not hidden:
 				eyes = "closed"
 			brows = "raised"
-			mouth = "laugh"
+			if mouth != "none":
+				mouth = "laugh"
 		"cross":
 			brows = "determined"
-			mouth = "flat"
+			if mouth != "none":
+				mouth = "flat"
+	return [eyes, brows, mouth, parts[3]]
+
+
+## The face's features in drawing order.
+static func _shapes(style: Variant, mood := "") -> Array:
+	var parts := parts_of(style).duplicate()
+	var extras: Array = parts[3].duplicate()
+	# Glasses are frames over ordinary eyes, so they stay on whatever the
+	# eyes do.
+	if parts[0] == "glasses":
+		parts[0] = "dots"
+		extras.append("frames")
+	if not extras.has("blush") and parts[0] != "shades":
+		extras.append("blush")
+	parts = _in_mood(parts, mood)
+	var eyes: String = parts[0]
+	var brows: String = parts[1]
+	var mouth: String = parts[2]
 	var out := []
 	out.append_array(_extras(extras, true))
 	out.append_array(_eyes(eyes))
@@ -178,6 +258,25 @@ static func _eyes(kind: String) -> Array:
 				out.append(_ring(Vector2(0.038 * side, y + 0.004), Vector2(0.021, 0.027), 0.002, INK))
 				out.append(_ellipse(Vector2(0.034 * side, y), Vector2(0.01, 0.014), INK))
 				out.append(_circle(Vector2(0.034 * side + 0.004, y + 0.006), 0.003, Color.WHITE))
+			return out
+		"lines":
+			for side in [-1.0, 1.0]:
+				out.append(_segment(Vector2(0.045 * side - 0.016, 0.01), Vector2(0.045 * side + 0.016, 0.01), 0.003, INK))
+			return out
+		"half":
+			# Half closed lids over white eyes, both looking off to one side.
+			for side in [-1.0, 1.0]:
+				var at := Vector2(0.045 * side, 0.012)
+				var size := Vector2(0.02, 0.023)
+				var top := at.y + 0.002
+				var eye := func(p: Vector2) -> float: return maxf(_ellipse_d(p, at, size), p.y - top)
+				var patch := Rect2(at - size, size * 2.0)
+				out.append(_custom(eye, patch, Color.WHITE))
+				out.append(_custom(func(p): return absf(eye.call(p)) - 0.0018, patch.grow(0.002), INK))
+				var pupil := at + Vector2(0.009, -0.008)
+				out.append(_custom(func(p): return maxf(p.distance_to(pupil) - 0.01, eye.call(p)), Rect2(pupil - Vector2(0.01, 0.01), Vector2(0.02, 0.02)), INK))
+				out.append(_circle(pupil + Vector2(0.003, 0.003), 0.0026, Color.WHITE))
+				out.append(_segment(Vector2(at.x - 0.023, top), Vector2(at.x + 0.023, top), 0.0032, INK))
 			return out
 	var gap := 0.045
 	y = 0.012
@@ -222,6 +321,9 @@ static func _brows(kind: String) -> Array:
 				out.append(_arc(Vector2(0.04 * side, 0.04), 0.02, deg_to_rad(40.0), deg_to_rad(140.0), 0.0028, INK))
 		"raised_left":
 			out.append(_arc(Vector2(-0.04, 0.042), 0.02, deg_to_rad(30.0), deg_to_rad(150.0), 0.003, INK))
+		"flat":
+			for side in [-1.0, 1.0]:
+				out.append(_segment(Vector2(0.024 * side, 0.047), Vector2(0.058 * side, 0.047), 0.003, INK))
 		"thin":
 			for side in [-1.0, 1.0]:
 				out.append(_arc(Vector2(0.04 * side, 0.036), 0.02, deg_to_rad(55.0), deg_to_rad(125.0), 0.0018, INK))
@@ -274,6 +376,16 @@ static func _mouth(kind: String) -> Array:
 				var a := Vector2(-0.028 + k * 0.014, -0.03 + (0.004 if k % 2 == 0 else -0.004))
 				var b := Vector2(-0.014 + k * 0.014, -0.03 + (-0.004 if k % 2 == 0 else 0.004))
 				out.append(_segment(a, b, 0.0025, INK))
+		"none":
+			pass
+		"cat":
+			# A little w, like a cat's :3.
+			for side in [-1.0, 1.0]:
+				out.append(_arc(Vector2(0.011 * side, -0.026), 0.011, deg_to_rad(180.0), deg_to_rad(360.0), 0.003, INK))
+		"pucker":
+			out.append(_ring(Vector2(0.0, -0.032), Vector2(0.009, 0.011), 0.0032, INK))
+		"small_frown":
+			out.append(_arc(Vector2(0.0, -0.056), 0.022, deg_to_rad(55.0), deg_to_rad(125.0), 0.003, INK))
 		_:
 			# A thin smile, its ends clear of the eyes.
 			out.append(_arc(Vector2(0.0, 0.019), 0.05, deg_to_rad(222.0), deg_to_rad(318.0), 0.003, INK))

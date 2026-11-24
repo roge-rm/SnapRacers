@@ -137,6 +137,30 @@
 		"monocle": {
 			"name": "Monocle",
 			"mass": 3.1
+		},
+		"plain": {
+			"name": "Plain",
+			"mass": 3.0
+		},
+		"no_mouth": {
+			"name": "No mouth",
+			"mass": 3.0
+		},
+		"unamused": {
+			"name": "Unamused",
+			"mass": 3.0
+		},
+		"cat": {
+			"name": "Cat",
+			"mass": 3.0
+		},
+		"blank": {
+			"name": "Blank",
+			"mass": 3.0
+		},
+		"kiss": {
+			"name": "Kiss",
+			"mass": 3.0
 		}
 	},
 	"hair": {
@@ -219,6 +243,42 @@
 		"fringe": {
 			"name": "Swept fringe",
 			"mass": 0.35
+		},
+		"messy_side_part": {
+			"name": "Messy side part",
+			"mass": 0.35
+		},
+		"swept_messy": {
+			"name": "Swept over messy",
+			"mass": 0.35
+		},
+		"slicked_back": {
+			"name": "Slicked back",
+			"mass": 0.3
+		},
+		"long_straight": {
+			"name": "Long straight",
+			"mass": 0.6
+		},
+		"long_wavy": {
+			"name": "Long waves",
+			"mass": 0.6
+		},
+		"long_swept": {
+			"name": "Long side swept",
+			"mass": 0.6
+		},
+		"long_fringe": {
+			"name": "Long with fringe",
+			"mass": 0.6
+		},
+		"long_curly": {
+			"name": "Long curly",
+			"mass": 0.65
+		},
+		"low_ponytail": {
+			"name": "Low ponytail",
+			"mass": 0.5
 		}
 	},
 	"facial_hair": {
@@ -757,6 +817,20 @@
 			"name": "Two-tone sleeves",
 			"mass": 5.0,
 			"two_tone": true
+		},
+		"rolled_long_gloves": {
+			"name": "Rolled up sleeves and long gloves",
+			"mass": 4.8,
+			"sleeve": "rolled",
+			"hands": "white",
+			"gauntlet": "white"
+		},
+		"short_long_gloves": {
+			"name": "Short sleeves and long gloves",
+			"mass": 4.6,
+			"sleeve": "short",
+			"hands": "white",
+			"gauntlet": "white"
 		}
 	},
 	"legs": {
@@ -866,6 +940,24 @@
 			"mass": 9.5,
 			"thin": true,
 			"print": "stripes"
+		},
+		"skirt_socks": {
+			"name": "Skirt and socks",
+			"mass": 10.0,
+			"skirt": "short",
+			"bare": true,
+			"socks": true
+		},
+		"short_shorts": {
+			"name": "Short shorts",
+			"mass": 9.5,
+			"bare": true
+		},
+		"short_shorts_socks": {
+			"name": "Short shorts and socks",
+			"mass": 10.0,
+			"bare": true,
+			"socks": true
 		}
 	}
 }

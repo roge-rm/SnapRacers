@@ -13,6 +13,9 @@ extends Control
 ## bottom.
 
 signal style_chosen(slot: String, style: String)
+## One part of the face picked on its own: "eyes", "brows" or "mouth" and a
+## shape's name, or "extras" and the whole list of them.
+signal face_part_chosen(part: String, value: Variant)
 signal colour_chosen(slot: String, colour: Color)
 signal undo_pressed
 signal redo_pressed
@@ -28,9 +31,14 @@ signal load_chosen(path: String)
 
 const SLOTS := [["head", "Face"], ["hair", "Hair"], ["facial_hair", "Facial hair"], ["headgear", "Headgear"], ["neck", "Neck"], ["torso", "Torso"], ["back", "Back"], ["arms", "Arms"], ["legs", "Legs"]]
 const SWATCH := 42.0
+## The face tab's groups: the named faces, then each part on its own.
+const FACE_GROUPS := [["faces", "Faces"], ["eyes", "Eyes"], ["brows", "Brows"], ["mouth", "Mouth"], ["extras", "Extras"]]
+const FACE_PICTURE := Vector2i(160, 120)
 
 var slot := "head"
 var design: CharacterDesign
+## Which of FACE_GROUPS the face tab shows.
+var face_group := "faces"
 
 var _toolbar: PanelContainer
 var _undo: IconButton
@@ -43,6 +51,10 @@ var _rail_box: RailBox
 var _rail: Array[IconButton] = []
 var _heading: Label
 var _tiles: GridContainer
+var _face_row: HFlowContainer
+var _face_pills := {}
+## Flat face pictures for the face part tiles, by face and skin.
+static var _face_pictures := {}
 var _chip: Button
 var _card: PanelContainer
 var _file_menu: PopupMenu
@@ -132,15 +144,88 @@ func show_slot(which: String) -> void:
 	_pictures.drop_waiting()
 	for child in _tiles.get_children():
 		child.queue_free()
+	_face_row.visible = slot == "head"
+	for group in _face_pills:
+		MenuStyle.mark(_face_pills[group], group == face_group)
+	if slot == "head" and face_group != "faces":
+		_show_face_parts()
+		_show_swatches()
+		return
 	for style in CharacterDesign.styles(slot):
 		var info := CharacterDesign.piece(slot, style)
 		var weight := str(snappedf(float(info.get("mass", 0.0)), 0.1)).trim_suffix(".0")
-		var tile := DriverTile.new(style, "%s\n%s kg" % [info.get("name", style), weight], design.style_of(slot) == style)
+		var picked: bool = design.style_of(slot) == style and not (slot == "head" and design.has_own_face())
+		var tile := DriverTile.new(style, "%s\n%s kg" % [info.get("name", style), weight], picked)
 		tile.set_meta("key", DriverThumbnails.key_of(design, slot, style))
 		tile.icon = _pictures.picture(design, slot, style)
 		tile.tapped.connect(func() -> void: style_chosen.emit(slot, style))
+		# Greyed when it leaves long hair's length off.
+		if not _keeps_length(slot, style):
+			tile.modulate = Color(1, 1, 1, 0.45)
 		_tiles.add_child(tile)
 	_show_swatches()
+
+
+## Whether wearing this style keeps the length of the driver's long hair,
+## or of this long hair, which some neck pieces, back pieces and headgear
+## don't fit with.
+func _keeps_length(which: String, style: String) -> bool:
+	if not which in ["hair", "neck", "back", "headgear"]:
+		return true
+	var apart := CharacterRig.length_apart(style if which == "hair" else design.style_of("hair"))
+	for other in ["neck", "back", "headgear"]:
+		if apart.has("%s %s" % [other, style if other == which else design.style_of(other)]):
+			return false
+	return true
+
+
+## Shows one face group: each shape on your driver's face, in place of the
+## one they have. Extras go on and off, and None takes them all off.
+func show_face_group(group: String) -> void:
+	face_group = group
+	show_slot("head")
+
+
+func _show_face_parts() -> void:
+	var parts := design.face()
+	var shapes: Array = [""] + FacePrint.EXTRAS if face_group == "extras" else FacePrint.PARTS[face_group]
+	var at := CharacterDesign.FACE_PARTS.find(face_group)
+	for shape in shapes:
+		var trying := parts.duplicate(true)
+		var value: Variant = shape
+		var picked := false
+		if face_group == "extras":
+			if shape == "":
+				value = []
+				picked = parts[3].all(func(e): return e == "blush")
+			else:
+				picked = parts[3].has(shape)
+				value = parts[3].duplicate()
+				if picked:
+					value.erase(shape)
+				else:
+					value.append(shape)
+			# Each picture shows its extra on, and None shows none.
+			trying[3] = [] if shape == "" else (parts[3] if picked else value)
+		else:
+			picked = parts[at] == shape
+			trying[at] = shape
+		var label: String = FacePrint.SHAPE_NAMES.get(shape, shape)
+		var tile := DriverTile.new(str(shape), label, picked)
+		tile.icon = _face_picture(trying)
+		var part: String = face_group
+		tile.tapped.connect(func() -> void: face_part_chosen.emit(part, value))
+		_tiles.add_child(tile)
+
+
+## A flat picture of this face on your driver's skin, kept for next time.
+func _face_picture(parts: Array) -> Texture2D:
+	var key := "%s %s %s %s" % [str(parts), design.skin().to_html(), design.style_of("facial_hair"), design.color_of("facial_hair").to_html()]
+	if not _face_pictures.has(key):
+		if _face_pictures.size() > 200:
+			_face_pictures.clear()
+		_face_pictures[key] = ImageTexture.create_from_image(FacePrint.picture(parts, design.skin(), FACE_PICTURE, design.style_of("facial_hair"), design.color_of("facial_hair")))
+	return _face_pictures[key]
 
 
 func _show_picture(key: String, picture: Texture2D) -> void:
@@ -303,6 +388,18 @@ func _build_drawer() -> void:
 	_heading.custom_minimum_size.y = 40.0
 	_heading.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	column.add_child(_heading)
+	# The face tab picks a named face or each part on its own.
+	_face_row = HFlowContainer.new()
+	_face_row.add_theme_constant_override("h_separation", 4)
+	_face_row.add_theme_constant_override("v_separation", 4)
+	_face_row.custom_minimum_size.x = BuilderStyle.TILE.x * 2.0 + 4.0
+	column.add_child(_face_row)
+	for pair in FACE_GROUPS:
+		var pill := MenuStyle.button(pair[1], func() -> void: show_face_group(pair[0]))
+		pill.theme_type_variation = "ChoiceButton"
+		pill.custom_minimum_size = Vector2(0, 40)
+		_face_row.add_child(pill)
+		_face_pills[pair[0]] = pill
 	var scroll := ScrollContainer.new()
 	scroll.follow_focus = true
 	scroll.size_flags_vertical = SIZE_EXPAND_FILL

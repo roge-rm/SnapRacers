@@ -1,0 +1,25 @@
+[remap]
+
+importer="wavefront_obj"
+importer_version=1
+type="Mesh"
+uid="uid://dvkcvwt0vachn"
+path="res://.godot/imported/arms_rolled_long_gloves_r_white.obj-95e19d8fad0fbb82cdb0be38b430ff96.mesh"
+
+[deps]
+
+files=["res://.godot/imported/arms_rolled_long_gloves_r_white.obj-95e19d8fad0fbb82cdb0be38b430ff96.mesh"]
+
+source_file="res://characters/meshes/arms_rolled_long_gloves_r_white.obj"
+dest_files=["res://.godot/imported/arms_rolled_long_gloves_r_white.obj-95e19d8fad0fbb82cdb0be38b430ff96.mesh", "res://.godot/imported/arms_rolled_long_gloves_r_white.obj-95e19d8fad0fbb82cdb0be38b430ff96.mesh"]
+
+[params]
+
+generate_tangents=true
+generate_lods=true
+generate_shadow_mesh=true
+generate_lightmap_uv2=false
+generate_lightmap_uv2_texel_size=0.2
+scale_mesh=Vector3(1, 1, 1)
+offset_mesh=Vector3(0, 0, 0)
+force_disable_mesh_compression=false

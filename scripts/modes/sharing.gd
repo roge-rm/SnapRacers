@@ -178,6 +178,9 @@ static func _validate(kind: String, data: Dictionary, saved := false) -> Diction
 				var entry = data[slot]
 				if not entry is Dictionary or not entry.get("style") is String or not _colour(entry.get("color", "#f2cd37")):
 					return {"why": "That racer has an invalid piece or colour."}
+				# Face parts it doesn't know are swapped for the named face's own.
+				if slot == "head" and entry.has("face") and not CharacterDesign.face_well_formed(entry.face):
+					return {"why": "That racer has an invalid piece or colour."}
 				var retired: bool = slot == "headgear" and CharacterDesign.HAIR_THAT_WAS_HEADGEAR.has(entry.style)
 				if not retired and not entry.style in CharacterDesign.styles(slot):
 					return {"why": "That racer has a style the game doesn't have."}
@@ -379,7 +382,8 @@ static func _piece(spec: Variant) -> bool:
 		for key in spec:
 			if key not in ["type", "side", "surface", "edges"]:
 				return false
-		if not spec.get("side", "right") in ["left", "right"]:
+		var sides := ["left", "right", "both"] if spec.get("type") == "jump_split" else ["left", "right"]
+		if not spec.get("side", "right") in sides:
 			return false
 	if spec.get("type") in ["half_straight", "quarter_straight"]:
 		for key in spec:

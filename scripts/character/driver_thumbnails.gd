@@ -43,6 +43,8 @@ static func key_of(design: CharacterDesign, slot: String, style: String) -> Stri
 	var look := design.to_dict()
 	look.erase("name")
 	look[slot]["style"] = style
+	# A named face takes the place of any face built from parts.
+	look[slot].erase("face")
 	return slot + " " + JSON.stringify(look, "", true)
 
 

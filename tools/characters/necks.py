@@ -152,8 +152,7 @@ def shoulder_ring(inner, outer, height):
 
 def printed(solid, prism):
     """Splits a solid into what's inside the prism, a print, and the rest."""
-    inside = solid ^ prism
-    return solid - inside, inside
+    return solid - prism, solid ^ prism
 
 
 def stripes(solid, cuts, axis=1):
@@ -166,16 +165,15 @@ def stripes(solid, cuts, axis=1):
         at = [-1.0, -1.0, -1.0]
         at[axis] = lo
         bands.append(Manifold.cube(size).translate(at))
-    inside = solid ^ union(bands)
-    return solid - inside, inside
+    bands = union(bands)
+    return solid - bands, solid ^ bands
 
 
 def dots(solid, centres, r):
     """Splits a flat solid on the chest into round dots through it and the
     rest."""
     holes = union([tube((x, y, -0.3), (x, y, 0.0), r, r, 12) for x, y in centres])
-    inside = solid ^ holes
-    return solid - inside, inside
+    return solid - holes, solid ^ holes
 
 
 def lanyard(bottom, r=0.0035):
@@ -248,7 +246,7 @@ def tie():
     # Stripes across the blade, slanting.
     slants = union([Manifold.cube([0.2, 0.009, 0.2]).translate([-0.1, -0.0045, -0.25]).rotate([0.0, 0.0, -30.0]).translate([0.0, y, 0.0]) for y in (TOP - 0.07, TOP - 0.11, TOP - 0.15)])
     striped = blade ^ slants
-    return {"main": knot + (blade - striped), "dark": striped}
+    return {"main": knot + (blade - slants), "dark": striped}
 
 
 def bow_tie():
@@ -291,8 +289,8 @@ def medal():
     disc = flat_round(0.03, 0.008, FRONT - 0.004, (0.0, y))
     loop_tab = rbox(-0.009, y + 0.025, FRONT - 0.009, 0.009, low + 0.004, FRONT - 0.002, 0.003)
     # A star printed on the front.
-    star = disc ^ star_prism(0.017, 0.007, (0.0, y)).translate([0.0, 0.0, FRONT - 0.0105])
-    return {"main": ribbon, "gold": (disc - star) + loop_tab, "dark": star}
+    star_zone = star_prism(0.017, 0.007, (0.0, y)).translate([0.0, 0.0, FRONT - 0.0105])
+    return {"main": ribbon, "gold": (disc - star_zone) + loop_tab, "dark": disc ^ star_zone}
 
 
 def beads():
@@ -340,14 +338,17 @@ def whistle():
 
 def race_pass():
     cord_solid, low = lanyard(TOP - 0.075)
-    clip = rbox(-0.008, low - 0.02, FRONT - 0.008, 0.008, low + 0.003, FRONT - 0.001, 0.003)
+    # Its back stands off the cord's, so the two don't fight.
+    clip = rbox(-0.008, low - 0.02, FRONT - 0.008, 0.008, low + 0.003, FRONT - 0.002, 0.003)
     top = low - 0.016
     bottom = top - 0.084
     card = rbox(-0.032, bottom, FRONT - 0.005, 0.032, top, FRONT, 0.002)
-    stripe = card ^ Manifold.cube([0.1, 0.016, 0.1]).translate([-0.05, top - 0.018, -0.2])
-    photo = card ^ Manifold.cube([0.022, 0.026, 0.1]).translate([-0.025, bottom + 0.03, -0.2])
-    lines = card ^ union([Manifold.cube([0.026, 0.005, 0.1]).translate([0.0, bottom + y, -0.2]) for y in (0.046, 0.034)])
-    white = card - stripe - photo - lines
+    # Each print is cut from the card by its zone, not by the print itself.
+    stripe_zone = Manifold.cube([0.1, 0.016, 0.1]).translate([-0.05, top - 0.018, -0.2])
+    photo_zone = Manifold.cube([0.022, 0.026, 0.1]).translate([-0.025, bottom + 0.03, -0.2])
+    lines_zone = union([Manifold.cube([0.026, 0.005, 0.1]).translate([0.0, bottom + y, -0.2]) for y in (0.046, 0.034)])
+    stripe, photo, lines = card ^ stripe_zone, card ^ photo_zone, card ^ lines_zone
+    white = card - stripe_zone - photo_zone - lines_zone
     return {"main": cord_solid + stripe, "white": white, "silver": clip, "grey": photo, "ink": lines}
 
 

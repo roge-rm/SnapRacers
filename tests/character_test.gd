@@ -89,6 +89,80 @@ class Runner:
 	func hand_at(rig: CharacterRig, side: int) -> Vector3:
 		return rig._hand[side].global_position
 
+	## The triangles of a mesh, three points each.
+	func triangles(mesh: Mesh) -> PackedVector3Array:
+		var out := PackedVector3Array()
+		for s in mesh.get_surface_count():
+			var arrays := mesh.surface_get_arrays(s)
+			var points: PackedVector3Array = arrays[Mesh.ARRAY_VERTEX]
+			var index = arrays[Mesh.ARRAY_INDEX]
+			if index == null or index.is_empty():
+				out.append_array(points)
+			else:
+				for i in index:
+					out.append(points[i])
+		return out
+
+	## Where two colour regions of a piece have faces in the same place,
+	## facing the same way, which the screen shows as the two colours
+	## flickering through each other. Each region's triangles are checked
+	## at their middle against the other regions' triangles, within 0.2 mm.
+	func overlapping_regions(regions: Dictionary) -> Array:
+		const NEAR := 0.0002
+		const CELL := 0.01
+		var tris := {}
+		var grids := {}
+		for region in regions:
+			var t := triangles(CharacterMesh.mesh(regions[region]))
+			tris[region] = t
+			var grid := {}
+			for i in range(0, t.size(), 3):
+				var lo := t[i].min(t[i + 1]).min(t[i + 2]) - Vector3.ONE * NEAR
+				var hi := t[i].max(t[i + 1]).max(t[i + 2]) + Vector3.ONE * NEAR
+				var a := Vector3i((lo / CELL).floor())
+				var b := Vector3i((hi / CELL).floor())
+				for x in range(a.x, b.x + 1):
+					for y in range(a.y, b.y + 1):
+						for z in range(a.z, b.z + 1):
+							var key := Vector3i(x, y, z)
+							if not grid.has(key):
+								grid[key] = PackedInt32Array()
+							grid[key].append(i)
+			grids[region] = grid
+		var out := []
+		for a in regions:
+			var ta: PackedVector3Array = tris[a]
+			for b in regions:
+				if a == b:
+					continue
+				var tb: PackedVector3Array = tris[b]
+				var grid: Dictionary = grids[b]
+				var found := 0
+				for i in range(0, ta.size(), 3):
+					var cross := (ta[i + 1] - ta[i]).cross(ta[i + 2] - ta[i])
+					if cross.length() < 1e-10:
+						continue
+					var n := cross.normalized()
+					var p := (ta[i] + ta[i + 1] + ta[i + 2]) / 3.0
+					var key := Vector3i((p / CELL).floor())
+					if not grid.has(key):
+						continue
+					for j in grid[key]:
+						var nb := (tb[j + 1] - tb[j]).cross(tb[j + 2] - tb[j])
+						if nb.length() < 1e-10:
+							continue
+						nb = nb.normalized()
+						var d := (p - tb[j]).dot(nb)
+						if n.dot(nb) < 0.95 or absf(d) > NEAR:
+							continue
+						var q := p - nb * d
+						if (tb[j + 1] - tb[j]).cross(q - tb[j]).dot(nb) > 0.0 and (tb[j + 2] - tb[j + 1]).cross(q - tb[j + 1]).dot(nb) > 0.0 and (tb[j] - tb[j + 2]).cross(q - tb[j + 2]).dot(nb) > 0.0:
+							found += 1
+							break
+				if found > 0:
+					out.append("%s on %s (%d faces)" % [a, b, found])
+		return out
+
 	func _ready() -> void:
 		add_child(TestTrack.new())
 
@@ -106,6 +180,27 @@ class Runner:
 					if mesh == null or mesh.get_surface_count() == 0 or mesh.get_aabb().size.length() < 0.01:
 						empty.append("%s %s" % [piece, region])
 		check(figure.size() >= 10 and empty.is_empty(), "the figure's %d pieces all load %s" % [figure.size(), empty])
+
+		# No two colour regions of the figure, an arm, torso, neck piece or
+		# standing leg are in the same place, or they flicker through each
+		# other. Legs sitting and riding, headgear and back pieces aren't
+		# checked yet.
+		var pieces := {}
+		for piece in figure:
+			pieces["figure " + piece] = figure[piece].regions
+		for slot in ["arms", "torso", "neck", "legs"]:
+			var made_slot: Dictionary = CharacterMesh.made().get("styles", {}).get(slot, {})
+			for style in made_slot:
+				var entry: Dictionary = made_slot[style]
+				pieces["%s %s" % [slot, style]] = entry.regions
+				for part in ["arm_r", "hand_l", "hand_r", "standing_l", "standing_r"]:
+					if entry.has(part):
+						pieces["%s %s %s" % [slot, style, part]] = entry[part].regions
+		var fighting := []
+		for piece in pieces:
+			for found in overlapping_regions(pieces[piece]):
+				fighting.append("%s: %s" % [piece, found])
+		check(fighting.is_empty(), "no two colour regions of the %d arms, torsos, neck pieces, standing legs and figure pieces overlap %s" % [pieces.size(), fighting])
 
 		# Every neck piece is made in tools/characters, and its meshes load.
 		var missing := []
@@ -248,6 +343,40 @@ class Runner:
 				wearing.append("%s wanted, %s worn" % [way[3], rig.back_variant()])
 			rig.free()
 		check(wearing.is_empty(), "the rig wears the back piece's shape for how it sits %s" % [wearing])
+		# Long hair's length down the back, made for each pose like the back
+		# pieces and left off with what it doesn't fit with.
+		missing = []
+		wearing = []
+		var long_styles := 0
+		for style in CharacterMesh.made().get("styles", {}).get("hair", {}):
+			var entry := CharacterMesh.style("hair", style)
+			if not entry.has("length"):
+				continue
+			long_styles += 1
+			for part in ["length", "length_seated", "length_reclined", "length_astride"]:
+				var shape: Dictionary = entry.get(part, {})
+				if shape.get("bone", "") != "upper" or shape.get("regions", {}).is_empty():
+					missing.append("%s %s" % [style, part])
+				for region in shape.get("regions", {}):
+					var mesh := CharacterMesh.mesh(shape.regions[region])
+					if mesh == null or mesh.get_surface_count() == 0:
+						missing.append("%s %s %s" % [style, part, region])
+			var who := CharacterDesign.new()
+			who.set_piece("hair", style)
+			for way in [[false, false, 0.0, "length"], [true, false, 0.0, "length_seated"], [true, false, 1.0, "length_reclined"], [true, true, 0.0, "length_astride"]]:
+				var rig := CharacterRig.new(who, way[0])
+				rig.astride = way[1]
+				rig.recline = way[2]
+				if rig.length_variant() != way[3]:
+					wearing.append("%s: %s wanted, %s worn" % [style, way[3], rig.length_variant()])
+				rig.free()
+			if CharacterRig.length_left_off(who):
+				wearing.append("%s left off with nothing on" % style)
+			who.set_piece("back", "cape")
+			if not CharacterRig.length_left_off(who):
+				wearing.append("%s worn with a cape" % style)
+		check(missing.is_empty() and long_styles >= 4, "every long hairdo's length is made for each pose and loads %s" % [missing])
+		check(wearing.is_empty(), "the rig wears long hair's length for how it sits, and leaves it off with a cape %s" % [wearing])
 
 		# How far the figure's pieces go into each other in the rig's poses,
 		# measured in tools/characters on the real meshes.
@@ -276,6 +405,8 @@ class Runner:
 					var names := ["%s %s" % [slot, style]]
 					if slot == "hair":
 						names.append("hair %s cut" % style)
+					if CharacterMesh.style(slot, style).has("length"):
+						names.append("hair %s length" % style)
 					for name in names:
 						if not report.get("styles", []).has(name):
 							unchecked.append(name)

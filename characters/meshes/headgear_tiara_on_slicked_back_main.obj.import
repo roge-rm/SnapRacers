@@ -1,0 +1,25 @@
+[remap]
+
+importer="wavefront_obj"
+importer_version=1
+type="Mesh"
+uid="uid://7qp1gkckrgh"
+path="res://.godot/imported/headgear_tiara_on_slicked_back_main.obj-a040e9f7cd35147e9a28c5ed3c2bc049.mesh"
+
+[deps]
+
+files=["res://.godot/imported/headgear_tiara_on_slicked_back_main.obj-a040e9f7cd35147e9a28c5ed3c2bc049.mesh"]
+
+source_file="res://characters/meshes/headgear_tiara_on_slicked_back_main.obj"
+dest_files=["res://.godot/imported/headgear_tiara_on_slicked_back_main.obj-a040e9f7cd35147e9a28c5ed3c2bc049.mesh", "res://.godot/imported/headgear_tiara_on_slicked_back_main.obj-a040e9f7cd35147e9a28c5ed3c2bc049.mesh"]
+
+[params]
+
+generate_tangents=true
+generate_lods=true
+generate_shadow_mesh=true
+generate_lightmap_uv2=false
+generate_lightmap_uv2_texel_size=0.2
+scale_mesh=Vector3(1, 1, 1)
+offset_mesh=Vector3(0, 0, 0)
+force_disable_mesh_compression=false

@@ -315,7 +315,7 @@ func _exit_tree() -> void:
 
 ## Pulls a face for a while, one of FacePrint.MOODS.
 func feel(mood: String, seconds := 1.5) -> void:
-	if not lively or not FacePrint.changes(design.style_of("head"), mood):
+	if not lively or not FacePrint.changes(design.face(), mood):
 		return
 	_mood = mood
 	_mood_left = seconds
@@ -483,7 +483,7 @@ func _process(delta: float) -> void:
 	var mood := ""
 	if _mood_left > 0.0:
 		mood = _mood
-	elif _blink_left > 0.0 and FacePrint.changes(design.style_of("head"), "blink"):
+	elif _blink_left > 0.0 and FacePrint.changes(design.face(), "blink"):
 		mood = "blink"
 	_face.material_override = _face_material(mood)
 
@@ -891,6 +891,11 @@ func _dress_head() -> void:
 		_add_figure("stud", _head, {"skin": design.skin()})
 	if under != "hidden":
 		_wear("hair", "cut" if under == "cut" else "")
+	# Long hair's length down the back shows under any headgear, unless
+	# something it doesn't fit with is worn.
+	var length := length_variant()
+	if length != "" and not length_left_off(design):
+		_wear("hair", length)
 	if not CharacterMesh.style("facial_hair", design.style_of("facial_hair")).is_empty():
 		_wear("facial_hair")
 	if headgear == "none":
@@ -908,6 +913,29 @@ func _dress_head() -> void:
 ## hair has the full hair.
 static func hair_under(headgear: String) -> String:
 	return str(CharacterMesh.style("headgear", headgear).get("hair", "full"))
+
+
+## Which shape of long hair's length down the back the rig wears, made for
+## each pose like the back piece, or "" when the hair has none.
+func length_variant() -> String:
+	var v := back_variant()
+	var key := "length" if v == "" else "length_" + v
+	return key if CharacterMesh.style("hair", design.style_of("hair")).has(key) else ""
+
+
+## The pieces this hairdo's length doesn't fit with, as "slot style".
+static func length_apart(hair: String) -> Array:
+	return CharacterMesh.style("hair", hair).get("apart", [])
+
+
+## Whether a driver's long hair has its length left off, for a neck piece,
+## back piece or headgear it doesn't fit with.
+static func length_left_off(who: CharacterDesign) -> bool:
+	var apart := length_apart(who.style_of("hair"))
+	for slot in ["neck", "back", "headgear"]:
+		if apart.has("%s %s" % [slot, who.style_of(slot)]):
+			return true
+	return false
 
 
 ## Where headgear worn on the hair goes for this hairdo, in the head's space.
@@ -959,11 +987,11 @@ func _face_material(mood := "") -> StandardMaterial3D:
 
 
 func _face_key(mood: String) -> String:
-	return "%s %s %s %s %s" % [design.style_of("head"), design.skin().to_html(), design.style_of("facial_hair"), design.color_of("facial_hair").to_html(), mood]
+	return "%s %s %s %s %s" % [str(design.face()), design.skin().to_html(), design.style_of("facial_hair"), design.color_of("facial_hair").to_html(), mood]
 
 
 func _paint(mood: String) -> Image:
-	return FacePrint.paint_image(design.style_of("head"), design.skin(), HEAD_RADIUS, HEAD_HEIGHT, design.style_of("facial_hair"), design.color_of("facial_hair"), mood)
+	return FacePrint.paint_image(design.face(), design.skin(), HEAD_RADIUS, HEAD_HEIGHT, design.style_of("facial_hair"), design.color_of("facial_hair"), mood)
 
 
 static func _new_face_material(image: Image) -> StandardMaterial3D:
@@ -983,7 +1011,7 @@ func _paint_moods() -> void:
 	# emptied. Rigs that are showing a face keep their own hold on it.
 	if _faces.size() > 80:
 		_faces.clear()
-	var style := design.style_of("head")
+	var style := design.face()
 	for mood in FacePrint.MOODS:
 		var key := _face_key(mood)
 		if _faces.has(key) or _painting.has(key) or not FacePrint.changes(style, mood):
@@ -1000,7 +1028,7 @@ func _paint_moods() -> void:
 
 ## What paints one face in a mood on another thread. It's made here, away
 ## from any rig, so it doesn't matter if the rig's gone by the time it runs.
-static func _painter(key: String, style: String, skin: Color, beard: String, beard_colour: Color, mood: String) -> Callable:
+static func _painter(key: String, style: Array, skin: Color, beard: String, beard_colour: Color, mood: String) -> Callable:
 	var store := _painted
 	return func() -> void:
 		var image := FacePrint.paint_image(style, skin, HEAD_RADIUS, HEAD_HEIGHT, beard, beard_colour, mood)

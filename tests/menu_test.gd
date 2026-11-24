@@ -673,6 +673,13 @@ func _driver() -> void:
 	check(builder.design.style_of("headgear") == before, "undo takes both back")
 	ui.redo_pressed.emit()
 	check(builder.design.style_of("headgear") == hat, "and redo puts the hat back")
+	# With long hair, the back pieces that leave its length off are greyed.
+	ui.style_chosen.emit("hair", "long_straight")
+	ui.show_slot("back")
+	await frames(1)
+	var back_tiles := ui.find_children("*", "Button", true, false).filter(func(b): return b is DriverUI.DriverTile and not b.is_queued_for_deletion())
+	var greyed := back_tiles.filter(func(b): return b.modulate.a < 1.0).map(func(b): return b.style)
+	check(greyed.has("cape") and not greyed.has("none"), "with long hair, the back pieces it doesn't fit with are greyed %s" % [greyed])
 	ui.name_changed.emit("Tester")
 	ui.random_pressed.emit()
 	check(builder.design.name == "Tester", "a random driver keeps their name")

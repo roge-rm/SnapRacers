@@ -108,6 +108,7 @@ func _ready() -> void:
 	ui = DriverUI.new()
 	layer.add_child(ui)
 	ui.style_chosen.connect(func(slot: String, style: String) -> void: _change(slot, style))
+	ui.face_part_chosen.connect(_change_face)
 	ui.colour_chosen.connect(func(slot: String, colour: Color) -> void: _change(slot, "", colour))
 	ui.undo_pressed.connect(undo)
 	ui.redo_pressed.connect(redo)
@@ -132,6 +133,17 @@ func _ready() -> void:
 func _change(slot: String, style := "", colour := Color(0, 0, 0, 0)) -> void:
 	var before := design.to_dict()
 	design.set_piece(slot, style, colour)
+	if design.to_dict() == before:
+		return
+	_undo.append(before)
+	_redo.clear()
+	_rebuild()
+
+
+## Changes one part of the face, as one step to undo.
+func _change_face(part: String, value: Variant) -> void:
+	var before := design.to_dict()
+	design.set_face_part(part, value)
 	if design.to_dict() == before:
 		return
 	_undo.append(before)

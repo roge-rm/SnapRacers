@@ -16,7 +16,7 @@ legs bone, which swings down astride.
 import math
 
 import numpy as np
-from manifold3d import CrossSection, Manifold
+from manifold3d import CrossSection, Manifold, OpType
 
 import figure as F
 from shapes import rbox, tube
@@ -27,6 +27,8 @@ L = F.LEG_LENGTH
 SHOE = -L + 0.045
 # Where boots reach up to.
 BOOT_TOP = -L * 0.62
+# Where short shorts end, just under the hips.
+SHORT_HEM = -0.05
 HIPS_FRONT = -F.TORSO_DEPTH * 0.5
 
 COLOURS = {
@@ -191,6 +193,9 @@ def boots(st, region, grow=0.006):
     def solid(side):
         b = shin(side, st.shape, grow, 0.003) ^ yband(-1.0, BOOT_TOP)
         return b + toe(side, st.shape)
+    # The leg under the boot is painted first: the boot's back and toe are
+    # the leg's own, and only cutting the leg by them leaves slivers there.
+    st.paint(region, yband(-1.0, BOOT_TOP))
     return st.raise_(region, solid)
 
 
@@ -236,6 +241,23 @@ def gown(st):
 def skirt(st):
     st.skirt = "short"
     st.paint("skin", yband(-1.0, -0.1))
+    st.foot("boot")
+
+
+def skirt_socks(st):
+    st.skirt = "short"
+    st.paint("skin", yband(-1.0, -0.1))
+    sock_print(st)
+
+
+def short_shorts(st):
+    st.paint("skin", yband(-1.0, SHORT_HEM)).foot("white")
+    st.paint("ink", yband(-1.0, -L + 0.01))
+
+
+def short_shorts_socks(st):
+    st.paint("skin", yband(-1.0, SHORT_HEM))
+    sock_print(st)
 
 
 def kilt(st):
@@ -318,6 +340,11 @@ def racing_boots(st):
 
 def socks(st):
     st.paint("skin", yband(-1.0, -L * 0.4))
+    sock_print(st)
+
+
+def sock_print(st):
+    """Long white socks with two stripes at the top, and shoes."""
     st.paint("white", yband(-1.0, -L * 0.55))
     for y in (-L * 0.55 - 0.012, -L * 0.55 - 0.032):
         st.paint("main", yband(y - 0.01, y))
@@ -356,6 +383,9 @@ STYLES = {
     "socks": socks,
     "overalls": overalls,
     "leggings": leggings,
+    "skirt_socks": skirt_socks,
+    "short_shorts": short_shorts,
+    "short_shorts_socks": short_shorts_socks,
 }
 # Styles whose own colour is shiny.
 METAL = {"robot_legs": 0.5}
@@ -371,15 +401,21 @@ def seat(shape):
     return np.hstack([b, np.array([[0.0], [shape["depth"]], [0.0]])])
 
 
-def ride(solid, side, pose, top):
+def ride(solid, side, pose, top, whole=None):
     """A seated leg (or what's on it) riding a bike in `pose` (see
     figure.RIDES): cut at the knee, the thigh swung down and out and the
-    shin bent down from it. `top` is how high the seated leg's top is."""
+    shin bent down from it. `top` is how high the seated leg's top is.
+    `whole` is the whole seated leg, when `solid` is one region of it."""
     thigh_m, shin_m = F.ride_leg(side, pose, top)
-    thigh = solid.trim_by_plane([0.0, 0.0, 1.0], F.KNEE_Z)
-    shin = solid.trim_by_plane([0.0, 0.0, -1.0], -F.KNEE_Z)
+    thigh = solid.trim_by_plane([0.0, 0.0, 1.0], F.KNEE_Z).transform(thigh_m)
+    shin = solid.trim_by_plane([0.0, 0.0, -1.0], -F.KNEE_Z).transform(shin_m)
+    if whole is not None:
+        # Where the bent knee folds the thigh into the shin, the shin's
+        # regions show, so one region's thigh doesn't fight another's shin.
+        # Its cut is inside the shin, so it's marked as not showing.
+        thigh = thigh - whole.trim_by_plane([0.0, 0.0, -1.0], -F.KNEE_Z).transform(shin_m).as_original()
     # Lightly simplified, since the cut adds triangles.
-    return (thigh.transform(thigh_m) + shin.transform(shin_m)).simplify(0.0002)
+    return (thigh + shin).simplify(0.0002)
 
 
 def _paint(regions, name, zone):
@@ -436,6 +472,10 @@ def make(style, hips_solid, keepout):
         standing = {k: v for k, v in regions.items() if not v.is_empty()}
         seated = {k: v - keepout for k, v in _place(standing, m).items()}
         astride = dict(seated)
+        # The leg, whose shin the thighs are cut back from (see ride). Not
+        # under a skirt, as the drape covers the knee and the cut would take
+        # it over 1,500 triangles.
+        whole = None if st.skirt else Manifold.batch_boolean(list(seated.values()), OpType.Add)
         if st.skirt:
             standing = dict(standing)
             long = st.skirt == "long"
@@ -464,8 +504,8 @@ def make(style, hips_solid, keepout):
                 _cover(seated, "brown", lap)
                 _cover(astride, "brown", lap)
         top = 2.0 * st.shape["depth"]
-        forward = {k: ride(v, side, "forward", top) - keepout for k, v in astride.items()}
-        astride = {k: ride(v, side, "astride", top) - keepout for k, v in astride.items()}
+        forward = {k: ride(v, side, "forward", top, whole) - keepout for k, v in astride.items()}
+        astride = {k: ride(v, side, "astride", top, whole) - keepout for k, v in astride.items()}
         if st.skirt:
             # A little simpler, so the drape cut at the knee stays under 1,500 triangles.
             astride = {k: v.simplify(0.0002) for k, v in astride.items()}

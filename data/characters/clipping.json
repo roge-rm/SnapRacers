@@ -1,5 +1,5 @@
 {
-	"_comment": "Made by tools/characters/make_characters.py: how far the figure's pieces and the styles made there go into each other, in cubic centimetres, in the rig's poses. Only overlaps over 0.001 are listed. 'headgear_hair' lists the hair each headgear was checked against, and 'uncovered' where a hat leaves the top edge of the cut hair under it showing, in degrees round the head. Torso and arm styles that are only printed have the figure's own shape; those in 'raised' have raised bits and are checked on their own. Back pieces are checked in each pose in the variant made for it, and against every kart seat (seated, and reclined in the lay-down seat) and a motorbike's saddle and tail astride; 'seats' lists them.",
+	"_comment": "Made by tools/characters/make_characters.py: how far the figure's pieces and the styles made there go into each other, in cubic centimetres, in the rig's poses. Only overlaps over 0.001 are listed. 'headgear_hair' lists the hair each headgear was checked against, and 'uncovered' where a hat leaves the top edge of the cut hair under it showing, in degrees round the head. Torso and arm styles that are only printed have the figure's own shape; those in 'raised' have raised bits and are checked on their own. Back pieces are checked in each pose in the variant made for it, and against every kart seat (seated, and reclined in the lay-down seat) and a motorbike's saddle and tail astride; 'seats' lists them. Long hair's length is checked like a back piece ('hair_length'), and against its own cap as the head turns; 'apart' lists, for each, the neck pieces, back pieces and headgear it goes into, which the game doesn't wear with it.",
 	"seats": [
 		"driver's seat",
 		"bucket seat",
@@ -87,7 +87,9 @@
 		"arms puffed",
 		"arms racing_gloves",
 		"arms rolled",
+		"arms rolled_long_gloves",
 		"arms scaly",
+		"arms short_long_gloves",
 		"arms short_sleeves",
 		"arms spiked_bracers",
 		"arms striped",
@@ -137,8 +139,28 @@
 		"hair fringe cut",
 		"hair long",
 		"hair long cut",
+		"hair long_curly",
+		"hair long_curly cut",
+		"hair long_curly length",
+		"hair long_fringe",
+		"hair long_fringe cut",
+		"hair long_fringe length",
+		"hair long_straight",
+		"hair long_straight cut",
+		"hair long_straight length",
+		"hair long_swept",
+		"hair long_swept cut",
+		"hair long_swept length",
+		"hair long_wavy",
+		"hair long_wavy cut",
+		"hair long_wavy length",
+		"hair low_ponytail",
+		"hair low_ponytail cut",
+		"hair low_ponytail length",
 		"hair messy",
 		"hair messy cut",
+		"hair messy_side_part",
+		"hair messy_side_part cut",
 		"hair mohawk",
 		"hair mohawk cut",
 		"hair pigtails",
@@ -153,8 +175,12 @@
 		"hair short cut",
 		"hair side_part",
 		"hair side_part cut",
+		"hair slicked_back",
+		"hair slicked_back cut",
 		"hair spiky",
 		"hair spiky cut",
+		"hair swept_messy",
+		"hair swept_messy cut",
 		"hair wavy",
 		"hair wavy cut",
 		"headgear aviator",
@@ -191,9 +217,12 @@
 		"legs overalls",
 		"legs racing_boots",
 		"legs robot_legs",
+		"legs short_shorts",
+		"legs short_shorts_socks",
 		"legs shorts",
 		"legs skinny",
 		"legs skirt",
+		"legs skirt_socks",
 		"legs sneakers",
 		"legs socks",
 		"legs stripy",
@@ -246,6 +275,8 @@
 		"arms long_gloves",
 		"arms puffed",
 		"arms rolled",
+		"arms rolled_long_gloves",
+		"arms short_long_gloves",
 		"arms spiked_bracers",
 		"arms watch",
 		"arms wristbands",
@@ -274,7 +305,16 @@
 			"hair princess cut",
 			"hair messy cut",
 			"hair braids cut",
-			"hair fringe cut"
+			"hair fringe cut",
+			"hair messy_side_part cut",
+			"hair swept_messy cut",
+			"hair slicked_back cut",
+			"hair long_straight cut",
+			"hair long_wavy cut",
+			"hair long_swept cut",
+			"hair long_fringe cut",
+			"hair long_curly cut",
+			"hair low_ponytail cut"
 		],
 		"beanie": [
 			"hair short cut",
@@ -295,7 +335,16 @@
 			"hair princess cut",
 			"hair messy cut",
 			"hair braids cut",
-			"hair fringe cut"
+			"hair fringe cut",
+			"hair messy_side_part cut",
+			"hair swept_messy cut",
+			"hair slicked_back cut",
+			"hair long_straight cut",
+			"hair long_wavy cut",
+			"hair long_swept cut",
+			"hair long_fringe cut",
+			"hair long_curly cut",
+			"hair low_ponytail cut"
 		],
 		"hard_hat": [
 			"hair short cut",
@@ -316,7 +365,16 @@
 			"hair princess cut",
 			"hair messy cut",
 			"hair braids cut",
-			"hair fringe cut"
+			"hair fringe cut",
+			"hair messy_side_part cut",
+			"hair swept_messy cut",
+			"hair slicked_back cut",
+			"hair long_straight cut",
+			"hair long_wavy cut",
+			"hair long_swept cut",
+			"hair long_fringe cut",
+			"hair long_curly cut",
+			"hair low_ponytail cut"
 		],
 		"headband": [
 			"hair short",
@@ -337,7 +395,16 @@
 			"hair princess",
 			"hair messy",
 			"hair braids",
-			"hair fringe"
+			"hair fringe",
+			"hair messy_side_part",
+			"hair swept_messy",
+			"hair slicked_back",
+			"hair long_straight",
+			"hair long_wavy",
+			"hair long_swept",
+			"hair long_fringe",
+			"hair long_curly",
+			"hair low_ponytail"
 		],
 		"top_hat": [
 			"hair short cut",
@@ -358,7 +425,16 @@
 			"hair princess cut",
 			"hair messy cut",
 			"hair braids cut",
-			"hair fringe cut"
+			"hair fringe cut",
+			"hair messy_side_part cut",
+			"hair swept_messy cut",
+			"hair slicked_back cut",
+			"hair long_straight cut",
+			"hair long_wavy cut",
+			"hair long_swept cut",
+			"hair long_fringe cut",
+			"hair long_curly cut",
+			"hair low_ponytail cut"
 		],
 		"crown": [
 			"hair short cut",
@@ -379,7 +455,16 @@
 			"hair princess cut",
 			"hair messy cut",
 			"hair braids cut",
-			"hair fringe cut"
+			"hair fringe cut",
+			"hair messy_side_part cut",
+			"hair swept_messy cut",
+			"hair slicked_back cut",
+			"hair long_straight cut",
+			"hair long_wavy cut",
+			"hair long_swept cut",
+			"hair long_fringe cut",
+			"hair long_curly cut",
+			"hair low_ponytail cut"
 		],
 		"tiara": [
 			"hair short",
@@ -400,7 +485,16 @@
 			"hair princess",
 			"hair messy",
 			"hair braids",
-			"hair fringe"
+			"hair fringe",
+			"hair messy_side_part",
+			"hair swept_messy",
+			"hair slicked_back",
+			"hair long_straight",
+			"hair long_wavy",
+			"hair long_swept",
+			"hair long_fringe",
+			"hair long_curly",
+			"hair low_ponytail"
 		],
 		"mushroom": [
 			"hair short cut",
@@ -421,7 +515,16 @@
 			"hair princess cut",
 			"hair messy cut",
 			"hair braids cut",
-			"hair fringe cut"
+			"hair fringe cut",
+			"hair messy_side_part cut",
+			"hair swept_messy cut",
+			"hair slicked_back cut",
+			"hair long_straight cut",
+			"hair long_wavy cut",
+			"hair long_swept cut",
+			"hair long_fringe cut",
+			"hair long_curly cut",
+			"hair low_ponytail cut"
 		],
 		"dino_hood": [],
 		"cowboy": [
@@ -443,7 +546,16 @@
 			"hair princess cut",
 			"hair messy cut",
 			"hair braids cut",
-			"hair fringe cut"
+			"hair fringe cut",
+			"hair messy_side_part cut",
+			"hair swept_messy cut",
+			"hair slicked_back cut",
+			"hair long_straight cut",
+			"hair long_wavy cut",
+			"hair long_swept cut",
+			"hair long_fringe cut",
+			"hair long_curly cut",
+			"hair low_ponytail cut"
 		],
 		"viking": [
 			"hair short cut",
@@ -464,7 +576,16 @@
 			"hair princess cut",
 			"hair messy cut",
 			"hair braids cut",
-			"hair fringe cut"
+			"hair fringe cut",
+			"hair messy_side_part cut",
+			"hair swept_messy cut",
+			"hair slicked_back cut",
+			"hair long_straight cut",
+			"hair long_wavy cut",
+			"hair long_swept cut",
+			"hair long_fringe cut",
+			"hair long_curly cut",
+			"hair low_ponytail cut"
 		],
 		"pirate": [
 			"hair short cut",
@@ -485,7 +606,16 @@
 			"hair princess cut",
 			"hair messy cut",
 			"hair braids cut",
-			"hair fringe cut"
+			"hair fringe cut",
+			"hair messy_side_part cut",
+			"hair swept_messy cut",
+			"hair slicked_back cut",
+			"hair long_straight cut",
+			"hair long_wavy cut",
+			"hair long_swept cut",
+			"hair long_fringe cut",
+			"hair long_curly cut",
+			"hair low_ponytail cut"
 		],
 		"wizard": [
 			"hair short cut",
@@ -506,7 +636,16 @@
 			"hair princess cut",
 			"hair messy cut",
 			"hair braids cut",
-			"hair fringe cut"
+			"hair fringe cut",
+			"hair messy_side_part cut",
+			"hair swept_messy cut",
+			"hair slicked_back cut",
+			"hair long_straight cut",
+			"hair long_wavy cut",
+			"hair long_swept cut",
+			"hair long_fringe cut",
+			"hair long_curly cut",
+			"hair low_ponytail cut"
 		],
 		"bandana": [
 			"hair short cut",
@@ -527,7 +666,16 @@
 			"hair princess cut",
 			"hair messy cut",
 			"hair braids cut",
-			"hair fringe cut"
+			"hair fringe cut",
+			"hair messy_side_part cut",
+			"hair swept_messy cut",
+			"hair slicked_back cut",
+			"hair long_straight cut",
+			"hair long_wavy cut",
+			"hair long_swept cut",
+			"hair long_fringe cut",
+			"hair long_curly cut",
+			"hair low_ponytail cut"
 		],
 		"aviator": [],
 		"propeller": [
@@ -549,7 +697,16 @@
 			"hair princess cut",
 			"hair messy cut",
 			"hair braids cut",
-			"hair fringe cut"
+			"hair fringe cut",
+			"hair messy_side_part cut",
+			"hair swept_messy cut",
+			"hair slicked_back cut",
+			"hair long_straight cut",
+			"hair long_wavy cut",
+			"hair long_swept cut",
+			"hair long_fringe cut",
+			"hair long_curly cut",
+			"hair low_ponytail cut"
 		],
 		"party": [
 			"hair short",
@@ -570,7 +727,16 @@
 			"hair princess",
 			"hair messy",
 			"hair braids",
-			"hair fringe"
+			"hair fringe",
+			"hair messy_side_part",
+			"hair swept_messy",
+			"hair slicked_back",
+			"hair long_straight",
+			"hair long_wavy",
+			"hair long_swept",
+			"hair long_fringe",
+			"hair long_curly",
+			"hair low_ponytail"
 		],
 		"beret": [
 			"hair short cut",
@@ -591,7 +757,16 @@
 			"hair princess cut",
 			"hair messy cut",
 			"hair braids cut",
-			"hair fringe cut"
+			"hair fringe cut",
+			"hair messy_side_part cut",
+			"hair swept_messy cut",
+			"hair slicked_back cut",
+			"hair long_straight cut",
+			"hair long_wavy cut",
+			"hair long_swept cut",
+			"hair long_fringe cut",
+			"hair long_curly cut",
+			"hair low_ponytail cut"
 		],
 		"horns": [
 			"hair short",
@@ -612,7 +787,150 @@
 			"hair princess",
 			"hair messy",
 			"hair braids",
-			"hair fringe"
+			"hair fringe",
+			"hair messy_side_part",
+			"hair swept_messy",
+			"hair slicked_back",
+			"hair long_straight",
+			"hair long_wavy",
+			"hair long_swept",
+			"hair long_fringe",
+			"hair long_curly",
+			"hair low_ponytail"
+		]
+	},
+	"apart": {
+		"long_straight": [
+			"back air_tanks",
+			"back angel_wings",
+			"back backpack",
+			"back bat_wings",
+			"back cape",
+			"back dino_tail",
+			"back fairy_wings",
+			"back flag",
+			"back fox_tail",
+			"back guitar",
+			"back jet_pack",
+			"back parachute",
+			"back quiver",
+			"back radio",
+			"back shell",
+			"back shield",
+			"back short_cape",
+			"back spiky_shell",
+			"back sword",
+			"neck long_scarf"
+		],
+		"long_wavy": [
+			"back air_tanks",
+			"back angel_wings",
+			"back backpack",
+			"back bat_wings",
+			"back cape",
+			"back dino_tail",
+			"back fairy_wings",
+			"back flag",
+			"back fox_tail",
+			"back guitar",
+			"back jet_pack",
+			"back parachute",
+			"back quiver",
+			"back radio",
+			"back shell",
+			"back shield",
+			"back short_cape",
+			"back spiky_shell",
+			"back sword",
+			"neck long_scarf",
+			"neck spiked_collar"
+		],
+		"long_swept": [
+			"back air_tanks",
+			"back angel_wings",
+			"back backpack",
+			"back bat_wings",
+			"back cape",
+			"back dino_tail",
+			"back fairy_wings",
+			"back flag",
+			"back fox_tail",
+			"back guitar",
+			"back jet_pack",
+			"back parachute",
+			"back quiver",
+			"back radio",
+			"back shell",
+			"back shield",
+			"back short_cape",
+			"back spiky_shell",
+			"back sword",
+			"neck long_scarf"
+		],
+		"long_fringe": [
+			"back air_tanks",
+			"back angel_wings",
+			"back backpack",
+			"back bat_wings",
+			"back cape",
+			"back dino_tail",
+			"back fairy_wings",
+			"back flag",
+			"back fox_tail",
+			"back guitar",
+			"back jet_pack",
+			"back parachute",
+			"back quiver",
+			"back radio",
+			"back shell",
+			"back shield",
+			"back short_cape",
+			"back spiky_shell",
+			"back sword",
+			"neck long_scarf"
+		],
+		"long_curly": [
+			"back air_tanks",
+			"back angel_wings",
+			"back backpack",
+			"back bat_wings",
+			"back cape",
+			"back dino_tail",
+			"back fairy_wings",
+			"back flag",
+			"back fox_tail",
+			"back guitar",
+			"back jet_pack",
+			"back parachute",
+			"back quiver",
+			"back radio",
+			"back shell",
+			"back shield",
+			"back short_cape",
+			"back spiky_shell",
+			"back sword",
+			"neck long_scarf"
+		],
+		"low_ponytail": [
+			"back air_tanks",
+			"back angel_wings",
+			"back backpack",
+			"back bat_wings",
+			"back cape",
+			"back dino_tail",
+			"back fairy_wings",
+			"back fox_tail",
+			"back guitar",
+			"back jet_pack",
+			"back parachute",
+			"back quiver",
+			"back radio",
+			"back shell",
+			"back shield",
+			"back short_cape",
+			"back spiky_shell",
+			"back sword",
+			"neck long_scarf"
 		]
 	},
 	"uncovered": [],
@@ -847,6 +1165,42 @@
 			"cm3": 0.0084
 		},
 		{
+			"pose": "seated, hands resting",
+			"a": "legs skirt_socks leg_l",
+			"b": "hand_l",
+			"cm3": 0.0084
+		},
+		{
+			"pose": "seated, hands resting",
+			"a": "legs skirt_socks leg_r",
+			"b": "hand_r",
+			"cm3": 0.0084
+		},
+		{
+			"pose": "seated, hands resting",
+			"a": "legs short_shorts leg_l",
+			"b": "hand_l",
+			"cm3": 0.0084
+		},
+		{
+			"pose": "seated, hands resting",
+			"a": "legs short_shorts leg_r",
+			"b": "hand_r",
+			"cm3": 0.0084
+		},
+		{
+			"pose": "seated, hands resting",
+			"a": "legs short_shorts_socks leg_l",
+			"b": "hand_l",
+			"cm3": 0.0084
+		},
+		{
+			"pose": "seated, hands resting",
+			"a": "legs short_shorts_socks leg_r",
+			"b": "hand_r",
+			"cm3": 0.0084
+		},
+		{
 			"pose": "any pose",
 			"a": "hair bowl",
 			"b": "face",
@@ -865,6 +1219,30 @@
 			"cm3": 0.016
 		},
 		{
+			"pose": "seated, arms swung 120 degrees, head turned +1.05",
+			"a": "hair long_curly",
+			"b": "hand_r",
+			"cm3": 0.0074
+		},
+		{
+			"pose": "seated, arms swung 120 degrees, head turned -1.05",
+			"a": "hair long_curly",
+			"b": "hand_l",
+			"cm3": 0.0073
+		},
+		{
+			"pose": "seated, arms swung 120 degrees, head turned +1.05",
+			"a": "hair long_curly cut",
+			"b": "hand_r",
+			"cm3": 0.0074
+		},
+		{
+			"pose": "seated, arms swung 120 degrees, head turned -1.05",
+			"a": "hair long_curly cut",
+			"b": "hand_l",
+			"cm3": 0.0073
+		},
+		{
 			"pose": "any pose",
 			"a": "headgear tiara on side_part",
 			"b": "hair side_part",
@@ -881,6 +1259,12 @@
 			"a": "headgear tiara on princess",
 			"b": "hair princess",
 			"cm3": 0.0029
+		},
+		{
+			"pose": "any pose",
+			"a": "headgear tiara on long_wavy",
+			"b": "hair long_wavy",
+			"cm3": 0.0052
 		}
 	]
 }

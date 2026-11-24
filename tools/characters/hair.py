@@ -174,14 +174,14 @@ def band(solid, at, along, half):
     n /= np.linalg.norm(n)
     d = float(n.dot(at))
     slab = solid.trim_by_plane(list(n), d - half).trim_by_plane(list(-n), -(d + half))
-    return solid - slab, slab
+    rest = solid.trim_by_plane(list(-n), -(d - half)) + solid.trim_by_plane(list(n), d + half)
+    return rest, slab
 
 
 def parting(solid, x, z0=-0.2, z1=0.05, width=0.006):
     """Splits off a parting line printed along the top at x, from z0 to z1."""
     line = Manifold.cube([width, 0.3, z1 - z0]).translate([x - width * 0.5, 0.1, z0])
-    inside = solid ^ line
-    return solid - inside, inside
+    return solid - line, solid ^ line
 
 
 def union(parts):
@@ -370,6 +370,90 @@ def fringe():
     return {"main": base + fall}
 
 
+def messy_side_part():
+    """A side parting with the hair swept over in three loose tufts."""
+    line = lambda a: curve([(-180.0, -0.06), (-90.0, -0.025), (-62.0, 0.068), (-30.0, 0.07), (0.0, 0.074), (40.0, 0.086), (62.0, 0.086), (90.0, -0.02), (180.0, -0.06)], a)
+    base = cap(line, top=0.146, extra=(-66.0, -62.0, -58.0, 58.0, 62.0, 66.0))
+    tufts = []
+    for x, z, lx, lz, h in ((0.03, -0.07, -0.07, -0.03, 0.022), (0.02, -0.01, -0.085, 0.0, 0.03), (0.0, 0.06, -0.07, 0.04, 0.024)):
+        tufts.append(tuft((x, 0.142, z), (x + lx, 0.142 + h, z + lz), 0.046, 0.022, 10, 8))
+    main, part = parting(base + union(tufts), 0.05, -0.15, -0.04)
+    return {"main": main, "dark": part}
+
+
+def swept_messy():
+    """Short at the back with big tufts swept over the top to one side and
+    forward, their tips flicking up."""
+    base = cap(face_line(0.084, -0.022, -0.055), top=0.146)
+    tufts = []
+    for x, z, h in ((0.07, -0.07, 0.012), (0.08, 0.0, 0.016), (0.06, 0.07, 0.01)):
+        tufts.append(tuft((x, 0.14, z), (x - 0.17, 0.13 + h, z - 0.03), 0.045, 0.02, 12, 8))
+    return {"main": base + union(tufts)}
+
+
+def slicked_back():
+    """Combed straight back off a high hairline, fuller at the back, with
+    comb lines printed front to back."""
+    base = cap(face_line(0.096, -0.03, -0.065), radius=lambda a: curve([(0.0, 0.134), (90.0, 0.14), (180.0, 0.148)], a), top=lambda a: curve([(0.0, 0.146), (180.0, 0.156)], a), dome=0.01, bulge=0.004)
+    roll = lobe((0.0, 0.148, -0.088), (0.07, 0.022, 0.04), (0.0, 0.3, -1.0), 14)
+    main, lines = base + roll, []
+    for x in (-0.045, 0.045):
+        main, line = parting(main, x, -0.16, 0.12, 0.005)
+        lines.append(line)
+    return {"main": main, "dark": union(lines)}
+
+
+# Long hair. The cap on the head stops at the neck like the rest, and the
+# length down the back is its own piece on the upper body (see length()).
+
+def _long_cap(front=0.09, top=0.15, step=18.0):
+    line = face_line(front, LOWEST, LOWEST, 78.0)
+    return cap(line, radius=lambda a: curve([(0.0, 0.138), (90.0, 0.148), (180.0, 0.15)], a), top=top, lip=0.005, bulge=0.008, extra=DROP, step=step)
+
+
+def long_straight():
+    main, part = parting(_long_cap(), 0.0, -0.2, -0.02)
+    return {"main": main, "dark": part}
+
+
+def long_wavy():
+    main, part = parting(wavy()["main"], 0.0, -0.2, -0.02)
+    return {"main": main, "dark": part}
+
+
+def long_swept():
+    """Parted on the right, swept over to the left in a big wave."""
+    line = lambda a: curve([(-180.0, LOWEST), (-78.0, LOWEST), (-72.0, BEARD_TOP), (-58.0, 0.074), (-30.0, 0.075), (0.0, 0.078), (30.0, 0.086), (58.0, 0.088), (72.0, BEARD_TOP), (78.0, LOWEST), (180.0, LOWEST)], a)
+    base = cap(line, radius=lambda a: curve([(0.0, 0.138), (90.0, 0.148), (180.0, 0.15)], a), bulge=0.008, extra=DROP)
+    sweep = Manifold.batch_hull([blob((0.055, 0.156, -0.05), (0.045, 0.024, 0.05), 12), blob((-0.075, 0.114, -0.09), (0.06, 0.03, 0.05), 12)])
+    main, part = parting(base + sweep, 0.048, -0.15, -0.032)
+    return {"main": main, "dark": part}
+
+
+def long_fringe():
+    """A straight fringe low over the brow."""
+    line = lambda a: curve([(0.0, 0.073), (FACE_ANGLE, 0.073), (BEARD_ANGLE, BEARD_TOP), (78.0, LOWEST), (180.0, LOWEST)], a)
+    base = cap(line, radius=lambda a: curve([(0.0, 0.146), (90.0, 0.15), (180.0, 0.15)], a), corner=0.055, lip=0.014, bulge=0.006, extra=DROP)
+    return {"main": base}
+
+
+def long_curly():
+    """Bumpy all round with a scalloped edge, and soft curls on top."""
+    # Scallops down the sides, the edge low behind where the length is.
+    bumps = lambda a: -math.cos(math.radians((min(math.degrees(abs(a)), 150.0) - 72.0) * 6.923)) if abs(a) > math.radians(72.0) else -1.0
+    line = lambda a: face_line(0.086, LOWEST + 0.018, LOWEST + 0.018, 78.0)(a) - 0.018 * (0.5 + 0.5 * bumps(a))
+    out = lambda a: curve([(0.0, 0.142), (90.0, 0.15), (180.0, 0.152)], a) + 0.005 * (1.0 + bumps(a))
+    return {"main": cap(line, radius=out, lip=0.006, dome=0.03, bulge=0.01, extra=DROP, step=12.0)}
+
+
+def low_ponytail():
+    """Pulled back from a parting into a tail tied low at the nape."""
+    line = lambda a: curve([(0.0, 0.088), (FACE_ANGLE, 0.088), (BEARD_ANGLE, BEARD_TOP), (78.0, -0.035), (110.0, LOWEST), (180.0, LOWEST)], a)
+    base = cap(line, radius=lambda a: curve([(0.0, 0.134), (90.0, 0.138), (180.0, 0.146)], a), top=0.144, bulge=0.003, extra=DROP)
+    main, part = parting(base, 0.0, -0.2, -0.02)
+    return {"main": main, "dark": part}
+
+
 STYLES = {
     "short": short,
     "spiky": spiky,
@@ -390,6 +474,15 @@ STYLES = {
     "messy": messy,
     "braids": braids,
     "fringe": fringe,
+    "messy_side_part": messy_side_part,
+    "swept_messy": swept_messy,
+    "slicked_back": slicked_back,
+    "long_straight": long_straight,
+    "long_wavy": long_wavy,
+    "long_swept": long_swept,
+    "long_fringe": long_fringe,
+    "long_curly": long_curly,
+    "low_ponytail": low_ponytail,
 }
 
 
@@ -425,3 +518,215 @@ def _slice_y(solid, y):
     turned = solid.rotate([90.0, 0.0, 0.0])
     # After turning, a point (x, y, z) is at (x, -z, y).
     return [list(map(tuple, p)) for p in turned.slice(y).to_polygons()]
+
+
+# The length of long hair, below the neck down the back. It's on the upper
+# body, so it doesn't turn with the head, made for each pose like the back
+# pieces: hanging down the back standing, swept back over the seat's back
+# seated, back and shorter lying back, and streaming back astride. Its top
+# tucks in under the cap's lower edge (LOWEST) round the back of the head,
+# kept under it however far the head turns, and clear of what's worn round
+# the neck. In the upper body's space, in metres.
+
+LENGTH_POSES = ("standing", "seated", "reclined", "astride")
+# The cap's lower edge in the upper body's space, and how far round the
+# middle of the head the top of the length curves.
+NAPE_Y = F.HEAD_Y + LOWEST * F.HEAD_SCALE - GAP
+NAPE_R = 0.166
+
+# The middle of the length from the nape down, as (y, z), for each pose.
+PATHS = {
+    "standing": [(NAPE_Y, NAPE_R), (0.425, 0.166), (0.405, 0.16), (0.385, 0.152), (0.36, 0.143), (0.32, 0.133), (0.28, 0.128), (0.24, 0.126), (0.2, 0.126)],
+    "seated": [(NAPE_Y, NAPE_R), (0.428, 0.164), (0.418, 0.177), (0.415, 0.197), (0.419, 0.22), (0.425, 0.245), (0.428, 0.272), (0.42, 0.3), (0.402, 0.322)],
+    "reclined": [(NAPE_Y, NAPE_R), (0.428, 0.164), (0.418, 0.177), (0.415, 0.197), (0.419, 0.22), (0.424, 0.245), (0.425, 0.268)],
+    "astride": [(NAPE_Y, NAPE_R), (0.425, 0.163), (0.405, 0.166), (0.38, 0.174), (0.35, 0.186), (0.315, 0.2), (0.28, 0.214)],
+}
+
+
+def _resample(points, count):
+    """`count` points evenly along a smooth curve through the points."""
+    p = [np.asarray(q, float) for q in points]
+    dense = []
+    for i in range(len(p) - 1):
+        a, b = p[max(i - 1, 0)], p[i]
+        c, d = p[i + 1], p[min(i + 2, len(p) - 1)]
+        for k in range(12):
+            t = k / 12.0
+            dense.append(0.5 * (2 * b + (c - a) * t + (2 * a - 5 * b + 4 * c - d) * t * t + (3 * b - a - 3 * c + d) * t ** 3))
+    dense.append(p[-1])
+    steps = [0.0] + list(np.cumsum([np.linalg.norm(q1 - q0) for q0, q1 in zip(dense, dense[1:])]))
+    total = steps[-1]
+    out = []
+    for k in range(count):
+        want = total * k / (count - 1)
+        i = min(np.searchsorted(steps, want), len(dense) - 1)
+        if i == 0:
+            out.append(dense[0])
+            continue
+        t = (want - steps[i - 1]) / max(steps[i] - steps[i - 1], 1e-12)
+        out.append(dense[i - 1] * (1 - t) + dense[i] * t)
+    return out
+
+
+def strand(path, width, thick, arc=lambda s: 0.0, outer=lambda u, s: 0.0, hem=lambda u: 0.0, shift=lambda s: 0.0, sag=lambda s: 0.0, rings=14, across=13, inside=9, soft=0.022):
+    """A soft flat length of hair down a path of (y, z) points from the
+    nape, as one mesh. Along it, s goes from 0 at the top to 1 at the hem;
+    across, u from -1 to 1. `width` and `thick` give its half width and half
+    thickness at s, `arc` how much it curves round the head there (1 round
+    NAPE_R, 0 flat, its edges brought forward by `sag`), `shift` moves it to
+    the side, `outer` raises its outside
+    (waves, curls; 0 at the edges) and `hem` makes it longer at u. The hem is
+    rounded off over `soft`."""
+    pts = _resample([(0.0, y, z) for y, z in path], rings)
+    frames = []
+    for i, p in enumerate(pts):
+        t = pts[min(i + 1, rings - 1)] - pts[max(i - 1, 0)]
+        t /= np.linalg.norm(t)
+        n = np.array([0.0, t[2], -t[1]])
+        n /= np.linalg.norm(n)
+        frames.append((p, t, n, i / (rings - 1)))
+    # Rounding off the hem: more rings past the end, thinner and narrower.
+    p, t, n, _ = frames[-1]
+    ends = [(p + t * soft * 0.55, t, n, 1.0, 0.92, 0.72), (p + t * soft, t, n, 1.0, 0.82, 0.32)]
+    frames = [f + (1.0, 1.0) for f in frames] + ends
+    x_axis = np.array([1.0, 0.0, 0.0])
+    edge = [math.radians(a) for a in (45.0, 90.0, 135.0)]
+    out_u = [-1.0 + 2.0 * k / (across - 1) for k in range(across)]
+    in_u = [1.0 - 2.0 * k / (inside - 1) for k in range(inside)]
+    grid = []
+    for p, t, n, s, wide, deep in frames:
+        hw, ht, a, dx, dip = width(s) * wide, thick(s) * deep, arc(s), shift(s), sag(s)
+        theta = math.asin(min(hw / NAPE_R, 0.95))
+
+        # It curves round the head across, level, whichever way the path
+        # goes.
+        back = np.array([0.0, 0.0, 1.0])
+
+        def centre(u):
+            flat = x_axis * (hw * u + dx) - back * dip * u * u
+            bent = x_axis * (NAPE_R * math.sin(theta * u) + dx) + back * (NAPE_R * math.cos(theta * u) - NAPE_R)
+            return p + flat * (1.0 - a) + bent * a
+
+        def frame(u):
+            d = centre(min(u + 0.01, 1.0)) - centre(max(u - 0.01, -1.0))
+            d /= np.linalg.norm(d)
+            m = np.cross(d, t)
+            m /= np.linalg.norm(m)
+            return d, (m if m.dot(n) > 0.0 else -m)
+
+        def longer(u):
+            return t * (hem(u) * (1.0 if s >= 1.0 else 0.0))
+
+        ring = []
+        for u in out_u:
+            d, m = frame(u)
+            ring.append(centre(u) + m * (ht + outer(u, s) * deep) + longer(u))
+        d, m = frame(1.0)
+        for e in edge:
+            ring.append(centre(1.0) + (m * math.cos(e) + d * math.sin(e)) * ht + longer(1.0))
+        for u in in_u:
+            d, m = frame(u)
+            ring.append(centre(u) - m * ht + longer(u))
+        d, m = frame(-1.0)
+        for e in edge:
+            ring.append(centre(-1.0) + (-m * math.cos(e) - d * math.sin(e)) * ht + longer(-1.0))
+        grid.append(ring)
+    from shapes import from_grid
+    # Kept under the cap's lower edge.
+    return from_grid(grid, False).trim_by_plane([0.0, -1.0, 0.0], -NAPE_Y)
+
+
+def _ridges(count, depth):
+    """Broad moulded waves down the outside, `count` across."""
+    return lambda u, s: depth * (1.0 - abs(u) ** 4) * (0.5 + 0.5 * math.cos(math.pi * u * count))
+
+
+def _scallops(count, depth):
+    return lambda u: depth * (0.5 + 0.5 * math.cos(math.pi * u * count))
+
+
+def _sheet(pose, **kw):
+    """The usual length: round the head at the top, flattening onto the
+    back, a little narrower at the hem."""
+    standing = pose == "standing"
+    base = dict(
+        width=lambda s: curve([(0.0, 0.138), (16.0, 0.138), (36.0, 0.15), (180.0, 0.138)] if standing else [(0.0, 0.138), (45.0, 0.138), (70.0, 0.15), (180.0, 0.14)], math.radians(s * 180.0)),
+        thick=lambda s: curve([(0.0, 0.016), (20.0, 0.016), (40.0, 0.019), (180.0, 0.016)] if standing else [(0.0, 0.016), (50.0, 0.015), (180.0, 0.013)], math.radians(s * 180.0)),
+        arc=lambda s: curve([(0.0, 1.0), (11.0, 1.0), (30.0, 0.0), (180.0, 0.0)] if standing else [(0.0, 1.0), (45.0, 0.0), (180.0, 0.0)], math.radians(s * 180.0)),
+        sag=lambda s: curve([(0.0, 0.0), (20.0, 0.03), (45.0, 0.014), (80.0, 0.004), (180.0, 0.004)] if standing else [(0.0, 0.0), (45.0, 0.0), (180.0, 0.0)], math.radians(s * 180.0)),
+    )
+    base.update(kw)
+    return strand(PATHS[pose], **base)
+
+
+def length_long_straight(pose):
+    return {"main": _sheet(pose, outer=_ridges(3, 0.004), hem=_scallops(3, 0.006))}
+
+
+def length_long_wavy(pose):
+    # Waves down the length, rolling in and out across it.
+    sway = lambda s: 0.14 * math.sin(s * math.pi * 2.0)
+    waves = lambda u, s: 0.008 * (1.0 - abs(u) ** 4) * (0.5 + 0.5 * math.cos(math.pi * (u + sway(s)) * 3.0))
+    return {"main": _sheet(pose, outer=waves, hem=lambda u: 0.014 * (0.5 + 0.5 * math.cos(math.pi * (u + sway(1.0)) * 3.0)), rings=16, across=21, inside=7)}
+
+
+def length_long_swept(pose):
+    # Longer on the left, where it's swept over to.
+    return {"main": _sheet(pose, outer=_ridges(3, 0.004), hem=lambda u: 0.02 * (0.5 - 0.5 * u) + _scallops(3, 0.004)(u))}
+
+
+def length_long_fringe(pose):
+    return {"main": _sheet(pose, outer=_ridges(4, 0.003), hem=lambda u: 0.004)}
+
+
+def length_long_curly(pose):
+    # Three columns of round curls down it, bumpy at the edges, ending in a
+    # row of bigger curls.
+    curls_at = lambda u, s: 0.5 + 0.5 * math.cos(s * math.pi * 7.0 + (math.pi if abs(u) < 0.34 else 0.0))
+    locks = lambda u, s: 0.011 * (1.0 - abs(u) ** 4) * (0.5 + 0.5 * math.cos(math.pi * u * 3.0)) * (0.35 + 0.65 * curls_at(u, s)) * min(1.0, s * 6.0)
+    standing = pose == "standing"
+    wide = lambda s: curve([(0.0, 0.138), (16.0, 0.138), (36.0, 0.15), (180.0, 0.138)] if standing else [(0.0, 0.138), (45.0, 0.138), (70.0, 0.15), (180.0, 0.14)], math.radians(s * 180.0))
+    sheet = _sheet(pose, outer=locks, width=lambda s: wide(s) + 0.008 * curls_at(1.0, s) * min(1.0, s * 4.0), rings=15, across=11, inside=7)
+    p = _resample([(0.0, y, z) for y, z in PATHS[pose]], 14)
+    t = p[-1] - p[-2]
+    t /= np.linalg.norm(t)
+    n = np.array([0.0, t[2], -t[1]])
+    curls = [ball(p[-1] + np.array([0.09 * u, 0.0, 0.0]) + n * 0.016 - t * 0.004, 0.036, 9) for u in (-1.0, 0.0, 1.0)]
+    return {"main": sheet + union(curls)}
+
+
+def _pushed(path, by):
+    """The path moved out from the back by `by`, all but its top."""
+    out = [path[0]]
+    for i in range(1, len(path)):
+        (y0, z0), (y1, z1) = path[i - 1], path[min(i + 1, len(path) - 1)]
+        ty, tz = y1 - y0, z1 - z0
+        k = by * min(1.0, i / 2.0) / math.hypot(ty, tz)
+        out.append((path[i][0] + tz * k, path[i][1] - ty * k))
+    return out
+
+
+def length_low_ponytail(pose):
+    """A round tail from a tie at the nape."""
+    path = _pushed(PATHS[pose], 0.019)
+    tail = strand(path, width=lambda s: curve([(0.0, 0.034), (25.0, 0.03), (45.0, 0.04), (110.0, 0.044), (180.0, 0.028)], math.radians(s * 180.0)),
+                  thick=lambda s: curve([(0.0, 0.024), (25.0, 0.022), (45.0, 0.035), (110.0, 0.036), (180.0, 0.024)], math.radians(s * 180.0)), across=9, rings=14, soft=0.03)
+    p = _resample([(0.0, y, z) for y, z in path], 14)
+    along = p[3] - p[2]
+    tail, tie = band(tail, p[2], along, 0.008)
+    return {"main": tail, "dark": tie}
+
+
+LENGTHS = {
+    "long_straight": length_long_straight,
+    "long_wavy": length_long_wavy,
+    "long_swept": length_long_swept,
+    "long_fringe": length_long_fringe,
+    "long_curly": length_long_curly,
+    "low_ponytail": length_low_ponytail,
+}
+
+
+def length(style):
+    """A long style's length in every pose, {pose: regions}."""
+    return {pose: LENGTHS[style](pose) for pose in LENGTH_POSES}

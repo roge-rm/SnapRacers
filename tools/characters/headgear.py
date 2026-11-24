@@ -191,8 +191,7 @@ def stripe(solid, half, y_min=-1.0):
     """Splits a stripe `half` wide either side of x = 0 off a solid, front to
     back over the top."""
     slab = Manifold.cube([half * 2.0, 1.0, 1.0]).translate([-half, y_min, -0.5])
-    inside = solid ^ slab
-    return solid - inside, inside
+    return solid - slab, solid ^ slab
 
 
 def goggles(y, out, tilt=0.0, size=0.029):
@@ -225,10 +224,15 @@ def visor_band(y0, y1, r, spread, thick=0.008):
     return from_grid(pts_rings, False)
 
 
-def finish(regions, *inset):
-    """Takes the `inset` regions, printed on main's surface, out of main."""
-    for k in inset:
-        regions["main"] = regions["main"] - regions[k]
+def finish(regions, zones):
+    """Prints on main's surface: what of main is in each zone goes in that
+    zone's region, and main is cut by the zone itself, since cutting it by
+    the print leaves slivers that flicker against it. `zones` is a list of
+    (region, zone)."""
+    for k, zone in zones:
+        inside = regions["main"] ^ zone
+        regions["main"] = regions["main"] - zone
+        regions[k] = regions[k] + inside if k in regions else inside
     return regions
 
 
@@ -338,11 +342,8 @@ def crown():
 
     extra = pts + [p + 36.0 for p in pts] + [p + 14.0 for p in pts] + [p - 14.0 for p in pts]
     band = ring(lambda a: rim(a) - 0.002, top, inner_line(), lambda a: inner_line()(a) + 0.011, 0.004, 72.0, extra)
-    regions = {"main": band, "velvet": velvet}
-    for p, colour in ((0.0, "red"), (72.0, "gem"), (-72.0, "gem")):
-        g = band ^ ball(around(inner_line()(math.radians(p)) + 0.014, p, rim(math.radians(p)) + 0.022), 0.013, 10)
-        regions[colour] = union([regions[colour], g]) if colour in regions else g
-    return finish(regions, "red", "gem")
+    zones = [(colour, ball(around(inner_line()(math.radians(p)) + 0.014, p, rim(math.radians(p)) + 0.022), 0.013, 10)) for p, colour in ((0.0, "red"), (72.0, "gem"), (-72.0, "gem"))]
+    return finish({"main": band, "velvet": velvet}, zones)
 
 
 def mushroom():
@@ -479,14 +480,11 @@ def propeller():
     """A round cap in coloured panels with a little propeller on top."""
     rim = rim_line(0.072, 0.046, 0.044)
     crown = hat(rim, top=0.158, dome=0.024, corner=0.07)
-    panels = []
-    for k in range(2):
-        quarter = Manifold.cube([0.4, 0.4, 0.4]).translate([0.0, -0.1, 0.0]).rotate([0.0, 45.0 + 180.0 * k, 0.0])
-        panels.append(crown ^ quarter)
+    quarters = [Manifold.cube([0.4, 0.4, 0.4]).translate([0.0, -0.1, 0.0]).rotate([0.0, 45.0 + 180.0 * k, 0.0]) for k in range(2)]
     post = tube((0.0, 0.17, 0.0), (0.0, 0.205, 0.0), 0.009, 0.009, 12)
     blades = [blob((0.06 * s, 0.208, 0.0), (0.06, 0.006, 0.018), 12).rotate([0.0, 20.0, 0.0]) for s in (-1.0, 1.0)]
     hub = ball((0.0, 0.208, 0.0), 0.012, 10)
-    return finish({"main": crown, "yellow": union(panels), "grey": post + hub, "red": blades[0], "blue": blades[1]}, "yellow")
+    return finish({"main": crown, "grey": post + hub, "red": blades[0], "blue": blades[1]}, [("yellow", union(quarters))])
 
 
 def beret():
@@ -606,9 +604,9 @@ def tiara(on):
         rings.append([(u * math.sin(a), v, -u * math.cos(a)) for u, v in rounded_rect(r, r + 0.008, b, b + top(a), 0.003, 2)])
     band = from_grid(rings, False)
     ends = union([ball(around(inside(math.radians(70.0 * s)) + 0.004, 70.0 * s, bottom(math.radians(70.0)) + 0.008), 0.007, 8) for s in (-1.0, 1.0)])
-    gem = band ^ ball((0.0, 0.098, -inside(0.0) - 0.009), 0.012, 14)
-    side_gems = union([band ^ ball(around(inside(math.radians(38.0 * s)) + 0.009, 38.0 * s, bottom(math.radians(38.0)) + 0.018), 0.007, 10) for s in (-1.0, 1.0)])
-    return finish({"main": band + ends, "gem": gem, "pink": side_gems}, "gem", "pink")
+    gem = ball((0.0, 0.098, -inside(0.0) - 0.009), 0.012, 14)
+    side_gems = union([ball(around(inside(math.radians(38.0 * s)) + 0.009, 38.0 * s, bottom(math.radians(38.0)) + 0.018), 0.007, 10) for s in (-1.0, 1.0)])
+    return finish({"main": band + ends}, [("gem", gem), ("pink", side_gems)])
 
 
 def party():

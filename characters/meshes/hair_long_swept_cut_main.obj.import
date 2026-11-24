@@ -1,0 +1,25 @@
+[remap]
+
+importer="wavefront_obj"
+importer_version=1
+type="Mesh"
+uid="uid://h1tq0d1wm0sn"
+path="res://.godot/imported/hair_long_swept_cut_main.obj-e20bf0627d0719cd19c79fa971a9ffe1.mesh"
+
+[deps]
+
+files=["res://.godot/imported/hair_long_swept_cut_main.obj-e20bf0627d0719cd19c79fa971a9ffe1.mesh"]
+
+source_file="res://characters/meshes/hair_long_swept_cut_main.obj"
+dest_files=["res://.godot/imported/hair_long_swept_cut_main.obj-e20bf0627d0719cd19c79fa971a9ffe1.mesh", "res://.godot/imported/hair_long_swept_cut_main.obj-e20bf0627d0719cd19c79fa971a9ffe1.mesh"]
+
+[params]
+
+generate_tangents=true
+generate_lods=true
+generate_shadow_mesh=true
+generate_lightmap_uv2=false
+generate_lightmap_uv2_texel_size=0.2
+scale_mesh=Vector3(1, 1, 1)
+offset_mesh=Vector3(0, 0, 0)
+force_disable_mesh_compression=false

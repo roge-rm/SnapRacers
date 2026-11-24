@@ -151,13 +151,15 @@ class Paint:
         self.regions = {"main": shown_base() if solid is None else solid}
 
     def paint(self, name, prism):
+        # The rest is cut by the prism itself, not by what's inside it, which
+        # leaves flat slivers on the surface that flicker against the print.
         for k in list(self.regions):
             if k == name:
                 continue
             inside = self.regions[k] ^ prism
             if inside.is_empty():
                 continue
-            self.regions[k] = self.regions[k] - inside
+            self.regions[k] = self.regions[k] - prism
             self.regions[name] = self.regions[name] + inside if name in self.regions else inside
         return self
 

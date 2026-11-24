@@ -1,0 +1,25 @@
+[remap]
+
+importer="wavefront_obj"
+importer_version=1
+type="Mesh"
+uid="uid://bt4xtct7gwhb4"
+path="res://.godot/imported/headgear_headband_on_long_curly_glass.obj-722588768cd7e5886e31fcd80dee65ec.mesh"
+
+[deps]
+
+files=["res://.godot/imported/headgear_headband_on_long_curly_glass.obj-722588768cd7e5886e31fcd80dee65ec.mesh"]
+
+source_file="res://characters/meshes/headgear_headband_on_long_curly_glass.obj"
+dest_files=["res://.godot/imported/headgear_headband_on_long_curly_glass.obj-722588768cd7e5886e31fcd80dee65ec.mesh", "res://.godot/imported/headgear_headband_on_long_curly_glass.obj-722588768cd7e5886e31fcd80dee65ec.mesh"]
+
+[params]
+
+generate_tangents=true
+generate_lods=true
+generate_shadow_mesh=true
+generate_lightmap_uv2=false
+generate_lightmap_uv2_texel_size=0.2
+scale_mesh=Vector3(1, 1, 1)
+offset_mesh=Vector3(0, 0, 0)
+force_disable_mesh_compression=false

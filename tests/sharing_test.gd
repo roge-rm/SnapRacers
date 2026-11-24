@@ -219,7 +219,7 @@ func _splits() -> void:
 	island.pieces[1] = {"type": "split", "length": 3, "island": 8.0}
 	check(same(Sharing.read(Sharing.code_for(island)).get("data"), island), "a split's own island width comes through")
 	var more_ok := true
-	for spec in [{"type": "split_bend", "turn": "left", "size": 3}, {"type": "split_bend", "turn": "right", "size": 4, "surface": "dirt"}, {"type": "rough_split", "side": "right"}, {"type": "jump_split", "side": "left", "edges": "open"}]:
+	for spec in [{"type": "split_bend", "turn": "left", "size": 3}, {"type": "split_bend", "turn": "right", "size": 4, "surface": "dirt"}, {"type": "rough_split", "side": "right"}, {"type": "jump_split", "side": "left", "edges": "open"}, {"type": "jump_split", "side": "both"}]:
 		var other := course.duplicate(true)
 		other.pieces[1] = spec
 		more_ok = more_ok and same(Sharing.read(Sharing.code_for(other)).get("data"), other)
@@ -227,6 +227,7 @@ func _splits() -> void:
 	var bad := {
 		"a split bend too small": {"type": "split_bend", "turn": "left", "size": 2},
 		"a jump split to the middle": {"type": "jump_split", "side": "middle"},
+		"a rough split on both": {"type": "rough_split", "side": "both"},
 		"a jump split with a length": {"type": "jump_split", "side": "left", "length": 2},
 		"an island too narrow": {"type": "split", "length": 2, "island": 6.0},
 		"an island too wide": {"type": "adjustable_split", "metres": 256.0, "island": 80.0},
