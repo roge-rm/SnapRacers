@@ -48,6 +48,20 @@ func _ready() -> void:
 		await _mirror(garage)
 		get_tree().quit()
 		return
+	if args.size() >= 2 and args[0] == "engines":
+		OUT = args[1]
+		DirAccess.make_dir_recursive_absolute(OUT)
+		garage.ui._show_category(5)
+		await get_tree().create_timer(3.0).timeout
+		await _save("engine_tiles")
+		garage.start_placing("engine_small", Basis.IDENTITY, null, Vector3i(0, 0, 0))
+		garage.place()
+		garage.start_placing("engine_small", Basis.IDENTITY, null, Vector3i(10, 0, 0))
+		garage.place()
+		garage.cancel()
+		await _save("engine_note")
+		get_tree().quit()
+		return
 	if args.size() >= 2 and args[0] == "wheel":
 		OUT = args[1]
 		DirAccess.make_dir_recursive_absolute(OUT)

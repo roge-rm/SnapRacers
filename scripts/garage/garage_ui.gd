@@ -460,12 +460,20 @@ func _show_category(index: int) -> void:
 	ids.sort_custom(func(a: String, b: String) -> bool: return _comes_before(index, a, b))
 	for id in ids:
 		var part := PartCatalog.get_part(id)
-		var tile := PartTile.new(id, part.name)
+		var tile := PartTile.new(id, part.name + _engine_line(part))
 		tile.chosen.connect(func() -> void: part_chosen.emit(id))
 		tile.dragged.connect(func(finger: int) -> void: part_dragged.emit(id, finger))
 		_tiles.add_child(tile)
 		shown.append(id)
 	tab_shown.emit(shown)
+
+
+## A second line on an engine's tile: its top speed and pull on a plain kart.
+static func _engine_line(part: Dictionary) -> String:
+	if part.get("kind", "") != "engine":
+		return ""
+	var alone := KartStats.alone(part)
+	return "\n%d km/h\n%.2f g" % [roundi(alone.top_speed() * 3.6), alone.pull()]
 
 
 ## The order parts go in a tab: by kind in the order the tab lists them, then

@@ -1,6 +1,6 @@
 {
 	"name": "Volt",
-	"about": "An electric racer, smooth and light, with wings at both ends. Quick away and easy to drive.",
+	"about": "A racer in white and teal, smooth and light, with wings at both ends. Easy to drive.",
 	"parts": [
 		{"id": "p_kart_axle_plate_4", "pos": [140, 24.0, 80], "turn": 0, "color": "#1b1b1b"},
 		{"id": "w_racing", "pos": [132.0, 0, 72.0], "turn": 0},
@@ -51,10 +51,13 @@
 		{"id": "p_tile_1x4", "pos": [160, 64.0, 120], "turn": 0, "color": "#0d69ab"},
 		{"id": "p_tile_1x4", "pos": [220.0, 64.0, 120], "turn": 0, "color": "#0d69ab"},
 		{"id": "p_plate_4x4", "pos": [160, 40.0, 200], "turn": 0, "color": "#f2f3f2"},
-		{"id": "p_bonnet_4x4", "pos": [240.0, 48.0, 280.0], "turn": 2, "color": "#f2f3f2"},
-		{"id": "electric_motor", "pos": [180, 40.0, 280], "turn": 0, "color": "#1b1b1b"},
+		{"id": "ballast", "pos": [160, 48.0, 200], "turn": 0, "color": "#f2f3f2"},
+		{"id": "ballast", "pos": [200, 48.0, 200], "turn": 0, "color": "#f2f3f2"},
+		{"id": "ballast", "pos": [160, 48.0, 240], "turn": 0, "color": "#f2f3f2"},
+		{"id": "ballast", "pos": [200, 48.0, 240], "turn": 0, "color": "#f2f3f2"},
+		{"id": "engine_small", "pos": [180, 40.0, 280], "turn": 0, "color": "#1b1b1b"},
 		{"id": "p_tile_1x2", "pos": [160, 40.0, 280], "turn": 0, "color": "#f2f3f2"},
 		{"id": "p_tile_1x2", "pos": [220.0, 40.0, 280], "turn": 0, "color": "#f2f3f2"},
-		{"id": "d_rear_wing_8", "pos": [120, 56.0, 280], "turn": 0, "color": "#0d69ab"}
+		{"id": "d_rear_wing_8", "pos": [120, 64.0, 280], "turn": 0, "color": "#0d69ab"}
 	]
 }

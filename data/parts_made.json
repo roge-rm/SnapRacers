@@ -18031,6 +18031,7 @@
 			"driver_height": 7,
 			"control": 1.05,
 			"recline": 0,
+			"rev_limit": 46.6,
 			"mass": 28.4,
 			"strength": 1600.0,
 			"sound": "engine_twin"
@@ -18202,6 +18203,7 @@
 			"driver_height": 7,
 			"control": 1.05,
 			"recline": 0,
+			"rev_limit": 45.3,
 			"mass": 13.2,
 			"strength": 1000.0,
 			"sound": "engine_micro"
@@ -18373,6 +18375,7 @@
 			"driver_height": 7,
 			"control": 1.05,
 			"recline": 0,
+			"rev_limit": 39.7,
 			"mass": 36.4,
 			"strength": 1800.0,
 			"sound": "engine_big"
@@ -18552,6 +18555,7 @@
 			"driver_height": 7,
 			"control": 1.05,
 			"recline": 0,
+			"rev_limit": 40.5,
 			"mass": 17.2,
 			"strength": 1200.0,
 			"sound": "electric_motor"
@@ -18715,6 +18719,7 @@
 			"driver_height": 7,
 			"control": 1.05,
 			"recline": 0,
+			"rev_limit": 37.6,
 			"mass": 36.4,
 			"strength": 1800.0,
 			"sound": "engine_big"
@@ -25356,11 +25361,12 @@
 				"finish": "metal"
 			},
 			"sound": "engine_v8",
-			"power": 18000.0,
-			"max_force": 2300.0,
+			"power": 15800.0,
+			"max_force": 1310.0,
+			"rev_limit": 46.5,
 			"mass": 52.0,
 			"strength": 1500.0,
-			"about": "A V8 with a blower on top. A huge shove off the line and lots of power, but it's heavy."
+			"about": "A V8 with a blower on top. A good pull and a high top speed, but it's heavy."
 		},
 		"d_open_exhausts": {
 			"name": "Open exhaust pipes",
@@ -26296,6 +26302,7 @@
 			"driver_height": 7,
 			"control": 1.05,
 			"recline": 0,
+			"rev_limit": 34.3,
 			"mass": 28.4,
 			"strength": 1600.0,
 			"sound": "engine_twin"
@@ -31338,6 +31345,7 @@
 				44.0,
 				90.0
 			],
+			"rev_limit": 48.4,
 			"mass": 28.4,
 			"strength": 1600.0,
 			"sound": "engine_twin"
@@ -31792,6 +31800,7 @@
 				41.0,
 				143.0
 			],
+			"rev_limit": 38.0,
 			"mass": 28.4,
 			"strength": 1600.0,
 			"sound": "engine_twin"
@@ -32405,6 +32414,7 @@
 				60.0,
 				88.0
 			],
+			"rev_limit": 45.3,
 			"mass": 13.2,
 			"strength": 1000.0,
 			"sound": "engine_micro"
@@ -32705,6 +32715,7 @@
 				32.0,
 				85.0
 			],
+			"rev_limit": 40.5,
 			"mass": 17.2,
 			"strength": 1200.0,
 			"sound": "electric_motor"
@@ -32939,6 +32950,7 @@
 				32.0,
 				85.0
 			],
+			"rev_limit": 37.2,
 			"mass": 17.2,
 			"strength": 1200.0,
 			"sound": "electric_motor"
@@ -33391,6 +33403,7 @@
 				42.0,
 				126.0
 			],
+			"rev_limit": 39.7,
 			"mass": 36.4,
 			"strength": 1800.0,
 			"sound": "engine_big"
@@ -33659,6 +33672,7 @@
 				42.0,
 				126.0
 			],
+			"rev_limit": 37.6,
 			"mass": 36.4,
 			"strength": 1800.0,
 			"sound": "engine_big"
@@ -34322,6 +34336,7 @@
 				47.6,
 				105.6
 			],
+			"rev_limit": 36.0,
 			"mass": 28.4,
 			"strength": 1600.0,
 			"sound": "engine_twin"
@@ -34883,6 +34898,7 @@
 				56.4,
 				114.4
 			],
+			"rev_limit": 31.4,
 			"mass": 28.4,
 			"strength": 1600.0,
 			"sound": "engine_twin"
@@ -35339,6 +35355,7 @@
 				48.0,
 				104.0
 			],
+			"rev_limit": 34.7,
 			"mass": 28.4,
 			"strength": 1600.0,
 			"sound": "engine_twin"
@@ -39751,6 +39768,7 @@
 				44.0,
 				90.0
 			],
+			"rev_limit": 46.6,
 			"mass": 28.4,
 			"strength": 1600.0,
 			"sound": "engine_twin"
@@ -39924,6 +39942,7 @@
 				44.0,
 				90.0
 			],
+			"rev_limit": 39.4,
 			"mass": 22.0,
 			"strength": 1200.0,
 			"sound": "electric_motor"
@@ -40895,6 +40914,7 @@
 				45.6,
 				117.6
 			],
+			"rev_limit": 35.6,
 			"mass": 28.4,
 			"strength": 1600.0,
 			"sound": "engine_twin"
@@ -41356,6 +41376,7 @@
 				43.6,
 				93.6
 			],
+			"rev_limit": 33.1,
 			"mass": 18.0,
 			"strength": 1000.0,
 			"sound": "engine_micro"
@@ -41831,6 +41852,7 @@
 				53.6,
 				97.6
 			],
+			"rev_limit": 33.8,
 			"mass": 28.4,
 			"strength": 1600.0,
 			"sound": "engine_twin"

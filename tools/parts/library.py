@@ -35,6 +35,28 @@ GLASS = TRANS_CLEAR
 DENSITY = 12.0
 
 
+# Top speed (m/s) of each motorbike, trike and quad frame, about 1.2 times
+# what it reaches on the stock vehicle it was made for.
+FRAME_REV_LIMIT = {
+    "b_frame_superbike": 48.4, "b_frame_cafe": 46.6, "b_frame_sport": 46.6,
+    "b_frame_scrambler": 45.3, "b_frame_dirt": 45.3,
+    "b_frame_chopper_long": 39.7, "b_frame_cruiser": 39.7,
+    "b_frame_scooter_small": 40.5, "b_frame_scooter": 40.5, "b_frame_electric": 39.4,
+    "b_frame_delta_trike": 37.2, "b_frame_reverse_trike": 38.0,
+    "b_frame_chopper_trike": 37.6, "b_frame_trike": 37.6,
+    "b_frame_quad_bogtrotter": 33.8, "b_frame_quad_dust_devil": 35.6,
+    "b_frame_quad_flat_track": 34.7, "b_frame_quad_mudlark": 31.4,
+    "b_frame_quad_pip": 33.1, "b_frame_quad_zipper": 36.0, "b_quad_frame": 34.3,
+}
+
+
+# These frames keep the mass they had in parts_made.json, which is lighter
+# than the engine they copy would give, so the stock bikes weigh what they did.
+# make_parts.py applies it.
+FRAME_MASS = {"b_frame_dirt": 13.2, "b_frame_scrambler": 13.2, "b_frame_scooter": 17.2,
+              "b_frame_scooter_small": 17.2, "b_frame_delta_trike": 17.2}
+
+
 class Part:
     def __init__(self, id, name, kind, group, size, solid, connectors, color, **stats):
         self.id = id
@@ -49,6 +71,9 @@ class Part:
         # Optional racing_hull vertices are in metres from the part's corner.
         # They bound a convex body without changing the editor's solid boxes.
         self.stats = stats
+        # Frames and engines get a top speed (m/s) if they push.
+        if kind == "seat" and "power" in stats and id in FRAME_REV_LIMIT:
+            stats.setdefault("rev_limit", FRAME_REV_LIMIT[id])
         # A second piece in its own colour that isn't painted, like a tire or
         # a lens: (solid, colour, finish).
         self.trim = stats.pop("trim", None)
@@ -1532,8 +1557,8 @@ def blower_v8():
     painted = union([base, block, manifold])
     chrome = union([cover(1), cover(-1), blower, ribs, hat, scoop - mouth, pulleys])
     return Part("e_blower_v8", "Blower V8", "engine", "engines", (w, h, l), painted, sockets(grid_cells(3, 4)), RED,
-                trim=(chrome, METAL, "metal"), sound="engine_v8", power=18000.0, max_force=2300.0, mass=52.0, strength=1500.0,
-                about="A V8 with a blower on top. A huge shove off the line and lots of power, but it's heavy.",
+                trim=(chrome, METAL, "metal"), sound="engine_v8", power=15800.0, max_force=1310.0, rev_limit=46.5, mass=52.0, strength=1500.0,
+                about="A V8 with a blower on top. A good pull and a high top speed, but it's heavy.",
                 solids=[[0, 0, 0, w, 0.4, l], [mid - 0.16, 0.4, 0.04, mid + 0.16, h, l - 0.14]])
 
 

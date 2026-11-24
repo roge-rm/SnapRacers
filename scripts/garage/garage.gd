@@ -442,6 +442,18 @@ func _turned_in_place(id: String, place: Transform3D, turn: Basis) -> Transform3
 	return _clamped(id, KartDesign.box_place(id, basis, at))
 
 
+## What the next engine adds, by how many are already on (see KartStats).
+const ENGINE_NOTES: Array[String] = ["Adds half its push", "Adds a quarter of its push", "Adds an eighth of its push"]
+
+
+func _engine_count() -> int:
+	var count := 0
+	for entry in design.parts:
+		if KartStats.is_engine(PartCatalog.get_part(entry.id)):
+			count += 1
+	return count
+
+
 ## Puts the part being placed down, and its mirror image too with Mirror on.
 func place() -> void:
 	if _holding == "":
@@ -461,6 +473,7 @@ func place() -> void:
 	KartDesign.set_suspension(entry, _holding_suspension)
 	# Across the middle from before the part goes on, the same as its ghost.
 	var middle := design.middle()
+	var engines_before := _engine_count()
 	design.parts.append(entry)
 	var placed := design.parts.size() - 1
 	if mirror and _moving.is_empty():
@@ -477,6 +490,8 @@ func place() -> void:
 		_rebuild()
 		return
 	_rebuild()
+	if engines_before > 0 and KartStats.is_engine(PartCatalog.get_part(entry.id)):
+		ui.toast(ENGINE_NOTES[mini(engines_before, ENGINE_NOTES.size()) - 1])
 	# Keep holding the same part, so you can put down a row of them.
 	_find_spots()
 	_show_ghost()

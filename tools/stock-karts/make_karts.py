@@ -402,7 +402,7 @@ T = racer(k, "w_offroad", "w_offroad", 1, 8, arches=0, width=4)
 
 # 10. An electric racer in white with teal stripes, smooth over the wheels,
 # with an open cockpit and a wing at each end.
-k = kart("volt", "Volt", "An electric racer, smooth and light, with wings at both ends. Quick away and easy to drive.")
+k = kart("volt", "Volt", "A racer in white and teal, smooth and light, with wings at both ends. Easy to drive.")
 T = racer(k, "w_racing", "w_racing", 4, 10, width=4)
 arches(k, T, (4, 12), WHITE, sides=WHITE, part="p_arch_2x6_teal_stripe")
 (k.add("d_front_wing_8x2", 6, T - 1, 0, colour=BLUE)
@@ -415,10 +415,11 @@ arches(k, T, (4, 12), WHITE, sides=WHITE, part="p_arch_2x6_teal_stripe")
     .pair("p_tile_1x2", 8, T + 3, 4, colour=WHITE)
     .pair("p_tile_1x4", 8, T + 3, 6, colour=BLUE)
     .add("p_plate_4x4", 8, T, 10, colour=WHITE)
-    .add("p_bonnet_4x4", 8, T + 1, 10, rot=2, colour=WHITE)
-    .add("electric_motor", 9, T, 14, colour=DARK)
+    .add("ballast", 8, T + 1, 10, colour=WHITE).add("ballast", 10, T + 1, 10, colour=WHITE)
+    .add("ballast", 8, T + 1, 12, colour=WHITE).add("ballast", 10, T + 1, 12, colour=WHITE)
+    .add("engine_small", 9, T, 14, colour=DARK)
     .pair("p_tile_1x2", 8, T, 14, colour=WHITE)
-    .add("d_rear_wing_8", 6, T + 2, 14, colour=BLUE))
+    .add("d_rear_wing_8", 6, T + 3, 14, colour=BLUE))
 
 
 # 25. A sprint kart: tiny and low on soft slicks, rounded side pods and a
@@ -523,8 +524,8 @@ def fenders(k, wheel_z, top):
 k = kart("crusher", "Crusher", "A monster truck on huge wheels. It rolls over anything and doesn't mind the grass, but it's tall, so take the corners steady.")
 T = racer(k, "w_monster", "w_monster", 2, 10, arches=0, width=4, rims=PURPLE)
 (k.add("p_brick_2x4", 8, T, 2, colour=DARK).add("p_brick_2x4", 10, T, 2, colour=DARK)
-    .pair("p_brick_1x4", 8, T, 6, colour=DARK)
-    .add("engine_v8", 9, T, 6, colour=SILVER)
+    .add("engine_micro", 8, T, 6, colour=SILVER).add("p_brick_1x2", 8, T, 8, colour=DARK)
+    .add("engine_diesel", 9, T, 6, colour=SILVER)
     .add("p_brick_2x2", 8, T, 10, colour=DARK).add("p_brick_2x2", 10, T, 10, colour=DARK)
     .add("p_plate_4x6", 8, T + 3, 0, colour=DARK)
     .add("p_plate_4x8", 8, T + 3, 6, colour=DARK))

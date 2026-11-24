@@ -1517,7 +1517,7 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 	if held:
 		braking = absf(forward_speed) > 0.05
 	elif controls.throttle > 0.0:
-		drive = controls.throttle * minf(max_force, power / maxf(absf(forward_speed), 1.0)) * push
+		drive = controls.throttle * stats.wheel_push(forward_speed) * push
 	if slide_kick:
 		# The kick locks the back wheels, so nothing drives.
 		drive = 0.0
@@ -1825,7 +1825,7 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 	var on_ground := wheels.any(func(w: Wheel) -> bool: return w.grounded)
 	# A jet pushes the same way, whatever the tires are on.
 	if thrust > 0.0 and controls.throttle > 0.0 and not held and on_ground:
-		var jet := -basis.z * thrust * controls.throttle * push * (RESET_SLOWDOWN if slowdown_left > 0.0 else 1.0)
+		var jet := -basis.z * stats.jet_push(forward_speed) * controls.throttle * push * (RESET_SLOWDOWN if slowdown_left > 0.0 else 1.0)
 		state.apply_central_force(_ok(jet))
 		applied += jet
 	# It cuts out while you brake, so it can't carry you off at a corner.

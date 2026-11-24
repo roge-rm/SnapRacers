@@ -16,6 +16,26 @@ func bundle(id: String, count := 1) -> Vector3:
 	return Vector3(part.mass, part.power, part.max_force) * count
 
 
+## Top speed in m/s and pull in g of engines alone on a plain 130 kg kart.
+func plain(ids: Array) -> Dictionary:
+	var stats := KartStats.new()
+	stats.mass = 130.0
+	stats.drag_area = 0.7
+	stats.rolling = 0.015
+	for id in ids:
+		var def := PartCatalog.get_part(id)
+		stats.mass += def.mass
+		stats.engines.append({
+			"power": def.get("power", 0.0) * KartStats.POWER_SCALE,
+			"max_force": def.get("max_force", 0.0),
+			"thrust": def.get("thrust", 0.0) * KartStats.THRUST_SCALE,
+			"rev_limit": def.get("rev_limit", KartStats.DEFAULT_REV_LIMIT),
+			"weight": 1.0,
+		})
+	stats._weigh_engines()
+	return {"top": stats.top_speed(), "pull": stats.pull()}
+
+
 func one_engine(design: KartDesign) -> KartDesign:
 	var single := design.duplicate_design()
 	for i in range(single.parts.size() - 1, -1, -1):
@@ -66,17 +86,28 @@ func _ready() -> void:
 	Game.start(self, false)
 	var micros := bundle("engine_micro", 2)
 	var twin := bundle("engine_twin")
-	check(twin.x < micros.x and twin.y > micros.y and twin.z >= micros.z, "a twin trades its larger footprint for less weight and more power than two micros")
+	check(twin.x < micros.x and plain(["engine_twin"]).top > plain(["engine_micro", "engine_micro"]).top, "a twin is lighter than two micros and faster")
 	var triple := bundle("engine_micro", 3)
 	var big := bundle("engine_big")
 	check(triple.x > big.x and triple.y > big.y and triple.z > big.z, "three micros buy extra power and pull with extra weight over a big engine")
-	var rotaries := bundle("engine_rotary", 2)
-	var v8 := bundle("engine_v8")
-	check(rotaries.x > v8.x and rotaries.y > v8.y and rotaries.z < v8.z, "two rotaries trade more weight and less launch force for more top-end power than a V8")
-	var electric := bundle("electric_motor", 2)
-	check(electric.y < v8.y and electric.z > v8.z, "electric motors keep their launch-force niche at the cost of V8 top-end power")
-	var large_electric := bundle("electric_big", 2)
-	check(large_electric.x > v8.x and large_electric.y > v8.y and large_electric.z > v8.z, "two big electric motors buy extra power and force with extra weight over a V8")
+	# Every engine sits on one line: more pull, lower top speed. The electric motors
+	# and the jet sit within 3 km/h of their neighbour.
+	var line := ["engine_diesel", "electric_big", "electric_motor", "engine_hybrid", "engine_micro", "engine_small", "engine_twin", "engine_flat4", "engine_big", "engine_rotary", "engine_v8", "jet"]
+	var line_ok := true
+	for i in line.size() - 1:
+		var a := plain([line[i]])
+		var b := plain([line[i + 1]])
+		if not (a.pull > b.pull and b.top > a.top - 3.0 / 3.6):
+			line_ok = false
+			print("  line broken between %s and %s" % [line[i], line[i + 1]])
+	check(line_ok, "from the diesel to the jet every engine pulls less than the one before and is about as fast or faster")
+	var v8 := plain(["engine_v8"])
+	var diesel := plain(["engine_diesel"])
+	var small := plain(["engine_small"])
+	check(diesel.pull > small.pull and small.pull > v8.pull and diesel.top < small.top and small.top < v8.top, "the diesel pulls hardest and is slowest, the V8 the other way, the small engine between")
+	var electric := plain(["electric_motor"])
+	check(electric.pull > v8.pull and electric.top < v8.top and bundle("electric_motor").x < bundle("engine_v8").x, "an electric motor is lighter and pulls harder than a V8 but is slower")
+	check(bundle("engine_rotary").x < bundle("engine_v8").x and plain(["engine_rotary"]).top < v8.top, "a rotary is lighter and slower than a V8")
 	var pedals := bundle("pedals")
 	var micro := bundle("engine_micro")
 	check(pedals.x < micro.x and pedals.y < micro.y and pedals.z < micro.z and pedals.y / pedals.x < micro.y / micro.x, "pedals are lighter but cannot supply micro-engine power and pull for almost no weight")

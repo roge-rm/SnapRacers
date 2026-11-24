@@ -209,6 +209,15 @@ func _bank() -> void:
 	var extras: Array = garage.ui.find_children("*", "Button", true, false).filter(func(b): return b is GarageUI.PartTile).map(func(b): return b.id)
 	check(extras.has("steering_wheel") and extras.has("s_seat"), "extras have the seat and the steering wheel %s" % [extras])
 	garage.ui._show_category(1)
+	var line := ""
+	for category in 7:
+		garage.ui._show_category(category)
+		await frames(1)
+		for b in garage.ui.find_children("*", "Button", true, false):
+			if b is GarageUI.PartTile and b.id == "engine_v8":
+				line = b.text
+	check(line.contains("km/h") and line.contains(" g"), "an engine tile shows top speed and pull: %s" % line.replace("\n", " / "))
+	garage.ui._show_category(1)
 
 
 ## A part goes anywhere it fits, joined on or not, but the kart can't go out
@@ -235,6 +244,15 @@ func _loose_and_new(parts: int) -> void:
 	garage.place()
 	garage.cancel()
 	check(garage.design.parts.size() == 1, "and it goes down")
+	garage.undo()
+	garage.start_placing("engine_small", Basis.IDENTITY, null, Vector3i(0, 0, 0))
+	garage.place()
+	check(garage.ui._status.text != "Adds half its push", "a first engine has no note")
+	garage.start_placing("engine_small", Basis.IDENTITY, null, Vector3i(10, 0, 0))
+	garage.place()
+	garage.cancel()
+	check(garage.ui._status.text == "Adds half its push", "a second engine says it adds half: %s" % garage.ui._status.text)
+	garage.undo()
 	garage.undo()
 	garage.undo()
 	check(garage.design.parts.size() == parts, "undo goes back to the kart before")

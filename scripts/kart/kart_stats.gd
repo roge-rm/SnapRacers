@@ -60,10 +60,20 @@ var center_of_mass := Vector3.ZERO
 const POWER_SCALE := 2.4
 const THRUST_SCALE := 1.4
 
+## Totals of the engines, each counted at its weight (see engines).
 var power := 0.0
 var max_force := 0.0
 ## Push that doesn't go through the wheels, from jet engines, in newtons.
 var thrust := 0.0
+## Every engine's scaled power, max_force, thrust and rev_limit (m/s), and the
+## weight it counts for, strongest first: 1, 1/2, 1/4 and so on.
+var engines: Array[Dictionary] = []
+## The top speed for an engine whose part has no rev_limit, in m/s.
+const DEFAULT_REV_LIMIT := 60.0
+## An engine's push fades to nothing over this fraction below its rev_limit.
+const REV_FADE := 0.1
+## Engines are ranked by their push at this speed, in m/s.
+const RANK_SPEED := 20.0
 var drag_area := 0.0
 var lift_area := 0.0
 var rolling := 0.0 # average rolling resistance of the tires
@@ -166,9 +176,17 @@ static func compute(design: KartDesign, skip := {}, fixed_origin: Variant = null
 		stats.mass += part_mass
 		weighted += info.centre * part_mass
 		# Engines push, and so does a motorbike frame with its engine in it.
-		stats.power += info.def.get("power", 0.0) * POWER_SCALE
-		stats.max_force += info.def.get("max_force", 0.0)
-		stats.thrust += info.def.get("thrust", 0.0) * THRUST_SCALE
+		var engine_power: float = info.def.get("power", 0.0) * POWER_SCALE
+		var engine_force: float = info.def.get("max_force", 0.0)
+		var engine_thrust: float = info.def.get("thrust", 0.0) * THRUST_SCALE
+		if is_engine(info.def):
+			stats.engines.append({
+				"power": engine_power,
+				"max_force": engine_force,
+				"thrust": engine_thrust,
+				"rev_limit": info.def.get("rev_limit", DEFAULT_REV_LIMIT),
+				"weight": 1.0,
+			})
 		match info.def.kind:
 			"wheel":
 				stats.wheels.append(info)
@@ -201,6 +219,7 @@ static func compute(design: KartDesign, skip := {}, fixed_origin: Variant = null
 				if stats.steering == null:
 					stats.steering = info
 
+	stats._weigh_engines()
 	stats.center_of_mass = weighted / maxf(stats.mass, 0.001)
 	stats._work_out_drag()
 	if not stats.wheels.is_empty():
@@ -335,13 +354,84 @@ static func gravity() -> float:
 	return ProjectSettings.get_setting("physics/3d/default_gravity", 9.8)
 
 
+## Whether a part pushes the kart, as an engine, a jet or a frame with its engine in it.
+static func is_engine(def: Dictionary) -> bool:
+	return def.get("power", 0.0) > 0.0 or def.get("max_force", 0.0) > 0.0 or def.get("thrust", 0.0) > 0.0
+
+
+## A part on a plain kart (130 kg without it, 0.7 m² drag area) so its top
+## speed and pull show what it does alone.
+static func alone(def: Dictionary) -> KartStats:
+	var stats := KartStats.new()
+	stats.mass = 130.0 + def.mass
+	stats.drag_area = 0.7
+	stats.rolling = 0.015
+	stats.engines.append({
+		"power": def.get("power", 0.0) * POWER_SCALE,
+		"max_force": def.get("max_force", 0.0),
+		"thrust": def.get("thrust", 0.0) * THRUST_SCALE,
+		"rev_limit": def.get("rev_limit", DEFAULT_REV_LIMIT),
+		"weight": 1.0,
+	})
+	stats._weigh_engines()
+	return stats
+
+
+## Sorts the engines strongest first, gives them their weights and adds up
+## power, max_force and thrust.
+func _weigh_engines() -> void:
+	engines.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
+		return _push_at(a, RANK_SPEED) > _push_at(b, RANK_SPEED))
+	var weight := 1.0
+	power = 0.0
+	max_force = 0.0
+	thrust = 0.0
+	for engine in engines:
+		engine.weight = weight
+		power += engine.power * weight
+		max_force += engine.max_force * weight
+		thrust += engine.thrust * weight
+		weight *= 0.5
+
+
+static func _push_at(engine: Dictionary, speed: float) -> float:
+	return minf(engine.max_force, engine.power / maxf(speed, 0.1)) + engine.thrust
+
+
+## How much of an engine's push is left at a speed: 1 well below its
+## rev_limit, down to 0 at it.
+static func fade(rev_limit: float, speed: float) -> float:
+	return clampf((rev_limit - speed) / (rev_limit * REV_FADE), 0.0, 1.0)
+
+
+## The push through the wheels from all the engines at a speed, in newtons.
+## Speeds under 1 m/s count as 1.
+func wheel_push(speed: float) -> float:
+	var v := maxf(absf(speed), 1.0)
+	var total := 0.0
+	for engine in engines:
+		if engine.power > 0.0 or engine.max_force > 0.0:
+			total += minf(engine.max_force, engine.power / v) * engine.weight * fade(engine.rev_limit, v)
+	return total
+
+
+## The push from the jets at a speed, in newtons.
+func jet_push(speed: float) -> float:
+	var v := absf(speed)
+	var total := 0.0
+	for engine in engines:
+		if engine.thrust > 0.0:
+			total += engine.thrust * engine.weight * fade(engine.rev_limit, v)
+	return total
+
+
 ## The speed where the engine's push is used up by air and tire drag, in m/s.
 ## It's an estimate that ignores hills, wings and cornering.
 func top_speed() -> float:
 	var resist_roll := rolling * mass * gravity()
 	var net := func(v: float) -> float:
-		return minf(max_force, power / v) + thrust - 0.5 * AIR_DENSITY * drag_area * v * v - resist_roll
-	if (power <= 0.0 and thrust <= 0.0) or net.call(0.1) <= 0.0:
+		return wheel_push(v) + jet_push(v) - 0.5 * AIR_DENSITY * drag_area * v * v - resist_roll
+	if engines.is_empty() or net.call(0.1) <= 0.0:
 		return 0.0
 	var lo := 0.1
 	var hi := 150.0

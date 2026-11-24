@@ -92,6 +92,8 @@ def entry_for(p):
         out["sound"] = engine_twin
         out["mass"] = round(twin["mass"] * 0.8 + 6.0, 1)
         out["strength"] = twin["strength"]
+        if p.id in library.FRAME_MASS:
+            out["mass"] = library.FRAME_MASS[p.id]
     if "seat_box" in out:
         out["seat_box"] = fine(out["seat_box"][:3]) + fine(out["seat_box"][3:])
     if p.id in TWINS:
