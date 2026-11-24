@@ -52,7 +52,7 @@ const CATEGORIES := [
 		[["Up 3 m\n96 m long", {"type": "ramp", "length": 3, "rise": 1}], ["Down 3 m\n96 m long", {"type": "ramp", "length": 3, "rise": -1}]],
 		[["Up 6 m\n64 m long", {"type": "ramp", "length": 2, "rise": 2}], ["Down 6 m\n64 m long", {"type": "ramp", "length": 2, "rise": -2}]],
 		[["Up 6 m\n96 m long", {"type": "ramp", "length": 3, "rise": 2}], ["Down 6 m\n96 m long", {"type": "ramp", "length": 3, "rise": -2}]],
-		[["Up 6 m\n32 m long", {"type": "ramp", "length": 1, "rise": 2}]],
+		[["Up 6 m\n32 m long", {"type": "ramp", "length": 1, "rise": 2}], ["Down 6 m\n32 m long", {"type": "ramp", "length": 1, "rise": -2}]],
 		[["45° up 3 m\nNormal left", {"type": "arc", "angle": 45, "turn": "left", "size": 2, "rise": 1}], ["45° up 3 m\nNormal right", {"type": "arc", "angle": 45, "turn": "right", "size": 2, "rise": 1}]],
 		[["45° down 3 m\nNormal left", {"type": "arc", "angle": 45, "turn": "left", "size": 2, "rise": -1}], ["45° down 3 m\nNormal right", {"type": "arc", "angle": 45, "turn": "right", "size": 2, "rise": -1}]],
 		[["45° up 3 m\nWide left", {"type": "arc", "angle": 45, "turn": "left", "size": 3, "rise": 1}], ["45° up 3 m\nWide right", {"type": "arc", "angle": 45, "turn": "right", "size": 3, "rise": 1}]],
@@ -62,7 +62,7 @@ const CATEGORIES := [
 		[["90° up 3 m\nWide left", {"type": "curve", "turn": "left", "size": 3, "rise": 1}], ["90° up 3 m\nWide right", {"type": "curve", "turn": "right", "size": 3, "rise": 1}]],
 		[["90° down 3 m\nWide left", {"type": "curve", "turn": "left", "size": 3, "rise": -1}], ["90° down 3 m\nWide right", {"type": "curve", "turn": "right", "size": 3, "rise": -1}]],
 		[["Hump 1.5 m\n96 m long", {"type": "crest", "length": 3, "height": 1.5}], ["Hump 3 m\n96 m long", {"type": "crest", "length": 3, "height": 3.0}]],
-		[["Hump 1.5 m\n64 m long", {"type": "crest", "length": 2, "height": 1.5}]],
+		[["Hump 1.5 m\n64 m long", {"type": "crest", "length": 2, "height": 1.5}], ["Hump 3 m\n64 m long", {"type": "crest", "length": 2, "height": 3.0}]],
 	]],
 	["Banked", "banked", [
 		[["45° bank 22°\nNormal left", {"type": "arc", "angle": 45, "turn": "left", "size": 2, "bank": 22}], ["45° bank 22°\nNormal right", {"type": "arc", "angle": 45, "turn": "right", "size": 2, "bank": 22}]],
@@ -87,6 +87,7 @@ const CATEGORIES := [
 		[["Left split\n90° extra wide", {"type": "split_bend", "turn": "left", "size": 4}], ["Right split\n90° extra wide", {"type": "split_bend", "turn": "right", "size": 4}]],
 		[["Dirt right\n96 × 32 m", {"type": "rough_split", "side": "left"}], ["Dirt left\n96 × 32 m", {"type": "rough_split", "side": "right"}]],
 		[["Jump left\n128 × 32 m", {"type": "jump_split", "side": "left"}], ["Jump right\n128 × 32 m", {"type": "jump_split", "side": "right"}]],
+		[["Jump both\n128 × 32 m", {"type": "jump_split", "side": "both"}]],
 	]],
 ]
 
@@ -225,6 +226,9 @@ const _SPEC_ORDER := [
 	"type=slant|length=6|turn=right|across=3",
 	"type=crest|length=2|height=1.5",
 	"type=ramp|length=1|rise=2",
+	"type=ramp|length=1|rise=-2",
+	"type=crest|length=2|height=3",
+	"type=jump_split|side=both",
 ]
 
 const MAX_SLOPE := TrackPiece.MAX_SLOPE
@@ -361,7 +365,7 @@ static func dimensions(spec: Dictionary) -> String:
 		"rough_split":
 			parts.append("96 m long · one branch on dirt")
 		"jump_split":
-			parts.append("128 m long · jump on one branch")
+			parts.append("128 m long · jump on %s" % ("both branches" if piece.side == 0 else "one branch"))
 		"connector":
 			parts.append("%s m long" % _metres(piece.path_length()))
 		"curve", "arc":

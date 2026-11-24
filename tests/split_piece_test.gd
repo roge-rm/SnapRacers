@@ -22,6 +22,7 @@ const MORE := [
 	{"type": "rough_split", "side": "right"},
 	{"type": "jump_split", "side": "left"},
 	{"type": "jump_split", "side": "right"},
+	{"type": "jump_split", "side": "both"},
 ]
 const PIECES := [
 	{"type": "straight", "length": 1},
@@ -193,7 +194,9 @@ func _more(spec: Dictionary, mirrored: bool, reversed: bool) -> void:
 				island_road.append("%.0f m" % d)
 	check(missed.is_empty() and wrong.is_empty(), "%s: both branches are the right road all the way along %s %s" % [name, missed.slice(0, 4), wrong.slice(0, 4)])
 	check(island_road.is_empty(), "%s: the island is grass %s" % [name, island_road.slice(0, 4)])
-	if spec.type in ["rough_split", "jump_split"]:
+	if spec.type == "jump_split" and spec.side == "both":
+		check(odd_sides.keys().size() == 2 and track.pieces[1].odd_branch() == -1, "%s: both branches have the jump (%s)" % [name, odd_sides.keys()])
+	elif spec.type in ["rough_split", "jump_split"]:
 		# The odd branch is on the spec's side for a jump and away from the
 		# tarmac's side for a rough split, swapped once by a mirror or a
 		# reverse and back again by both.

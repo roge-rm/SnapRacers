@@ -55,7 +55,7 @@ func _run() -> void:
 	for spec in offered:
 		if spec not in unique:
 			unique.append(spec)
-	check(specs.size() == 15 and offered.size() == 133 and unique.size() == 133 and specs.all(func(spec): return spec in offered), "the catalogue adds all 15 standard parts once")
+	check(specs.size() == 15 and offered.size() == 136 and unique.size() == 136 and specs.all(func(spec): return spec in offered), "the catalogue adds all 15 standard parts once")
 	_geometry(specs)
 	_half_cursor()
 	_meshes(specs)

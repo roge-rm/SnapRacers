@@ -16,6 +16,7 @@ const PIECES := {
 	"rough_right": {"type": "rough_split", "side": "right"},
 	"jump_left": {"type": "jump_split", "side": "left"},
 	"jump_right": {"type": "jump_split", "side": "right"},
+	"jump_both": {"type": "jump_split", "side": "both"},
 }
 
 var _camera: Camera3D

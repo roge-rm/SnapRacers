@@ -18,6 +18,7 @@ const KARTS := ["kart_kid", "night_shift", "zippy", "redline", "kart_kid", "stre
 const RACES := [[11, "normal"], [12, "hard"], [13, "expert"]]
 const UNEVEN := "res://tests/data/split_uneven_course.json"
 const UNEVEN_RACES := [[21, "easy"], [22, "normal"], [23, "expert"]]
+const JUMP_BOTH := "res://tests/data/split_jump_both_course.json"
 const LAPS := 2
 ## The longest a race may take, in seconds.
 const GIVE_UP := 150.0
@@ -83,6 +84,7 @@ func _ready() -> void:
 		check(resets[0] <= resets[1] + 1, "no more resets than without the split (%d, %d)" % resets)
 		check(times[0] <= times[1] * 1.06, "laps take about as long as without the split (%.1f s, %.1f s)" % [times[0] / RACES.size(), times[1] / RACES.size()])
 	await _uneven()
+	await _jump_both()
 	print("All AI split checks passed." if failures == 0 else "%d AI split checks failed." % failures)
 	get_tree().quit(1 if failures > 0 else 0)
 
@@ -175,6 +177,18 @@ func _uneven() -> void:
 	check(shares.easy > 0.0 and shares.easy < 1.0 and shares.normal > 0.0 and shares.normal < 1.0, "Easy and Normal take both branches (%.2f, %.2f)" % [shares.easy, shares.normal])
 	check(crossed == 0 and over == 0.0, "nobody crosses or drives on an uneven split's island (%d times, %.2f s)" % [crossed, over])
 	check(resets[0] <= resets[1] + 1, "no more resets than without the uneven splits (%d, %d)" % resets)
+
+
+## Eight karts race a course whose split has a jump on both branches.
+func _jump_both() -> void:
+	var jump_track := _course(true, JUMP_BOTH)
+	var line := jump_track.racing_line()
+	check(line.split_mids.size() == 1, "the jump both course has one split (%d)" % line.split_mids.size())
+	var a := await _race(true, 31, "normal", JUMP_BOTH, GIVE_UP * 1.5)
+	print("    jump both: %d left, %d right, %d crossed, %d resets, lap %.1f s" % [a.sides[0], a.sides[1], a.crossed, a.resets, a.lap])
+	check(a.finished, "every kart finishes the jump both course")
+	check(a.sides[0] + a.sides[1] >= 8 and a.crossed == 0, "karts take a branch each time round and don't cross the island (%s, %d)" % [a.sides, a.crossed])
+	check(a.resets <= 4, "few resets over the jumps (%d)" % a.resets)
 
 
 func _driver(level: String, seed: int) -> AIDriver:

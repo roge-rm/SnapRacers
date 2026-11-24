@@ -1,0 +1,43 @@
+{
+	"grid": 32.0,
+	"hills": 0.0,
+	"landmarks": [],
+	"laps": 3,
+	"made_by": "",
+	"name": "Jump Both Test",
+	"theme": "orchard",
+	"pieces": [
+		{
+			"type": "straight",
+			"length": 4
+		},
+		{
+			"type": "jump_split",
+			"side": "both"
+		},
+		{
+			"type": "curve",
+			"turn": "right",
+			"size": 2
+		},
+		{
+			"type": "curve",
+			"turn": "right",
+			"size": 2
+		},
+		{
+			"type": "straight",
+			"length": 8
+		},
+		{
+			"type": "curve",
+			"turn": "right",
+			"size": 2
+		},
+		{
+			"type": "curve",
+			"turn": "right",
+			"size": 2
+		}
+	]
+}

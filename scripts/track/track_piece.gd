@@ -227,7 +227,9 @@ static func from_spec(spec: Dictionary) -> TrackPiece:
 			piece.side = -1 if str(spec.get("side", "right")) == "left" else 1
 		"jump_split":
 			piece.tiles = JUMP_SPLIT_TILES
-			piece.side = -1 if str(spec.get("side", "right")) == "left" else 1
+			# 0 is a jump on both branches.
+			var jump_side := str(spec.get("side", "right"))
+			piece.side = 0 if jump_side == "both" else (-1 if jump_side == "left" else 1)
 		_:
 			piece.type = "straight"
 			piece.tiles = int(spec.get("length", 1))
@@ -315,7 +317,7 @@ func to_spec() -> Dictionary:
 			spec["turn"] = "left" if turn < 0 else "right"
 			spec["size"] = int(radius / TILE + 0.5)
 		"rough_split", "jump_split":
-			spec["side"] = "left" if side < 0 else "right"
+			spec["side"] = "both" if side == 0 and type == "jump_split" else ("left" if side < 0 else "right")
 	if surface != "asphalt":
 		spec["surface"] = surface
 	if edges != "auto" and not (cut and edges in ["left_open", "right_open"]):
@@ -388,12 +390,13 @@ func _forward_branches(x: float, run: float, road: float) -> PackedVector2Array:
 
 
 ## Which branch, 0 left or 1 right as driven, is the odd one out: a rough
-## split's dirt branch or a jump split's jump. -1 on other pieces.
+## split's dirt branch or a jump split's jump. -1 on other pieces, and on a
+## jump split with a jump on both branches.
 func odd_branch() -> int:
 	var forward := -1
 	if type == "rough_split":
 		forward = 1 if side < 0 else 0
-	elif type == "jump_split":
+	elif type == "jump_split" and side != 0:
 		forward = 0 if side < 0 else 1
 	if forward < 0:
 		return -1
@@ -412,10 +415,17 @@ func _split_jump_start() -> float:
 	return (run_length() - LANDING_END) * 0.5
 
 
+## Whether a branch (0 left, 1 right as driven) has the jump on a jump split.
+func jump_branch(branch: int) -> bool:
+	if type != "jump_split":
+		return false
+	return side == 0 or branch == odd_branch()
+
+
 ## How high a branch's road is above the middle line `t` of the way through
 ## the piece: a jump split's kicker and landing.
 func branch_lift(t: float, branch: int) -> float:
-	if type != "jump_split" or branch != odd_branch():
+	if not jump_branch(branch):
 		return 0.0
 	var x := run_length() * t - _split_jump_start()
 	return _jump_height(x) if x > 0.0 and x < LANDING_END else 0.0
@@ -423,7 +433,7 @@ func branch_lift(t: float, branch: int) -> float:
 
 ## Whether a branch has road here. Only a jump split's jump has a gap.
 func branch_solid(t: float, branch: int) -> bool:
-	if type != "jump_split" or branch != odd_branch():
+	if not jump_branch(branch):
 		return true
 	var x := run_length() * t - _split_jump_start()
 	return x <= KICKER_END or x >= LANDING_START
