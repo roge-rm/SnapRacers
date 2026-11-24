@@ -1609,7 +1609,13 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 		# and along its heading it drives, brakes and rolls. All of that is
 		# capped by the grip this tire has under this load.
 		var stop_force := share / dt
-		var f_lat := -v_lat * stop_force * 0.5
+		# Sideways, a short bike with its weight in the middle turns about
+		# that middle so easily that stopping each wheel's slip in one step
+		# would overshoot and set it wagging every step. Its push is held to
+		# twice what the wheel's mass against turning could take.
+		var arm := (contact - com).cross(side)
+		var turning_mass := 1.0 / (1.0 / mass + arm.dot(state.inverse_inertia_tensor * arm))
+		var f_lat := -v_lat * minf(share, 2.0 * turning_mass) / dt * 0.5
 		var f_long := drive_per_wheel if w.driven else 0.0
 		# Grass and dirt grip less and drag more than the road. The ground
 		# says how much through its "grip" and "drag" metadata. Off the road

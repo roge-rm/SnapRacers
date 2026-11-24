@@ -54,10 +54,16 @@ func _ready() -> void:
 		garage.ui._show_category(5)
 		await get_tree().create_timer(3.0).timeout
 		await _save("engine_tiles")
-		garage.start_placing("engine_small", Basis.IDENTITY, null, Vector3i(0, 0, 0))
-		garage.place()
-		garage.start_placing("engine_small", Basis.IDENTITY, null, Vector3i(10, 0, 0))
-		garage.place()
+		# A second engine snapped onto the first spot that leaves the kart
+		# able to race, so the note shows and nothing goes red.
+		garage.start_placing("engine_small")
+		for spot in garage._spots.duplicate():
+			if garage.snap_to(spot) and garage._ghost_ok:
+				garage.place()
+				if garage.design.problems().is_empty():
+					break
+				garage.undo()
+				garage.start_placing("engine_small")
 		garage.cancel()
 		await _save("engine_note")
 		get_tree().quit()

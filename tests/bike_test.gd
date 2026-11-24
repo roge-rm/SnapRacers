@@ -140,7 +140,7 @@ class Runner:
 				var front: Kart.Wheel = kart.wheels.filter(func(w): return w.steered)[0]
 				var fork_turn: float = kart._steering._wheel.basis.z.signed_angle_to(Vector3.BACK, Vector3.UP) if kart._steering != null else 0.0
 				var wheel_turn := front.visual.basis.x.signed_angle_to(Vector3.RIGHT, Vector3.UP)
-				check(absf(fork_turn) > 0.01 and is_equal_approx(snappedf(fork_turn, 0.001), snappedf(wheel_turn, 0.001)), "the fork and bars turn with the front wheel (%.1f and %.1f degrees)" % [rad_to_deg(fork_turn), rad_to_deg(wheel_turn)])
+				check(absf(fork_turn) > 0.01 and absf(fork_turn - wheel_turn) < 0.001, "the fork and bars turn with the front wheel (%.1f and %.1f degrees, %.5f apart)" % [rad_to_deg(fork_turn), rad_to_deg(wheel_turn), absf(fork_turn - wheel_turn)])
 				check(absf(rad_to_deg(wheel_turn)) > 6.0 and absf(rad_to_deg(wheel_turn)) < 20.0, "and at speed a hard turn shows, but not full lock (%.0f degrees at %.0f m/s)" % [rad_to_deg(wheel_turn), kart.forward_speed])
 			751:
 				var turned := rad_to_deg(angle_difference(start_yaw, kart.global_rotation.y))

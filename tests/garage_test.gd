@@ -257,6 +257,24 @@ func _loose_and_new(parts: int) -> void:
 	garage.undo()
 	check(garage.design.parts.size() == parts, "undo goes back to the kart before")
 
+	# The starter kart has one engine, so one more adds half.
+	check(garage._engine_count() == 1, "the starter kart has one engine: %d" % garage._engine_count())
+	garage.ui._status.text = ""
+	garage.start_placing("engine_small")
+	var spot := {}
+	for s in garage._spots:
+		if garage.snap_to(s) and garage._ghost_ok:
+			spot = s
+			break
+	check(not spot.is_empty(), "an engine has somewhere to go on the starter kart")
+	garage.snap_to(spot)
+	garage.place()
+	garage.cancel()
+	check(garage._engine_count() == 2, "and it goes on")
+	check(garage.ui._status.text == "Adds half its push", "a second engine on the starter kart adds half: %s" % garage.ui._status.text)
+	garage.undo()
+	check(garage.design.parts.size() == parts, "undo takes it off again")
+
 
 ## A bike frame on the floor takes a wheel on its back axle, from a finger
 ## near the dot, and the kart goes up to make room under it.

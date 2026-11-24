@@ -939,6 +939,24 @@ class PartTile:
 
 	## A drag pulls the part out only when it's clearly sideways and the list
 	## hasn't scrolled, so a slanted flick still scrolls.
+	func _notification(what: int) -> void:
+		if what == NOTIFICATION_THEME_CHANGED:
+			_make_room()
+
+	## A tile with a lot of text (an engine with a long name and its top speed
+	## and pull) grows taller, so its picture keeps at least ICON_ROOM pixels.
+	const ICON_ROOM := 40.0
+
+	func _make_room() -> void:
+		var font := get_theme_font("font")
+		if font == null:
+			return
+		var box := get_theme_stylebox("normal")
+		var margins := box.get_minimum_size() if box != null else Vector2.ZERO
+		var width := BuilderStyle.TILE.x - margins.x
+		var text_size := font.get_multiline_string_size(text, HORIZONTAL_ALIGNMENT_CENTER, width, get_theme_font_size("font_size"))
+		custom_minimum_size.y = maxf(BuilderStyle.TILE.y, margins.y + ICON_ROOM + text_size.y)
+
 	func _pulled_out(moved: Vector2) -> bool:
 		return moved.length() > DRAG_START and absf(moved.x) > absf(moved.y) * 2.0 and not scrolled()
 
