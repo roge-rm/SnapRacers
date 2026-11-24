@@ -404,7 +404,9 @@ def slicked_back():
     roll = lobe((0.0, 0.148, -0.088), (0.07, 0.022, 0.04), (0.0, 0.3, -1.0), 14)
     main, lines = base + roll, []
     for x in (-0.045, 0.045):
-        main, line = parting(main, x, -0.16, 0.12, 0.005)
+        # Starting a little behind the front edge, where the hair is thin and
+        # the line's sides would come out in the same place as the hair's.
+        main, line = parting(main, x, -0.12, 0.12, 0.005)
         lines.append(line)
     return {"main": main, "dark": union(lines)}
 
@@ -457,8 +459,10 @@ def long_curly():
 
 def low_ponytail():
     """Pulled back from a parting into a tail tied low at the nape."""
-    line = lambda a: curve([(0.0, 0.088), (FACE_ANGLE, 0.088), (BEARD_ANGLE, BEARD_TOP), (78.0, -0.045), (95.0, LOWEST), (180.0, LOWEST)], a)
-    base = cap(line, radius=lambda a: curve([(0.0, 0.134), (90.0, 0.138), (180.0, 0.146)], a), top=0.144, bulge=0.003, extra=DROP)
+    # Down behind the ear to the nape, with a small lip, so no neck shows at
+    # the side from behind.
+    line = lambda a: curve([(0.0, 0.088), (FACE_ANGLE, 0.088), (BEARD_ANGLE, BEARD_TOP), (78.0, -0.06), (88.0, LOWEST), (180.0, LOWEST)], a)
+    base = cap(line, radius=lambda a: curve([(0.0, 0.134), (90.0, 0.138), (180.0, 0.146)], a), top=0.144, lip=0.005, bulge=0.003, extra=DROP)
     main, part = parting(base, 0.0, -0.2, -0.02)
     return {"main": main, "dark": part}
 
@@ -546,16 +550,24 @@ def _slice_y(solid, y):
 # body, so it doesn't turn with the head, made for each pose like the back
 # pieces: hanging down the back standing, shorter and close to the back in
 # front of the seat's back seated, shorter still lying back, and hanging
-# back a little astride. Its top
-# tucks in under the cap's lower edge (LOWEST) round the back of the head,
-# kept under it however far the head turns, and clear of what's worn round
-# the neck. In the upper body's space, in metres.
+# back a little astride. It comes up to the cap's lower edge (LOWEST) round
+# the back of the head, with its top tucked up inside the cap (see length()),
+# and keeps clear of what's worn round the neck. In the upper body's space,
+# in metres.
 
 LENGTH_POSES = ("standing", "seated", "reclined", "astride")
 # The cap's lower edge in the upper body's space, and how far round the
 # middle of the head the top of the length curves.
 NAPE_Y = F.HEAD_Y + LOWEST * F.HEAD_SCALE - GAP
 NAPE_R = 0.166
+# How far the top of the length tucks up inside the cap, so no gap shows
+# between them as the head turns.
+TUCK = 0.012
+# The tuck keeps this far inside the cap's outside, and inside it as the
+# head turns this far either way (radians). Turned further, as when looking
+# right round, the ends of the tuck show under the cheek.
+TUCK_IN = 0.003
+TUCK_TURN = 0.8
 
 # The middle of the length from the nape down, as (y, z), for each pose.
 # Standing it hangs down the back to below the shoulder blades. Seated it
@@ -689,10 +701,12 @@ def _sheet(pose, outer=lambda u, s: 0.0, hem=lambda u: 0.0, wide=lambda s: 0.0, 
     locks, waves or curls, `hem` its ends."""
     base = dict(
         width=lambda s: WIDTH(s) + wide(s),
-        thick=along([(0.0, 0.016), (0.3, 0.017), (1.0, 0.014)]),
+        # Thinner at the top, its outside in line with the cap's, so the
+        # cap's lower edge sits over it.
+        thick=along([(0.0, 0.0095), (0.1, 0.0145), (0.3, 0.017), (1.0, 0.014)]),
         arc=along([(0.0, 1.0), (0.2, 0.55), (0.45, 0.25), (1.0, 0.2)]),
         sag=along([(0.0, 0.0), (0.1, 0.0), (0.25, 0.025), (0.45, 0.018), (1.0, 0.012)]),
-        outer=lambda u, s: 0.009 * (1.0 - u * u) * min(1.0, s * 4.0) + outer(u, s),
+        outer=lambda u, s: (0.009 * (1.0 - u * u) * min(1.0, s * 4.0) + outer(u, s)) * min(1.0, 0.2 + s * 6.0),
         hem=lambda u: 0.03 * (1.0 - u * u) + hem(u),
     )
     base.update(kw)
@@ -764,6 +778,35 @@ LENGTHS = {
 }
 
 
+def _section(solid, y):
+    """The solid's section across it at height y, as (x, -z)."""
+    return solid.rotate([90.0, 0.0, 0.0]).slice(y)
+
+
 def length(style):
-    """A long style's length in every pose, {pose: regions}."""
-    return {pose: LENGTHS[style](pose) for pose in LENGTH_POSES}
+    """A long style's length in every pose, {pose: regions}. Its top is
+    carried straight up TUCK inside the cap, kept TUCK_IN inside the cap's
+    solid as the head turns up to TUCK_TURN, so no gap shows between them."""
+    cap = union(list(STYLES[style]().values())).scale([F.HEAD_SCALE] * 3).translate([0.0, F.HEAD_Y, 0.0])
+    shrink = 1.0 - TUCK_IN / NAPE_R
+    most = TUCK_TURN
+    # Where the cap is solid all the way up the tuck, as the head turns.
+    inside = None
+    for y in (NAPE_Y + GAP + 0.0005, NAPE_Y + GAP + 0.005, NAPE_Y + TUCK):
+        at = _section(cap, y).scale([shrink, shrink])
+        for k in range(-3, 4):
+            turned = at.rotate(math.degrees(most) * k / 3.0)
+            inside = turned if inside is None else inside ^ turned
+    inside = inside.simplify(0.0005)
+    low = NAPE_Y - 0.004
+    out = {}
+    for pose in LENGTH_POSES:
+        regions = {}
+        for k, v in LENGTHS[style](pose).items():
+            # Up from just under the top, across the gap under the cap.
+            tuck = _section(v, low) ^ inside
+            if not tuck.is_empty():
+                v = v + Manifold.extrude(tuck, NAPE_Y + TUCK - low).rotate([-90.0, 0.0, 0.0]).translate([0.0, low, 0.0])
+            regions[k] = v
+        out[pose] = regions
+    return out

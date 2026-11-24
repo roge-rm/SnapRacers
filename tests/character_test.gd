@@ -107,9 +107,13 @@ class Runner:
 	## facing the same way, which the screen shows as the two colours
 	## flickering through each other. Each region's triangles are checked
 	## at their middle against the other regions' triangles, within 0.2 mm.
+	## Under 1 mm2 in all between two regions is left out: that's slivers
+	## along a crease where a raised bit meets what it sits on, too small
+	## to see.
 	func overlapping_regions(regions: Dictionary) -> Array:
 		const NEAR := 0.0002
 		const CELL := 0.01
+		const SMALLEST := 0.000001
 		var tris := {}
 		var grids := {}
 		for region in regions:
@@ -138,6 +142,7 @@ class Runner:
 				var tb: PackedVector3Array = tris[b]
 				var grid: Dictionary = grids[b]
 				var found := 0
+				var area := 0.0
 				for i in range(0, ta.size(), 3):
 					var cross := (ta[i + 1] - ta[i]).cross(ta[i + 2] - ta[i])
 					if cross.length() < 1e-10:
@@ -158,10 +163,31 @@ class Runner:
 						var q := p - nb * d
 						if (tb[j + 1] - tb[j]).cross(q - tb[j]).dot(nb) > 0.0 and (tb[j + 2] - tb[j + 1]).cross(q - tb[j + 1]).dot(nb) > 0.0 and (tb[j] - tb[j + 2]).cross(q - tb[j + 2]).dot(nb) > 0.0:
 							found += 1
+							area += cross.length() * 0.5
 							break
-				if found > 0:
-					out.append("%s on %s (%d faces)" % [a, b, found])
+				if area >= SMALLEST:
+					out.append("%s on %s (%d faces, %.1f mm2)" % [a, b, found, area * 1e6])
 		return out
+
+	## Every piece with regions in `entry` and what's inside it, by name.
+	func collect_regions(name: String, entry: Dictionary, out: Dictionary) -> void:
+		if entry.get("regions") is Dictionary:
+			out[name] = entry.regions
+		for key in entry:
+			if key != "regions" and entry[key] is Dictionary:
+				collect_regions("%s %s" % [name, key], entry[key], out)
+
+	## The region at a leg's toe: the one with the point furthest from the
+	## top of the leg, where it joins the hips, in every pose.
+	func toe_region(regions: Dictionary) -> String:
+		var best := ""
+		var far := -1.0
+		for region in regions:
+			for p in triangles(CharacterMesh.mesh(regions[region])):
+				if p.length() > far:
+					far = p.length()
+					best = region
+		return best
 
 	func _ready() -> void:
 		add_child(TestTrack.new())
@@ -181,26 +207,36 @@ class Runner:
 						empty.append("%s %s" % [piece, region])
 		check(figure.size() >= 10 and empty.is_empty(), "the figure's %d pieces all load %s" % [figure.size(), empty])
 
-		# No two colour regions of the figure, an arm, torso, neck piece or
-		# standing leg are in the same place, or they flicker through each
-		# other. Legs sitting and riding, headgear and back pieces aren't
-		# checked yet.
+		# No two colour regions of any piece are in the same place, or they
+		# flicker through each other: the figure, and every style of every
+		# slot in each of its variants (poses, hands, hair under hats,
+		# bands on each hairdo, long hair's length and so on).
 		var pieces := {}
-		for piece in figure:
-			pieces["figure " + piece] = figure[piece].regions
-		for slot in ["arms", "torso", "neck", "legs"]:
-			var made_slot: Dictionary = CharacterMesh.made().get("styles", {}).get(slot, {})
-			for style in made_slot:
-				var entry: Dictionary = made_slot[style]
-				pieces["%s %s" % [slot, style]] = entry.regions
-				for part in ["arm_r", "hand_l", "hand_r", "standing_l", "standing_r"]:
-					if entry.has(part):
-						pieces["%s %s %s" % [slot, style, part]] = entry[part].regions
+		collect_regions("figure", figure, pieces)
+		var made_styles: Dictionary = CharacterMesh.made().get("styles", {})
+		for slot in made_styles:
+			collect_regions(slot, made_styles[slot], pieces)
 		var fighting := []
 		for piece in pieces:
 			for found in overlapping_regions(pieces[piece]):
 				fighting.append("%s: %s" % [piece, found])
-		check(fighting.is_empty(), "no two colour regions of the %d arms, torsos, neck pieces, standing legs and figure pieces overlap %s" % [pieces.size(), fighting])
+		check(pieces.size() >= 600 and fighting.is_empty(), "no two colour regions of the %d pieces and variants overlap %s" % [pieces.size(), fighting])
+
+		# Every leg style has feet in every pose: what's at the toe is a shoe,
+		# a boot or the leg's own colour, never bare skin, except the styles
+		# that are bare on purpose.
+		const BARE := ["barefoot"]
+		var legs: Dictionary = made_styles.get("legs", {})
+		var no_feet := []
+		for style in legs:
+			for pose in ["standing", "seated", "astride", "forward"]:
+				for side in ["l", "r"]:
+					var part: Dictionary = legs[style].get("%s_%s" % [pose, side], {})
+					var toe := toe_region(part.get("regions", {}))
+					var bare := toe == "skin"
+					if toe == "" or bare != (style in BARE):
+						no_feet.append("%s %s_%s: %s" % [style, pose, side, toe])
+		check(legs.size() >= 23 and no_feet.is_empty(), "all %d leg styles have feet in every pose, bare only on %s %s" % [legs.size(), BARE, no_feet])
 
 		# Every neck piece is made in tools/characters, and its meshes load.
 		var missing := []
@@ -632,8 +668,9 @@ class Runner:
 		var again := CharacterDesign.from_dict(racer.to_dict())
 		check(again.to_dict() == racer.to_dict(), "a driver saves and loads the same")
 		check(CharacterDesign.well_formed(racer.to_dict()), "a saved driver is well formed for the network")
-		var odd := [{ "hair": "spiky" }, { "hair": { "style": 3 } }, { "torso": { "color": "not a colour" } }, { "name": [] }]
+		var odd := [{ "hair": "spiky" }, { "hair": { "style": 3 } }, { "torso": { "color": 5 } }, { "name": [] }]
 		check(odd.all(func(bad: Dictionary) -> bool: return not CharacterDesign.well_formed(bad)), "a driver with odd pieces from the network is turned away")
+		check(CharacterDesign.well_formed({ "torso": { "style": "future_torso", "color": "later:x" } }) and CharacterDesign.from_dict({ "torso": { "style": "future_torso", "color": "later:x" } }).style_of("torso") == CharacterDesign.from_dict({}).style_of("torso"), "unknown pieces and colours from later versions fall back to defaults")
 		var tread := CharacterDesign.load_file("res://data/characters/roster/tread.json")
 		var pip := CharacterDesign.load_file("res://data/characters/roster/pip.json")
 		check(tread.weight_class() == "Heavy" and pip.weight_class() == "Light", "Tread is heavy (%.0f kg) and Pip is light (%.0f kg)" % [tread.mass(), pip.mass()])

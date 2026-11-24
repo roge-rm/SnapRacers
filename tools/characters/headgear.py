@@ -305,7 +305,10 @@ def beanie():
     """A round knitted toque with a folded cuff and a pom-pom."""
     rim = rim_line(0.07, 0.046, 0.044)
     crown = hat(rim, top=0.168, dome=0.03, corner=0.075)
-    cuff = ring(lambda a: rim(a) - 0.001, 0.034, inner_line(), lambda a: curve([(0.0, 0.156), (60.0, 0.161), (180.0, 0.162)], a), 0.008)
+    # Its inside a little out from the crown's and its bottom a little lower
+    # from the sides back (not in front, over the face), so the two aren't
+    # in the same place.
+    cuff = ring(lambda a: rim(a) - curve([(0.0, 0.001), (59.0, 0.001), (66.0, 0.003), (180.0, 0.003)], a), 0.034, lambda a: inner_line()(a) + 0.0015, lambda a: curve([(0.0, 0.156), (60.0, 0.161), (180.0, 0.162)], a), 0.008)
     pom = ball((0.0, 0.225, 0.008), 0.038, 14)
     return {"main": crown, "dark": cuff, "white": pom}
 
@@ -317,6 +320,9 @@ def hard_hat():
     crown = hat(rim, top=0.172, dome=0.032, corner=0.07)
     ring_round = brim(rim, lambda a: curve([(0.0, 0.2), (90.0, 0.178), (180.0, 0.19)], a), step=20.0)
     ridge = hat(rim, radius=0.167, top=0.186, dome=0.032, corner=0.078, step=36.0, extra=()) ^ Manifold.cube([0.034, 0.3, 0.6]).translate([-0.017, 0.1, -0.3])
+    # Only what stands out from the crown, so its inside and lower edge
+    # aren't in the same place as the crown's.
+    ridge = ridge - crown.hull() - ring_round
     return {"main": crown + ring_round, "light": ridge}
 
 
@@ -325,8 +331,10 @@ def top_hat():
     little at the sides."""
     rim = rim_line(BROW, 0.047, 0.045)
     crown = hat(rim, top=0.31, dome=0.0, corner=0.02, bulge=0.0)
-    ring_round = brim(rim, lambda a: curve([(0.0, 0.2), (90.0, 0.19), (180.0, 0.2)], a), lambda a: 0.014 * math.sin(a) ** 2)
-    band = hat_band(rim, lambda a: max(0.012, BRIM_LOW + 0.014 - rim(a)), 0.03, 0.16)
+    lift = lambda a: 0.014 * math.sin(a) ** 2
+    ring_round = brim(rim, lambda a: curve([(0.0, 0.2), (90.0, 0.19), (180.0, 0.2)], a), lift)
+    # The band starts inside the brim, above its underside where it curls up.
+    band = hat_band(rim, lambda a: max(0.012, BRIM_LOW + 0.014 - rim(a), 0.006 + lift(a)), 0.03, 0.16)
     return {"main": crown + ring_round, "dark": band}
 
 
@@ -361,9 +369,11 @@ def mushroom():
         normal = d / radii
         normal /= np.linalg.norm(normal)
         # Sitting on the surface, flat, standing out a little.
-        at = _on(dome, middle + radii * d) - normal * 0.003
+        at = _on(dome, middle + radii * d) - normal * 0.0025
         spots.append(lobe(at, (r, r, 0.0055), normal, 10))
-    return {"main": dome, "white": union(spots)}
+    # Only what stands out from the cap, so the spots' undersides don't lie
+    # just under its surface.
+    return {"main": dome, "white": union(spots) - dome}
 
 
 def dino_hood():
@@ -377,14 +387,15 @@ def dino_hood():
         out = np.array([0.0, math.cos(t), math.sin(t)])
         root = H.head_surface(out) + out * 0.042
         spikes.append(tuft(root, root + out * h, 0.03, 0.012, 10, 8))
-    eyes, pupils = [], []
+    eyes, dots = [], []
     for s in (-1.0, 1.0):
         at = np.array([0.055 * s, 0.17, -0.085])
-        e = ball(at, 0.032, 12)
-        eyes.append(e)
-        pupils.append(e ^ ball(at + np.array([0.0, 0.004, -0.03]), 0.014, 10))
-    eyes, pupils = union(eyes), union(pupils)
-    return {"main": hood, "dark": union(spikes), "white": eyes - pupils, "ink": pupils}
+        eyes.append(ball(at, 0.032, 12))
+        dots.append(ball(at + np.array([0.0, 0.004, -0.03]), 0.014, 10))
+    eyes, dots = union(eyes), union(dots)
+    # The eyes are cut by the dots themselves, not by the pupils, which share
+    # their surface, and the spikes are only what stands out from the hood.
+    return {"main": hood, "dark": union(spikes) - hood.hull(), "white": eyes - dots, "ink": eyes ^ dots}
 
 
 def cowboy():
@@ -412,7 +423,8 @@ def viking():
     """A round helmet with a band round its brow and two curved horns."""
     rim = rim_line(0.074, 0.046, 0.044)
     dome = hat(rim, top=0.17, dome=0.03, corner=0.075)
-    band = ring(lambda a: rim(a) - 0.001, 0.026, inner_line(), 0.162, 0.006)
+    # Like the beanie's cuff, a little out from the dome inside and below it.
+    band = ring(lambda a: rim(a) - 0.003, 0.026, lambda a: inner_line()(a) + 0.0025, 0.162, 0.006)
     horns_out = union([horn((0.15 * s, 0.112, 0.0), s) for s in (-1.0, 1.0)])
     return {"main": dome, "dark": band, "ivory": horns_out}
 
@@ -607,19 +619,26 @@ def tiara(on):
         rings.append([(u * math.sin(a), v, -u * math.cos(a)) for u, v in rounded_rect(r, r + 0.008, b, b + top(a), 0.003, 2)])
     band = from_grid(rings, False)
     ends = union([ball(around(inside(math.radians(70.0 * s)) + 0.004, 70.0 * s, bottom(math.radians(70.0)) + 0.008), 0.007, 8) for s in (-1.0, 1.0)])
-    gem = ball((0.0, 0.098, -inside(0.0) - 0.009), 0.012, 14)
-    side_gems = union([ball(around(inside(math.radians(38.0 * s)) + 0.009, 38.0 * s, bottom(math.radians(38.0)) + 0.018), 0.007, 10) for s in (-1.0, 1.0)])
-    return finish({"main": band + ends}, [("gem", gem), ("pink", side_gems)])
+    # Raised gems on the front of the band, only the part standing out from
+    # it, as gems printed on a band this thin flicker at their edges.
+    gem = ball((0.0, 0.098, -inside(0.0) - 0.01), 0.008, 14)
+    side_gems = union([ball(around(inside(math.radians(38.0 * s)) + 0.008, 38.0 * s, bottom(math.radians(38.0)) + 0.016), 0.006, 10) for s in (-1.0, 1.0)])
+    main = band + ends
+    return {"main": main, "gem": gem - main, "pink": side_gems - main}
 
 
 def party():
     """A party hat: a cone on top, a little to one side, with a pom-pom and a
     white trim round its base."""
-    cone = Manifold.batch_hull([Manifold.cylinder(0.006, 0.07, 0.07, 28).rotate([-90.0, 0.0, 0.0]), ball((0.0, 0.17, 0.0), 0.008, 8)])
+    # The cone's bottom is a little up inside the trim, not level with it.
+    cone = Manifold.batch_hull([Manifold.cylinder(0.006, 0.07, 0.07, 28).rotate([-90.0, 0.0, 0.0]).translate([0.0, 0.003, 0.0]), ball((0.0, 0.17, 0.0), 0.008, 8)])
     trim = ring(0.0, 0.016, 0.03, 0.076, 0.006, 15.0, ())
     pom = ball((0.0, 0.18, 0.0), 0.024, 12)
     turn = lambda m: m.rotate([0.0, 0.0, -8.0]).translate([0.012, 0.136, 0.0])
-    return {"main": turn(cone), "white": turn(trim + pom)}
+    # The cone is cut back from the trim, so they aren't both cut against
+    # the head in the same place.
+    white = turn(trim + pom)
+    return {"main": turn(cone) - white, "white": white}
 
 
 def horns(on):
@@ -630,7 +649,10 @@ def horns(on):
     for s in (-1.0, 1.0):
         a = math.radians(90.0 * s)
         out.append(horn(around(inside(a) + 0.016, 90.0 * s, bottom(a) + 0.012) + np.array([0.0, 0.0, 0.01]), s, 0.8, 0.02))
-    return {"main": union(out), "dark": band}
+    # The horns and band are cut back from each other, so neither has faces
+    # just under the other's where they meet.
+    out = union(out)
+    return {"main": out - band, "dark": band - out}
 
 
 STYLES = {

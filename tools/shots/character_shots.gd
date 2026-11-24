@@ -9,7 +9,7 @@ extends SceneTree
 ## Add --out=/some/folder to save them there as well, and --only=necks,faces
 ## (any of figure, looks, closeup, necks, faces, hair, facial_hair, combos,
 ## headgear, headgear_hair, headgear_karts, torsos, arms, arm_closeups,
-## outfits, legs, backs, long_hair)
+## outfits, legs, backs, long_hair, seam, pieces_check, roster)
 ## for just those sheets.
 
 const OUT := "res://build/shots/characters"
@@ -166,9 +166,30 @@ func _run() -> void:
 		await _backs()
 	if wanted("long_hair"):
 		await _long_hair()
+	if wanted("seam"):
+		await _seam()
+	if wanted("pieces_check"):
+		await _pieces_check()
 	if wanted("closeup"):
 		await _closeup()
+	if _only.has("roster"):
+		await _roster()
 	quit()
+
+
+## Every built-in driver, standing, from the front three quarters.
+func _roster() -> void:
+	var shots := []
+	var files := DirAccess.get_files_at("res://data/characters/roster")
+	files.sort()
+	for file in files:
+		if not file.ends_with(".json"):
+			continue
+		var design := CharacterDesign.load_file("res://data/characters/roster/" + file)
+		rig(design, false)
+		var middle := Vector3(0.0, 0.52, 0.0)
+		shots.append(await snap(design.name, middle + VIEWS["three quarter"].normalized() * 3.0, middle))
+	save(sheet(shots, 5, TILE), "roster.png")
 
 
 func _figure() -> void:
@@ -628,3 +649,68 @@ func _long_hair() -> void:
 			rig(design, false)
 			shots.append(await snap("%s, %s" % [style, wear[1]], middle + (wear[3] as Vector3).normalized() * 2.2, middle))
 	save(sheet(shots, 3, TILE), "long_hair_gear.png")
+
+
+## Close up where each long hairdo's length meets the hair on the head, from
+## behind and from three quarters behind, with the head turned 0, 0.35 and
+## 1.3 radians. A sheet for each, seam_<style>.png.
+func _seam() -> void:
+	for style in ["long_straight", "long_wavy", "long_swept", "long_fringe", "long_curly", "low_ponytail"]:
+		var shots := []
+		var design := bare()
+		design.set_piece("hair", style, Color("#6b4430"))
+		var r := rig(design, false)
+		await process_frame
+		var nape := r.head().global_position - Vector3(0.0, 0.09, 0.0)
+		for view in [["behind", Vector3(0.0, 0.2, 1.0)], ["three quarter", Vector3(-0.9, 0.2, 0.8)]]:
+			for turn in [0.0, 0.35, 1.3, -1.3]:
+				r.head().rotation.y = turn
+				shots.append(await snap("%s %s %+.2f" % [style, view[0], turn], nape + (view[1] as Vector3).normalized() * 1.5, nape))
+		save(sheet(shots, 4, TILE), "seam_%s.png" % style)
+
+
+## Close ups of the pieces changed to stop colours flickering through each
+## other: legs riding, skirts seated and riding, the hats, slicked back hair
+## and the back pieces.
+func _pieces_check() -> void:
+	var shots := []
+	for style in ["trousers", "jeans", "skirt", "skirt_socks", "kilt", "gown"]:
+		for pose in [["seated", true, false, false], ["astride", true, true, false], ["forward", true, true, true]]:
+			var design := bare()
+			design.set_piece("legs", style, Color("#c4281c"))
+			var r := CharacterRig.new(design, pose[1])
+			r.astride = pose[2]
+			r.feet_forward = pose[3]
+			clear()
+			_stand.add_child(r)
+			var middle := Vector3(0.0, 0.15 if not pose[2] else 0.0, -0.1)
+			shots.append(await snap("%s %s" % [style, pose[0]], middle + Vector3(-1.0, 0.05, -0.25).normalized() * 1.6, middle))
+	save(sheet(shots, 6, TILE), "pieces_legs.png")
+	shots = []
+	for style in ["beanie", "hard_hat", "top_hat", "tiara", "crown", "mushroom", "dino_hood", "viking", "party", "horns"]:
+		var design := bare()
+		design.set_piece("hair", "short", Color("#6b4430"))
+		_gear(design, style)
+		var r := rig(design, false)
+		await process_frame
+		var middle := r.head().global_position + Vector3(0.0, 0.08, 0.0)
+		shots.append(await snap(style, middle + Vector3(-0.6, 0.3, -1.0).normalized() * 1.0, middle))
+		shots.append(await snap(style + " behind", middle + Vector3(0.7, 0.35, 1.0).normalized() * 1.0, middle))
+	var design := bare()
+	design.set_piece("hair", "slicked_back", Color("#6b4430"))
+	var r := rig(design, false)
+	await process_frame
+	var top := r.head().global_position + Vector3(0.0, 0.08, 0.0)
+	shots.append(await snap("slicked_back", top + Vector3(-0.5, 0.6, -1.0).normalized() * 1.0, top))
+	shots.append(await snap("slicked_back above", top + Vector3(0.0, 1.0, -0.3).normalized() * 1.0, top))
+	save(sheet(shots, 6, TILE), "pieces_headgear.png")
+	shots = []
+	for style in ["cape", "short_cape", "quiver", "bat_wings", "sword", "guitar"]:
+		for pose in [["standing", false], ["seated", true]]:
+			var design2 := bare()
+			design2.set_piece("back", style, Color(BACK_COLOURS.get(style, "#c4281c")))
+			var r2 := rig(design2, pose[1])
+			await process_frame
+			var middle := r2.upper().global_position + Vector3(0.0, 0.3, 0.0)
+			shots.append(await snap("%s %s" % [style, pose[0]], middle + Vector3(-0.7, 0.35, 1.0).normalized() * 1.5, middle))
+	save(sheet(shots, 6, TILE), "pieces_backs.png")

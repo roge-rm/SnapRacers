@@ -232,9 +232,7 @@ def _cape(pose, long):
 
     sheet = sheet.warp_batch(drape)
     p = Piece(sheet)
-    # The gathered top, and a clasp strap over each shoulder.
-    p.add("main", tube((-0.165, top - 0.004, 0.12), (0.165, top - 0.004, 0.12), 0.014, 0.014, 16)
-          + ball((-0.165, top - 0.004, 0.12), 0.014, 16) + ball((0.165, top - 0.004, 0.12), 0.014, 16))
+    # A clasp strap over each shoulder.
     shell = torsos.base(GAP + 0.005) - torsos.base(GAP)
     for s in (-1.0, 1.0):
         band = xband(*sorted((0.127 * s, 0.158 * s)))
@@ -247,6 +245,10 @@ def _cape(pose, long):
         p.add("main", roll)
     # A darker lining shows round the edges.
     p.paint("dark", zband(-1.0, inner + 0.003), ["main"])
+    # The gathered top, all in the cape's colour: the lining's edge across
+    # its round ends left slivers of both colours there.
+    p.add("main", tube((-0.165, top - 0.004, 0.12), (0.165, top - 0.004, 0.12), 0.014, 0.014, 16)
+          + ball((-0.165, top - 0.004, 0.12), 0.014, 16) + ball((0.165, top - 0.004, 0.12), 0.014, 16))
     return p.done()
 
 
@@ -314,7 +316,8 @@ def bat_wings(pose):
             for tri in ((root, a, inward), (root, inward, b)):
                 panels.append(poly([tuple(v) for v in tri]).extrude(0.008).translate([0.0, 0.0, -0.004]))
         top = poly([(0.0, 0.0), (0.3, 0.13), (0.0, 0.04)]).extrude(0.008).translate([0.0, 0.0, -0.004])
-        bones = [tube((0.0, 0.0, 0.0), (t[0], t[1], 0.0), 0.009, 0.004, 10) for t in tips]
+        # Thicker than the skin to their tips, so they never lie flush with it.
+        bones = [tube((0.0, 0.0, 0.0), (t[0], t[1], 0.0), 0.009, 0.0055, 10) for t in tips]
         wing = union(panels + [top])
         frame = union(bones) + ball((0.0, 0.0, 0.0), 0.022, 16)
         place = lambda m: (m.mirror([1.0, 0.0, 0.0]) if s < 0 else m)
@@ -462,7 +465,7 @@ def sword(pose):
     sheath = sheath.rotate([0.0, 0.0, 180.0])
     p = Piece()
     guard = rbox(-0.05, -0.012, -0.016, 0.05, 0.006, 0.016, 0.006)
-    grip = tube((0.0, 0.006, 0.0), (0.0, 0.06, 0.0), 0.011, 0.011, 12)
+    grip = tube((0.0, 0.0, 0.0), (0.0, 0.06, 0.0), 0.011, 0.011, 12)
     pommel = ball((0.0, 0.066, 0.0), 0.016, 12)
     band = rbox(-0.026, -0.05, -0.016, 0.026, -0.036, 0.016, 0.004)
 
@@ -483,7 +486,7 @@ def guitar(pose):
     upper = disc(0.072, depth, 0.012, 24).translate([0.0, 0.12, 0.0])
     waist = slab([(-0.065, 0.03), (0.065, 0.03), (0.055, 0.1), (-0.055, 0.1)], depth, 0.012, 12)
     body = lower + upper + waist
-    neck = rbox(-0.017, 0.17, depth * 0.5 - 0.02, 0.017, 0.33, depth * 0.5 + 0.004, 0.006)
+    neck = rbox(-0.017, 0.17, depth * 0.5 - 0.02, 0.017, 0.33, depth * 0.5 + 0.003, 0.006)
     head = rbox(-0.024, 0.325, depth * 0.5 - 0.022, 0.024, 0.38, depth * 0.5 + 0.004, 0.008)
     hole = Manifold.cylinder(0.05, 0.03, 0.03, 24).translate([0.0, 0.09, depth * 0.5 - 0.004])
     bridge = Manifold.cube([0.07, 0.016, 0.05]).translate([-0.035, -0.04, depth * 0.5 - 0.004])
@@ -526,7 +529,8 @@ def quiver(pose):
     shoulder."""
     r = 0.042
     tube_ = tube((0.0, 0.0, 0.0), (0.0, 0.25, 0.0), r * 0.85, r, 20) + ball((0.0, 0.0, 0.0), r * 0.85, 20) ^ yband(-0.03, 1.0)
-    rim = tube((0.0, 0.225, 0.0), (0.0, 0.25, 0.0), r + 0.004, r + 0.004, 20)
+    # The rim stands a little above the tube, so their tops aren't in the same place.
+    rim = tube((0.0, 0.225, 0.0), (0.0, 0.253, 0.0), r + 0.004, r + 0.004, 20)
     mouth = Manifold.cylinder(0.05, r - 0.008, r - 0.008, 20).rotate([-90.0, 0.0, 0.0]).translate([0.0, 0.235, 0.0])
     shafts = []
     vanes = []

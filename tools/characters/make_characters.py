@@ -701,6 +701,10 @@ HEAD_SLOTS = ("hair", "facial_hair")
 HEAD_TURNS = [0.0, 0.15, 0.3, 0.35, 0.5, 0.8, 1.05, 1.3]
 
 
+def signed(turns):
+    return [t * sign for t in turns for sign in ((1.0, -1.0) if t else (1.0,))]
+
+
 def _boxes_meet(a, b):
     ba, bb = a.bounding_box(), b.bounding_box()
     return all(ba[i] <= bb[i + 3] and bb[i] <= ba[i + 3] for i in range(3))
@@ -966,10 +970,13 @@ def back_clipping(back_solids, solids, neck_styles, raised_torsos, raised_arms, 
 def length_apart(lengths, style_solids, back_solids, gear, head_styles):
     """What each long hair's length doesn't fit with: the neck pieces, back
     pieces (in the same pose) and headgear (as the head turns) it goes
-    into, as {hair: ["neck ...", "back ...", "headgear ..."]}."""
+    into, as {hair: ["neck ...", "back ...", "headgear ..."]}. Against
+    headgear only the length below the cap's lower edge counts, as its top
+    is tucked up inside the cap, or inside a helmet hiding the hair."""
     out = {}
     for h, parts in lengths.items():
         found = set()
+        shown = [p.trim_by_plane([0.0, -1.0, 0.0], -hair.NAPE_Y) for p in parts.values()]
         for name, solid in style_solids.items():
             if name.startswith("neck ") and any(_boxes_meet(p, solid) and (p ^ solid).volume() * 1e6 > 0.001 for p in parts.values()):
                 found.add(name)
@@ -987,30 +994,35 @@ def length_apart(lengths, style_solids, back_solids, gear, head_styles):
                     break
                 for sign in ((1.0, -1.0) if turn else (1.0,)):
                     placed = apply(worn, head_local_placed(turn * sign))
-                    if any(_boxes_meet(placed, p) and (placed ^ p).volume() * 1e6 > 0.001 for p in parts.values()):
+                    if any(_boxes_meet(placed, p) and (placed ^ p).volume() * 1e6 > 0.001 for p in shown):
                         found.add("headgear " + style)
                         break
         out[h] = sorted(found)
     return out
 
 
-def length_cap_clipping(lengths, head_styles, report):
+def length_cap_clipping(lengths, head_styles, report, shows):
     """Each long hair's length, in every pose, against its own cap and cut
-    cap as the head turns all the way either side."""
+    cap as the head turns all the way either side: below the cap's lower
+    edge, how far it goes into the cap, and in `shows`, how much of its top
+    tucked up inside the cap comes out of it."""
     worst = 0.0
     for h, parts in lengths.items():
         for cap_name in ("hair " + h, "hair %s cut" % h):
-            for turn in HEAD_TURNS:
-                for sign in ((1.0, -1.0) if turn else (1.0,)):
-                    placed = apply(head_styles[cap_name], head_local_placed(turn * sign))
-                    for pose, part in parts.items():
-                        if not _boxes_meet(placed, part):
-                            continue
-                        volume = (placed ^ part).volume() * 1e6
-                        worst = max(worst, volume)
-                        if volume > 0.001:
-                            name = "hair %s length" % h + ("" if pose == "standing" else " " + pose)
-                            report.append({"pose": "%s, head turned %+.2f" % (pose, turn * sign), "a": name, "b": cap_name, "cm3": round(volume, 4)})
+            for turn in signed(HEAD_TURNS):
+                placed = apply(head_styles[cap_name], head_local_placed(turn))
+                for pose, part in parts.items():
+                    name = "hair %s length" % h + ("" if pose == "standing" else " " + pose)
+                    below = part.trim_by_plane([0.0, -1.0, 0.0], -hair.NAPE_Y)
+                    volume = (placed ^ below).volume() * 1e6 if _boxes_meet(placed, below) else 0.0
+                    worst = max(worst, volume)
+                    if volume > 0.001:
+                        report.append({"pose": "%s, head turned %+.2f" % (pose, turn), "a": name, "b": cap_name, "cm3": round(volume, 4)})
+                    # Above the cap's lower edge, give or take its simplifying.
+                    tuck = part.trim_by_plane([0.0, 1.0, 0.0], hair.NAPE_Y + GAP + 0.002)
+                    volume = (tuck - placed).volume() * 1e6
+                    if volume > 0.001:
+                        shows.append({"pose": "%s, head turned %+.2f" % (pose, turn), "a": name, "b": cap_name, "cm3": round(volume, 4)})
     return worst
 
 
@@ -1107,7 +1119,8 @@ def clipping(solids, style_solids, gear, torso_solids, arm_solids, leg_solids, b
     # it's kept apart from.
     apart = length_apart(lengths, style_solids, back_solids, gear, head_styles)
     worst = max(worst, back_clipping(lengths, solids, style_solids, raised_torsos, raised_arms, leg_solids, poses, report, "hair_length", apart))
-    worst = max(worst, length_cap_clipping(lengths, head_styles, report))
+    shows = []
+    worst = max(worst, length_cap_clipping(lengths, head_styles, report, shows))
     upper_styles = dict(style_solids, **raised_torsos)
     # Back pieces against the hair and headgear as the head turns, in every
     # pose they're made for.
@@ -1119,7 +1132,7 @@ def clipping(solids, style_solids, gear, torso_solids, arm_solids, leg_solids, b
     gear_worst, checked, bare_spots = headgear_clipping(gear, head_styles, solids, upper_styles, poses, report, raised_arms)
     worst = max(worst, gear_worst)
     data = {
-        "_comment": "Made by tools/characters/make_characters.py: how far the figure's pieces and the styles made there go into each other, in cubic centimetres, in the rig's poses. Only overlaps over 0.001 are listed. 'headgear_hair' lists the hair each headgear was checked against, and 'uncovered' where a hat leaves the top edge of the cut hair under it showing, in degrees round the head. Torso and arm styles that are only printed have the figure's own shape; those in 'raised' have raised bits and are checked on their own. Back pieces are checked in each pose in the variant made for it, and against every kart seat (seated, and reclined in the lay-down seat) and a motorbike's saddle and tail astride; 'seats' lists them. Long hair's length is checked like a back piece ('hair_length'), and against its own cap as the head turns; 'apart' lists, for each, the neck pieces, back pieces and headgear it goes into, which the game doesn't wear with it.",
+        "_comment": "Made by tools/characters/make_characters.py: how far the figure's pieces and the styles made there go into each other, in cubic centimetres, in the rig's poses. Only overlaps over 0.001 are listed. 'headgear_hair' lists the hair each headgear was checked against, and 'uncovered' where a hat leaves the top edge of the cut hair under it showing, in degrees round the head. Torso and arm styles that are only printed have the figure's own shape; those in 'raised' have raised bits and are checked on their own. Back pieces are checked in each pose in the variant made for it, and against every kart seat (seated, and reclined in the lay-down seat) and a motorbike's saddle and tail astride; 'seats' lists them. Long hair's length is checked like a back piece ('hair_length'), and against its own cap as the head turns, below the cap's lower edge; 'tuck_shows' is how much of the top of the length, tucked up inside the cap, comes out of it as the head turns, by hair and turn, over 0.001; 'apart' lists, for each, the neck pieces, back pieces and headgear it goes into, which the game doesn't wear with it.",
         "seats": [s[0] for s in SEATS] + ["saddle"],
         "figure": json.load(open(F.OUT)),
         "limit_cm3": LIMIT_CM3,
@@ -1131,6 +1144,7 @@ def clipping(solids, style_solids, gear, torso_solids, arm_solids, leg_solids, b
         "uncovered": bare_spots,
         "worst_cm3": round(worst, 4),
         "overlaps": report,
+        "tuck_shows": shows,
     }
     data["figure"].pop("_comment", None)
     with open(CLIPPING, "w") as f:
@@ -1142,6 +1156,8 @@ def clipping(solids, style_solids, gear, torso_solids, arm_solids, leg_solids, b
     for r in report:
         flag = "CLIPS" if r["cm3"] > LIMIT_CM3 else "touch"
         print("  %s %-34s %s / %s %.4f cm3" % (flag, r["pose"], r["a"], r["b"], r["cm3"]))
+    for r in shows:
+        print("  tuck shows %-30s %s / %s %.4f cm3" % (r["pose"], r["a"], r["b"], r["cm3"]))
     for h, pieces in apart.items():
         print("  apart: %s length from %s" % (h, ", ".join(pieces) or "nothing"))
     return apart

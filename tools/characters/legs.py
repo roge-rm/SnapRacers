@@ -410,12 +410,14 @@ def ride(solid, side, pose, top, whole=None):
     thigh = solid.trim_by_plane([0.0, 0.0, 1.0], F.KNEE_Z).transform(thigh_m)
     shin = solid.trim_by_plane([0.0, 0.0, -1.0], -F.KNEE_Z).transform(shin_m)
     if whole is not None:
-        # Where the bent knee folds the thigh into the shin, the shin's
-        # regions show, so one region's thigh doesn't fight another's shin.
-        # Its cut is inside the shin, so it's marked as not showing.
+        # Where the bent knee folds the thigh into the shin, each is cut back
+        # from the other, so neither has faces just under the other's, which
+        # would flicker through. The cuts are inside, so they don't show.
+        thigh_whole = whole.trim_by_plane([0.0, 0.0, 1.0], F.KNEE_Z).transform(thigh_m)
         thigh = thigh - whole.trim_by_plane([0.0, 0.0, -1.0], -F.KNEE_Z).transform(shin_m).as_original()
+        shin = shin - thigh_whole.as_original()
     # Lightly simplified, since the cut adds triangles.
-    return (thigh + shin).simplify(0.0002)
+    return (thigh + shin).simplify(0.0001)
 
 
 def _paint(regions, name, zone):
@@ -436,6 +438,16 @@ def _cover(regions, name, solid):
     """Puts a raised bit or a skirt over the regions, in its own."""
     for k in list(regions):
         regions[k] = regions[k] - solid
+    regions[name] = regions[name] + solid if name in regions else solid
+
+
+def _cover_cut(regions, name, solid, keepout):
+    """Like _cover, for a skirt on a seated leg: the regions are cut by the
+    whole skirt and the skirt then by `keepout`, so the leg's cut against the
+    hips doesn't stay under the skirt's, in the same place."""
+    for k in list(regions):
+        regions[k] = regions[k] - solid
+    solid = solid - keepout
     regions[name] = regions[name] + solid if name in regions else solid
 
 
@@ -472,10 +484,6 @@ def make(style, hips_solid, keepout):
         standing = {k: v for k, v in regions.items() if not v.is_empty()}
         seated = {k: v - keepout for k, v in _place(standing, m).items()}
         astride = dict(seated)
-        # The leg, whose shin the thighs are cut back from (see ride). Not
-        # under a skirt, as the drape covers the knee and the cut would take
-        # it over 1,500 triangles.
-        whole = None if st.skirt else Manifold.batch_boolean(list(seated.values()), OpType.Add)
         if st.skirt:
             standing = dict(standing)
             long = st.skirt == "long"
@@ -485,9 +493,9 @@ def make(style, hips_solid, keepout):
             # reaches further along the leg than standing to show as much.
             hem_z = -0.236 if long else -0.2
             seated = dict(seated)
-            _cover(seated, "main", _half(keep(drape(hem_z)) - keepout, side))
+            _cover_cut(seated, "main", _half(keep(drape(hem_z)), side), keepout)
             astride = dict(astride)
-            _cover(astride, "main", keep(drape_round(side, hem_z)) - keepout)
+            _cover_cut(astride, "main", keep(drape_round(side, hem_z)), keepout)
             if long:
                 _paint(standing, "gold", yband(-1.0, -L + 0.022))
                 for regions_ in (seated, astride):
@@ -504,11 +512,14 @@ def make(style, hips_solid, keepout):
                 _cover(seated, "brown", lap)
                 _cover(astride, "brown", lap)
         top = 2.0 * st.shape["depth"]
+        # The whole leg as it rides, skirt and all, which the thigh and shin
+        # are cut back from at the knee (see ride).
+        whole = Manifold.batch_boolean(list(astride.values()), OpType.Add)
         forward = {k: ride(v, side, "forward", top, whole) - keepout for k, v in astride.items()}
         astride = {k: ride(v, side, "astride", top, whole) - keepout for k, v in astride.items()}
         if st.skirt:
             # A little simpler, so the drape cut at the knee stays under 1,500 triangles.
-            astride = {k: v.simplify(0.0002) for k, v in astride.items()}
+            astride = {k: v.simplify(0.0004) for k, v in astride.items()}
         for pose, regions_ in (("standing", standing), ("seated", seated), ("astride", astride), ("forward", forward)):
             out[(pose, side)] = {k: v for k, v in regions_.items() if not v.is_empty() and v.volume() > 1e-9}
     return out
