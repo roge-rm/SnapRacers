@@ -373,7 +373,7 @@ def make():
     for style, make_style in hair.STYLES.items():
         regions = {k: (v - head_keepout).simplify(0.0018) for k, v in make_style().items()}
         whole = union(list(regions.values()))
-        cut = hair.cut(regions)
+        cut = hair.cut(regions, style in hair.LENGTHS)
         cut_whole = union(list(cut.values()))
         reach = hair.radius_profile(cut_whole, 0.004)[0]
         profile, top = hair.radius_profile(whole)

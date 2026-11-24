@@ -133,7 +133,9 @@ def hat(rim=None, radius=0.153, top=0.152, dome=0.014, lip=0.006, corner=0.05, b
 
     def profile(a):
         b, r, top, corner, g = rim(a), radius(a), top_at(a), corner_at(a), bulge(a)
-        level = (max(b, BAND_TOP) if over_hair else b) + 0.0008
+        # A helmet coming down past the bottom of the head goes straight down
+        # from there inside.
+        level = (max(b, BAND_TOP) if over_hair else max(b, -0.099)) + 0.0008
         # Over hair the inside starts up the side of the head.
         pts = [(u * wider, v) for u, v in inside_from(level, 3 if over_hair else 0)]
         rin = inner(a) * wider if over_hair else pts[0][0]
@@ -272,9 +274,10 @@ def hat_band(rim, up, tall, out, step=30.0):
 # The pieces.
 
 def racing_helmet():
-    """An open face helmet down to the jaw, with a stripe over the top, a
-    short peak and a clear visor pushed up."""
-    line = face_line(0.082, -0.07, -0.085, 78.0)
+    """An open face helmet down to the jaw and the nape, where long hair's
+    length starts, with a stripe over the top, a short peak and a clear
+    visor pushed up."""
+    line = face_line(0.082, -0.07, H.LOWEST, 78.0)
     shell = helmet(line, radius=lambda a: curve([(0.0, 0.15), (90.0, 0.158), (180.0, 0.16)], a), top=0.17, dome=0.016, lip=0.012, corner=0.06, bulge=0.004)
     main, white = stripe(shell, 0.024, 0.09)
     peak = blob((0.0, 0.098, -0.146), (0.1, 0.012, 0.035), 16)

@@ -808,7 +808,6 @@
 			"back cape",
 			"back dino_tail",
 			"back fairy_wings",
-			"back flag",
 			"back fox_tail",
 			"back guitar",
 			"back jet_pack",
@@ -830,7 +829,6 @@
 			"back cape",
 			"back dino_tail",
 			"back fairy_wings",
-			"back flag",
 			"back fox_tail",
 			"back guitar",
 			"back jet_pack",
@@ -842,8 +840,7 @@
 			"back short_cape",
 			"back spiky_shell",
 			"back sword",
-			"neck long_scarf",
-			"neck spiked_collar"
+			"neck long_scarf"
 		],
 		"long_swept": [
 			"back air_tanks",
@@ -853,7 +850,6 @@
 			"back cape",
 			"back dino_tail",
 			"back fairy_wings",
-			"back flag",
 			"back fox_tail",
 			"back guitar",
 			"back jet_pack",
@@ -875,7 +871,6 @@
 			"back cape",
 			"back dino_tail",
 			"back fairy_wings",
-			"back flag",
 			"back fox_tail",
 			"back guitar",
 			"back jet_pack",
@@ -897,7 +892,6 @@
 			"back cape",
 			"back dino_tail",
 			"back fairy_wings",
-			"back flag",
 			"back fox_tail",
 			"back guitar",
 			"back jet_pack",
@@ -929,8 +923,7 @@
 			"back shield",
 			"back short_cape",
 			"back spiky_shell",
-			"back sword",
-			"neck long_scarf"
+			"back sword"
 		]
 	},
 	"uncovered": [],
@@ -1227,18 +1220,6 @@
 		{
 			"pose": "seated, arms swung 120 degrees, head turned -1.05",
 			"a": "hair long_curly",
-			"b": "hand_l",
-			"cm3": 0.0073
-		},
-		{
-			"pose": "seated, arms swung 120 degrees, head turned +1.05",
-			"a": "hair long_curly cut",
-			"b": "hand_r",
-			"cm3": 0.0074
-		},
-		{
-			"pose": "seated, arms swung 120 degrees, head turned -1.05",
-			"a": "hair long_curly cut",
 			"b": "hand_l",
 			"cm3": 0.0073
 		},

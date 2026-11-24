@@ -270,8 +270,14 @@ def long_hair():
     return {"main": main, "dark": part}
 
 
-def wavy():
+def wavy(low_back=False):
+    """With `low_back` the waves in the edge stop behind the ears and it
+    stays low round the back, over the top of long hair's length."""
     line = lambda a: face_line(0.088, LOWEST + 0.012, LOWEST + 0.012, 78.0)(a) - (0.012 * (0.5 + 0.5 * math.cos(math.radians(math.degrees(abs(a)) * 7.0))) if abs(a) > math.radians(80.0) else 0.0)
+    if low_back:
+        waved = line
+        fade = lambda a: curve([(0.0, 0.0), (100.0, 0.0), (115.0, 1.0), (180.0, 1.0)], a)
+        line = lambda a: waved(a) + (LOWEST - waved(a)) * fade(a)
     out = lambda a: curve([(0.0, 0.138), (90.0, 0.148), (180.0, 0.15)], a) + (0.006 * math.cos(math.radians(math.degrees(abs(a)) * 7.0)) if abs(a) > math.radians(80.0) else 0.0)
     base = cap(line, radius=out, bulge=0.006, extra=DROP, step=12.0)
     return {"main": base}
@@ -417,7 +423,7 @@ def long_straight():
 
 
 def long_wavy():
-    main, part = parting(wavy()["main"], 0.0, -0.2, -0.02)
+    main, part = parting(wavy(True)["main"], 0.0, -0.2, -0.02)
     return {"main": main, "dark": part}
 
 
@@ -439,16 +445,19 @@ def long_fringe():
 
 def long_curly():
     """Bumpy all round with a scalloped edge, and soft curls on top."""
-    # Scallops down the sides, the edge low behind where the length is.
-    bumps = lambda a: -math.cos(math.radians((min(math.degrees(abs(a)), 150.0) - 72.0) * 6.923)) if abs(a) > math.radians(72.0) else -1.0
+    # A scallop down each side, the edge low behind where the length is.
+    bumps = lambda a: -math.cos(math.radians((min(math.degrees(abs(a)), 98.0) - 72.0) * 6.923)) if abs(a) > math.radians(72.0) else -1.0
     line = lambda a: face_line(0.086, LOWEST + 0.018, LOWEST + 0.018, 78.0)(a) - 0.018 * (0.5 + 0.5 * bumps(a))
-    out = lambda a: curve([(0.0, 0.142), (90.0, 0.15), (180.0, 0.152)], a) + 0.005 * (1.0 + bumps(a))
+    # Bumps out and in round the head, in further behind the ears, where a
+    # hand on the wheel comes by as the head turns.
+    wide = lambda a: -math.cos(math.radians((min(math.degrees(abs(a)), 150.0) - 72.0) * 6.923)) if abs(a) > math.radians(72.0) else -1.0
+    out = lambda a: curve([(0.0, 0.142), (90.0, 0.15), (180.0, 0.152)], a) + 0.005 * (1.0 + wide(a))
     return {"main": cap(line, radius=out, lip=0.006, dome=0.03, bulge=0.01, extra=DROP, step=12.0)}
 
 
 def low_ponytail():
     """Pulled back from a parting into a tail tied low at the nape."""
-    line = lambda a: curve([(0.0, 0.088), (FACE_ANGLE, 0.088), (BEARD_ANGLE, BEARD_TOP), (78.0, -0.035), (110.0, LOWEST), (180.0, LOWEST)], a)
+    line = lambda a: curve([(0.0, 0.088), (FACE_ANGLE, 0.088), (BEARD_ANGLE, BEARD_TOP), (78.0, -0.045), (95.0, LOWEST), (180.0, LOWEST)], a)
     base = cap(line, radius=lambda a: curve([(0.0, 0.134), (90.0, 0.138), (180.0, 0.146)], a), top=0.144, bulge=0.003, extra=DROP)
     main, part = parting(base, 0.0, -0.2, -0.02)
     return {"main": main, "dark": part}
@@ -486,15 +495,28 @@ STYLES = {
 }
 
 
-def cut(regions):
+# Long hair under a hat keeps in to CUT_RADIUS down to here.
+HUG_Y = -0.06
+
+
+def cut(regions, long=False):
     """The cut version for under a hat: what's below CUT_Y, kept in to
     CUT_RADIUS over the top CUT_BAND, and sloping out from there, so hair
-    wider than that (like an afro) bulges out under the hat's edge."""
+    wider than that (like an afro) bulges out under the hat's edge. With
+    `long` it keeps in much further down (see HUG_Y)."""
     below = Manifold.cube([1.0, 1.0, 1.0]).translate([-0.5, CUT_Y - 1.0, -0.5])
     rim = Manifold.cylinder(CUT_BAND + 0.001, CUT_RADIUS, CUT_RADIUS, 48).rotate([-90.0, 0.0, 0.0]).translate([0.0, CUT_Y - CUT_BAND, 0.0])
     slope = Manifold.cylinder(SLOPE, CUT_RADIUS + SLOPE, CUT_RADIUS, 48).rotate([-90.0, 0.0, 0.0]).translate([0.0, CUT_Y - CUT_BAND - SLOPE, 0.0])
     low = Manifold.cube([1.0, 1.0, 1.0]).translate([-0.5, CUT_Y - CUT_BAND - SLOPE - 1.0 + 0.0005, -0.5])
     keep = below ^ (rim + slope + low)
+    if long:
+        # Long hair stays in close to the head down to HUG_Y, so the hat
+        # reads as sitting on the head, then flares out to meet the length.
+        drop = HUG_Y - LOWEST - 0.01
+        hug = Manifold.cylinder(CUT_Y - HUG_Y + 0.001, CUT_RADIUS, CUT_RADIUS, 48).rotate([-90.0, 0.0, 0.0]).translate([0.0, HUG_Y, 0.0])
+        flare = Manifold.cylinder(drop, CUT_RADIUS + 0.016, CUT_RADIUS, 48).rotate([-90.0, 0.0, 0.0]).translate([0.0, HUG_Y - drop, 0.0])
+        under = Manifold.cube([1.0, 1.0, 1.0]).translate([-0.5, HUG_Y - drop - 1.0 + 0.0005, -0.5])
+        keep = below ^ (hug + flare + under)
     return {k: v ^ keep for k, v in regions.items()}
 
 
@@ -522,8 +544,9 @@ def _slice_y(solid, y):
 
 # The length of long hair, below the neck down the back. It's on the upper
 # body, so it doesn't turn with the head, made for each pose like the back
-# pieces: hanging down the back standing, swept back over the seat's back
-# seated, back and shorter lying back, and streaming back astride. Its top
+# pieces: hanging down the back standing, shorter and close to the back in
+# front of the seat's back seated, shorter still lying back, and hanging
+# back a little astride. Its top
 # tucks in under the cap's lower edge (LOWEST) round the back of the head,
 # kept under it however far the head turns, and clear of what's worn round
 # the neck. In the upper body's space, in metres.
@@ -535,12 +558,21 @@ NAPE_Y = F.HEAD_Y + LOWEST * F.HEAD_SCALE - GAP
 NAPE_R = 0.166
 
 # The middle of the length from the nape down, as (y, z), for each pose.
+# Standing it hangs down the back to below the shoulder blades. Seated it
+# lies down the back in front of the seat's back (ROOM in backs.py), shorter
+# and close to the back, and lying back it's shorter still. Astride it hangs
+# back a little as the body leans forward.
 PATHS = {
-    "standing": [(NAPE_Y, NAPE_R), (0.425, 0.166), (0.405, 0.16), (0.385, 0.152), (0.36, 0.143), (0.32, 0.133), (0.28, 0.128), (0.24, 0.126), (0.2, 0.126)],
-    "seated": [(NAPE_Y, NAPE_R), (0.428, 0.164), (0.418, 0.177), (0.415, 0.197), (0.419, 0.22), (0.425, 0.245), (0.428, 0.272), (0.42, 0.3), (0.402, 0.322)],
-    "reclined": [(NAPE_Y, NAPE_R), (0.428, 0.164), (0.418, 0.177), (0.415, 0.197), (0.419, 0.22), (0.424, 0.245), (0.425, 0.268)],
-    "astride": [(NAPE_Y, NAPE_R), (0.425, 0.163), (0.405, 0.166), (0.38, 0.174), (0.35, 0.186), (0.315, 0.2), (0.28, 0.214)],
+    "standing": [(NAPE_Y, NAPE_R), (0.43, 0.166), (0.41, 0.158), (0.385, 0.146), (0.35, 0.135), (0.31, 0.13), (0.27, 0.128), (0.23, 0.127)],
+    "seated": [(NAPE_Y, NAPE_R), (0.43, 0.165), (0.41, 0.156), (0.385, 0.143), (0.355, 0.132), (0.325, 0.128), (0.295, 0.127)],
+    "reclined": [(NAPE_Y, NAPE_R), (0.43, 0.164), (0.41, 0.154), (0.39, 0.141), (0.365, 0.131), (0.34, 0.128), (0.32, 0.127)],
+    "astride": [(NAPE_Y, NAPE_R), (0.43, 0.164), (0.41, 0.157), (0.385, 0.152), (0.35, 0.15), (0.31, 0.152), (0.27, 0.157)],
 }
+
+
+def along(points):
+    """A value along the length, smooth through (s, value) points."""
+    return lambda s: curve([(p * 180.0, v) for p, v in points], math.radians(min(max(s, 0.0), 1.0) * 180.0))
 
 
 def _resample(points, count):
@@ -637,7 +669,7 @@ def strand(path, width, thick, arc=lambda s: 0.0, outer=lambda u, s: 0.0, hem=la
 
 
 def _ridges(count, depth):
-    """Broad moulded waves down the outside, `count` across."""
+    """Broad moulded locks down the outside, `count` across."""
     return lambda u, s: depth * (1.0 - abs(u) ** 4) * (0.5 + 0.5 * math.cos(math.pi * u * count))
 
 
@@ -645,53 +677,59 @@ def _scallops(count, depth):
     return lambda u: depth * (0.5 + 0.5 * math.cos(math.pi * u * count))
 
 
-def _sheet(pose, **kw):
-    """The usual length: round the head at the top, flattening onto the
-    back, a little narrower at the hem."""
-    standing = pose == "standing"
+# How wide the length is along it: as wide as the head at the top, a little
+# narrower at the neck, out over the shoulder blades and in again at the hem.
+WIDTH = along([(0.0, 0.152), (0.14, 0.14), (0.5, 0.15), (0.85, 0.146), (1.0, 0.13)])
+
+
+def _sheet(pose, outer=lambda u, s: 0.0, hem=lambda u: 0.0, wide=lambda s: 0.0, **kw):
+    """The usual length: round the head at the top, then down the back,
+    rounded across like a mass of hair, its sides lying forward over the
+    shoulders, longer in the middle at the hem. `outer` adds the style's
+    locks, waves or curls, `hem` its ends."""
     base = dict(
-        width=lambda s: curve([(0.0, 0.138), (16.0, 0.138), (36.0, 0.15), (180.0, 0.138)] if standing else [(0.0, 0.138), (45.0, 0.138), (70.0, 0.15), (180.0, 0.14)], math.radians(s * 180.0)),
-        thick=lambda s: curve([(0.0, 0.016), (20.0, 0.016), (40.0, 0.019), (180.0, 0.016)] if standing else [(0.0, 0.016), (50.0, 0.015), (180.0, 0.013)], math.radians(s * 180.0)),
-        arc=lambda s: curve([(0.0, 1.0), (11.0, 1.0), (30.0, 0.0), (180.0, 0.0)] if standing else [(0.0, 1.0), (45.0, 0.0), (180.0, 0.0)], math.radians(s * 180.0)),
-        sag=lambda s: curve([(0.0, 0.0), (20.0, 0.03), (45.0, 0.014), (80.0, 0.004), (180.0, 0.004)] if standing else [(0.0, 0.0), (45.0, 0.0), (180.0, 0.0)], math.radians(s * 180.0)),
+        width=lambda s: WIDTH(s) + wide(s),
+        thick=along([(0.0, 0.016), (0.3, 0.017), (1.0, 0.014)]),
+        arc=along([(0.0, 1.0), (0.2, 0.55), (0.45, 0.25), (1.0, 0.2)]),
+        sag=along([(0.0, 0.0), (0.1, 0.0), (0.25, 0.025), (0.45, 0.018), (1.0, 0.012)]),
+        outer=lambda u, s: 0.009 * (1.0 - u * u) * min(1.0, s * 4.0) + outer(u, s),
+        hem=lambda u: 0.03 * (1.0 - u * u) + hem(u),
     )
     base.update(kw)
     return strand(PATHS[pose], **base)
 
 
 def length_long_straight(pose):
-    return {"main": _sheet(pose, outer=_ridges(3, 0.004), hem=_scallops(3, 0.006))}
+    return {"main": _sheet(pose, outer=_ridges(4, 0.005), hem=_scallops(4, 0.008), across=17)}
 
 
 def length_long_wavy(pose):
     # Waves down the length, rolling in and out across it.
     sway = lambda s: 0.14 * math.sin(s * math.pi * 2.0)
-    waves = lambda u, s: 0.008 * (1.0 - abs(u) ** 4) * (0.5 + 0.5 * math.cos(math.pi * (u + sway(s)) * 3.0))
-    return {"main": _sheet(pose, outer=waves, hem=lambda u: 0.014 * (0.5 + 0.5 * math.cos(math.pi * (u + sway(1.0)) * 3.0)), rings=16, across=21, inside=7)}
+    waves = lambda u, s: 0.01 * (1.0 - abs(u) ** 4) * (0.5 + 0.5 * math.cos(math.pi * (u + sway(s)) * 3.0))
+    return {"main": _sheet(pose, outer=waves, hem=lambda u: 0.014 * (0.5 + 0.5 * math.cos(math.pi * (u + sway(1.0)) * 3.0)), wide=lambda s: 0.006 * math.sin(s * math.pi * 4.0) * s, rings=16, across=21, inside=7)}
 
 
 def length_long_swept(pose):
     # Longer on the left, where it's swept over to.
-    return {"main": _sheet(pose, outer=_ridges(3, 0.004), hem=lambda u: 0.02 * (0.5 - 0.5 * u) + _scallops(3, 0.004)(u))}
+    return {"main": _sheet(pose, outer=_ridges(3, 0.005), hem=lambda u: 0.022 * (0.5 - 0.5 * u) + _scallops(3, 0.005)(u), shift=lambda s: -0.008 * s, across=15)}
 
 
 def length_long_fringe(pose):
-    return {"main": _sheet(pose, outer=_ridges(4, 0.003), hem=lambda u: 0.004)}
+    return {"main": _sheet(pose, outer=_ridges(5, 0.003), hem=lambda u: -0.02 * (1.0 - u * u) + 0.004, across=17)}
 
 
 def length_long_curly(pose):
     # Three columns of round curls down it, bumpy at the edges, ending in a
     # row of bigger curls.
     curls_at = lambda u, s: 0.5 + 0.5 * math.cos(s * math.pi * 7.0 + (math.pi if abs(u) < 0.34 else 0.0))
-    locks = lambda u, s: 0.011 * (1.0 - abs(u) ** 4) * (0.5 + 0.5 * math.cos(math.pi * u * 3.0)) * (0.35 + 0.65 * curls_at(u, s)) * min(1.0, s * 6.0)
-    standing = pose == "standing"
-    wide = lambda s: curve([(0.0, 0.138), (16.0, 0.138), (36.0, 0.15), (180.0, 0.138)] if standing else [(0.0, 0.138), (45.0, 0.138), (70.0, 0.15), (180.0, 0.14)], math.radians(s * 180.0))
-    sheet = _sheet(pose, outer=locks, width=lambda s: wide(s) + 0.008 * curls_at(1.0, s) * min(1.0, s * 4.0), rings=15, across=11, inside=7)
+    locks = lambda u, s: 0.012 * (1.0 - abs(u) ** 4) * (0.5 + 0.5 * math.cos(math.pi * u * 3.0)) * (0.35 + 0.65 * curls_at(u, s)) * min(1.0, s * 6.0)
+    sheet = _sheet(pose, outer=locks, wide=lambda s: 0.008 * curls_at(1.0, s) * min(1.0, s * 4.0), hem=lambda u: -0.02 * (1.0 - u * u), rings=15, across=11, inside=7)
     p = _resample([(0.0, y, z) for y, z in PATHS[pose]], 14)
     t = p[-1] - p[-2]
     t /= np.linalg.norm(t)
     n = np.array([0.0, t[2], -t[1]])
-    curls = [ball(p[-1] + np.array([0.09 * u, 0.0, 0.0]) + n * 0.016 - t * 0.004, 0.036, 9) for u in (-1.0, 0.0, 1.0)]
+    curls = [ball(p[-1] + np.array([0.085 * u, 0.0, 0.0]) + n * (0.016 - 0.008 * abs(u)) - np.array([0.0, 0.0, 0.012 * abs(u)]) - t * 0.002, 0.034, 9) for u in (-1.0, 0.0, 1.0)]
     return {"main": sheet + union(curls)}
 
 
@@ -712,8 +750,7 @@ def length_low_ponytail(pose):
     tail = strand(path, width=lambda s: curve([(0.0, 0.034), (25.0, 0.03), (45.0, 0.04), (110.0, 0.044), (180.0, 0.028)], math.radians(s * 180.0)),
                   thick=lambda s: curve([(0.0, 0.024), (25.0, 0.022), (45.0, 0.035), (110.0, 0.036), (180.0, 0.024)], math.radians(s * 180.0)), across=9, rings=14, soft=0.03)
     p = _resample([(0.0, y, z) for y, z in path], 14)
-    along = p[3] - p[2]
-    tail, tie = band(tail, p[2], along, 0.008)
+    tail, tie = band(tail, p[2], p[3] - p[2], 0.008)
     return {"main": tail, "dark": tie}
 
 
