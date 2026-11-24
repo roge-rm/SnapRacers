@@ -275,6 +275,7 @@ func _more_designs(course: Dictionary, stock: Dictionary) -> void:
 	check(Sharing.message_for(driver).contains("racer") and Sharing.file_name_for(driver).ends_with(".json"), "racer messages and file names say what they share")
 	var explicit := Sharing.envelope_for(Sharing.DRIVER, driver)
 	check(Sharing.kind_of(explicit) == Sharing.DRIVER and Sharing.data_of(explicit).name == driver.name and same(Sharing.read(Sharing.code_for(explicit)).get("data"), driver), "explicit envelopes use the same dictionary sharing API")
+	_later_driver(driver)
 	var saved := _keep(Sharing.read(driver_file))
 	check(saved.path.begins_with(CharacterDesign.SAVE_DIR) and FileAccess.file_exists(saved.path), "racers go into the driver library")
 	var renamed := driver.duplicate(true)
@@ -377,6 +378,25 @@ func _more_designs(course: Dictionary, stock: Dictionary) -> void:
 	check(Sharing.add(Sharing.read(JSON.stringify(renamed_cup))).path == kept_cup.path, "cup duplicates ignore display names and sender paths")
 
 
+## A driver from a later version, with pieces and colours this one doesn't know.
+func _later_driver(driver: Dictionary) -> void:
+	var later := driver.duplicate(true)
+	for slot in CharacterDesign.SLOTS:
+		later[slot] = {"style": "future_" + slot, "color": "later:" + slot}
+	later.head["face"] = {"eyes": "future_eyes", "brows": "future_brows", "mouth": "future_mouth", "extras": ["future_extra"]}
+	var defaults := CharacterDesign.from_dict({}).to_dict()
+	for form in [Sharing.file_for(later), Sharing.code_for(later), JSON.stringify(later)]:
+		var got: Dictionary = Sharing.read(form).get("data", {})
+		var ok := not got.is_empty()
+		for slot in CharacterDesign.SLOTS:
+			ok = ok and got.get(slot, {}).get("style") == defaults[slot].style and CharacterDesign.piece(slot, got[slot].style) != {}
+		check(ok, "a racer with pieces and colours from a later version loads with defaults")
+		check(same(Sharing.read(Sharing.code_for(got)).get("data"), got), "that racer round trips")
+	check(CharacterDesign.well_formed(later), "the lobby accepts a racer with unknown pieces")
+	check(CharacterDesign.from_dict(later).to_dict().hair.style == defaults.hair.style, "the lobby swaps unknown pieces for defaults")
+	check(same(CharacterDesign.from_dict(driver).to_dict(), driver), "a normal racer is unchanged")
+
+
 func _bad_inputs(course: Dictionary) -> void:
 	print("-- Invalid input")
 	var paths := _library()
@@ -391,16 +411,13 @@ func _bad_inputs(course: Dictionary) -> void:
 		{"name": "Long", "about": "a".repeat(Sharing.MOST_ABOUT + 1), "parts": []},
 	]
 	var wrong := driver.duplicate(true)
-	wrong.head.style = "res://malicious.tres"
-	invalid.append(wrong)
-	wrong = driver.duplicate(true)
 	wrong.torso = []
 	invalid.append(wrong)
 	wrong = driver.duplicate(true)
-	wrong.head.color = "not a colour"
+	wrong.hair = {"style": 5, "color": "#123456"}
 	invalid.append(wrong)
 	wrong = driver.duplicate(true)
-	wrong.hair = {"style": "unknown", "color": "#123456"}
+	wrong.head.color = []
 	invalid.append(wrong)
 	var id := ""
 	for path in DirAccess.get_files_at("res://data/karts/stock"):

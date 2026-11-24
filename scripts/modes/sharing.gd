@@ -176,14 +176,14 @@ static func _validate(kind: String, data: Dictionary, saved := false) -> Diction
 				if not data.has(slot):
 					continue
 				var entry = data[slot]
-				if not entry is Dictionary or not entry.get("style") is String or not _colour(entry.get("color", "#f2cd37")):
+				# Pieces and colours it doesn't know (from a later version) are swapped for the slot's default.
+				if not entry is Dictionary or not entry.get("style") is String or not entry.get("color", "#f2cd37") is String or entry.get("color", "").length() > 32:
 					return {"why": "That racer has an invalid piece or colour."}
 				# Face parts it doesn't know are swapped for the named face's own.
 				if slot == "head" and entry.has("face") and not CharacterDesign.face_well_formed(entry.face):
 					return {"why": "That racer has an invalid piece or colour."}
-				var retired: bool = slot == "headgear" and CharacterDesign.HAIR_THAT_WAS_HEADGEAR.has(entry.style)
-				if not retired and not entry.style in CharacterDesign.styles(slot):
-					return {"why": "That racer has a style the game doesn't have."}
+				if entry.style.length() > 64:
+					return {"why": "That racer has an invalid piece or colour."}
 			return {"kind": DRIVER, "data": CharacterDesign.from_dict(data).to_dict()}
 		KART:
 			if not data.get("about", "") is String or (not saved and not _text(data.get("about", ""), MOST_ABOUT)) or not data.get("parts") is Array:

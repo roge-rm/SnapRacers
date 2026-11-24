@@ -2,11 +2,11 @@
 	"name": "Wren",
 	"_comment": "Light on her feet and always first off the line.",
 	"traits": { "aggression": 0.2, "patience": -0.4, "consistency": 0.0, "late_braking": 0.3 },
-	"head": { "style": "smile", "color": "#f5c8a8" },
-	"hair": { "style": "ponytail", "color": "#e8c170" },
+	"head": { "style": "cat", "color": "#f5c8a8" },
+	"hair": { "style": "low_ponytail", "color": "#e8c170" },
 	"headgear": { "style": "none", "color": "#e36a1a" },
 	"neck": { "style": "beads", "color": "#d86cb0" },
 	"torso": { "style": "tee", "color": "#d86cb0" },
-	"arms": { "style": "short_sleeves", "color": "#d86cb0" },
-	"legs": { "style": "shorts", "color": "#f2f2f2" }
+	"arms": { "style": "short_long_gloves", "color": "#d86cb0" },
+	"legs": { "style": "short_shorts", "color": "#f2f2f2" }
 }

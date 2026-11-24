@@ -112,9 +112,9 @@ static func well_formed(data: Dictionary) -> bool:
 		var entry = data[slot]
 		if not entry is Dictionary:
 			return false
-		if entry.has("style") and not entry.style is String:
+		if entry.has("style") and not (entry.style is String and entry.style.length() <= 64):
 			return false
-		if entry.has("color") and not (entry.color is String and Color.html_is_valid(entry.color)):
+		if entry.has("color") and not (entry.color is String and entry.color.length() <= 32):
 			return false
 		if slot == "head" and entry.has("face") and not face_well_formed(entry.face):
 			return false

@@ -2,11 +2,11 @@
 	"name": "Maple",
 	"_comment": "A grandma who took up racing late and loves every minute of it.",
 	"traits": { "aggression": -0.7, "patience": 0.8, "consistency": 0.2, "late_braking": -0.7 },
-	"head": { "style": "blush", "color": "#6b4430" },
-	"hair": { "style": "bun", "color": "#d9d9d9" },
+	"head": { "style": "kiss", "color": "#6b4430" },
+	"hair": { "style": "long_straight", "color": "#d9d9d9" },
 	"headgear": { "style": "none", "color": "#d86cb0" },
 	"neck": { "style": "pearls", "color": "#f2f2f2" },
 	"torso": { "style": "stripes", "color": "#0d69ab" },
 	"arms": { "style": "long_sleeves", "color": "#0d69ab" },
-	"legs": { "style": "skirt", "color": "#8a5a2b" }
+	"legs": { "style": "skirt_socks", "color": "#8a5a2b" }
 }
