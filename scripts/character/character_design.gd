@@ -313,14 +313,27 @@ static func saved_drivers() -> Array[Dictionary]:
 
 
 ## The pick keys for every driver you can race as: your own (the one on the
-## driver screen), then the saved ones, then the stock ones.
+## driver screen), then the saved ones, then the stock ones. Your own is left
+## out while it's the same as a saved one, so it isn't shown twice.
 static func pick_keys() -> Array[String]:
-	var keys: Array[String] = [OWN_KEY]
+	var keys: Array[String] = []
+	if own_twin() == "":
+		keys.append(OWN_KEY)
 	for entry in saved_drivers():
 		keys.append(entry.key)
 	for key in _game().stock_driver_keys():
 		keys.append(STOCK_KEY + key)
 	return keys
+
+
+## The pick key of a saved driver that's the same as your own, or "".
+static func own_twin() -> String:
+	# Through JSON both ways so numbers compare the way they're saved.
+	var own := JSON.stringify(JSON.parse_string(JSON.stringify((_game().character as CharacterDesign).to_dict())), "", true)
+	for path in saved_paths():
+		if JSON.stringify(JSON.parse_string(JSON.stringify(load_file(path).to_dict())), "", true) == own:
+			return SAVED_KEY + path.get_file().get_basename()
+	return ""
 
 
 ## The driver for a pick key: "own" is the one on the driver screen,

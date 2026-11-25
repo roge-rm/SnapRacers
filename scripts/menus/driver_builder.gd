@@ -3,10 +3,10 @@ extends Node3D
 
 ## Where you build your driver. It looks and works like the garage.
 ##
-## They stand on a round baseplate in the middle, slowly turning (drag to spin
-## them yourself). The panels are in DriverUI. Pick a piece on the left, then
-## a style of it and a colour. Every change can be undone, and everything
-## saves as you go.
+## They stand on a round baseplate in the middle, slowly turning while the
+## toolbar's turning button is on (drag to spin them yourself). The panels
+## are in DriverUI. Pick a piece on the left, then a style of it and a colour.
+## Every change can be undone, and everything saves as you go.
 
 const SPIN := 0.35 # radians a second when nobody's touching it
 
@@ -29,6 +29,7 @@ var design: CharacterDesign
 var ui: DriverUI
 var _rig: CharacterRig
 var _turntable: Node3D
+var _seat: Node3D
 var _camera: Camera3D
 var _dragging := false
 var _last_touch := 0.0
@@ -113,6 +114,8 @@ func _ready() -> void:
 	ui.undo_pressed.connect(undo)
 	ui.redo_pressed.connect(redo)
 	ui.random_pressed.connect(randomise)
+	ui.spin.on = Game.settings.get_value("driver", "spin", true)
+	ui.spin_toggled.connect(func(on: bool) -> void: Game.set_setting("driver", "spin", on))
 	ui.pose_toggled.connect(func(driving: bool) -> void:
 		_driving = driving
 		_rebuild())
@@ -249,10 +252,13 @@ func _new_driver() -> void:
 
 
 func _rebuild() -> void:
-	for node in [_rig, _wheel, _turntable.get_node_or_null("Seat")]:
+	# Kept by reference: a new seat added before the old one is freed gets
+	# another name, so looking it up by name would miss it.
+	for node in [_rig, _wheel, _seat]:
 		if node != null:
 			node.queue_free()
 	_wheel = null
+	_seat = null
 	var first := _rig == null
 	_rig = CharacterRig.new(design, _driving)
 	_rig.lively = true
@@ -260,10 +266,10 @@ func _rebuild() -> void:
 		# A seat and a steering wheel, spaced just as they are in a kart.
 		var seat_def := PartCatalog.get_part("seat")
 		var seat_extent := Grid.to_metres(Vector3(Grid.rotated_size(seat_def.size, 0)))
-		var seat := PartVisuals.make(seat_def, seat_extent)
-		seat.name = "Seat"
-		seat.position = Vector3(0.0, seat_extent.y * 0.5, 0.0)
-		_turntable.add_child(seat)
+		_seat = PartVisuals.make(seat_def, seat_extent)
+		_seat.name = "Seat"
+		_seat.position = Vector3(0.0, seat_extent.y * 0.5, 0.0)
+		_turntable.add_child(_seat)
 		_rig.position = Vector3(0.0, seat_extent.y, 0.0)
 		var wheel_def := PartCatalog.get_part("steering_wheel")
 		var wheel_extent := Grid.to_metres(Vector3(Grid.rotated_size(wheel_def.size, 0)))
@@ -299,7 +305,7 @@ func _process(delta: float) -> void:
 		var to_rig := _rig.transform.affine_inverse() * _wheel.transform
 		_rig.grip(to_rig * grips[0], to_rig * grips[1], to_rig.basis * grips[2], to_rig.basis * grips[3])
 		_rig.look(amount)
-	if not _dragging and _last_touch > 1.5:
+	if ui.spin.on and not _dragging and _last_touch > 1.5:
 		_turntable.rotation.y += SPIN * delta
 
 

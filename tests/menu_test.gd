@@ -653,6 +653,16 @@ func _driver() -> void:
 	var builder: DriverBuilder = screen()
 	check(builder is DriverBuilder, "the driver screen opens")
 	var ui := builder.ui
+	var turntable: Node3D = builder._turntable
+	var spun := turntable.rotation.y
+	ui.spin.pressed.emit()
+	builder._last_touch = 5.0
+	await frames(3)
+	check(not ui.spin.on and not Game.settings.get_value("driver", "spin", true) and is_equal_approx(turntable.rotation.y, spun), "the turning button stops the driver turning, and it's kept")
+	ui.spin.pressed.emit()
+	builder._last_touch = 5.0
+	await frames(3)
+	check(ui.spin.on and Game.settings.get_value("driver", "spin", false) and turntable.rotation.y != spun, "and pressing it again starts them turning")
 	var tiles := ui.find_children("*", "Button", true, false).filter(func(b): return b is DriverUI.DriverTile)
 	check(tiles.size() == CharacterDesign.styles("head").size(), "the drawer starts on the heads, one tile each (%d)" % tiles.size())
 	ui.show_slot("headgear")
@@ -673,6 +683,26 @@ func _driver() -> void:
 	check(builder.design.style_of("headgear") == before, "undo takes both back")
 	ui.redo_pressed.emit()
 	check(builder.design.style_of("headgear") == hat, "and redo puts the hat back")
+	var twin_path := "%s/twin_check.json" % CharacterDesign.SAVE_DIR
+	DirAccess.make_dir_recursive_absolute(CharacterDesign.SAVE_DIR)
+	var twin_file := FileAccess.open(twin_path, FileAccess.WRITE)
+	twin_file.store_string(JSON.stringify(Game.character.to_dict(), "\t"))
+	twin_file.close()
+	var twin_keys := CharacterDesign.pick_keys()
+	check(not twin_keys.has(CharacterDesign.OWN_KEY) and twin_keys.has(CharacterDesign.SAVED_KEY + "twin_check"), "your own driver isn't shown twice when a saved one is the same")
+	check(DriverGrid.new(CharacterDesign.OWN_KEY)._current == CharacterDesign.SAVED_KEY + "twin_check", "and the saved one is marked for it")
+	DirAccess.remove_absolute(twin_path)
+	check(CharacterDesign.pick_keys().has(CharacterDesign.OWN_KEY), "once they differ it's back")
+	await frames(1)
+	var standing := builder._turntable.get_child_count()
+	builder._driving = true
+	builder._rebuild()
+	builder._rebuild()
+	await frames(2)
+	builder._driving = false
+	builder._rebuild()
+	await frames(2)
+	check(builder._turntable.get_child_count() == standing, "standing up takes the seat away, even after a piece changed while sitting (%s)" % [builder._turntable.get_children().map(func(n): return n.name)])
 	# With long hair, the back pieces that leave its length off are greyed.
 	ui.style_chosen.emit("hair", "long_straight")
 	ui.show_slot("back")

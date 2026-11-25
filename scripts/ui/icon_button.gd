@@ -190,6 +190,10 @@ func _draw() -> void:
 			draw_rect(Rect2(c + Vector2(-3, 4), Vector2(15, 5)), ink)
 			draw_rect(Rect2(c + Vector2(8, -11), Vector2(4, 17)), ink)
 			draw_arc(c + Vector2(-8, -4), 6.0, 0.0, TAU, 16, ink, 2.5, true)
+		"spin":
+			draw_arc(c, 10.0, deg_to_rad(-60), deg_to_rad(210), 20, ink, w)
+			var tip := c + Vector2(cos(deg_to_rad(-60)), sin(deg_to_rad(-60))) * 10.0
+			draw_colored_polygon(PackedVector2Array([tip + Vector2(-6, -4), tip + Vector2(5, -3), tip + Vector2(1, 7)]), ink)
 		"dice":
 			draw_rect(Rect2(c + Vector2(-11, -11), Vector2(22, 22)), ink, false, w)
 			for spot in [Vector2(-5, -5), Vector2(0, 0), Vector2(5, 5)]:

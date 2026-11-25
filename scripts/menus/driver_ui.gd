@@ -20,6 +20,7 @@ signal colour_chosen(slot: String, colour: Color)
 signal undo_pressed
 signal redo_pressed
 signal random_pressed
+signal spin_toggled(on: bool)
 signal pose_toggled(driving: bool)
 signal done_pressed
 signal name_changed(text: String)
@@ -41,6 +42,8 @@ var design: CharacterDesign
 var face_group := "faces"
 
 var _toolbar: PanelContainer
+## Lit while the driver keeps turning by itself.
+var spin: IconButton
 var _undo: IconButton
 var _redo: IconButton
 var _drawer: PanelContainer
@@ -252,8 +255,12 @@ func _build_toolbar() -> void:
 	_redo.pressed.connect(func() -> void: redo_pressed.emit())
 	var dice := IconButton.new("dice", "A random driver")
 	dice.pressed.connect(func() -> void: random_pressed.emit())
+	spin = IconButton.new("spin", "Keep turning")
+	spin.pressed.connect(func() -> void:
+		spin.on = not spin.on
+		spin_toggled.emit(spin.on))
 	var more := IconButton.new("more", "Save, load or start again")
-	_toolbar = BuilderStyle.toolbar([[close], [_undo, _redo], [dice], [more]])
+	_toolbar = BuilderStyle.toolbar([[close], [_undo, _redo], [dice, spin], [more]])
 	add_child(_toolbar)
 	_toolbar.set_anchors_and_offsets_preset(PRESET_CENTER_TOP)
 	_toolbar.grow_horizontal = GROW_DIRECTION_BOTH
