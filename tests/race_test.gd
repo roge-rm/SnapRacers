@@ -45,7 +45,7 @@ class PickupAccess:
 			var old: Dictionary = _inside.get(racer.name, {})
 			var next: Dictionary = _next_pass.get(racer.name, {})
 			var inside := {}
-			var back: PackedFloat32Array = boxes._back_at.get(kart.get_instance_id(), PackedFloat32Array())
+			var back: PackedFloat32Array = boxes.back_at
 			var middle := kart.global_position + kart.global_basis.y * 0.5
 			for i in boxes.spots.size():
 				if middle.distance_squared_to(boxes.spots[i].origin) >= PowerupField.REACH * PowerupField.REACH:

@@ -26,6 +26,8 @@ signal repaired
 ## It drove into deep water (see sink()), so others can see the splash, or
 ## the smoke for lava and slime. `kind` is what DeepWater.kind said it was.
 signal splashed(kind: String)
+## It took power-up box `box` (see PowerupField), so it's gone on every screen.
+signal took_box(box: int)
 
 const SUSPENSION_TRAVEL := 0.12 # metres up or down from where the wheel was built
 const SUSPENSION_DAMPING := 0.55 # fraction of critical damping

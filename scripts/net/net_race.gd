@@ -12,8 +12,8 @@ extends Node
 ## going for a moment.
 ##
 ## What happens to a kart is sent as it happens: parts coming off, repairs,
-## resets, gadgets and scenery it breaks, so its wreckage, bubble and bricks
-## show up everywhere.
+## resets, gadgets, power-up boxes it takes and scenery it breaks, so its
+## wreckage, bubble and bricks show up everywhere and a box is gone for all.
 ## Only a kart's own device decides whether it was hit, so a brick that
 ## misses on one screen and hits on another hurts it once, where it counts.
 ##
@@ -76,6 +76,7 @@ func add(slot: int, racer: Race.Racer, owner: int) -> void:
 	kart.splashed.connect(func(what: String) -> void: session.kart_event.rpc(slot, "splash", what))
 	kart.gadget_used.connect(func(kind: String) -> void: session.kart_event.rpc(slot, "gadget", kind))
 	kart.towed.connect(func(to: Kart) -> void: session.kart_event.rpc(slot, "tow", _slot_of_kart(to)))
+	kart.took_box.connect(func(box: int) -> void: session.kart_event.rpc(slot, "box", box))
 	kart.broke_barrier.connect(func(crossing: int, arm: int, velocity: Vector3) -> void:
 		session.kart_event.rpc(slot, "barrier", [crossing, arm, velocity.x, velocity.y, velocity.z]))
 	kart.broke_scenery.connect(func(group: int, at: Vector3, velocity: Vector3) -> void:
@@ -242,6 +243,9 @@ func got_event(sender: int, slot: int, kind: String, data: Variant) -> void:
 				rope.from = kart
 				rope.to = to
 				race.add_child(rope)
+		"box":
+			if race.boxes != null:
+				race.boxes.take(int(data))
 		"broke":
 			var damage := WorldDamage.in_tree(get_tree())
 			if damage != null and data is Array and data.size() == 7:

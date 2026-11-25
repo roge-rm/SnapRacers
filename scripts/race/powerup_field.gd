@@ -6,9 +6,9 @@ extends Node3D
 ## through a box with a free gadget button gives you a power-up (see
 ## Powerups), better the further back you are.
 ##
-## Every kart collects each box for itself, so the karts ahead can't take them
-## all before you get there. What you see is your own set. A box you've taken
-## disappears for you and comes back a few seconds later.
+## A box someone takes is gone for everyone for BACK_AFTER seconds, so two
+## karts right behind each other can't both get it. Online, the kart's own
+## device takes it and tells the others (see Kart.took_box and take()).
 ##
 ## In split screen each player's set is drawn on its own render layer (see
 ## layer_of()), and each player's camera leaves out the other one's.
@@ -18,7 +18,7 @@ const FIRST := 150.0 # metres from the start line to the first row
 const ACROSS := [-4.0, 0.0, 4.0] # where the three boxes in a row sit
 const HEIGHT := 0.9
 const REACH := 1.9
-const BACK_AFTER := 4.0
+const BACK_AFTER := 3.0 # seconds a taken box is gone for
 const SIZE := 1.1
 ## The render layer of the first viewer's boxes. The next viewer's is the one
 ## after it.
@@ -35,8 +35,8 @@ var spots: Array[Transform3D] = []
 ## Whose boxes are shown, which is the karts the cameras follow. The rest
 ## collect theirs unseen. Set this before it's added to the scene.
 var viewers: Array[Kart] = []
-## For each kart (by instance id), when each box comes back for it.
-var _back_at := {}
+## When each box comes back, in _time. 0 or less is there now.
+var back_at := PackedFloat32Array()
 var _time := 0.0
 var _rng := RandomNumberGenerator.new()
 ## One for each viewer.
@@ -61,6 +61,7 @@ func _ready() -> void:
 				frame.origin += frame.basis.y * HEIGHT + frame.basis.x * across
 				spots.append(frame)
 		d += EVERY
+	back_at.resize(spots.size())
 
 	var box := PowerupLook.mesh(look)
 	for v in viewers.size():
@@ -109,18 +110,29 @@ static func layer_of(viewer_index: int) -> int:
 func collect(kart: Kart) -> String:
 	if kart.full():
 		return ""
-	var back := _times_for(kart)
 	var middle := kart.global_position + kart.global_basis.y * 0.5
 	for i in spots.size():
-		if back[i] > _time:
+		if back_at[i] > _time:
 			continue
 		if spots[i].origin.distance_squared_to(middle) < REACH * REACH:
-			back[i] = _time + BACK_AFTER
+			back_at[i] = _time + BACK_AFTER
 			var field: int = race.racers.size() if race != null else 1
 			var kind := Powerups.pick(_place_of(kart), field, _rng)
 			kart.give(kind)
+			kart.took_box.emit(i)
 			return kind
 	return ""
+
+
+## Another device's kart took box `box`, so it goes here too.
+func take(box: int) -> void:
+	if box >= 0 and box < back_at.size():
+		back_at[box] = _time + BACK_AFTER
+
+
+## Whether box `box` is there to take.
+func there(box: int) -> bool:
+	return back_at[box] <= _time
 
 
 func _place_of(kart: Kart) -> int:
@@ -132,26 +144,11 @@ func _place_of(kart: Kart) -> int:
 	return 1
 
 
-func _times_for(kart: Kart) -> PackedFloat32Array:
-	var id := kart.get_instance_id()
-	if not _back_at.has(id):
-		var times := PackedFloat32Array()
-		times.resize(spots.size())
-		_back_at[id] = times
-	return _back_at[id]
-
-
 func _physics_process(delta: float) -> void:
 	_time += delta
-	for v in viewers.size():
-		var back := _times_for(viewers[v])
-		for i in spots.size():
-			if back[i] > 0.0 and back[i] <= _time:
-				back[i] = 0.0
-				_multis[v].set_instance_transform(i, spots[i])
 
 
-## Turns and bobs each viewer's boxes, and hides the ones they've taken.
+## Turns and bobs each viewer's boxes, and hides the taken ones.
 func _process(_delta: float) -> void:
 	if _multis.is_empty():
 		return
@@ -160,12 +157,11 @@ func _process(_delta: float) -> void:
 	for v in viewers.size():
 		if not is_instance_valid(viewers[v]):
 			continue
-		var back := _times_for(viewers[v])
 		var multi := _multis[v]
 		for i in spots.size():
 			var spot := spots[i]
 			var foot := spot.origin - spot.basis.y * HEIGHT
-			if back[i] > _time:
+			if back_at[i] > _time:
 				multi.set_instance_transform(i, Transform3D(Basis.from_scale(Vector3.ONE * 0.001), foot))
 				continue
 			var turn := spot.basis * Basis(Vector3.UP, _time * spin + i * 0.9)
