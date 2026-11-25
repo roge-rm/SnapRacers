@@ -68,6 +68,9 @@ var thrust := 0.0
 ## Every engine's scaled power, max_force, thrust and rev_limit (m/s), and the
 ## weight it counts for, strongest first: 1, 1/2, 1/4 and so on.
 var engines: Array[Dictionary] = []
+## top_speed() as last worked out, and the numbers it was worked out from.
+var _top_speed := 0.0
+var _top_key: Array = []
 ## The top speed for an engine whose part has no rev_limit, in m/s.
 const DEFAULT_REV_LIMIT := 60.0
 ## An engine's push fades to nothing over this fraction below its rev_limit.
@@ -448,8 +451,17 @@ func jet_push(speed: float) -> float:
 
 
 ## The speed where the engine's push is used up by air and tire drag, in m/s.
-## It's an estimate that ignores hills, wings and cornering.
+## It's an estimate that ignores hills, wings and cornering. The AI and the
+## turbo ask every step, so it's kept until a number it depends on changes.
 func top_speed() -> float:
+	var key := [mass, drag_area, rolling, gravity(), engines.hash()]
+	if key != _top_key:
+		_top_key = key
+		_top_speed = _find_top_speed()
+	return _top_speed
+
+
+func _find_top_speed() -> float:
 	var resist_roll := rolling * mass * gravity()
 	var net := func(v: float) -> float:
 		return wheel_push(v) + jet_push(v) - 0.5 * AIR_DENSITY * drag_area * v * v - resist_roll
