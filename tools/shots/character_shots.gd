@@ -166,8 +166,10 @@ func _run() -> void:
 		await _backs()
 	if wanted("long_hair"):
 		await _long_hair()
-	if wanted("seam"):
-		await _seam()
+	if wanted("turns"):
+		await _turns()
+	if wanted("glance"):
+		await _glance()
 	if wanted("pieces_check"):
 		await _pieces_check()
 	if wanted("closeup"):
@@ -636,6 +638,8 @@ func _long_hair() -> void:
 			var found := model.find_children("*", "CharacterRig", true, false)
 			if not found.is_empty():
 				seat = (found[0] as Node3D).global_position + Vector3(0.0, 0.4, 0.0)
+				var driver := found[0] as CharacterRig
+				driver.head().rotation.y = driver.turn_limit() * (1.0 if shots.size() % 2 == 0 else -1.0)
 			for frame in 10:
 				await process_frame
 			shots.append(await snap("%s in the %s" % [style, ride[0]], seat + (ride[1] as Vector3).normalized() * 2.6, seat))
@@ -651,22 +655,48 @@ func _long_hair() -> void:
 	save(sheet(shots, 3, TILE), "long_hair_gear.png")
 
 
-## Close up where each long hairdo's length meets the hair on the head, from
-## behind and from three quarters behind, with the head turned 0, 0.35 and
-## 1.3 radians. A sheet for each, seam_<style>.png.
-func _seam() -> void:
+## Each long hairdo from the front, side, behind and three quarters, with the
+## head turned 0 and as far as it goes each way. A sheet for each,
+## turns_<style>.png.
+func _turns() -> void:
 	for style in ["long_straight", "long_wavy", "long_swept", "long_fringe", "long_curly", "low_ponytail"]:
 		var shots := []
 		var design := bare()
 		design.set_piece("hair", style, Color("#6b4430"))
 		var r := rig(design, false)
 		await process_frame
-		var nape := r.head().global_position - Vector3(0.0, 0.09, 0.0)
-		for view in [["behind", Vector3(0.0, 0.2, 1.0)], ["three quarter", Vector3(-0.9, 0.2, 0.8)]]:
-			for turn in [0.0, 0.35, 1.3, -1.3]:
+		var head := r.head().global_position - Vector3(0.0, 0.05, 0.0)
+		var limit := r.turn_limit()
+		for view in [["front", Vector3(0.0, 0.15, -1.0)], ["side", Vector3(-1.0, 0.1, 0.0)], ["behind", Vector3(0.0, 0.25, 1.0)], ["three quarter", Vector3(-0.8, 0.3, 0.9)]]:
+			for turn in [0.0, limit, -limit]:
 				r.head().rotation.y = turn
-				shots.append(await snap("%s %s %+.2f" % [style, view[0], turn], nape + (view[1] as Vector3).normalized() * 1.5, nape))
-		save(sheet(shots, 4, TILE), "seam_%s.png" % style)
+				shots.append(await snap("%s %s %+.2f" % [style, view[0], turn], head + (view[1] as Vector3).normalized() * 1.6, head))
+		save(sheet(shots, 3, TILE), "turns_%s.png" % style)
+
+
+## The eyes glancing each way past where the head stops, close up, for every
+## eye shape and for dot eyes in every mood.
+func _glance() -> void:
+	var shots := []
+	var looks := []
+	for eyes in FacePrint.EYES:
+		looks.append([[eyes, "", "smile", []], ""])
+	for mood in FacePrint.MOODS:
+		looks.append([["dots", "", "smile", []], mood])
+	for look in looks:
+		var design := bare()
+		design.set_piece("hair", "long_straight", Color("#6b4430"))
+		design.pieces["head"]["face"] = look[0]
+		var r := rig(design, false)
+		await process_frame
+		r._show_face(r._new_face_material(r._paint(look[1])))
+		var head := r.head().global_position
+		for amount in [1.0, 0.0, -1.0]:
+			r.head().rotation.y = 0.5 * signf(amount)
+			r.glance_eyes(amount)
+			var front := Vector3(-sin(r.head().rotation.y), 0.0, -cos(r.head().rotation.y))
+			shots.append(await snap("%s %s %+.0f" % [look[0][0], look[1], amount], head + Vector3(0.0, 0.03, 0.0) + front * 0.75, head))
+	save(sheet(shots, 6, TILE), "glance.png")
 
 
 ## Close ups of the pieces changed to stop colours flickering through each

@@ -379,19 +379,25 @@ class Runner:
 				wearing.append("%s wanted, %s worn" % [way[3], rig.back_variant()])
 			rig.free()
 		check(wearing.is_empty(), "the rig wears the back piece's shape for how it sits %s" % [wearing])
-		# Long hair's length down the back, made for each pose like the back
-		# pieces and left off with what it doesn't fit with.
+		# Long hair: one piece on the head, its own shape for each pose where
+		# it hangs down the back, under a hat and below a helmet, and a short
+		# version worn with what the long one doesn't fit.
 		missing = []
 		wearing = []
 		var long_styles := 0
+		var drapes := 0
 		for style in CharacterMesh.made().get("styles", {}).get("hair", {}):
 			var entry := CharacterMesh.style("hair", style)
-			if not entry.has("length"):
+			if not entry.has("short"):
 				continue
 			long_styles += 1
-			for part in ["length", "length_seated", "length_reclined", "length_astride"]:
+			var parts := ["short", "short_cut", "below", "cut"]
+			if entry.has("turn"):
+				drapes += 1
+				parts += ["seated", "reclined", "astride", "cut_seated", "cut_reclined", "cut_astride", "below_seated", "below_reclined", "below_astride"]
+			for part in parts:
 				var shape: Dictionary = entry.get(part, {})
-				if shape.get("bone", "") != "upper" or shape.get("regions", {}).is_empty():
+				if shape.get("regions", {}).is_empty():
 					missing.append("%s %s" % [style, part])
 				for region in shape.get("regions", {}):
 					var mesh := CharacterMesh.mesh(shape.regions[region])
@@ -399,20 +405,70 @@ class Runner:
 						missing.append("%s %s %s" % [style, part, region])
 			var who := CharacterDesign.new()
 			who.set_piece("hair", style)
-			for way in [[false, false, 0.0, "length"], [true, false, 0.0, "length_seated"], [true, false, 1.0, "length_reclined"], [true, true, 0.0, "length_astride"]]:
-				var rig := CharacterRig.new(who, way[0])
-				rig.astride = way[1]
-				rig.recline = way[2]
-				if rig.length_variant() != way[3]:
-					wearing.append("%s: %s wanted, %s worn" % [style, way[3], rig.length_variant()])
-				rig.free()
-			if CharacterRig.length_left_off(who):
-				wearing.append("%s left off with nothing on" % style)
+			var drape := entry.has("turn")
+			for way in [[false, false, 0.0, "", "", "cut", "below"], [true, false, 0.0, "seated", "", "cut_seated", "below_seated"], [true, false, 1.0, "reclined", "", "cut_reclined", "below_reclined"], [true, true, 0.0, "astride", "", "cut_astride", "below_astride"]]:
+				for gear in [["none", 3], ["cap", 5], ["racing_helmet", 6]]:
+					who.set_piece("headgear", gear[0])
+					var rig := CharacterRig.new(who, way[0])
+					rig.astride = way[1]
+					rig.recline = way[2]
+					var wanted: String = way[gear[1]] if drape else ["", "", "", "", "", "cut", "below"][gear[1]]
+					if not drape and gear[1] == 3:
+						wanted = ""
+					if rig.hair_variant() != wanted:
+						wearing.append("%s under %s: %s wanted, %s worn" % [style, gear[0], wanted, rig.hair_variant()])
+					rig.free()
+			who.set_piece("headgear", "none")
+			if CharacterRig.long_hair_shortened(who):
+				wearing.append("%s short with nothing on" % style)
 			who.set_piece("back", "cape")
-			if not CharacterRig.length_left_off(who):
-				wearing.append("%s worn with a cape" % style)
-		check(missing.is_empty() and long_styles >= 4, "every long hairdo's length is made for each pose and loads %s" % [missing])
-		check(wearing.is_empty(), "the rig wears long hair's length for how it sits, and leaves it off with a cape %s" % [wearing])
+			if not CharacterRig.long_hair_shortened(who):
+				wearing.append("%s long with a cape" % style)
+			var rig := CharacterRig.new(who, false)
+			if rig.hair_variant() != "short":
+				wearing.append("%s with a cape: %s worn" % [style, rig.hair_variant()])
+			rig.free()
+		check(missing.is_empty() and long_styles >= 6 and drapes >= 3, "every long hairdo is made for each pose, under hats and helmets and short, and loads %s" % [missing])
+		check(wearing.is_empty(), "the rig wears long hair's shape for how it sits and what's on, and the short one with a cape %s" % [wearing])
+
+		# With hair hanging down the back the head turns at most about 30
+		# degrees, and the eyes glance the rest of the way; with the short
+		# version or other hair it turns all the way.
+		var limits := []
+		for look in [["long_straight", "none", 0.5], ["long_swept", "none", 0.5], ["long_fringe", "none", 0.5], ["low_ponytail", "none", 0.5], ["long_curly", "none", CharacterRig.MOST_TURN], ["long_wavy", "none", CharacterRig.MOST_TURN], ["long_straight", "cape", CharacterRig.MOST_TURN], ["short", "none", CharacterRig.MOST_TURN]]:
+			var who := CharacterDesign.new()
+			who.set_piece("hair", look[0])
+			who.set_piece("back", look[1])
+			var turner := CharacterRig.new(who, true)
+			turner.lively = true
+			turner.idle = false
+			add_child(turner)
+			turner.set_process(false)
+			turner.glance(Vector3(-1.0, 0.0, -0.1))
+			for i in 120:
+				turner._process(1.0 / 60.0)
+			var head_turn := turner.head().rotation.y
+			var eyes := turner._eyes_turn
+			var offset := turner._face_shown.uv2_offset.x
+			var limit: float = look[2]
+			if not is_equal_approx(turner.turn_limit(), limit) or absf(head_turn - minf(limit, CharacterRig.MOST_TURN)) > 0.02:
+				limits.append("%s with %s turned %.2f, limit %.2f" % [look[0], look[1], head_turn, turner.turn_limit()])
+			if limit < CharacterRig.MOST_TURN and (eyes < 0.95 or offset <= 0.0):
+				limits.append("%s eyes glance %.2f (offset %.3f)" % [look[0], eyes, offset])
+			if limit >= CharacterRig.MOST_TURN and absf(eyes) > 0.01:
+				limits.append("%s eyes glance %.2f with the head turned all the way" % [look[0], eyes])
+			turner.glance(Vector3(1.0, 0.0, -0.1))
+			for i in 120:
+				turner._process(1.0 / 60.0)
+			if limit < CharacterRig.MOST_TURN and (absf(turner.head().rotation.y + limit) > 0.02 or turner._eyes_turn > -0.95):
+				limits.append("%s the other way turned %.2f, eyes %.2f" % [look[0], turner.head().rotation.y, turner._eyes_turn])
+			turner.glance(Vector3.ZERO)
+			for i in 120:
+				turner._process(1.0 / 60.0)
+			if absf(turner._eyes_turn) > 0.01:
+				limits.append("%s eyes don't come back (%.2f)" % [look[0], turner._eyes_turn])
+			turner.queue_free()
+		check(limits.is_empty(), "long hair down the back turns the head 0.5 rad and the eyes glance the rest, other hair turns all the way %s" % [limits])
 
 		# How far the figure's pieces go into each other in the rig's poses,
 		# measured in tools/characters on the real meshes.
@@ -441,8 +497,12 @@ class Runner:
 					var names := ["%s %s" % [slot, style]]
 					if slot == "hair":
 						names.append("hair %s cut" % style)
-					if CharacterMesh.style(slot, style).has("length"):
-						names.append("hair %s length" % style)
+					if CharacterMesh.style(slot, style).has("short"):
+						names.append("hair %s short" % style)
+						names.append("hair %s short_cut" % style)
+					if CharacterMesh.style(slot, style).has("turn"):
+						for pose in ["seated", "reclined", "astride"]:
+							names.append("hair %s %s" % [style, pose])
 					for name in names:
 						if not report.get("styles", []).has(name):
 							unchecked.append(name)

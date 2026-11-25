@@ -159,21 +159,21 @@ func show_slot(which: String) -> void:
 		tile.set_meta("key", DriverThumbnails.key_of(design, slot, style))
 		tile.icon = _pictures.picture(design, slot, style)
 		tile.tapped.connect(func() -> void: style_chosen.emit(slot, style))
-		# Greyed when it leaves long hair's length off.
+		# Greyed when it makes long hair short.
 		if not _keeps_length(slot, style):
 			tile.modulate = Color(1, 1, 1, 0.45)
 		_tiles.add_child(tile)
 	_show_swatches()
 
 
-## Whether wearing this style keeps the length of the driver's long hair,
-## or of this long hair, which some neck pieces, back pieces and headgear
-## don't fit with.
+## Whether wearing this style keeps the driver's long hair long, or this
+## long hair, which some neck pieces, back pieces and headgear don't fit
+## with, so it's worn short.
 func _keeps_length(which: String, style: String) -> bool:
-	if not which in ["hair", "neck", "back", "headgear"]:
+	if not which in ["hair", "neck", "back", "headgear", "torso", "arms"]:
 		return true
-	var apart := CharacterRig.length_apart(style if which == "hair" else design.style_of("hair"))
-	for other in ["neck", "back", "headgear"]:
+	var apart := CharacterRig.long_hair_apart(style if which == "hair" else design.style_of("hair"))
+	for other in ["neck", "back", "headgear", "torso", "arms"]:
 		if apart.has("%s %s" % [other, style if other == which else design.style_of(other)]):
 			return false
 	return true

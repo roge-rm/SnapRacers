@@ -63,6 +63,20 @@ func _shapes() -> void:
 	for face in ["smile", "shades", "glasses", "unamused"]:
 		check(FacePrint.paint_image(face, skin, 0.08, 0.07).get_data() == FacePrint.paint_image(FacePrint.FACES[face], skin, 0.08, 0.07).get_data(), "%s paints the same from its name or its parts" % face)
 
+	# The eyes that glance are painted on their own clear strip, in every
+	# shape and mood; shades stay put, and big eyes keep their whites.
+	var still := []
+	for eyes in FacePrint.EYES:
+		for mood in [""] + FacePrint.MOODS:
+			var layers := FacePrint.paint_layers([eyes, "", "smile", []], skin, 0.08, 0.07, "none", FacePrint.INK, mood)
+			var moving: bool = layers.size() == 2 and layers[1].get_width() == FacePrint.EYES_WIDE and layers[1].get_used_rect().size != Vector2i.ZERO
+			if moving == (eyes == "shades"):
+				still.append("%s %s" % [eyes, mood])
+	var whole := FacePrint.paint_image(["big", "", "smile", []], skin, 0.08, 0.07)
+	var big := FacePrint.paint_layers(["big", "", "smile", []], skin, 0.08, 0.07)
+	check(still.is_empty(), "every eye shape glances in every mood but shades %s" % [still])
+	check(big[0].get_data() != whole.get_data(), "big eyes leave their pupils off the face for the glance")
+
 
 func _moods() -> void:
 	check(not FacePrint.changes("blank", "blink"), "line eyes don't blink, they're already shut")

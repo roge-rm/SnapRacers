@@ -1,5 +1,5 @@
 {
-	"_comment": "Made by tools/characters/make_characters.py: how far the figure's pieces and the styles made there go into each other, in cubic centimetres, in the rig's poses. Only overlaps over 0.001 are listed. 'headgear_hair' lists the hair each headgear was checked against, and 'uncovered' where a hat leaves the top edge of the cut hair under it showing, in degrees round the head. Torso and arm styles that are only printed have the figure's own shape; those in 'raised' have raised bits and are checked on their own. Back pieces are checked in each pose in the variant made for it, and against every kart seat (seated, and reclined in the lay-down seat) and a motorbike's saddle and tail astride; 'seats' lists them. Long hair's length is checked like a back piece ('hair_length'), and against its own cap as the head turns, below the cap's lower edge; 'tuck_shows' is how much of the top of the length, tucked up inside the cap, comes out of it as the head turns, by hair and turn, over 0.001; 'apart' lists, for each, the neck pieces, back pieces and headgear it goes into, which the game doesn't wear with it.",
+	"_comment": "Made by tools/characters/make_characters.py: how far the figure's pieces and the styles made there go into each other, in cubic centimetres, in the rig's poses. Only overlaps over 0.001 are listed. 'headgear_hair' lists the hair each headgear was checked against, and 'uncovered' where a hat leaves the top edge of the cut hair under it showing, in degrees round the head. Torso and arm styles that are only printed have the figure's own shape; those in 'raised' have raised bits and are checked on their own. Back pieces are checked in each pose in the variant made for it, and against every kart seat (seated, and reclined in the lay-down seat) and a motorbike's saddle and tail astride; 'seats' lists them. Long hair is checked in each pose's shape ('hair long_straight seated' and so on) as the head turns as far as it can with it, against the seats too; 'apart' lists, for each, the neck pieces, back pieces, raised torsos and arms and headgear it goes into, which the game wears its short version ('hair <style> short', 'short_cut' under a hat) with.",
 	"seats": [
 		"driver's seat",
 		"bucket seat",
@@ -141,22 +141,40 @@
 		"hair long cut",
 		"hair long_curly",
 		"hair long_curly cut",
-		"hair long_curly length",
+		"hair long_curly short",
+		"hair long_curly short_cut",
 		"hair long_fringe",
+		"hair long_fringe astride",
 		"hair long_fringe cut",
-		"hair long_fringe length",
+		"hair long_fringe reclined",
+		"hair long_fringe seated",
+		"hair long_fringe short",
+		"hair long_fringe short_cut",
 		"hair long_straight",
+		"hair long_straight astride",
 		"hair long_straight cut",
-		"hair long_straight length",
+		"hair long_straight reclined",
+		"hair long_straight seated",
+		"hair long_straight short",
+		"hair long_straight short_cut",
 		"hair long_swept",
+		"hair long_swept astride",
 		"hair long_swept cut",
-		"hair long_swept length",
+		"hair long_swept reclined",
+		"hair long_swept seated",
+		"hair long_swept short",
+		"hair long_swept short_cut",
 		"hair long_wavy",
 		"hair long_wavy cut",
-		"hair long_wavy length",
+		"hair long_wavy short",
+		"hair long_wavy short_cut",
 		"hair low_ponytail",
+		"hair low_ponytail astride",
 		"hair low_ponytail cut",
-		"hair low_ponytail length",
+		"hair low_ponytail reclined",
+		"hair low_ponytail seated",
+		"hair low_ponytail short",
+		"hair low_ponytail short_cut",
 		"hair messy",
 		"hair messy cut",
 		"hair messy_side_part",
@@ -802,13 +820,9 @@
 	"apart": {
 		"long_straight": [
 			"back air_tanks",
-			"back angel_wings",
 			"back backpack",
-			"back bat_wings",
 			"back cape",
 			"back dino_tail",
-			"back fairy_wings",
-			"back fox_tail",
 			"back guitar",
 			"back jet_pack",
 			"back parachute",
@@ -819,38 +833,31 @@
 			"back short_cape",
 			"back spiky_shell",
 			"back sword",
-			"neck long_scarf"
+			"neck long_scarf",
+			"neck ruff",
+			"neck scarf",
+			"neck spiked_collar"
 		],
 		"long_wavy": [
 			"back air_tanks",
-			"back angel_wings",
 			"back backpack",
-			"back bat_wings",
 			"back cape",
-			"back dino_tail",
-			"back fairy_wings",
-			"back fox_tail",
 			"back guitar",
 			"back jet_pack",
 			"back parachute",
 			"back quiver",
 			"back radio",
-			"back shell",
-			"back shield",
 			"back short_cape",
-			"back spiky_shell",
 			"back sword",
-			"neck long_scarf"
+			"neck lei",
+			"neck scarf",
+			"neck spiked_collar"
 		],
 		"long_swept": [
 			"back air_tanks",
-			"back angel_wings",
 			"back backpack",
-			"back bat_wings",
 			"back cape",
 			"back dino_tail",
-			"back fairy_wings",
-			"back fox_tail",
 			"back guitar",
 			"back jet_pack",
 			"back parachute",
@@ -861,17 +868,16 @@
 			"back short_cape",
 			"back spiky_shell",
 			"back sword",
-			"neck long_scarf"
+			"neck long_scarf",
+			"neck ruff",
+			"neck scarf",
+			"neck spiked_collar"
 		],
 		"long_fringe": [
 			"back air_tanks",
-			"back angel_wings",
 			"back backpack",
-			"back bat_wings",
 			"back cape",
 			"back dino_tail",
-			"back fairy_wings",
-			"back fox_tail",
 			"back guitar",
 			"back jet_pack",
 			"back parachute",
@@ -882,28 +888,24 @@
 			"back short_cape",
 			"back spiky_shell",
 			"back sword",
-			"neck long_scarf"
+			"neck long_scarf",
+			"neck ruff",
+			"neck scarf",
+			"neck spiked_collar"
 		],
 		"long_curly": [
 			"back air_tanks",
-			"back angel_wings",
 			"back backpack",
-			"back bat_wings",
 			"back cape",
-			"back dino_tail",
-			"back fairy_wings",
-			"back fox_tail",
 			"back guitar",
 			"back jet_pack",
 			"back parachute",
 			"back quiver",
 			"back radio",
-			"back shell",
-			"back shield",
 			"back short_cape",
-			"back spiky_shell",
 			"back sword",
-			"neck long_scarf"
+			"neck scarf",
+			"neck spiked_collar"
 		],
 		"low_ponytail": [
 			"back air_tanks",
@@ -923,7 +925,9 @@
 			"back shield",
 			"back short_cape",
 			"back spiky_shell",
-			"back sword"
+			"back sword",
+			"neck long_scarf",
+			"neck spiked_collar"
 		]
 	},
 	"uncovered": [],
@@ -1213,13 +1217,13 @@
 		},
 		{
 			"pose": "seated, arms swung 120 degrees, head turned +1.05",
-			"a": "hair long_curly",
+			"a": "hair long_curly short",
 			"b": "hand_r",
 			"cm3": 0.0074
 		},
 		{
 			"pose": "seated, arms swung 120 degrees, head turned -1.05",
-			"a": "hair long_curly",
+			"a": "hair long_curly short",
 			"b": "hand_l",
 			"cm3": 0.0073
 		},
@@ -1228,968 +1232,12 @@
 			"a": "headgear tiara on princess",
 			"b": "hair princess",
 			"cm3": 0.0022
-		}
-	],
-	"tuck_shows": [
-		{
-			"pose": "standing, head turned +1.05",
-			"a": "hair long_straight length",
-			"b": "hair long_straight",
-			"cm3": 3.8767
 		},
 		{
-			"pose": "seated, head turned +1.05",
-			"a": "hair long_straight length seated",
-			"b": "hair long_straight",
-			"cm3": 3.8033
-		},
-		{
-			"pose": "reclined, head turned +1.05",
-			"a": "hair long_straight length reclined",
-			"b": "hair long_straight",
-			"cm3": 3.8082
-		},
-		{
-			"pose": "astride, head turned +1.05",
-			"a": "hair long_straight length astride",
-			"b": "hair long_straight",
-			"cm3": 3.9289
-		},
-		{
-			"pose": "standing, head turned -1.05",
-			"a": "hair long_straight length",
-			"b": "hair long_straight",
-			"cm3": 4.2786
-		},
-		{
-			"pose": "seated, head turned -1.05",
-			"a": "hair long_straight length seated",
-			"b": "hair long_straight",
-			"cm3": 4.2976
-		},
-		{
-			"pose": "reclined, head turned -1.05",
-			"a": "hair long_straight length reclined",
-			"b": "hair long_straight",
-			"cm3": 4.3366
-		},
-		{
-			"pose": "astride, head turned -1.05",
-			"a": "hair long_straight length astride",
-			"b": "hair long_straight",
-			"cm3": 4.3991
-		},
-		{
-			"pose": "standing, head turned +1.30",
-			"a": "hair long_straight length",
-			"b": "hair long_straight",
-			"cm3": 8.0705
-		},
-		{
-			"pose": "seated, head turned +1.30",
-			"a": "hair long_straight length seated",
-			"b": "hair long_straight",
-			"cm3": 8.0257
-		},
-		{
-			"pose": "reclined, head turned +1.30",
-			"a": "hair long_straight length reclined",
-			"b": "hair long_straight",
-			"cm3": 8.1588
-		},
-		{
-			"pose": "astride, head turned +1.30",
-			"a": "hair long_straight length astride",
-			"b": "hair long_straight",
-			"cm3": 8.2823
-		},
-		{
-			"pose": "standing, head turned -1.30",
-			"a": "hair long_straight length",
-			"b": "hair long_straight",
-			"cm3": 8.7842
-		},
-		{
-			"pose": "seated, head turned -1.30",
-			"a": "hair long_straight length seated",
-			"b": "hair long_straight",
-			"cm3": 8.915
-		},
-		{
-			"pose": "reclined, head turned -1.30",
-			"a": "hair long_straight length reclined",
-			"b": "hair long_straight",
-			"cm3": 9.0599
-		},
-		{
-			"pose": "astride, head turned -1.30",
-			"a": "hair long_straight length astride",
-			"b": "hair long_straight",
-			"cm3": 9.1444
-		},
-		{
-			"pose": "standing, head turned +1.05",
-			"a": "hair long_straight length",
-			"b": "hair long_straight cut",
-			"cm3": 3.883
-		},
-		{
-			"pose": "seated, head turned +1.05",
-			"a": "hair long_straight length seated",
-			"b": "hair long_straight cut",
-			"cm3": 3.8106
-		},
-		{
-			"pose": "reclined, head turned +1.05",
-			"a": "hair long_straight length reclined",
-			"b": "hair long_straight cut",
-			"cm3": 3.8186
-		},
-		{
-			"pose": "astride, head turned +1.05",
-			"a": "hair long_straight length astride",
-			"b": "hair long_straight cut",
-			"cm3": 3.9366
-		},
-		{
-			"pose": "standing, head turned -1.05",
-			"a": "hair long_straight length",
-			"b": "hair long_straight cut",
-			"cm3": 4.285
-		},
-		{
-			"pose": "seated, head turned -1.05",
-			"a": "hair long_straight length seated",
-			"b": "hair long_straight cut",
-			"cm3": 4.3039
-		},
-		{
-			"pose": "reclined, head turned -1.05",
-			"a": "hair long_straight length reclined",
-			"b": "hair long_straight cut",
-			"cm3": 4.3427
-		},
-		{
-			"pose": "astride, head turned -1.05",
-			"a": "hair long_straight length astride",
-			"b": "hair long_straight cut",
-			"cm3": 4.4056
-		},
-		{
-			"pose": "standing, head turned +1.30",
-			"a": "hair long_straight length",
-			"b": "hair long_straight cut",
-			"cm3": 8.0812
-		},
-		{
-			"pose": "seated, head turned +1.30",
-			"a": "hair long_straight length seated",
-			"b": "hair long_straight cut",
-			"cm3": 8.0364
-		},
-		{
-			"pose": "reclined, head turned +1.30",
-			"a": "hair long_straight length reclined",
-			"b": "hair long_straight cut",
-			"cm3": 8.1697
-		},
-		{
-			"pose": "astride, head turned +1.30",
-			"a": "hair long_straight length astride",
-			"b": "hair long_straight cut",
-			"cm3": 8.2932
-		},
-		{
-			"pose": "standing, head turned -1.30",
-			"a": "hair long_straight length",
-			"b": "hair long_straight cut",
-			"cm3": 8.788
-		},
-		{
-			"pose": "seated, head turned -1.30",
-			"a": "hair long_straight length seated",
-			"b": "hair long_straight cut",
-			"cm3": 8.9187
-		},
-		{
-			"pose": "reclined, head turned -1.30",
-			"a": "hair long_straight length reclined",
-			"b": "hair long_straight cut",
-			"cm3": 9.0636
-		},
-		{
-			"pose": "astride, head turned -1.30",
-			"a": "hair long_straight length astride",
-			"b": "hair long_straight cut",
-			"cm3": 9.1481
-		},
-		{
-			"pose": "standing, head turned +1.05",
-			"a": "hair long_wavy length",
+			"pose": "any pose",
+			"a": "headgear tiara on long_wavy",
 			"b": "hair long_wavy",
-			"cm3": 0.0073
-		},
-		{
-			"pose": "seated, head turned +1.05",
-			"a": "hair long_wavy length seated",
-			"b": "hair long_wavy",
-			"cm3": 0.0082
-		},
-		{
-			"pose": "reclined, head turned +1.05",
-			"a": "hair long_wavy length reclined",
-			"b": "hair long_wavy",
-			"cm3": 0.0096
-		},
-		{
-			"pose": "astride, head turned +1.05",
-			"a": "hair long_wavy length astride",
-			"b": "hair long_wavy",
-			"cm3": 0.009
-		},
-		{
-			"pose": "standing, head turned -1.05",
-			"a": "hair long_wavy length",
-			"b": "hair long_wavy",
-			"cm3": 0.0079
-		},
-		{
-			"pose": "seated, head turned -1.05",
-			"a": "hair long_wavy length seated",
-			"b": "hair long_wavy",
-			"cm3": 0.0088
-		},
-		{
-			"pose": "reclined, head turned -1.05",
-			"a": "hair long_wavy length reclined",
-			"b": "hair long_wavy",
-			"cm3": 0.0102
-		},
-		{
-			"pose": "astride, head turned -1.05",
-			"a": "hair long_wavy length astride",
-			"b": "hair long_wavy",
-			"cm3": 0.0095
-		},
-		{
-			"pose": "standing, head turned +1.30",
-			"a": "hair long_wavy length",
-			"b": "hair long_wavy",
-			"cm3": 1.3422
-		},
-		{
-			"pose": "seated, head turned +1.30",
-			"a": "hair long_wavy length seated",
-			"b": "hair long_wavy",
-			"cm3": 1.4133
-		},
-		{
-			"pose": "reclined, head turned +1.30",
-			"a": "hair long_wavy length reclined",
-			"b": "hair long_wavy",
-			"cm3": 1.6234
-		},
-		{
-			"pose": "astride, head turned +1.30",
-			"a": "hair long_wavy length astride",
-			"b": "hair long_wavy",
-			"cm3": 1.5408
-		},
-		{
-			"pose": "standing, head turned -1.30",
-			"a": "hair long_wavy length",
-			"b": "hair long_wavy",
-			"cm3": 1.3492
-		},
-		{
-			"pose": "seated, head turned -1.30",
-			"a": "hair long_wavy length seated",
-			"b": "hair long_wavy",
-			"cm3": 1.4468
-		},
-		{
-			"pose": "reclined, head turned -1.30",
-			"a": "hair long_wavy length reclined",
-			"b": "hair long_wavy",
-			"cm3": 1.6174
-		},
-		{
-			"pose": "astride, head turned -1.30",
-			"a": "hair long_wavy length astride",
-			"b": "hair long_wavy",
-			"cm3": 1.5747
-		},
-		{
-			"pose": "standing, head turned +1.05",
-			"a": "hair long_wavy length",
-			"b": "hair long_wavy cut",
-			"cm3": 0.0073
-		},
-		{
-			"pose": "seated, head turned +1.05",
-			"a": "hair long_wavy length seated",
-			"b": "hair long_wavy cut",
-			"cm3": 0.0082
-		},
-		{
-			"pose": "reclined, head turned +1.05",
-			"a": "hair long_wavy length reclined",
-			"b": "hair long_wavy cut",
-			"cm3": 0.0096
-		},
-		{
-			"pose": "astride, head turned +1.05",
-			"a": "hair long_wavy length astride",
-			"b": "hair long_wavy cut",
-			"cm3": 0.009
-		},
-		{
-			"pose": "standing, head turned -1.05",
-			"a": "hair long_wavy length",
-			"b": "hair long_wavy cut",
-			"cm3": 0.0079
-		},
-		{
-			"pose": "seated, head turned -1.05",
-			"a": "hair long_wavy length seated",
-			"b": "hair long_wavy cut",
-			"cm3": 0.0088
-		},
-		{
-			"pose": "reclined, head turned -1.05",
-			"a": "hair long_wavy length reclined",
-			"b": "hair long_wavy cut",
-			"cm3": 0.0102
-		},
-		{
-			"pose": "astride, head turned -1.05",
-			"a": "hair long_wavy length astride",
-			"b": "hair long_wavy cut",
-			"cm3": 0.0095
-		},
-		{
-			"pose": "standing, head turned +1.30",
-			"a": "hair long_wavy length",
-			"b": "hair long_wavy cut",
-			"cm3": 1.3422
-		},
-		{
-			"pose": "seated, head turned +1.30",
-			"a": "hair long_wavy length seated",
-			"b": "hair long_wavy cut",
-			"cm3": 1.4133
-		},
-		{
-			"pose": "reclined, head turned +1.30",
-			"a": "hair long_wavy length reclined",
-			"b": "hair long_wavy cut",
-			"cm3": 1.6234
-		},
-		{
-			"pose": "astride, head turned +1.30",
-			"a": "hair long_wavy length astride",
-			"b": "hair long_wavy cut",
-			"cm3": 1.5408
-		},
-		{
-			"pose": "standing, head turned -1.30",
-			"a": "hair long_wavy length",
-			"b": "hair long_wavy cut",
-			"cm3": 1.3492
-		},
-		{
-			"pose": "seated, head turned -1.30",
-			"a": "hair long_wavy length seated",
-			"b": "hair long_wavy cut",
-			"cm3": 1.4468
-		},
-		{
-			"pose": "reclined, head turned -1.30",
-			"a": "hair long_wavy length reclined",
-			"b": "hair long_wavy cut",
-			"cm3": 1.6174
-		},
-		{
-			"pose": "astride, head turned -1.30",
-			"a": "hair long_wavy length astride",
-			"b": "hair long_wavy cut",
-			"cm3": 1.5747
-		},
-		{
-			"pose": "standing, head turned +1.05",
-			"a": "hair long_swept length",
-			"b": "hair long_swept",
-			"cm3": 2.2967
-		},
-		{
-			"pose": "seated, head turned +1.05",
-			"a": "hair long_swept length seated",
-			"b": "hair long_swept",
-			"cm3": 2.2066
-		},
-		{
-			"pose": "reclined, head turned +1.05",
-			"a": "hair long_swept length reclined",
-			"b": "hair long_swept",
-			"cm3": 2.1928
-		},
-		{
-			"pose": "astride, head turned +1.05",
-			"a": "hair long_swept length astride",
-			"b": "hair long_swept",
-			"cm3": 2.3341
-		},
-		{
-			"pose": "standing, head turned -1.05",
-			"a": "hair long_swept length",
-			"b": "hair long_swept",
-			"cm3": 2.7879
-		},
-		{
-			"pose": "seated, head turned -1.05",
-			"a": "hair long_swept length seated",
-			"b": "hair long_swept",
-			"cm3": 2.8277
-		},
-		{
-			"pose": "reclined, head turned -1.05",
-			"a": "hair long_swept length reclined",
-			"b": "hair long_swept",
-			"cm3": 2.8863
-		},
-		{
-			"pose": "astride, head turned -1.05",
-			"a": "hair long_swept length astride",
-			"b": "hair long_swept",
-			"cm3": 2.9258
-		},
-		{
-			"pose": "standing, head turned +1.30",
-			"a": "hair long_swept length",
-			"b": "hair long_swept",
-			"cm3": 4.9109
-		},
-		{
-			"pose": "seated, head turned +1.30",
-			"a": "hair long_swept length seated",
-			"b": "hair long_swept",
-			"cm3": 4.8343
-		},
-		{
-			"pose": "reclined, head turned +1.30",
-			"a": "hair long_swept length reclined",
-			"b": "hair long_swept",
-			"cm3": 4.9414
-		},
-		{
-			"pose": "astride, head turned +1.30",
-			"a": "hair long_swept length astride",
-			"b": "hair long_swept",
-			"cm3": 5.0935
-		},
-		{
-			"pose": "standing, head turned -1.30",
-			"a": "hair long_swept length",
-			"b": "hair long_swept",
-			"cm3": 5.7836
-		},
-		{
-			"pose": "seated, head turned -1.30",
-			"a": "hair long_swept length seated",
-			"b": "hair long_swept",
-			"cm3": 5.9518
-		},
-		{
-			"pose": "reclined, head turned -1.30",
-			"a": "hair long_swept length reclined",
-			"b": "hair long_swept",
-			"cm3": 6.1316
-		},
-		{
-			"pose": "astride, head turned -1.30",
-			"a": "hair long_swept length astride",
-			"b": "hair long_swept",
-			"cm3": 6.1836
-		},
-		{
-			"pose": "standing, head turned +1.05",
-			"a": "hair long_swept length",
-			"b": "hair long_swept cut",
-			"cm3": 2.3076
-		},
-		{
-			"pose": "seated, head turned +1.05",
-			"a": "hair long_swept length seated",
-			"b": "hair long_swept cut",
-			"cm3": 2.2191
-		},
-		{
-			"pose": "reclined, head turned +1.05",
-			"a": "hair long_swept length reclined",
-			"b": "hair long_swept cut",
-			"cm3": 2.2049
-		},
-		{
-			"pose": "astride, head turned +1.05",
-			"a": "hair long_swept length astride",
-			"b": "hair long_swept cut",
-			"cm3": 2.345
-		},
-		{
-			"pose": "standing, head turned -1.05",
-			"a": "hair long_swept length",
-			"b": "hair long_swept cut",
-			"cm3": 2.7917
-		},
-		{
-			"pose": "seated, head turned -1.05",
-			"a": "hair long_swept length seated",
-			"b": "hair long_swept cut",
-			"cm3": 2.8315
-		},
-		{
-			"pose": "reclined, head turned -1.05",
-			"a": "hair long_swept length reclined",
-			"b": "hair long_swept cut",
-			"cm3": 2.8899
-		},
-		{
-			"pose": "astride, head turned -1.05",
-			"a": "hair long_swept length astride",
-			"b": "hair long_swept cut",
-			"cm3": 2.93
-		},
-		{
-			"pose": "standing, head turned +1.30",
-			"a": "hair long_swept length",
-			"b": "hair long_swept cut",
-			"cm3": 4.9168
-		},
-		{
-			"pose": "seated, head turned +1.30",
-			"a": "hair long_swept length seated",
-			"b": "hair long_swept cut",
-			"cm3": 4.8371
-		},
-		{
-			"pose": "reclined, head turned +1.30",
-			"a": "hair long_swept length reclined",
-			"b": "hair long_swept cut",
-			"cm3": 4.9431
-		},
-		{
-			"pose": "astride, head turned +1.30",
-			"a": "hair long_swept length astride",
-			"b": "hair long_swept cut",
-			"cm3": 5.0966
-		},
-		{
-			"pose": "standing, head turned -1.30",
-			"a": "hair long_swept length",
-			"b": "hair long_swept cut",
-			"cm3": 5.7874
-		},
-		{
-			"pose": "seated, head turned -1.30",
-			"a": "hair long_swept length seated",
-			"b": "hair long_swept cut",
-			"cm3": 5.9556
-		},
-		{
-			"pose": "reclined, head turned -1.30",
-			"a": "hair long_swept length reclined",
-			"b": "hair long_swept cut",
-			"cm3": 6.1384
-		},
-		{
-			"pose": "astride, head turned -1.30",
-			"a": "hair long_swept length astride",
-			"b": "hair long_swept cut",
-			"cm3": 6.1906
-		},
-		{
-			"pose": "standing, head turned +1.05",
-			"a": "hair long_fringe length",
-			"b": "hair long_fringe",
-			"cm3": 1.0929
-		},
-		{
-			"pose": "seated, head turned +1.05",
-			"a": "hair long_fringe length seated",
-			"b": "hair long_fringe",
-			"cm3": 1.0197
-		},
-		{
-			"pose": "reclined, head turned +1.05",
-			"a": "hair long_fringe length reclined",
-			"b": "hair long_fringe",
-			"cm3": 1.0246
-		},
-		{
-			"pose": "astride, head turned +1.05",
-			"a": "hair long_fringe length astride",
-			"b": "hair long_fringe",
-			"cm3": 1.145
-		},
-		{
-			"pose": "standing, head turned -1.05",
-			"a": "hair long_fringe length",
-			"b": "hair long_fringe",
-			"cm3": 1.4938
-		},
-		{
-			"pose": "seated, head turned -1.05",
-			"a": "hair long_fringe length seated",
-			"b": "hair long_fringe",
-			"cm3": 1.5129
-		},
-		{
-			"pose": "reclined, head turned -1.05",
-			"a": "hair long_fringe length reclined",
-			"b": "hair long_fringe",
-			"cm3": 1.552
-		},
-		{
-			"pose": "astride, head turned -1.05",
-			"a": "hair long_fringe length astride",
-			"b": "hair long_fringe",
-			"cm3": 1.614
-		},
-		{
-			"pose": "standing, head turned +1.30",
-			"a": "hair long_fringe length",
-			"b": "hair long_fringe",
-			"cm3": 2.4307
-		},
-		{
-			"pose": "seated, head turned +1.30",
-			"a": "hair long_fringe length seated",
-			"b": "hair long_fringe",
-			"cm3": 2.3858
-		},
-		{
-			"pose": "reclined, head turned +1.30",
-			"a": "hair long_fringe length reclined",
-			"b": "hair long_fringe",
-			"cm3": 2.5186
-		},
-		{
-			"pose": "astride, head turned +1.30",
-			"a": "hair long_fringe length astride",
-			"b": "hair long_fringe",
-			"cm3": 2.642
-		},
-		{
-			"pose": "standing, head turned -1.30",
-			"a": "hair long_fringe length",
-			"b": "hair long_fringe",
-			"cm3": 3.1422
-		},
-		{
-			"pose": "seated, head turned -1.30",
-			"a": "hair long_fringe length seated",
-			"b": "hair long_fringe",
-			"cm3": 3.2731
-		},
-		{
-			"pose": "reclined, head turned -1.30",
-			"a": "hair long_fringe length reclined",
-			"b": "hair long_fringe",
-			"cm3": 3.4176
-		},
-		{
-			"pose": "astride, head turned -1.30",
-			"a": "hair long_fringe length astride",
-			"b": "hair long_fringe",
-			"cm3": 3.5028
-		},
-		{
-			"pose": "standing, head turned +1.05",
-			"a": "hair long_fringe length",
-			"b": "hair long_fringe cut",
-			"cm3": 1.0929
-		},
-		{
-			"pose": "seated, head turned +1.05",
-			"a": "hair long_fringe length seated",
-			"b": "hair long_fringe cut",
-			"cm3": 1.0197
-		},
-		{
-			"pose": "reclined, head turned +1.05",
-			"a": "hair long_fringe length reclined",
-			"b": "hair long_fringe cut",
-			"cm3": 1.0246
-		},
-		{
-			"pose": "astride, head turned +1.05",
-			"a": "hair long_fringe length astride",
-			"b": "hair long_fringe cut",
-			"cm3": 1.145
-		},
-		{
-			"pose": "standing, head turned -1.05",
-			"a": "hair long_fringe length",
-			"b": "hair long_fringe cut",
-			"cm3": 1.4938
-		},
-		{
-			"pose": "seated, head turned -1.05",
-			"a": "hair long_fringe length seated",
-			"b": "hair long_fringe cut",
-			"cm3": 1.5129
-		},
-		{
-			"pose": "reclined, head turned -1.05",
-			"a": "hair long_fringe length reclined",
-			"b": "hair long_fringe cut",
-			"cm3": 1.552
-		},
-		{
-			"pose": "astride, head turned -1.05",
-			"a": "hair long_fringe length astride",
-			"b": "hair long_fringe cut",
-			"cm3": 1.614
-		},
-		{
-			"pose": "standing, head turned +1.30",
-			"a": "hair long_fringe length",
-			"b": "hair long_fringe cut",
-			"cm3": 2.4307
-		},
-		{
-			"pose": "seated, head turned +1.30",
-			"a": "hair long_fringe length seated",
-			"b": "hair long_fringe cut",
-			"cm3": 2.3858
-		},
-		{
-			"pose": "reclined, head turned +1.30",
-			"a": "hair long_fringe length reclined",
-			"b": "hair long_fringe cut",
-			"cm3": 2.5186
-		},
-		{
-			"pose": "astride, head turned +1.30",
-			"a": "hair long_fringe length astride",
-			"b": "hair long_fringe cut",
-			"cm3": 2.642
-		},
-		{
-			"pose": "standing, head turned -1.30",
-			"a": "hair long_fringe length",
-			"b": "hair long_fringe cut",
-			"cm3": 3.1422
-		},
-		{
-			"pose": "seated, head turned -1.30",
-			"a": "hair long_fringe length seated",
-			"b": "hair long_fringe cut",
-			"cm3": 3.2731
-		},
-		{
-			"pose": "reclined, head turned -1.30",
-			"a": "hair long_fringe length reclined",
-			"b": "hair long_fringe cut",
-			"cm3": 3.4176
-		},
-		{
-			"pose": "astride, head turned -1.30",
-			"a": "hair long_fringe length astride",
-			"b": "hair long_fringe cut",
-			"cm3": 3.5028
-		},
-		{
-			"pose": "standing, head turned +1.05",
-			"a": "hair long_curly length",
-			"b": "hair long_curly",
-			"cm3": 4.2478
-		},
-		{
-			"pose": "seated, head turned +1.05",
-			"a": "hair long_curly length seated",
-			"b": "hair long_curly",
-			"cm3": 4.2478
-		},
-		{
-			"pose": "reclined, head turned +1.05",
-			"a": "hair long_curly length reclined",
-			"b": "hair long_curly",
-			"cm3": 4.3408
-		},
-		{
-			"pose": "astride, head turned +1.05",
-			"a": "hair long_curly length astride",
-			"b": "hair long_curly",
-			"cm3": 4.351
-		},
-		{
-			"pose": "standing, head turned -1.05",
-			"a": "hair long_curly length",
-			"b": "hair long_curly",
-			"cm3": 4.0977
-		},
-		{
-			"pose": "seated, head turned -1.05",
-			"a": "hair long_curly length seated",
-			"b": "hair long_curly",
-			"cm3": 4.1252
-		},
-		{
-			"pose": "reclined, head turned -1.05",
-			"a": "hair long_curly length reclined",
-			"b": "hair long_curly",
-			"cm3": 4.1441
-		},
-		{
-			"pose": "astride, head turned -1.05",
-			"a": "hair long_curly length astride",
-			"b": "hair long_curly",
-			"cm3": 4.2188
-		},
-		{
-			"pose": "standing, head turned +1.30",
-			"a": "hair long_curly length",
-			"b": "hair long_curly",
-			"cm3": 10.368
-		},
-		{
-			"pose": "seated, head turned +1.30",
-			"a": "hair long_curly length seated",
-			"b": "hair long_curly",
-			"cm3": 10.5053
-		},
-		{
-			"pose": "reclined, head turned +1.30",
-			"a": "hair long_curly length reclined",
-			"b": "hair long_curly",
-			"cm3": 10.848
-		},
-		{
-			"pose": "astride, head turned +1.30",
-			"a": "hair long_curly length astride",
-			"b": "hair long_curly",
-			"cm3": 10.7754
-		},
-		{
-			"pose": "standing, head turned -1.30",
-			"a": "hair long_curly length",
-			"b": "hair long_curly",
-			"cm3": 10.4073
-		},
-		{
-			"pose": "seated, head turned -1.30",
-			"a": "hair long_curly length seated",
-			"b": "hair long_curly",
-			"cm3": 10.5999
-		},
-		{
-			"pose": "reclined, head turned -1.30",
-			"a": "hair long_curly length reclined",
-			"b": "hair long_curly",
-			"cm3": 10.8749
-		},
-		{
-			"pose": "astride, head turned -1.30",
-			"a": "hair long_curly length astride",
-			"b": "hair long_curly",
-			"cm3": 10.8596
-		},
-		{
-			"pose": "standing, head turned +1.05",
-			"a": "hair long_curly length",
-			"b": "hair long_curly cut",
-			"cm3": 4.2478
-		},
-		{
-			"pose": "seated, head turned +1.05",
-			"a": "hair long_curly length seated",
-			"b": "hair long_curly cut",
-			"cm3": 4.2478
-		},
-		{
-			"pose": "reclined, head turned +1.05",
-			"a": "hair long_curly length reclined",
-			"b": "hair long_curly cut",
-			"cm3": 4.3408
-		},
-		{
-			"pose": "astride, head turned +1.05",
-			"a": "hair long_curly length astride",
-			"b": "hair long_curly cut",
-			"cm3": 4.351
-		},
-		{
-			"pose": "standing, head turned -1.05",
-			"a": "hair long_curly length",
-			"b": "hair long_curly cut",
-			"cm3": 4.0977
-		},
-		{
-			"pose": "seated, head turned -1.05",
-			"a": "hair long_curly length seated",
-			"b": "hair long_curly cut",
-			"cm3": 4.1252
-		},
-		{
-			"pose": "reclined, head turned -1.05",
-			"a": "hair long_curly length reclined",
-			"b": "hair long_curly cut",
-			"cm3": 4.1441
-		},
-		{
-			"pose": "astride, head turned -1.05",
-			"a": "hair long_curly length astride",
-			"b": "hair long_curly cut",
-			"cm3": 4.2188
-		},
-		{
-			"pose": "standing, head turned +1.30",
-			"a": "hair long_curly length",
-			"b": "hair long_curly cut",
-			"cm3": 10.368
-		},
-		{
-			"pose": "seated, head turned +1.30",
-			"a": "hair long_curly length seated",
-			"b": "hair long_curly cut",
-			"cm3": 10.5053
-		},
-		{
-			"pose": "reclined, head turned +1.30",
-			"a": "hair long_curly length reclined",
-			"b": "hair long_curly cut",
-			"cm3": 10.848
-		},
-		{
-			"pose": "astride, head turned +1.30",
-			"a": "hair long_curly length astride",
-			"b": "hair long_curly cut",
-			"cm3": 10.7754
-		},
-		{
-			"pose": "standing, head turned -1.30",
-			"a": "hair long_curly length",
-			"b": "hair long_curly cut",
-			"cm3": 10.4073
-		},
-		{
-			"pose": "seated, head turned -1.30",
-			"a": "hair long_curly length seated",
-			"b": "hair long_curly cut",
-			"cm3": 10.5999
-		},
-		{
-			"pose": "reclined, head turned -1.30",
-			"a": "hair long_curly length reclined",
-			"b": "hair long_curly cut",
-			"cm3": 10.8749
-		},
-		{
-			"pose": "astride, head turned -1.30",
-			"a": "hair long_curly length astride",
-			"b": "hair long_curly cut",
-			"cm3": 10.8596
+			"cm3": 0.0011
 		}
 	]
 }

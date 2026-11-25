@@ -1,5 +1,5 @@
 {
-	"_comment": "Made by tools/characters/make_characters.py, so change the pieces there. Meshes are in their bone's own space, in metres. 'figure' is the bare figure; 'styles' are the remodelled styles by slot and style. A style's regions are coloured: main in its own colour (shiny metal if it has 'metallic'), dark and light a shade of it, the rest from 'colours' as colour and metallic. Hair has 'top', how high it reaches, and 'radius_at', how far out it reaches at heights up the head, in the head's own space before it's scaled up, for fitting what sits on it, and 'cut', the version under a hat: cut flat at 'top' and kept within 'radius' of the middle for the band under that. Headgear has 'hair', what's shown under it: the cut hair, the full hair or none ('hidden'). Bands worn on the hair have a variant 'on_<hair>' made for each hairdo, their own regions for none; the rest worn on the hair have 'fit', by hairdo ('none' for none), how it's placed to sit on it: [scale across, scale up, lift, move back], scaled from the middle of the head. Torsos are on the upper body. Legs are the hips, on the rig ('hips'), with each leg in each pose as 'standing_l', 'seated_r', 'astride_l', 'forward_r' (astride with the feet forward on a chopper's pegs) and so on, on the legs bone. Arms are the left arm, with 'arm_r', 'hand_l' and 'hand_r' each on its own 'bone'. Long hair has its length down the back on the upper body, 'length' standing with 'length_seated', 'length_reclined' and 'length_astride' like the back pieces, and 'apart', the neck pieces, back pieces and headgear it doesn't fit with, which leave the length off. Back pieces are on the upper body standing, with 'seated' (in an upright seat), 'reclined' (lying back in a lay-down seat) and 'astride' variants; their 'clear' region is the piece's colour, see through. A 'skin' region is in the driver's skin.",
+	"_comment": "Made by tools/characters/make_characters.py, so change the pieces there. Meshes are in their bone's own space, in metres. 'figure' is the bare figure; 'styles' are the remodelled styles by slot and style. A style's regions are coloured: main in its own colour (shiny metal if it has 'metallic'), dark and light a shade of it, the rest from 'colours' as colour and metallic. Hair has 'top', how high it reaches, and 'radius_at', how far out it reaches at heights up the head, in the head's own space before it's scaled up, for fitting what sits on it, and 'cut', the version under a hat: cut flat at 'top' and kept within 'radius' of the middle for the band under that. Headgear has 'hair', what's shown under it: the cut hair, the full hair or none ('hidden'). Bands worn on the hair have a variant 'on_<hair>' made for each hairdo, their own regions for none; the rest worn on the hair have 'fit', by hairdo ('none' for none), how it's placed to sit on it: [scale across, scale up, lift, move back], scaled from the middle of the head. Torsos are on the upper body. Legs are the hips, on the rig ('hips'), with each leg in each pose as 'standing_l', 'seated_r', 'astride_l', 'forward_r' (astride with the feet forward on a chopper's pegs) and so on, on the legs bone. Arms are the left arm, with 'arm_r', 'hand_l' and 'hand_r' each on its own 'bone'. Long hair is one piece on the head. Where it hangs down the back it has 'turn', how far the head turns either way with it in radians, and its own shape for each pose like the back pieces ('seated', 'reclined', 'astride', and 'cut_seated' and so on under a hat). All long hair has 'below', what shows under headgear that hides the hair ('below_seated' and so on), 'short' and 'short_cut', the short version, and 'apart', the neck pieces, back pieces, torsos, arms and headgear it doesn't fit with, which the short version is worn with. Back pieces are on the upper body standing, with 'seated' (in an upright seat), 'reclined' (lying back in a lay-down seat) and 'astride' variants; their 'clear' region is the piece's colour, see through. A 'skin' region is in the driver's skin.",
 	"colours": {
 		"white": [
 			"#f2f2f2",
@@ -613,6 +613,1658 @@
 					0.425,
 					-0.102
 				]
+			}
+		},
+		"torso": {
+			"racing_suit": {
+				"bone": "upper",
+				"regions": {
+					"main": "res://characters/meshes/torso_racing_suit_main.obj",
+					"white": "res://characters/meshes/torso_racing_suit_white.obj",
+					"dark": "res://characters/meshes/torso_racing_suit_dark.obj",
+					"silver": "res://characters/meshes/torso_racing_suit_silver.obj"
+				},
+				"box": [
+					-0.1991,
+					0.08,
+					-0.1,
+					0.1991,
+					0.426,
+					0.1
+				]
+			},
+			"jacket": {
+				"bone": "upper",
+				"regions": {
+					"main": "res://characters/meshes/torso_jacket_main.obj",
+					"white": "res://characters/meshes/torso_jacket_white.obj",
+					"dark": "res://characters/meshes/torso_jacket_dark.obj"
+				},
+				"box": [
+					-0.1991,
+					0.08,
+					-0.1,
+					0.1991,
+					0.426,
+					0.1
+				]
+			},
+			"overalls": {
+				"bone": "upper",
+				"regions": {
+					"main": "res://characters/meshes/torso_overalls_main.obj",
+					"denim": "res://characters/meshes/torso_overalls_denim.obj",
+					"gold": "res://characters/meshes/torso_overalls_gold.obj",
+					"denim_dark": "res://characters/meshes/torso_overalls_denim_dark.obj"
+				},
+				"box": [
+					-0.1991,
+					0.08,
+					-0.1,
+					0.1991,
+					0.426,
+					0.1
+				]
+			},
+			"hoodie": {
+				"bone": "upper",
+				"regions": {
+					"main": "res://characters/meshes/torso_hoodie_main.obj",
+					"dark": "res://characters/meshes/torso_hoodie_dark.obj",
+					"white": "res://characters/meshes/torso_hoodie_white.obj"
+				},
+				"box": [
+					-0.1991,
+					0.08,
+					-0.1,
+					0.1991,
+					0.426,
+					0.1
+				]
+			},
+			"armour": {
+				"bone": "upper",
+				"regions": {
+					"main": "res://characters/meshes/torso_armour_main.obj",
+					"dark": "res://characters/meshes/torso_armour_dark.obj",
+					"silver": "res://characters/meshes/torso_armour_silver.obj"
+				},
+				"box": [
+					-0.1991,
+					0.08,
+					-0.1,
+					0.1991,
+					0.426,
+					0.1
+				],
+				"metallic": 0.45
+			},
+			"tee": {
+				"bone": "upper",
+				"regions": {
+					"main": "res://characters/meshes/torso_tee_main.obj"
+				},
+				"box": [
+					-0.1991,
+					0.08,
+					-0.1,
+					0.1991,
+					0.426,
+					0.1
+				]
+			},
+			"tuxedo": {
+				"bone": "upper",
+				"regions": {
+					"main": "res://characters/meshes/torso_tuxedo_main.obj",
+					"white": "res://characters/meshes/torso_tuxedo_white.obj",
+					"dark": "res://characters/meshes/torso_tuxedo_dark.obj",
+					"ink": "res://characters/meshes/torso_tuxedo_ink.obj"
+				},
+				"box": [
+					-0.1991,
+					0.08,
+					-0.1,
+					0.1991,
+					0.426,
+					0.1
+				]
+			},
+			"gown": {
+				"bone": "upper",
+				"regions": {
+					"main": "res://characters/meshes/torso_gown_main.obj",
+					"light": "res://characters/meshes/torso_gown_light.obj",
+					"gold": "res://characters/meshes/torso_gown_gold.obj"
+				},
+				"box": [
+					-0.1991,
+					0.08,
+					-0.1,
+					0.1991,
+					0.426,
+					0.1
+				]
+			},
+			"vest": {
+				"bone": "upper",
+				"regions": {
+					"main": "res://characters/meshes/torso_vest_main.obj",
+					"white": "res://characters/meshes/torso_vest_white.obj",
+					"dark": "res://characters/meshes/torso_vest_dark.obj",
+					"gold": "res://characters/meshes/torso_vest_gold.obj"
+				},
+				"box": [
+					-0.1991,
+					0.08,
+					-0.1,
+					0.1991,
+					0.426,
+					0.1
+				]
+			},
+			"tank_top": {
+				"bone": "upper",
+				"regions": {
+					"main": "res://characters/meshes/torso_tank_top_main.obj",
+					"skin": "res://characters/meshes/torso_tank_top_skin.obj"
+				},
+				"box": [
+					-0.1991,
+					0.08,
+					-0.1,
+					0.1991,
+					0.426,
+					0.1
+				]
+			},
+			"flowery": {
+				"bone": "upper",
+				"regions": {
+					"main": "res://characters/meshes/torso_flowery_main.obj",
+					"white": "res://characters/meshes/torso_flowery_white.obj",
+					"orange": "res://characters/meshes/torso_flowery_orange.obj",
+					"yellow": "res://characters/meshes/torso_flowery_yellow.obj",
+					"pink": "res://characters/meshes/torso_flowery_pink.obj"
+				},
+				"box": [
+					-0.1991,
+					0.08,
+					-0.1,
+					0.1991,
+					0.426,
+					0.1
+				]
+			},
+			"stripes": {
+				"bone": "upper",
+				"regions": {
+					"main": "res://characters/meshes/torso_stripes_main.obj",
+					"white": "res://characters/meshes/torso_stripes_white.obj"
+				},
+				"box": [
+					-0.1991,
+					0.08,
+					-0.1,
+					0.1991,
+					0.426,
+					0.1
+				]
+			},
+			"plaid": {
+				"bone": "upper",
+				"regions": {
+					"main": "res://characters/meshes/torso_plaid_main.obj",
+					"dark": "res://characters/meshes/torso_plaid_dark.obj",
+					"light": "res://characters/meshes/torso_plaid_light.obj"
+				},
+				"box": [
+					-0.1991,
+					0.08,
+					-0.1,
+					0.1991,
+					0.426,
+					0.1
+				]
+			},
+			"lab_coat": {
+				"bone": "upper",
+				"regions": {
+					"main": "res://characters/meshes/torso_lab_coat_main.obj",
+					"dark": "res://characters/meshes/torso_lab_coat_dark.obj",
+					"ink": "res://characters/meshes/torso_lab_coat_ink.obj",
+					"blue": "res://characters/meshes/torso_lab_coat_blue.obj",
+					"red": "res://characters/meshes/torso_lab_coat_red.obj"
+				},
+				"box": [
+					-0.1991,
+					0.08,
+					-0.1,
+					0.1991,
+					0.426,
+					0.1
+				]
+			},
+			"tunic": {
+				"bone": "upper",
+				"regions": {
+					"main": "res://characters/meshes/torso_tunic_main.obj",
+					"white": "res://characters/meshes/torso_tunic_white.obj",
+					"brown": "res://characters/meshes/torso_tunic_brown.obj",
+					"gold": "res://characters/meshes/torso_tunic_gold.obj"
+				},
+				"box": [
+					-0.1991,
+					0.08,
+					-0.106,
+					0.1991,
+					0.426,
+					0.1
+				]
+			},
+			"pirate_coat": {
+				"bone": "upper",
+				"regions": {
+					"main": "res://characters/meshes/torso_pirate_coat_main.obj",
+					"white": "res://characters/meshes/torso_pirate_coat_white.obj",
+					"dark": "res://characters/meshes/torso_pirate_coat_dark.obj",
+					"gold": "res://characters/meshes/torso_pirate_coat_gold.obj",
+					"brown": "res://characters/meshes/torso_pirate_coat_brown.obj"
+				},
+				"box": [
+					-0.1991,
+					0.08,
+					-0.106,
+					0.1991,
+					0.426,
+					0.1
+				]
+			},
+			"leather": {
+				"bone": "upper",
+				"regions": {
+					"main": "res://characters/meshes/torso_leather_main.obj",
+					"silver": "res://characters/meshes/torso_leather_silver.obj",
+					"dark": "res://characters/meshes/torso_leather_dark.obj"
+				},
+				"box": [
+					-0.1991,
+					0.08,
+					-0.1,
+					0.1991,
+					0.426,
+					0.1
+				]
+			},
+			"space_suit": {
+				"bone": "upper",
+				"regions": {
+					"main": "res://characters/meshes/torso_space_suit_main.obj",
+					"grey": "res://characters/meshes/torso_space_suit_grey.obj",
+					"red": "res://characters/meshes/torso_space_suit_red.obj",
+					"green": "res://characters/meshes/torso_space_suit_green.obj",
+					"yellow": "res://characters/meshes/torso_space_suit_yellow.obj",
+					"blue": "res://characters/meshes/torso_space_suit_blue.obj",
+					"ink": "res://characters/meshes/torso_space_suit_ink.obj",
+					"white": "res://characters/meshes/torso_space_suit_white.obj"
+				},
+				"box": [
+					-0.1991,
+					0.08,
+					-0.1,
+					0.1991,
+					0.426,
+					0.1
+				]
+			},
+			"gi": {
+				"bone": "upper",
+				"regions": {
+					"main": "res://characters/meshes/torso_gi_main.obj",
+					"dark": "res://characters/meshes/torso_gi_dark.obj",
+					"ink": "res://characters/meshes/torso_gi_ink.obj"
+				},
+				"box": [
+					-0.1991,
+					0.08,
+					-0.1,
+					0.1991,
+					0.426,
+					0.1
+				]
+			},
+			"robot": {
+				"bone": "upper",
+				"regions": {
+					"main": "res://characters/meshes/torso_robot_main.obj",
+					"dark": "res://characters/meshes/torso_robot_dark.obj",
+					"red": "res://characters/meshes/torso_robot_red.obj",
+					"green": "res://characters/meshes/torso_robot_green.obj",
+					"blue": "res://characters/meshes/torso_robot_blue.obj",
+					"ink": "res://characters/meshes/torso_robot_ink.obj"
+				},
+				"box": [
+					-0.1991,
+					0.08,
+					-0.1,
+					0.1991,
+					0.426,
+					0.1
+				],
+				"metallic": 0.35
+			},
+			"jersey": {
+				"bone": "upper",
+				"regions": {
+					"main": "res://characters/meshes/torso_jersey_main.obj",
+					"white": "res://characters/meshes/torso_jersey_white.obj"
+				},
+				"box": [
+					-0.1991,
+					0.08,
+					-0.1,
+					0.1991,
+					0.426,
+					0.1
+				]
+			},
+			"dino_belly": {
+				"bone": "upper",
+				"regions": {
+					"main": "res://characters/meshes/torso_dino_belly_main.obj",
+					"light": "res://characters/meshes/torso_dino_belly_light.obj",
+					"dark": "res://characters/meshes/torso_dino_belly_dark.obj"
+				},
+				"box": [
+					-0.1991,
+					0.08,
+					-0.1,
+					0.1991,
+					0.426,
+					0.1
+				]
+			}
+		},
+		"arms": {
+			"long_sleeves": {
+				"bone": "arm_l",
+				"regions": {
+					"main": "res://characters/meshes/arms_long_sleeves_l_main.obj"
+				},
+				"box": [
+					-0.072,
+					-0.2498,
+					-0.0901,
+					0.0544,
+					0.043,
+					0.047
+				],
+				"hand_l": {
+					"bone": "hand_l",
+					"regions": {
+						"skin": "res://characters/meshes/arms_long_sleeves_hand_l_skin.obj"
+					},
+					"box": [
+						-0.042,
+						-0.0322,
+						-0.0215,
+						0.042,
+						0.075,
+						0.0215
+					]
+				},
+				"arm_r": {
+					"bone": "arm_r",
+					"regions": {
+						"main": "res://characters/meshes/arms_long_sleeves_r_main.obj"
+					},
+					"box": [
+						-0.0544,
+						-0.2498,
+						-0.0901,
+						0.072,
+						0.043,
+						0.047
+					]
+				},
+				"hand_r": {
+					"bone": "hand_r",
+					"regions": {
+						"skin": "res://characters/meshes/arms_long_sleeves_hand_l_skin.obj"
+					},
+					"box": [
+						-0.042,
+						-0.0322,
+						-0.0215,
+						0.042,
+						0.075,
+						0.0215
+					]
+				}
+			},
+			"short_sleeves": {
+				"bone": "arm_l",
+				"regions": {
+					"main": "res://characters/meshes/arms_short_sleeves_l_main.obj",
+					"skin": "res://characters/meshes/arms_short_sleeves_l_skin.obj"
+				},
+				"box": [
+					-0.072,
+					-0.2498,
+					-0.0901,
+					0.0544,
+					0.043,
+					0.047
+				],
+				"hand_l": {
+					"bone": "hand_l",
+					"regions": {
+						"skin": "res://characters/meshes/arms_long_sleeves_hand_l_skin.obj"
+					},
+					"box": [
+						-0.042,
+						-0.0322,
+						-0.0215,
+						0.042,
+						0.075,
+						0.0215
+					]
+				},
+				"arm_r": {
+					"bone": "arm_r",
+					"regions": {
+						"main": "res://characters/meshes/arms_short_sleeves_r_main.obj",
+						"skin": "res://characters/meshes/arms_short_sleeves_r_skin.obj"
+					},
+					"box": [
+						-0.0544,
+						-0.2498,
+						-0.0901,
+						0.072,
+						0.043,
+						0.047
+					]
+				},
+				"hand_r": {
+					"bone": "hand_r",
+					"regions": {
+						"skin": "res://characters/meshes/arms_long_sleeves_hand_l_skin.obj"
+					},
+					"box": [
+						-0.042,
+						-0.0322,
+						-0.0215,
+						0.042,
+						0.075,
+						0.0215
+					]
+				}
+			},
+			"gloves": {
+				"bone": "arm_l",
+				"regions": {
+					"main": "res://characters/meshes/arms_long_sleeves_l_main.obj"
+				},
+				"box": [
+					-0.072,
+					-0.2498,
+					-0.0901,
+					0.0544,
+					0.043,
+					0.047
+				],
+				"hand_l": {
+					"bone": "hand_l",
+					"regions": {
+						"ink": "res://characters/meshes/arms_long_sleeves_hand_l_skin.obj"
+					},
+					"box": [
+						-0.042,
+						-0.0322,
+						-0.0215,
+						0.042,
+						0.075,
+						0.0215
+					]
+				},
+				"arm_r": {
+					"bone": "arm_r",
+					"regions": {
+						"main": "res://characters/meshes/arms_long_sleeves_r_main.obj"
+					},
+					"box": [
+						-0.0544,
+						-0.2498,
+						-0.0901,
+						0.072,
+						0.043,
+						0.047
+					]
+				},
+				"hand_r": {
+					"bone": "hand_r",
+					"regions": {
+						"ink": "res://characters/meshes/arms_long_sleeves_hand_l_skin.obj"
+					},
+					"box": [
+						-0.042,
+						-0.0322,
+						-0.0215,
+						0.042,
+						0.075,
+						0.0215
+					]
+				}
+			},
+			"mechanical": {
+				"bone": "arm_l",
+				"regions": {
+					"main": "res://characters/meshes/arms_mechanical_l_main.obj",
+					"dark": "res://characters/meshes/arms_mechanical_l_dark.obj"
+				},
+				"box": [
+					-0.072,
+					-0.2498,
+					-0.0901,
+					0.0544,
+					0.043,
+					0.047
+				],
+				"hand_l": {
+					"bone": "hand_l",
+					"regions": {
+						"main": "res://characters/meshes/arms_long_sleeves_hand_l_skin.obj"
+					},
+					"box": [
+						-0.042,
+						-0.0322,
+						-0.0215,
+						0.042,
+						0.075,
+						0.0215
+					]
+				},
+				"arm_r": {
+					"bone": "arm_r",
+					"regions": {
+						"main": "res://characters/meshes/arms_mechanical_r_main.obj",
+						"dark": "res://characters/meshes/arms_mechanical_r_dark.obj"
+					},
+					"box": [
+						-0.0544,
+						-0.2498,
+						-0.0901,
+						0.072,
+						0.043,
+						0.047
+					]
+				},
+				"hand_r": {
+					"bone": "hand_r",
+					"regions": {
+						"main": "res://characters/meshes/arms_long_sleeves_hand_l_skin.obj"
+					},
+					"box": [
+						-0.042,
+						-0.0322,
+						-0.0215,
+						0.042,
+						0.075,
+						0.0215
+					]
+				},
+				"metallic": 0.5
+			},
+			"bare": {
+				"bone": "arm_l",
+				"regions": {
+					"skin": "res://characters/meshes/arms_bare_l_skin.obj"
+				},
+				"box": [
+					-0.072,
+					-0.2498,
+					-0.0901,
+					0.0544,
+					0.043,
+					0.047
+				],
+				"hand_l": {
+					"bone": "hand_l",
+					"regions": {
+						"skin": "res://characters/meshes/arms_long_sleeves_hand_l_skin.obj"
+					},
+					"box": [
+						-0.042,
+						-0.0322,
+						-0.0215,
+						0.042,
+						0.075,
+						0.0215
+					]
+				},
+				"arm_r": {
+					"bone": "arm_r",
+					"regions": {
+						"skin": "res://characters/meshes/arms_bare_r_skin.obj"
+					},
+					"box": [
+						-0.0544,
+						-0.2498,
+						-0.0901,
+						0.072,
+						0.043,
+						0.047
+					]
+				},
+				"hand_r": {
+					"bone": "hand_r",
+					"regions": {
+						"skin": "res://characters/meshes/arms_long_sleeves_hand_l_skin.obj"
+					},
+					"box": [
+						-0.042,
+						-0.0322,
+						-0.0215,
+						0.042,
+						0.075,
+						0.0215
+					]
+				}
+			},
+			"rolled": {
+				"bone": "arm_l",
+				"regions": {
+					"main": "res://characters/meshes/arms_rolled_l_main.obj",
+					"skin": "res://characters/meshes/arms_rolled_l_skin.obj"
+				},
+				"box": [
+					-0.077,
+					-0.2498,
+					-0.0901,
+					0.0544,
+					0.043,
+					0.047
+				],
+				"hand_l": {
+					"bone": "hand_l",
+					"regions": {
+						"skin": "res://characters/meshes/arms_long_sleeves_hand_l_skin.obj"
+					},
+					"box": [
+						-0.042,
+						-0.0322,
+						-0.0215,
+						0.042,
+						0.075,
+						0.0215
+					]
+				},
+				"arm_r": {
+					"bone": "arm_r",
+					"regions": {
+						"main": "res://characters/meshes/arms_rolled_r_main.obj",
+						"skin": "res://characters/meshes/arms_rolled_r_skin.obj"
+					},
+					"box": [
+						-0.0544,
+						-0.2498,
+						-0.0901,
+						0.077,
+						0.043,
+						0.047
+					]
+				},
+				"hand_r": {
+					"bone": "hand_r",
+					"regions": {
+						"skin": "res://characters/meshes/arms_long_sleeves_hand_l_skin.obj"
+					},
+					"box": [
+						-0.042,
+						-0.0322,
+						-0.0215,
+						0.042,
+						0.075,
+						0.0215
+					]
+				}
+			},
+			"white_gloves": {
+				"bone": "arm_l",
+				"regions": {
+					"main": "res://characters/meshes/arms_long_sleeves_l_main.obj"
+				},
+				"box": [
+					-0.072,
+					-0.2498,
+					-0.0901,
+					0.0544,
+					0.043,
+					0.047
+				],
+				"hand_l": {
+					"bone": "hand_l",
+					"regions": {
+						"white": "res://characters/meshes/arms_long_sleeves_hand_l_skin.obj"
+					},
+					"box": [
+						-0.042,
+						-0.0322,
+						-0.0215,
+						0.042,
+						0.075,
+						0.0215
+					]
+				},
+				"arm_r": {
+					"bone": "arm_r",
+					"regions": {
+						"main": "res://characters/meshes/arms_long_sleeves_r_main.obj"
+					},
+					"box": [
+						-0.0544,
+						-0.2498,
+						-0.0901,
+						0.072,
+						0.043,
+						0.047
+					]
+				},
+				"hand_r": {
+					"bone": "hand_r",
+					"regions": {
+						"white": "res://characters/meshes/arms_long_sleeves_hand_l_skin.obj"
+					},
+					"box": [
+						-0.042,
+						-0.0322,
+						-0.0215,
+						0.042,
+						0.075,
+						0.0215
+					]
+				}
+			},
+			"long_gloves": {
+				"bone": "arm_l",
+				"regions": {
+					"skin": "res://characters/meshes/arms_long_gloves_l_skin.obj",
+					"white": "res://characters/meshes/arms_long_gloves_l_white.obj"
+				},
+				"box": [
+					-0.075,
+					-0.2498,
+					-0.0901,
+					0.0544,
+					0.043,
+					0.047
+				],
+				"hand_l": {
+					"bone": "hand_l",
+					"regions": {
+						"white": "res://characters/meshes/arms_long_sleeves_hand_l_skin.obj"
+					},
+					"box": [
+						-0.042,
+						-0.0322,
+						-0.0215,
+						0.042,
+						0.075,
+						0.0215
+					]
+				},
+				"arm_r": {
+					"bone": "arm_r",
+					"regions": {
+						"skin": "res://characters/meshes/arms_long_gloves_r_skin.obj",
+						"white": "res://characters/meshes/arms_long_gloves_r_white.obj"
+					},
+					"box": [
+						-0.0544,
+						-0.2498,
+						-0.0901,
+						0.075,
+						0.043,
+						0.047
+					]
+				},
+				"hand_r": {
+					"bone": "hand_r",
+					"regions": {
+						"white": "res://characters/meshes/arms_long_sleeves_hand_l_skin.obj"
+					},
+					"box": [
+						-0.042,
+						-0.0322,
+						-0.0215,
+						0.042,
+						0.075,
+						0.0215
+					]
+				}
+			},
+			"wristbands": {
+				"bone": "arm_l",
+				"regions": {
+					"main": "res://characters/meshes/arms_wristbands_l_main.obj",
+					"skin": "res://characters/meshes/arms_wristbands_l_skin.obj"
+				},
+				"box": [
+					-0.072,
+					-0.2554,
+					-0.0919,
+					0.0544,
+					0.043,
+					0.047
+				],
+				"hand_l": {
+					"bone": "hand_l",
+					"regions": {
+						"skin": "res://characters/meshes/arms_long_sleeves_hand_l_skin.obj"
+					},
+					"box": [
+						-0.042,
+						-0.0322,
+						-0.0215,
+						0.042,
+						0.075,
+						0.0215
+					]
+				},
+				"arm_r": {
+					"bone": "arm_r",
+					"regions": {
+						"main": "res://characters/meshes/arms_wristbands_r_main.obj",
+						"skin": "res://characters/meshes/arms_wristbands_r_skin.obj"
+					},
+					"box": [
+						-0.0544,
+						-0.2554,
+						-0.0919,
+						0.072,
+						0.043,
+						0.047
+					]
+				},
+				"hand_r": {
+					"bone": "hand_r",
+					"regions": {
+						"skin": "res://characters/meshes/arms_long_sleeves_hand_l_skin.obj"
+					},
+					"box": [
+						-0.042,
+						-0.0322,
+						-0.0215,
+						0.042,
+						0.075,
+						0.0215
+					]
+				}
+			},
+			"spiked_bracers": {
+				"bone": "arm_l",
+				"regions": {
+					"skin": "res://characters/meshes/arms_spiked_bracers_l_skin.obj",
+					"ink": "res://characters/meshes/arms_spiked_bracers_l_ink.obj",
+					"silver": "res://characters/meshes/arms_spiked_bracers_l_silver.obj"
+				},
+				"box": [
+					-0.088,
+					-0.2498,
+					-0.0901,
+					0.0544,
+					0.043,
+					0.047
+				],
+				"hand_l": {
+					"bone": "hand_l",
+					"regions": {
+						"skin": "res://characters/meshes/arms_long_sleeves_hand_l_skin.obj"
+					},
+					"box": [
+						-0.042,
+						-0.0322,
+						-0.0215,
+						0.042,
+						0.075,
+						0.0215
+					]
+				},
+				"arm_r": {
+					"bone": "arm_r",
+					"regions": {
+						"skin": "res://characters/meshes/arms_spiked_bracers_r_skin.obj",
+						"ink": "res://characters/meshes/arms_spiked_bracers_r_ink.obj",
+						"silver": "res://characters/meshes/arms_spiked_bracers_r_silver.obj"
+					},
+					"box": [
+						-0.0544,
+						-0.2498,
+						-0.0901,
+						0.088,
+						0.043,
+						0.047
+					]
+				},
+				"hand_r": {
+					"bone": "hand_r",
+					"regions": {
+						"skin": "res://characters/meshes/arms_long_sleeves_hand_l_skin.obj"
+					},
+					"box": [
+						-0.042,
+						-0.0322,
+						-0.0215,
+						0.042,
+						0.075,
+						0.0215
+					]
+				}
+			},
+			"armoured": {
+				"bone": "arm_l",
+				"regions": {
+					"main": "res://characters/meshes/arms_armoured_l_main.obj",
+					"dark": "res://characters/meshes/arms_armoured_l_dark.obj"
+				},
+				"box": [
+					-0.072,
+					-0.2498,
+					-0.0901,
+					0.0544,
+					0.05,
+					0.054
+				],
+				"hand_l": {
+					"bone": "hand_l",
+					"regions": {
+						"main": "res://characters/meshes/arms_long_sleeves_hand_l_skin.obj"
+					},
+					"box": [
+						-0.042,
+						-0.0322,
+						-0.0215,
+						0.042,
+						0.075,
+						0.0215
+					]
+				},
+				"arm_r": {
+					"bone": "arm_r",
+					"regions": {
+						"main": "res://characters/meshes/arms_armoured_r_main.obj",
+						"dark": "res://characters/meshes/arms_armoured_r_dark.obj"
+					},
+					"box": [
+						-0.0544,
+						-0.2498,
+						-0.0901,
+						0.072,
+						0.05,
+						0.054
+					]
+				},
+				"hand_r": {
+					"bone": "hand_r",
+					"regions": {
+						"main": "res://characters/meshes/arms_long_sleeves_hand_l_skin.obj"
+					},
+					"box": [
+						-0.042,
+						-0.0322,
+						-0.0215,
+						0.042,
+						0.075,
+						0.0215
+					]
+				},
+				"metallic": 0.5
+			},
+			"striped": {
+				"bone": "arm_l",
+				"regions": {
+					"main": "res://characters/meshes/arms_striped_l_main.obj",
+					"white": "res://characters/meshes/arms_striped_l_white.obj"
+				},
+				"box": [
+					-0.072,
+					-0.2498,
+					-0.0901,
+					0.0544,
+					0.043,
+					0.047
+				],
+				"hand_l": {
+					"bone": "hand_l",
+					"regions": {
+						"skin": "res://characters/meshes/arms_long_sleeves_hand_l_skin.obj"
+					},
+					"box": [
+						-0.042,
+						-0.0322,
+						-0.0215,
+						0.042,
+						0.075,
+						0.0215
+					]
+				},
+				"arm_r": {
+					"bone": "arm_r",
+					"regions": {
+						"main": "res://characters/meshes/arms_striped_r_main.obj",
+						"white": "res://characters/meshes/arms_striped_r_white.obj"
+					},
+					"box": [
+						-0.0544,
+						-0.2498,
+						-0.0901,
+						0.072,
+						0.043,
+						0.047
+					]
+				},
+				"hand_r": {
+					"bone": "hand_r",
+					"regions": {
+						"skin": "res://characters/meshes/arms_long_sleeves_hand_l_skin.obj"
+					},
+					"box": [
+						-0.042,
+						-0.0322,
+						-0.0215,
+						0.042,
+						0.075,
+						0.0215
+					]
+				}
+			},
+			"puffed": {
+				"bone": "arm_l",
+				"regions": {
+					"main": "res://characters/meshes/arms_puffed_l_main.obj",
+					"skin": "res://characters/meshes/arms_short_sleeves_l_skin.obj"
+				},
+				"box": [
+					-0.073,
+					-0.2498,
+					-0.0901,
+					0.0544,
+					0.043,
+					0.053
+				],
+				"hand_l": {
+					"bone": "hand_l",
+					"regions": {
+						"skin": "res://characters/meshes/arms_long_sleeves_hand_l_skin.obj"
+					},
+					"box": [
+						-0.042,
+						-0.0322,
+						-0.0215,
+						0.042,
+						0.075,
+						0.0215
+					]
+				},
+				"arm_r": {
+					"bone": "arm_r",
+					"regions": {
+						"main": "res://characters/meshes/arms_puffed_r_main.obj",
+						"skin": "res://characters/meshes/arms_short_sleeves_r_skin.obj"
+					},
+					"box": [
+						-0.0544,
+						-0.2498,
+						-0.0901,
+						0.073,
+						0.043,
+						0.053
+					]
+				},
+				"hand_r": {
+					"bone": "hand_r",
+					"regions": {
+						"skin": "res://characters/meshes/arms_long_sleeves_hand_l_skin.obj"
+					},
+					"box": [
+						-0.042,
+						-0.0322,
+						-0.0215,
+						0.042,
+						0.075,
+						0.0215
+					]
+				}
+			},
+			"furry": {
+				"bone": "arm_l",
+				"regions": {
+					"main": "res://characters/meshes/arms_furry_l_main.obj",
+					"light": "res://characters/meshes/arms_furry_l_light.obj"
+				},
+				"box": [
+					-0.072,
+					-0.2565,
+					-0.0929,
+					0.0544,
+					0.043,
+					0.047
+				],
+				"hand_l": {
+					"bone": "hand_l",
+					"regions": {
+						"skin": "res://characters/meshes/arms_long_sleeves_hand_l_skin.obj"
+					},
+					"box": [
+						-0.042,
+						-0.0322,
+						-0.0215,
+						0.042,
+						0.075,
+						0.0215
+					]
+				},
+				"arm_r": {
+					"bone": "arm_r",
+					"regions": {
+						"main": "res://characters/meshes/arms_furry_r_main.obj",
+						"light": "res://characters/meshes/arms_furry_r_light.obj"
+					},
+					"box": [
+						-0.0544,
+						-0.2565,
+						-0.0929,
+						0.072,
+						0.043,
+						0.047
+					]
+				},
+				"hand_r": {
+					"bone": "hand_r",
+					"regions": {
+						"skin": "res://characters/meshes/arms_long_sleeves_hand_l_skin.obj"
+					},
+					"box": [
+						-0.042,
+						-0.0322,
+						-0.0215,
+						0.042,
+						0.075,
+						0.0215
+					]
+				}
+			},
+			"scaly": {
+				"bone": "arm_l",
+				"regions": {
+					"main": "res://characters/meshes/arms_scaly_l_main.obj",
+					"light": "res://characters/meshes/arms_scaly_l_light.obj"
+				},
+				"box": [
+					-0.072,
+					-0.2498,
+					-0.0901,
+					0.0544,
+					0.043,
+					0.047
+				],
+				"hand_l": {
+					"bone": "hand_l",
+					"regions": {
+						"main": "res://characters/meshes/arms_long_sleeves_hand_l_skin.obj"
+					},
+					"box": [
+						-0.042,
+						-0.0322,
+						-0.0215,
+						0.042,
+						0.075,
+						0.0215
+					]
+				},
+				"arm_r": {
+					"bone": "arm_r",
+					"regions": {
+						"main": "res://characters/meshes/arms_scaly_r_main.obj",
+						"light": "res://characters/meshes/arms_scaly_r_light.obj"
+					},
+					"box": [
+						-0.0544,
+						-0.2498,
+						-0.0901,
+						0.072,
+						0.043,
+						0.047
+					]
+				},
+				"hand_r": {
+					"bone": "hand_r",
+					"regions": {
+						"main": "res://characters/meshes/arms_long_sleeves_hand_l_skin.obj"
+					},
+					"box": [
+						-0.042,
+						-0.0322,
+						-0.0215,
+						0.042,
+						0.075,
+						0.0215
+					]
+				}
+			},
+			"bandaged": {
+				"bone": "arm_l",
+				"regions": {
+					"skin": "res://characters/meshes/arms_bandaged_l_skin.obj",
+					"white": "res://characters/meshes/arms_bandaged_l_white.obj"
+				},
+				"box": [
+					-0.072,
+					-0.2498,
+					-0.0901,
+					0.0544,
+					0.043,
+					0.047
+				],
+				"hand_l": {
+					"bone": "hand_l",
+					"regions": {
+						"skin": "res://characters/meshes/arms_long_sleeves_hand_l_skin.obj"
+					},
+					"box": [
+						-0.042,
+						-0.0322,
+						-0.0215,
+						0.042,
+						0.075,
+						0.0215
+					]
+				},
+				"arm_r": {
+					"bone": "arm_r",
+					"regions": {
+						"skin": "res://characters/meshes/arms_bandaged_r_skin.obj",
+						"white": "res://characters/meshes/arms_bandaged_r_white.obj"
+					},
+					"box": [
+						-0.0544,
+						-0.2498,
+						-0.0901,
+						0.072,
+						0.043,
+						0.047
+					]
+				},
+				"hand_r": {
+					"bone": "hand_r",
+					"regions": {
+						"skin": "res://characters/meshes/arms_long_sleeves_hand_l_skin.obj"
+					},
+					"box": [
+						-0.042,
+						-0.0322,
+						-0.0215,
+						0.042,
+						0.075,
+						0.0215
+					]
+				}
+			},
+			"watch": {
+				"bone": "arm_l",
+				"regions": {
+					"main": "res://characters/meshes/arms_watch_l_main.obj",
+					"ink": "res://characters/meshes/arms_watch_l_ink.obj",
+					"silver": "res://characters/meshes/arms_watch_l_silver.obj"
+				},
+				"box": [
+					-0.072,
+					-0.2556,
+					-0.0901,
+					0.0544,
+					0.043,
+					0.047
+				],
+				"hand_l": {
+					"bone": "hand_l",
+					"regions": {
+						"skin": "res://characters/meshes/arms_long_sleeves_hand_l_skin.obj"
+					},
+					"box": [
+						-0.042,
+						-0.0322,
+						-0.0215,
+						0.042,
+						0.075,
+						0.0215
+					]
+				},
+				"arm_r": {
+					"bone": "arm_r",
+					"regions": {
+						"main": "res://characters/meshes/arms_watch_r_main.obj",
+						"ink": "res://characters/meshes/arms_watch_r_ink.obj",
+						"silver": "res://characters/meshes/arms_watch_r_silver.obj"
+					},
+					"box": [
+						-0.0544,
+						-0.2556,
+						-0.0901,
+						0.072,
+						0.043,
+						0.047
+					]
+				},
+				"hand_r": {
+					"bone": "hand_r",
+					"regions": {
+						"skin": "res://characters/meshes/arms_long_sleeves_hand_l_skin.obj"
+					},
+					"box": [
+						-0.042,
+						-0.0322,
+						-0.0215,
+						0.042,
+						0.075,
+						0.0215
+					]
+				}
+			},
+			"racing_gloves": {
+				"bone": "arm_l",
+				"regions": {
+					"main": "res://characters/meshes/arms_racing_gloves_l_main.obj",
+					"ink": "res://characters/meshes/arms_racing_gloves_l_ink.obj",
+					"light": "res://characters/meshes/arms_racing_gloves_l_light.obj"
+				},
+				"box": [
+					-0.072,
+					-0.2498,
+					-0.0901,
+					0.0544,
+					0.043,
+					0.047
+				],
+				"hand_l": {
+					"bone": "hand_l",
+					"regions": {
+						"ink": "res://characters/meshes/arms_long_sleeves_hand_l_skin.obj"
+					},
+					"box": [
+						-0.042,
+						-0.0322,
+						-0.0215,
+						0.042,
+						0.075,
+						0.0215
+					]
+				},
+				"arm_r": {
+					"bone": "arm_r",
+					"regions": {
+						"main": "res://characters/meshes/arms_racing_gloves_r_main.obj",
+						"ink": "res://characters/meshes/arms_racing_gloves_r_ink.obj",
+						"light": "res://characters/meshes/arms_racing_gloves_r_light.obj"
+					},
+					"box": [
+						-0.0544,
+						-0.2498,
+						-0.0901,
+						0.072,
+						0.043,
+						0.047
+					]
+				},
+				"hand_r": {
+					"bone": "hand_r",
+					"regions": {
+						"ink": "res://characters/meshes/arms_long_sleeves_hand_l_skin.obj"
+					},
+					"box": [
+						-0.042,
+						-0.0322,
+						-0.0215,
+						0.042,
+						0.075,
+						0.0215
+					]
+				}
+			},
+			"tattoo": {
+				"bone": "arm_l",
+				"regions": {
+					"skin": "res://characters/meshes/arms_tattoo_l_skin.obj",
+					"blue": "res://characters/meshes/arms_tattoo_l_blue.obj"
+				},
+				"box": [
+					-0.072,
+					-0.2498,
+					-0.0901,
+					0.0544,
+					0.043,
+					0.047
+				],
+				"hand_l": {
+					"bone": "hand_l",
+					"regions": {
+						"skin": "res://characters/meshes/arms_long_sleeves_hand_l_skin.obj"
+					},
+					"box": [
+						-0.042,
+						-0.0322,
+						-0.0215,
+						0.042,
+						0.075,
+						0.0215
+					]
+				},
+				"arm_r": {
+					"bone": "arm_r",
+					"regions": {
+						"skin": "res://characters/meshes/arms_tattoo_r_skin.obj",
+						"blue": "res://characters/meshes/arms_tattoo_r_blue.obj"
+					},
+					"box": [
+						-0.0544,
+						-0.2498,
+						-0.0901,
+						0.072,
+						0.043,
+						0.047
+					]
+				},
+				"hand_r": {
+					"bone": "hand_r",
+					"regions": {
+						"skin": "res://characters/meshes/arms_long_sleeves_hand_l_skin.obj"
+					},
+					"box": [
+						-0.042,
+						-0.0322,
+						-0.0215,
+						0.042,
+						0.075,
+						0.0215
+					]
+				}
+			},
+			"two_tone": {
+				"bone": "arm_l",
+				"regions": {
+					"main": "res://characters/meshes/arms_two_tone_l_main.obj",
+					"dark": "res://characters/meshes/arms_rolled_l_skin.obj"
+				},
+				"box": [
+					-0.072,
+					-0.2498,
+					-0.0901,
+					0.0544,
+					0.043,
+					0.047
+				],
+				"hand_l": {
+					"bone": "hand_l",
+					"regions": {
+						"skin": "res://characters/meshes/arms_long_sleeves_hand_l_skin.obj"
+					},
+					"box": [
+						-0.042,
+						-0.0322,
+						-0.0215,
+						0.042,
+						0.075,
+						0.0215
+					]
+				},
+				"arm_r": {
+					"bone": "arm_r",
+					"regions": {
+						"main": "res://characters/meshes/arms_two_tone_r_main.obj",
+						"dark": "res://characters/meshes/arms_rolled_r_skin.obj"
+					},
+					"box": [
+						-0.0544,
+						-0.2498,
+						-0.0901,
+						0.072,
+						0.043,
+						0.047
+					]
+				},
+				"hand_r": {
+					"bone": "hand_r",
+					"regions": {
+						"skin": "res://characters/meshes/arms_long_sleeves_hand_l_skin.obj"
+					},
+					"box": [
+						-0.042,
+						-0.0322,
+						-0.0215,
+						0.042,
+						0.075,
+						0.0215
+					]
+				}
+			},
+			"rolled_long_gloves": {
+				"bone": "arm_l",
+				"regions": {
+					"main": "res://characters/meshes/arms_rolled_l_main.obj",
+					"skin": "res://characters/meshes/arms_rolled_long_gloves_l_skin.obj",
+					"white": "res://characters/meshes/arms_rolled_long_gloves_l_white.obj"
+				},
+				"box": [
+					-0.077,
+					-0.2498,
+					-0.0901,
+					0.0544,
+					0.043,
+					0.047
+				],
+				"hand_l": {
+					"bone": "hand_l",
+					"regions": {
+						"white": "res://characters/meshes/arms_long_sleeves_hand_l_skin.obj"
+					},
+					"box": [
+						-0.042,
+						-0.0322,
+						-0.0215,
+						0.042,
+						0.075,
+						0.0215
+					]
+				},
+				"arm_r": {
+					"bone": "arm_r",
+					"regions": {
+						"main": "res://characters/meshes/arms_rolled_r_main.obj",
+						"skin": "res://characters/meshes/arms_rolled_long_gloves_r_skin.obj",
+						"white": "res://characters/meshes/arms_rolled_long_gloves_r_white.obj"
+					},
+					"box": [
+						-0.0544,
+						-0.2498,
+						-0.0901,
+						0.077,
+						0.043,
+						0.047
+					]
+				},
+				"hand_r": {
+					"bone": "hand_r",
+					"regions": {
+						"white": "res://characters/meshes/arms_long_sleeves_hand_l_skin.obj"
+					},
+					"box": [
+						-0.042,
+						-0.0322,
+						-0.0215,
+						0.042,
+						0.075,
+						0.0215
+					]
+				}
+			},
+			"short_long_gloves": {
+				"bone": "arm_l",
+				"regions": {
+					"main": "res://characters/meshes/arms_short_sleeves_l_main.obj",
+					"skin": "res://characters/meshes/arms_short_long_gloves_l_skin.obj",
+					"white": "res://characters/meshes/arms_short_long_gloves_l_white.obj"
+				},
+				"box": [
+					-0.075,
+					-0.2498,
+					-0.0901,
+					0.0544,
+					0.043,
+					0.047
+				],
+				"hand_l": {
+					"bone": "hand_l",
+					"regions": {
+						"white": "res://characters/meshes/arms_long_sleeves_hand_l_skin.obj"
+					},
+					"box": [
+						-0.042,
+						-0.0322,
+						-0.0215,
+						0.042,
+						0.075,
+						0.0215
+					]
+				},
+				"arm_r": {
+					"bone": "arm_r",
+					"regions": {
+						"main": "res://characters/meshes/arms_short_sleeves_r_main.obj",
+						"skin": "res://characters/meshes/arms_short_long_gloves_r_skin.obj",
+						"white": "res://characters/meshes/arms_short_long_gloves_r_white.obj"
+					},
+					"box": [
+						-0.0544,
+						-0.2498,
+						-0.0901,
+						0.075,
+						0.043,
+						0.047
+					]
+				},
+				"hand_r": {
+					"bone": "hand_r",
+					"regions": {
+						"white": "res://characters/meshes/arms_long_sleeves_hand_l_skin.obj"
+					},
+					"box": [
+						-0.042,
+						-0.0322,
+						-0.0215,
+						0.042,
+						0.075,
+						0.0215
+					]
+				}
 			}
 		},
 		"hair": {
@@ -3494,7 +5146,7 @@
 				},
 				"box": [
 					-0.156,
-					-0.105,
+					-0.1389,
 					-0.146,
 					0.156,
 					0.162,
@@ -3503,24 +5155,36 @@
 				"top": 0.162,
 				"radius_at": [
 					[
+						-0.13,
+						0.1373
+					],
+					[
+						-0.12,
+						0.1636
+					],
+					[
+						-0.11,
+						0.1616
+					],
+					[
 						-0.1,
-						0.149
+						0.1555
 					],
 					[
 						-0.09,
-						0.1503
+						0.1533
 					],
 					[
 						-0.08,
-						0.1517
+						0.1523
 					],
 					[
 						-0.07,
-						0.153
+						0.1534
 					],
 					[
 						-0.06,
-						0.1543
+						0.1545
 					],
 					[
 						-0.05,
@@ -3616,81 +5280,182 @@
 						"main": "res://characters/meshes/hair_long_straight_cut_main.obj"
 					},
 					"box": [
+						-0.1508,
+						-0.1389,
+						-0.043,
+						0.1502,
+						0.05,
+						0.1552
+					],
+					"top": 0.05,
+					"radius": 0.14
+				},
+				"below": {
+					"regions": {
+						"main": "res://characters/meshes/hair_long_straight_below_main.obj"
+					},
+					"box": [
+						-0.1496,
+						-0.1389,
+						0.0084,
+						0.1496,
+						-0.105,
+						0.1552
+					]
+				},
+				"seated": {
+					"regions": {
+						"main": "res://characters/meshes/hair_long_straight_seated_main.obj",
+						"dark": "res://characters/meshes/hair_long_straight_seated_dark.obj"
+					},
+					"box": [
+						-0.156,
+						-0.1389,
+						-0.146,
+						0.156,
+						0.162,
+						0.158
+					]
+				},
+				"cut_seated": {
+					"regions": {
+						"main": "res://characters/meshes/hair_long_straight_cut_seated_main.obj"
+					},
+					"box": [
+						-0.1508,
+						-0.1389,
+						-0.043,
+						0.1502,
+						0.05,
+						0.1552
+					]
+				},
+				"below_seated": {
+					"regions": {
+						"main": "res://characters/meshes/hair_long_straight_below_seated_main.obj"
+					},
+					"box": [
+						-0.1496,
+						-0.1389,
+						0.0084,
+						0.1496,
+						-0.105,
+						0.1552
+					]
+				},
+				"reclined": {
+					"regions": {
+						"main": "res://characters/meshes/hair_long_straight_reclined_main.obj",
+						"dark": "res://characters/meshes/hair_long_straight_reclined_dark.obj"
+					},
+					"box": [
+						-0.156,
+						-0.1389,
+						-0.146,
+						0.156,
+						0.162,
+						0.158
+					]
+				},
+				"cut_reclined": {
+					"regions": {
+						"main": "res://characters/meshes/hair_long_straight_cut_reclined_main.obj"
+					},
+					"box": [
+						-0.1508,
+						-0.1389,
+						-0.043,
+						0.1502,
+						0.05,
+						0.1552
+					]
+				},
+				"below_reclined": {
+					"regions": {
+						"main": "res://characters/meshes/hair_long_straight_below_reclined_main.obj"
+					},
+					"box": [
+						-0.1496,
+						-0.1389,
+						0.0084,
+						0.1496,
+						-0.105,
+						0.1552
+					]
+				},
+				"astride": {
+					"regions": {
+						"main": "res://characters/meshes/hair_long_straight_astride_main.obj",
+						"dark": "res://characters/meshes/hair_long_straight_astride_dark.obj"
+					},
+					"box": [
+						-0.156,
+						-0.1389,
+						-0.146,
+						0.156,
+						0.162,
+						0.158
+					]
+				},
+				"cut_astride": {
+					"regions": {
+						"main": "res://characters/meshes/hair_long_straight_cut_astride_main.obj"
+					},
+					"box": [
+						-0.1508,
+						-0.1389,
+						-0.043,
+						0.1502,
+						0.05,
+						0.1552
+					]
+				},
+				"below_astride": {
+					"regions": {
+						"main": "res://characters/meshes/hair_long_straight_below_astride_main.obj"
+					},
+					"box": [
+						-0.1496,
+						-0.1389,
+						0.0084,
+						0.1496,
+						-0.105,
+						0.1552
+					]
+				},
+				"short": {
+					"regions": {
+						"main": "res://characters/meshes/hair_long_straight_short_main.obj",
+						"dark": "res://characters/meshes/hair_long_straight_short_dark.obj"
+					},
+					"box": [
+						-0.156,
+						-0.105,
+						-0.146,
+						0.156,
+						0.162,
+						0.158
+					]
+				},
+				"short_cut": {
+					"regions": {
+						"main": "res://characters/meshes/hair_long_straight_short_cut_main.obj"
+					},
+					"box": [
 						-0.1495,
 						-0.105,
 						-0.043,
 						0.1495,
 						0.05,
 						0.1511
-					],
-					"top": 0.05,
-					"radius": 0.14
-				},
-				"length": {
-					"bone": "upper",
-					"regions": {
-						"main": "res://characters/meshes/hair_long_straight_length_main.obj"
-					},
-					"box": [
-						-0.1654,
-						0.1698,
-						0.058,
-						0.1654,
-						0.454,
-						0.183
 					]
 				},
-				"length_seated": {
-					"bone": "upper",
-					"regions": {
-						"main": "res://characters/meshes/hair_long_straight_length_seated_main.obj"
-					},
-					"box": [
-						-0.1652,
-						0.2348,
-						0.058,
-						0.1652,
-						0.454,
-						0.1837
-					]
-				},
-				"length_reclined": {
-					"bone": "upper",
-					"regions": {
-						"main": "res://characters/meshes/hair_long_straight_length_reclined_main.obj"
-					},
-					"box": [
-						-0.165,
-						0.2597,
-						0.058,
-						0.165,
-						0.454,
-						0.1839
-					]
-				},
-				"length_astride": {
-					"bone": "upper",
-					"regions": {
-						"main": "res://characters/meshes/hair_long_straight_length_astride_main.obj"
-					},
-					"box": [
-						-0.1655,
-						0.2099,
-						0.058,
-						0.1655,
-						0.454,
-						0.1899
-					]
-				},
+				"turn": 0.5,
 				"apart": [
 					"back air_tanks",
-					"back angel_wings",
 					"back backpack",
-					"back bat_wings",
 					"back cape",
 					"back dino_tail",
-					"back fairy_wings",
-					"back fox_tail",
 					"back guitar",
 					"back jet_pack",
 					"back parachute",
@@ -3701,7 +5466,10 @@
 					"back short_cape",
 					"back spiky_shell",
 					"back sword",
-					"neck long_scarf"
+					"neck long_scarf",
+					"neck ruff",
+					"neck scarf",
+					"neck spiked_collar"
 				]
 			},
 			"long_wavy": {
@@ -3711,127 +5479,177 @@
 					"dark": "res://characters/meshes/hair_long_wavy_dark.obj"
 				},
 				"box": [
-					-0.1572,
-					-0.105,
-					-0.144,
-					0.1572,
+					-0.165,
+					-0.1207,
+					-0.1407,
+					0.165,
 					0.162,
-					0.1519
+					0.1637
 				],
 				"top": 0.162,
 				"radius_at": [
 					[
+						-0.12,
+						0.1477
+					],
+					[
+						-0.11,
+						0.154
+					],
+					[
 						-0.1,
-						0.1539
-					],
-					[
-						-0.09,
-						0.156
-					],
-					[
-						-0.08,
-						0.1569
-					],
-					[
-						-0.07,
-						0.1578
-					],
-					[
-						-0.06,
-						0.1586
-					],
-					[
-						-0.05,
-						0.1595
-					],
-					[
-						-0.04,
-						0.16
-					],
-					[
-						-0.03,
-						0.1604
-					],
-					[
-						-0.02,
-						0.1607
-					],
-					[
-						-0.01,
-						0.1611
-					],
-					[
-						0.0,
-						0.1614
-					],
-					[
-						0.01,
-						0.1612
-					],
-					[
-						0.02,
-						0.1609
-					],
-					[
-						0.03,
-						0.1605
-					],
-					[
-						0.04,
-						0.1602
-					],
-					[
-						0.05,
-						0.1598
-					],
-					[
-						0.06,
-						0.159
-					],
-					[
-						0.07,
 						0.1581
 					],
 					[
+						-0.09,
+						0.1622
+					],
+					[
+						-0.08,
+						0.1649
+					],
+					[
+						-0.07,
+						0.1672
+					],
+					[
+						-0.06,
+						0.169
+					],
+					[
+						-0.05,
+						0.166
+					],
+					[
+						-0.04,
+						0.1631
+					],
+					[
+						-0.03,
+						0.1606
+					],
+					[
+						-0.02,
+						0.1587
+					],
+					[
+						-0.01,
+						0.1568
+					],
+					[
+						0.0,
+						0.1559
+					],
+					[
+						0.01,
+						0.1554
+					],
+					[
+						0.02,
+						0.1548
+					],
+					[
+						0.03,
+						0.1543
+					],
+					[
+						0.04,
+						0.1537
+					],
+					[
+						0.05,
+						0.1532
+					],
+					[
+						0.06,
+						0.1526
+					],
+					[
+						0.07,
+						0.1521
+					],
+					[
 						0.08,
-						0.1572
+						0.1513
 					],
 					[
 						0.09,
-						0.1564
+						0.1504
 					],
 					[
 						0.1,
-						0.1555
+						0.1496
 					],
 					[
 						0.11,
-						0.1514
+						0.1454
 					],
 					[
 						0.12,
-						0.1472
+						0.1413
 					],
 					[
 						0.13,
-						0.1431
+						0.1372
 					],
 					[
 						0.14,
-						0.1297
+						0.1237
 					],
 					[
 						0.15,
-						0.1055
+						0.0996
 					],
 					[
 						0.16,
-						0.0401
+						0.0376
 					]
 				],
 				"cut": {
 					"regions": {
 						"main": "res://characters/meshes/hair_long_wavy_cut_main.obj"
+					},
+					"box": [
+						-0.1562,
+						-0.1207,
+						-0.043,
+						0.1562,
+						0.05,
+						0.154
+					],
+					"top": 0.05,
+					"radius": 0.14
+				},
+				"below": {
+					"regions": {
+						"main": "res://characters/meshes/hair_long_wavy_below_main.obj"
+					},
+					"box": [
+						-0.1519,
+						-0.1207,
+						-0.0304,
+						0.1519,
+						-0.105,
+						0.1477
+					]
+				},
+				"short": {
+					"regions": {
+						"main": "res://characters/meshes/hair_long_wavy_short_main.obj",
+						"dark": "res://characters/meshes/hair_long_wavy_short_dark.obj"
+					},
+					"box": [
+						-0.1572,
+						-0.105,
+						-0.144,
+						0.1572,
+						0.162,
+						0.1519
+					]
+				},
+				"short_cut": {
+					"regions": {
+						"main": "res://characters/meshes/hair_long_wavy_short_cut_main.obj"
 					},
 					"box": [
 						-0.1517,
@@ -3840,86 +5658,22 @@
 						0.1517,
 						0.05,
 						0.1471
-					],
-					"top": 0.05,
-					"radius": 0.14
-				},
-				"length": {
-					"bone": "upper",
-					"regions": {
-						"main": "res://characters/meshes/hair_long_wavy_length_main.obj"
-					},
-					"box": [
-						-0.1677,
-						0.1638,
-						0.058,
-						0.1677,
-						0.454,
-						0.1861
-					]
-				},
-				"length_seated": {
-					"bone": "upper",
-					"regions": {
-						"main": "res://characters/meshes/hair_long_wavy_length_seated_main.obj"
-					},
-					"box": [
-						-0.1675,
-						0.2288,
-						0.058,
-						0.1675,
-						0.454,
-						0.1883
-					]
-				},
-				"length_reclined": {
-					"bone": "upper",
-					"regions": {
-						"main": "res://characters/meshes/hair_long_wavy_length_reclined_main.obj"
-					},
-					"box": [
-						-0.1675,
-						0.2537,
-						0.058,
-						0.1675,
-						0.454,
-						0.1883
-					]
-				},
-				"length_astride": {
-					"bone": "upper",
-					"regions": {
-						"main": "res://characters/meshes/hair_long_wavy_length_astride_main.obj"
-					},
-					"box": [
-						-0.1677,
-						0.204,
-						0.058,
-						0.1677,
-						0.454,
-						0.1956
 					]
 				},
 				"apart": [
 					"back air_tanks",
-					"back angel_wings",
 					"back backpack",
-					"back bat_wings",
 					"back cape",
-					"back dino_tail",
-					"back fairy_wings",
-					"back fox_tail",
 					"back guitar",
 					"back jet_pack",
 					"back parachute",
 					"back quiver",
 					"back radio",
-					"back shell",
-					"back shield",
 					"back short_cape",
-					"back spiky_shell",
 					"back sword",
-					"neck long_scarf"
+					"neck lei",
+					"neck scarf",
+					"neck spiked_collar"
 				]
 			},
 			"long_swept": {
@@ -3930,7 +5684,7 @@
 				},
 				"box": [
 					-0.156,
-					-0.105,
+					-0.1401,
 					-0.146,
 					0.156,
 					0.1794,
@@ -3939,52 +5693,68 @@
 				"top": 0.1794,
 				"radius_at": [
 					[
+						-0.14,
+						0.1295
+					],
+					[
+						-0.13,
+						0.1407
+					],
+					[
+						-0.12,
+						0.1643
+					],
+					[
+						-0.11,
+						0.1615
+					],
+					[
 						-0.1,
-						0.1483
+						0.1558
 					],
 					[
 						-0.09,
-						0.1507
+						0.1534
 					],
 					[
 						-0.08,
-						0.1518
+						0.1523
 					],
 					[
 						-0.07,
-						0.153
+						0.1534
 					],
 					[
 						-0.06,
-						0.1542
+						0.1545
 					],
 					[
 						-0.05,
-						0.1553
+						0.1557
 					],
 					[
 						-0.04,
-						0.156
+						0.1561
 					],
 					[
 						-0.03,
-						0.1565
+						0.1566
 					],
 					[
 						-0.02,
-						0.1569
+						0.1571
 					],
 					[
 						-0.01,
-						0.1574
+						0.1575
 					],
 					[
 						0.0,
-						0.1579
+						0.158
 					],
 					[
 						0.01,
-						0.1576
+						0.1575
 					],
 					[
 						0.02,
@@ -3992,11 +5762,11 @@
 					],
 					[
 						0.03,
-						0.1567
+						0.1566
 					],
 					[
 						0.04,
-						0.1562
+						0.1561
 					],
 					[
 						0.05,
@@ -4004,7 +5774,7 @@
 					],
 					[
 						0.06,
-						0.1551
+						0.155
 					],
 					[
 						0.07,
@@ -4012,11 +5782,11 @@
 					],
 					[
 						0.08,
-						0.155
+						0.1547
 					],
 					[
 						0.09,
-						0.1533
+						0.1528
 					],
 					[
 						0.1,
@@ -4056,81 +5826,182 @@
 						"main": "res://characters/meshes/hair_long_swept_cut_main.obj"
 					},
 					"box": [
+						-0.1508,
+						-0.1401,
+						-0.043,
+						0.15,
+						0.05,
+						0.1549
+					],
+					"top": 0.05,
+					"radius": 0.14
+				},
+				"below": {
+					"regions": {
+						"main": "res://characters/meshes/hair_long_swept_below_main.obj"
+					},
+					"box": [
+						-0.1495,
+						-0.1401,
+						0.0084,
+						0.1497,
+						-0.105,
+						0.1547
+					]
+				},
+				"seated": {
+					"regions": {
+						"main": "res://characters/meshes/hair_long_swept_seated_main.obj",
+						"dark": "res://characters/meshes/hair_long_swept_seated_dark.obj"
+					},
+					"box": [
+						-0.156,
+						-0.1401,
+						-0.146,
+						0.156,
+						0.1794,
+						0.158
+					]
+				},
+				"cut_seated": {
+					"regions": {
+						"main": "res://characters/meshes/hair_long_swept_cut_seated_main.obj"
+					},
+					"box": [
+						-0.1509,
+						-0.1401,
+						-0.043,
+						0.15,
+						0.05,
+						0.1549
+					]
+				},
+				"below_seated": {
+					"regions": {
+						"main": "res://characters/meshes/hair_long_swept_below_seated_main.obj"
+					},
+					"box": [
+						-0.1496,
+						-0.1401,
+						0.0084,
+						0.1495,
+						-0.105,
+						0.1547
+					]
+				},
+				"reclined": {
+					"regions": {
+						"main": "res://characters/meshes/hair_long_swept_reclined_main.obj",
+						"dark": "res://characters/meshes/hair_long_swept_reclined_dark.obj"
+					},
+					"box": [
+						-0.156,
+						-0.1401,
+						-0.146,
+						0.156,
+						0.1794,
+						0.158
+					]
+				},
+				"cut_reclined": {
+					"regions": {
+						"main": "res://characters/meshes/hair_long_swept_cut_reclined_main.obj"
+					},
+					"box": [
+						-0.1508,
+						-0.1401,
+						-0.043,
+						0.15,
+						0.05,
+						0.1549
+					]
+				},
+				"below_reclined": {
+					"regions": {
+						"main": "res://characters/meshes/hair_long_swept_below_reclined_main.obj"
+					},
+					"box": [
+						-0.1495,
+						-0.1401,
+						0.0084,
+						0.1497,
+						-0.105,
+						0.1547
+					]
+				},
+				"astride": {
+					"regions": {
+						"main": "res://characters/meshes/hair_long_swept_astride_main.obj",
+						"dark": "res://characters/meshes/hair_long_swept_astride_dark.obj"
+					},
+					"box": [
+						-0.156,
+						-0.1401,
+						-0.146,
+						0.156,
+						0.1794,
+						0.158
+					]
+				},
+				"cut_astride": {
+					"regions": {
+						"main": "res://characters/meshes/hair_long_swept_cut_astride_main.obj"
+					},
+					"box": [
+						-0.1509,
+						-0.1401,
+						-0.043,
+						0.15,
+						0.05,
+						0.1549
+					]
+				},
+				"below_astride": {
+					"regions": {
+						"main": "res://characters/meshes/hair_long_swept_below_astride_main.obj"
+					},
+					"box": [
+						-0.1496,
+						-0.1401,
+						0.0084,
+						0.1495,
+						-0.105,
+						0.1547
+					]
+				},
+				"short": {
+					"regions": {
+						"main": "res://characters/meshes/hair_long_swept_short_main.obj",
+						"dark": "res://characters/meshes/hair_long_swept_short_dark.obj"
+					},
+					"box": [
+						-0.156,
+						-0.105,
+						-0.146,
+						0.156,
+						0.1794,
+						0.158
+					]
+				},
+				"short_cut": {
+					"regions": {
+						"main": "res://characters/meshes/hair_long_swept_short_cut_main.obj"
+					},
+					"box": [
 						-0.1497,
 						-0.105,
 						-0.0429,
 						0.1497,
 						0.05,
 						0.1513
-					],
-					"top": 0.05,
-					"radius": 0.14
-				},
-				"length": {
-					"bone": "upper",
-					"regions": {
-						"main": "res://characters/meshes/hair_long_swept_length_main.obj"
-					},
-					"box": [
-						-0.1695,
-						0.1618,
-						0.058,
-						0.1617,
-						0.454,
-						0.183
 					]
 				},
-				"length_seated": {
-					"bone": "upper",
-					"regions": {
-						"main": "res://characters/meshes/hair_long_swept_length_seated_main.obj"
-					},
-					"box": [
-						-0.1694,
-						0.2268,
-						0.058,
-						0.1615,
-						0.454,
-						0.1837
-					]
-				},
-				"length_reclined": {
-					"bone": "upper",
-					"regions": {
-						"main": "res://characters/meshes/hair_long_swept_length_reclined_main.obj"
-					},
-					"box": [
-						-0.1692,
-						0.2517,
-						0.058,
-						0.1613,
-						0.454,
-						0.1839
-					]
-				},
-				"length_astride": {
-					"bone": "upper",
-					"regions": {
-						"main": "res://characters/meshes/hair_long_swept_length_astride_main.obj"
-					},
-					"box": [
-						-0.1696,
-						0.202,
-						0.058,
-						0.1618,
-						0.454,
-						0.1909
-					]
-				},
+				"turn": 0.5,
 				"apart": [
 					"back air_tanks",
-					"back angel_wings",
 					"back backpack",
-					"back bat_wings",
 					"back cape",
 					"back dino_tail",
-					"back fairy_wings",
-					"back fox_tail",
 					"back guitar",
 					"back jet_pack",
 					"back parachute",
@@ -4141,7 +6012,10 @@
 					"back short_cape",
 					"back spiky_shell",
 					"back sword",
-					"neck long_scarf"
+					"neck long_scarf",
+					"neck ruff",
+					"neck scarf",
+					"neck spiked_collar"
 				]
 			},
 			"long_fringe": {
@@ -4151,7 +6025,7 @@
 				},
 				"box": [
 					-0.156,
-					-0.105,
+					-0.1401,
 					-0.152,
 					0.156,
 					0.162,
@@ -4160,44 +6034,60 @@
 				"top": 0.162,
 				"radius_at": [
 					[
+						-0.14,
+						0.1275
+					],
+					[
+						-0.13,
+						0.1387
+					],
+					[
+						-0.12,
+						0.163
+					],
+					[
+						-0.11,
+						0.1617
+					],
+					[
 						-0.1,
-						0.1463
+						0.156
 					],
 					[
 						-0.09,
-						0.1501
+						0.1533
 					],
 					[
 						-0.08,
-						0.151
+						0.1517
 					],
 					[
 						-0.07,
-						0.1519
+						0.1525
 					],
 					[
 						-0.06,
-						0.1528
+						0.1535
 					],
 					[
 						-0.05,
-						0.1537
+						0.1543
 					],
 					[
 						-0.04,
-						0.1544
+						0.1546
 					],
 					[
 						-0.03,
-						0.1548
+						0.155
 					],
 					[
 						-0.02,
-						0.1552
+						0.1554
 					],
 					[
 						-0.01,
-						0.1555
+						0.1557
 					],
 					[
 						0.0,
@@ -4205,7 +6095,7 @@
 					],
 					[
 						0.01,
-						0.1558
+						0.1557
 					],
 					[
 						0.02,
@@ -4233,15 +6123,15 @@
 					],
 					[
 						0.08,
-						0.1556
+						0.1553
 					],
 					[
 						0.09,
-						0.1543
+						0.1531
 					],
 					[
 						0.1,
-						0.1479
+						0.1481
 					],
 					[
 						0.11,
@@ -4273,81 +6163,178 @@
 						"main": "res://characters/meshes/hair_long_fringe_cut_main.obj"
 					},
 					"box": [
+						-0.1528,
+						-0.1401,
+						-0.043,
+						0.1528,
+						0.05,
+						0.1549
+					],
+					"top": 0.05,
+					"radius": 0.14
+				},
+				"below": {
+					"regions": {
+						"main": "res://characters/meshes/hair_long_fringe_below_main.obj"
+					},
+					"box": [
+						-0.1515,
+						-0.1401,
+						0.0084,
+						0.1515,
+						-0.105,
+						0.1545
+					]
+				},
+				"seated": {
+					"regions": {
+						"main": "res://characters/meshes/hair_long_fringe_seated_main.obj"
+					},
+					"box": [
+						-0.156,
+						-0.1401,
+						-0.152,
+						0.156,
+						0.162,
+						0.156
+					]
+				},
+				"cut_seated": {
+					"regions": {
+						"main": "res://characters/meshes/hair_long_fringe_cut_seated_main.obj"
+					},
+					"box": [
+						-0.1528,
+						-0.1401,
+						-0.043,
+						0.1528,
+						0.05,
+						0.1549
+					]
+				},
+				"below_seated": {
+					"regions": {
+						"main": "res://characters/meshes/hair_long_fringe_below_seated_main.obj"
+					},
+					"box": [
+						-0.1515,
+						-0.1401,
+						0.0084,
+						0.1514,
+						-0.105,
+						0.1545
+					]
+				},
+				"reclined": {
+					"regions": {
+						"main": "res://characters/meshes/hair_long_fringe_reclined_main.obj"
+					},
+					"box": [
+						-0.156,
+						-0.1401,
+						-0.152,
+						0.156,
+						0.162,
+						0.156
+					]
+				},
+				"cut_reclined": {
+					"regions": {
+						"main": "res://characters/meshes/hair_long_fringe_cut_reclined_main.obj"
+					},
+					"box": [
+						-0.1528,
+						-0.1401,
+						-0.043,
+						0.1528,
+						0.05,
+						0.1549
+					]
+				},
+				"below_reclined": {
+					"regions": {
+						"main": "res://characters/meshes/hair_long_fringe_below_reclined_main.obj"
+					},
+					"box": [
+						-0.1515,
+						-0.1401,
+						0.0084,
+						0.1515,
+						-0.105,
+						0.1545
+					]
+				},
+				"astride": {
+					"regions": {
+						"main": "res://characters/meshes/hair_long_fringe_astride_main.obj"
+					},
+					"box": [
+						-0.156,
+						-0.1401,
+						-0.152,
+						0.156,
+						0.162,
+						0.156
+					]
+				},
+				"cut_astride": {
+					"regions": {
+						"main": "res://characters/meshes/hair_long_fringe_cut_astride_main.obj"
+					},
+					"box": [
+						-0.1528,
+						-0.1401,
+						-0.043,
+						0.1528,
+						0.05,
+						0.1549
+					]
+				},
+				"below_astride": {
+					"regions": {
+						"main": "res://characters/meshes/hair_long_fringe_below_astride_main.obj"
+					},
+					"box": [
+						-0.1515,
+						-0.1401,
+						0.0084,
+						0.1514,
+						-0.105,
+						0.1545
+					]
+				},
+				"short": {
+					"regions": {
+						"main": "res://characters/meshes/hair_long_fringe_short_main.obj"
+					},
+					"box": [
+						-0.156,
+						-0.105,
+						-0.152,
+						0.156,
+						0.162,
+						0.156
+					]
+				},
+				"short_cut": {
+					"regions": {
+						"main": "res://characters/meshes/hair_long_fringe_short_cut_main.obj"
+					},
+					"box": [
 						-0.1507,
 						-0.105,
 						-0.0428,
 						0.1507,
 						0.05,
 						0.1507
-					],
-					"top": 0.05,
-					"radius": 0.14
-				},
-				"length": {
-					"bone": "upper",
-					"regions": {
-						"main": "res://characters/meshes/hair_long_fringe_length_main.obj"
-					},
-					"box": [
-						-0.1654,
-						0.1938,
-						0.058,
-						0.1654,
-						0.454,
-						0.1817
 					]
 				},
-				"length_seated": {
-					"bone": "upper",
-					"regions": {
-						"main": "res://characters/meshes/hair_long_fringe_length_seated_main.obj"
-					},
-					"box": [
-						-0.1652,
-						0.2588,
-						0.058,
-						0.1652,
-						0.454,
-						0.1822
-					]
-				},
-				"length_reclined": {
-					"bone": "upper",
-					"regions": {
-						"main": "res://characters/meshes/hair_long_fringe_length_reclined_main.obj"
-					},
-					"box": [
-						-0.165,
-						0.2837,
-						0.058,
-						0.165,
-						0.454,
-						0.1821
-					]
-				},
-				"length_astride": {
-					"bone": "upper",
-					"regions": {
-						"main": "res://characters/meshes/hair_long_fringe_length_astride_main.obj"
-					},
-					"box": [
-						-0.1655,
-						0.2337,
-						0.058,
-						0.1655,
-						0.454,
-						0.1846
-					]
-				},
+				"turn": 0.5,
 				"apart": [
 					"back air_tanks",
-					"back angel_wings",
 					"back backpack",
-					"back bat_wings",
 					"back cape",
 					"back dino_tail",
-					"back fairy_wings",
-					"back fox_tail",
 					"back guitar",
 					"back jet_pack",
 					"back parachute",
@@ -4358,7 +6345,10 @@
 					"back short_cape",
 					"back spiky_shell",
 					"back sword",
-					"neck long_scarf"
+					"neck long_scarf",
+					"neck ruff",
+					"neck scarf",
+					"neck spiked_collar"
 				]
 			},
 			"long_curly": {
@@ -4367,126 +6357,134 @@
 					"main": "res://characters/meshes/hair_long_curly_main.obj"
 				},
 				"box": [
-					-0.1689,
-					-0.105,
+					-0.1707,
+					-0.1208,
 					-0.152,
-					0.1689,
+					0.1707,
 					0.18,
-					0.172
+					0.1698
 				],
 				"top": 0.18,
 				"radius_at": [
 					[
+						-0.12,
+						0.1477
+					],
+					[
+						-0.11,
+						0.1563
+					],
+					[
 						-0.1,
-						0.1608
+						0.161
 					],
 					[
 						-0.09,
-						0.1624
+						0.1656
 					],
 					[
 						-0.08,
-						0.164
+						0.1688
 					],
 					[
 						-0.07,
-						0.1657
+						0.1715
 					],
 					[
 						-0.06,
-						0.1673
+						0.1737
 					],
 					[
 						-0.05,
-						0.1689
+						0.1711
 					],
 					[
 						-0.04,
-						0.1696
+						0.1685
 					],
 					[
 						-0.03,
-						0.1702
+						0.1662
 					],
 					[
 						-0.02,
-						0.1708
+						0.1645
 					],
 					[
 						-0.01,
-						0.1714
+						0.1627
 					],
 					[
 						0.0,
-						0.172
+						0.1617
 					],
 					[
 						0.01,
-						0.1714
+						0.161
 					],
 					[
 						0.02,
-						0.1709
+						0.1604
 					],
 					[
 						0.03,
-						0.1703
+						0.1597
 					],
 					[
 						0.04,
-						0.1697
+						0.159
 					],
 					[
 						0.05,
-						0.1691
+						0.1581
 					],
 					[
 						0.06,
-						0.1677
+						0.1567
 					],
 					[
 						0.07,
-						0.1663
+						0.1554
 					],
 					[
 						0.08,
-						0.1648
+						0.1545
 					],
 					[
 						0.09,
-						0.1634
+						0.1541
 					],
 					[
 						0.1,
-						0.162
+						0.1515
 					],
 					[
 						0.11,
-						0.1579
+						0.1473
 					],
 					[
 						0.12,
-						0.1537
+						0.1432
 					],
 					[
 						0.13,
-						0.1496
+						0.1391
 					],
 					[
 						0.14,
-						0.1366
+						0.1252
 					],
 					[
 						0.15,
-						0.1134
+						0.101
 					],
 					[
 						0.16,
-						0.0901
+						0.0805
 					],
 					[
 						0.17,
-						0.0622
+						0.0559
 					],
 					[
 						0.18,
@@ -4498,92 +6496,68 @@
 						"main": "res://characters/meshes/hair_long_curly_cut_main.obj"
 					},
 					"box": [
+						-0.1605,
+						-0.1208,
+						-0.0429,
+						0.1605,
+						0.05,
+						0.1551
+					],
+					"top": 0.05,
+					"radius": 0.14
+				},
+				"below": {
+					"regions": {
+						"main": "res://characters/meshes/hair_long_curly_below_main.obj"
+					},
+					"box": [
+						-0.1558,
+						-0.1208,
+						-0.0302,
+						0.1558,
+						-0.105,
+						0.1493
+					]
+				},
+				"short": {
+					"regions": {
+						"main": "res://characters/meshes/hair_long_curly_short_main.obj"
+					},
+					"box": [
+						-0.1689,
+						-0.105,
+						-0.152,
+						0.1689,
+						0.18,
+						0.172
+					]
+				},
+				"short_cut": {
+					"regions": {
+						"main": "res://characters/meshes/hair_long_curly_short_cut_main.obj"
+					},
+					"box": [
 						-0.1586,
 						-0.105,
 						-0.043,
 						0.1586,
 						0.05,
 						0.1617
-					],
-					"top": 0.05,
-					"radius": 0.14
-				},
-				"length": {
-					"bone": "upper",
-					"regions": {
-						"main": "res://characters/meshes/hair_long_curly_length_main.obj"
-					},
-					"box": [
-						-0.1729,
-						0.1977,
-						0.058,
-						0.1729,
-						0.454,
-						0.1865
-					]
-				},
-				"length_seated": {
-					"bone": "upper",
-					"regions": {
-						"main": "res://characters/meshes/hair_long_curly_length_seated_main.obj"
-					},
-					"box": [
-						-0.1727,
-						0.2627,
-						0.058,
-						0.1727,
-						0.454,
-						0.1889
-					]
-				},
-				"length_reclined": {
-					"bone": "upper",
-					"regions": {
-						"main": "res://characters/meshes/hair_long_curly_length_reclined_main.obj"
-					},
-					"box": [
-						-0.1726,
-						0.2874,
-						0.058,
-						0.1726,
-						0.454,
-						0.189
-					]
-				},
-				"length_astride": {
-					"bone": "upper",
-					"regions": {
-						"main": "res://characters/meshes/hair_long_curly_length_astride_main.obj"
-					},
-					"box": [
-						-0.1729,
-						0.2388,
-						0.058,
-						0.1729,
-						0.454,
-						0.2066
 					]
 				},
 				"apart": [
 					"back air_tanks",
-					"back angel_wings",
 					"back backpack",
-					"back bat_wings",
 					"back cape",
-					"back dino_tail",
-					"back fairy_wings",
-					"back fox_tail",
 					"back guitar",
 					"back jet_pack",
 					"back parachute",
 					"back quiver",
 					"back radio",
-					"back shell",
-					"back shield",
 					"back short_cape",
-					"back spiky_shell",
 					"back sword",
-					"neck long_scarf"
+					"neck scarf",
+					"neck spiked_collar"
 				]
 			},
 			"low_ponytail": {
@@ -4594,25 +6568,77 @@
 				},
 				"box": [
 					-0.1401,
-					-0.105,
+					-0.2308,
 					-0.137,
 					0.1402,
 					0.156,
-					0.1481
+					0.1625
 				],
 				"top": 0.156,
 				"radius_at": [
 					[
+						-0.23,
+						0.1342
+					],
+					[
+						-0.22,
+						0.1472
+					],
+					[
+						-0.21,
+						0.1519
+					],
+					[
+						-0.2,
+						0.1552
+					],
+					[
+						-0.19,
+						0.1578
+					],
+					[
+						-0.18,
+						0.1593
+					],
+					[
+						-0.17,
+						0.1598
+					],
+					[
+						-0.16,
+						0.1603
+					],
+					[
+						-0.15,
+						0.1608
+					],
+					[
+						-0.14,
+						0.1608
+					],
+					[
+						-0.13,
+						0.1608
+					],
+					[
+						-0.12,
+						0.1609
+					],
+					[
+						-0.11,
+						0.1616
+					],
+					[
 						-0.1,
-						0.146
+						0.1624
 					],
 					[
 						-0.09,
-						0.1464
+						0.1608
 					],
 					[
 						-0.08,
-						0.1469
+						0.1511
 					],
 					[
 						-0.07,
@@ -4709,7 +6735,177 @@
 				],
 				"cut": {
 					"regions": {
-						"main": "res://characters/meshes/hair_low_ponytail_cut_main.obj"
+						"main": "res://characters/meshes/hair_low_ponytail_cut_main.obj",
+						"dark": "res://characters/meshes/hair_low_ponytail_cut_dark.obj"
+					},
+					"box": [
+						-0.14,
+						-0.2308,
+						-0.0416,
+						0.14,
+						0.05,
+						0.1625
+					],
+					"top": 0.05,
+					"radius": 0.14
+				},
+				"below": {
+					"regions": {
+						"main": "res://characters/meshes/hair_low_ponytail_below_main.obj",
+						"dark": "res://characters/meshes/hair_low_ponytail_below_dark.obj"
+					},
+					"box": [
+						-0.03,
+						-0.2308,
+						0.0992,
+						0.03,
+						-0.105,
+						0.162
+					]
+				},
+				"seated": {
+					"regions": {
+						"main": "res://characters/meshes/hair_low_ponytail_seated_main.obj",
+						"dark": "res://characters/meshes/hair_low_ponytail_seated_dark.obj"
+					},
+					"box": [
+						-0.1401,
+						-0.2308,
+						-0.137,
+						0.1402,
+						0.156,
+						0.1625
+					]
+				},
+				"cut_seated": {
+					"regions": {
+						"main": "res://characters/meshes/hair_low_ponytail_cut_seated_main.obj",
+						"dark": "res://characters/meshes/hair_low_ponytail_cut_seated_dark.obj"
+					},
+					"box": [
+						-0.14,
+						-0.2308,
+						-0.0416,
+						0.14,
+						0.05,
+						0.1625
+					]
+				},
+				"below_seated": {
+					"regions": {
+						"main": "res://characters/meshes/hair_low_ponytail_below_seated_main.obj",
+						"dark": "res://characters/meshes/hair_low_ponytail_below_seated_dark.obj"
+					},
+					"box": [
+						-0.03,
+						-0.2308,
+						0.0992,
+						0.03,
+						-0.105,
+						0.162
+					]
+				},
+				"reclined": {
+					"regions": {
+						"main": "res://characters/meshes/hair_low_ponytail_reclined_main.obj",
+						"dark": "res://characters/meshes/hair_low_ponytail_reclined_dark.obj"
+					},
+					"box": [
+						-0.1401,
+						-0.2308,
+						-0.137,
+						0.1402,
+						0.156,
+						0.1625
+					]
+				},
+				"cut_reclined": {
+					"regions": {
+						"main": "res://characters/meshes/hair_low_ponytail_cut_reclined_main.obj",
+						"dark": "res://characters/meshes/hair_low_ponytail_cut_reclined_dark.obj"
+					},
+					"box": [
+						-0.14,
+						-0.2308,
+						-0.0416,
+						0.14,
+						0.05,
+						0.1625
+					]
+				},
+				"below_reclined": {
+					"regions": {
+						"main": "res://characters/meshes/hair_low_ponytail_below_reclined_main.obj",
+						"dark": "res://characters/meshes/hair_low_ponytail_below_reclined_dark.obj"
+					},
+					"box": [
+						-0.03,
+						-0.2308,
+						0.0992,
+						0.03,
+						-0.105,
+						0.162
+					]
+				},
+				"astride": {
+					"regions": {
+						"main": "res://characters/meshes/hair_low_ponytail_astride_main.obj",
+						"dark": "res://characters/meshes/hair_low_ponytail_astride_dark.obj"
+					},
+					"box": [
+						-0.1401,
+						-0.2308,
+						-0.137,
+						0.1402,
+						0.156,
+						0.1625
+					]
+				},
+				"cut_astride": {
+					"regions": {
+						"main": "res://characters/meshes/hair_low_ponytail_cut_astride_main.obj",
+						"dark": "res://characters/meshes/hair_low_ponytail_cut_astride_dark.obj"
+					},
+					"box": [
+						-0.14,
+						-0.2308,
+						-0.0416,
+						0.14,
+						0.05,
+						0.1625
+					]
+				},
+				"below_astride": {
+					"regions": {
+						"main": "res://characters/meshes/hair_low_ponytail_below_astride_main.obj",
+						"dark": "res://characters/meshes/hair_low_ponytail_below_astride_dark.obj"
+					},
+					"box": [
+						-0.03,
+						-0.2308,
+						0.0992,
+						0.03,
+						-0.105,
+						0.162
+					]
+				},
+				"short": {
+					"regions": {
+						"main": "res://characters/meshes/hair_low_ponytail_short_main.obj",
+						"dark": "res://characters/meshes/hair_low_ponytail_short_dark.obj"
+					},
+					"box": [
+						-0.1401,
+						-0.105,
+						-0.137,
+						0.1402,
+						0.156,
+						0.1481
+					]
+				},
+				"short_cut": {
+					"regions": {
+						"main": "res://characters/meshes/hair_low_ponytail_short_cut_main.obj"
 					},
 					"box": [
 						-0.14,
@@ -4718,70 +6914,9 @@
 						0.14,
 						0.05,
 						0.1471
-					],
-					"top": 0.05,
-					"radius": 0.14
-				},
-				"length": {
-					"bone": "upper",
-					"regions": {
-						"main": "res://characters/meshes/hair_low_ponytail_length_main.obj",
-						"dark": "res://characters/meshes/hair_low_ponytail_length_dark.obj"
-					},
-					"box": [
-						-0.08,
-						0.1994,
-						0.1136,
-						0.08,
-						0.454,
-						0.2042
 					]
 				},
-				"length_seated": {
-					"bone": "upper",
-					"regions": {
-						"main": "res://characters/meshes/hair_low_ponytail_length_seated_main.obj",
-						"dark": "res://characters/meshes/hair_low_ponytail_length_seated_dark.obj"
-					},
-					"box": [
-						-0.08,
-						0.2642,
-						0.1146,
-						0.08,
-						0.454,
-						0.208
-					]
-				},
-				"length_reclined": {
-					"bone": "upper",
-					"regions": {
-						"main": "res://characters/meshes/hair_low_ponytail_length_reclined_main.obj",
-						"dark": "res://characters/meshes/hair_low_ponytail_length_reclined_dark.obj"
-					},
-					"box": [
-						-0.08,
-						0.2888,
-						0.1153,
-						0.08,
-						0.454,
-						0.2067
-					]
-				},
-				"length_astride": {
-					"bone": "upper",
-					"regions": {
-						"main": "res://characters/meshes/hair_low_ponytail_length_astride_main.obj",
-						"dark": "res://characters/meshes/hair_low_ponytail_length_astride_dark.obj"
-					},
-					"box": [
-						-0.08,
-						0.2416,
-						0.1331,
-						0.08,
-						0.454,
-						0.2091
-					]
-				},
+				"turn": 0.5,
 				"apart": [
 					"back air_tanks",
 					"back angel_wings",
@@ -4800,7 +6935,9 @@
 					"back shield",
 					"back short_cape",
 					"back spiky_shell",
-					"back sword"
+					"back sword",
+					"neck long_scarf",
+					"neck spiked_collar"
 				]
 			}
 		},
@@ -5315,12 +7452,12 @@
 						"glass": "res://characters/meshes/headgear_headband_on_long_wavy_glass.obj"
 					},
 					"box": [
-						-0.1666,
+						-0.1611,
 						0.07,
-						-0.1676,
-						0.1668,
+						-0.1691,
+						0.162,
 						0.1173,
-						0.1639
+						0.1605
 					]
 				},
 				"on_long_swept": {
@@ -5335,7 +7472,7 @@
 						-0.1825,
 						0.1637,
 						0.1173,
-						0.1655
+						0.1651
 					]
 				},
 				"on_long_fringe": {
@@ -5345,10 +7482,10 @@
 						"glass": "res://characters/meshes/headgear_headband_on_long_fringe_glass.obj"
 					},
 					"box": [
-						-0.1646,
+						-0.1645,
 						0.07,
-						-0.1805,
-						0.1646,
+						-0.181,
+						0.1645,
 						0.1173,
 						0.1642
 					]
@@ -5360,12 +7497,12 @@
 						"glass": "res://characters/meshes/headgear_headband_on_long_curly_glass.obj"
 					},
 					"box": [
-						-0.1738,
+						-0.1655,
 						0.07,
-						-0.182,
-						0.1739,
+						-0.1821,
+						0.1654,
 						0.1173,
-						0.1784
+						0.1632
 					]
 				},
 				"on_low_ponytail": {
@@ -5786,12 +7923,12 @@
 						"pink": "res://characters/meshes/headgear_tiara_on_long_wavy_pink.obj"
 					},
 					"box": [
-						-0.154,
+						-0.1518,
 						0.074,
-						-0.1569,
-						0.1543,
+						-0.1579,
+						0.1518,
 						0.12,
-						-0.0465
+						-0.0457
 					]
 				},
 				"on_long_swept": {
@@ -5801,12 +7938,12 @@
 						"pink": "res://characters/meshes/headgear_tiara_on_long_swept_pink.obj"
 					},
 					"box": [
-						-0.1556,
+						-0.1554,
 						0.074,
-						-0.1638,
-						0.1557,
+						-0.1645,
+						0.1559,
 						0.12,
-						-0.0471
+						-0.047
 					]
 				},
 				"on_long_fringe": {
@@ -5816,10 +7953,10 @@
 						"pink": "res://characters/meshes/headgear_tiara_on_long_fringe_pink.obj"
 					},
 					"box": [
-						-0.157,
+						-0.1569,
 						0.074,
-						-0.1694,
-						0.157,
+						-0.1698,
+						0.1569,
 						0.12,
 						-0.0476
 					]
@@ -5831,12 +7968,12 @@
 						"pink": "res://characters/meshes/headgear_tiara_on_long_curly_pink.obj"
 					},
 					"box": [
-						-0.1618,
+						-0.157,
 						0.074,
 						-0.1709,
-						0.1618,
+						0.1567,
 						0.12,
-						-0.0493
+						-0.0475
 					]
 				},
 				"on_low_ponytail": {
@@ -6169,7 +8306,7 @@
 					"long_wavy": [
 						1.0,
 						1.0,
-						0.0301,
+						0.0297,
 						0.0
 					],
 					"long_swept": [
@@ -6187,7 +8324,7 @@
 					"long_curly": [
 						1.0,
 						1.0,
-						0.0429,
+						0.0423,
 						0.0
 					],
 					"low_ponytail": [
@@ -6557,12 +8694,12 @@
 						"dark": "res://characters/meshes/headgear_horns_on_long_wavy_dark.obj"
 					},
 					"box": [
-						-0.256,
+						-0.2504,
 						0.062,
-						-0.1474,
-						0.2562,
+						-0.1457,
+						0.2513,
 						0.159,
-						0.1629
+						0.1596
 					]
 				},
 				"on_long_swept": {
@@ -6571,12 +8708,12 @@
 						"dark": "res://characters/meshes/headgear_horns_on_long_swept_dark.obj"
 					},
 					"box": [
-						-0.2531,
+						-0.253,
 						0.062,
-						-0.1564,
-						0.2531,
+						-0.1571,
+						0.253,
 						0.159,
-						0.1645
+						0.1641
 					]
 				},
 				"on_long_fringe": {
@@ -6585,10 +8722,10 @@
 						"dark": "res://characters/meshes/headgear_horns_on_long_fringe_dark.obj"
 					},
 					"box": [
-						-0.2539,
+						-0.2538,
 						0.062,
-						-0.162,
-						0.2539,
+						-0.1624,
+						0.2538,
 						0.159,
 						0.1632
 					]
@@ -6599,12 +8736,12 @@
 						"dark": "res://characters/meshes/headgear_horns_on_long_curly_dark.obj"
 					},
 					"box": [
-						-0.2631,
+						-0.2549,
 						0.062,
-						-0.1535,
-						0.2632,
+						-0.154,
+						0.2547,
 						0.159,
-						0.1774
+						0.1622
 					]
 				},
 				"on_low_ponytail": {
@@ -6619,1658 +8756,6 @@
 						0.2408,
 						0.159,
 						0.1575
-					]
-				}
-			}
-		},
-		"torso": {
-			"racing_suit": {
-				"bone": "upper",
-				"regions": {
-					"main": "res://characters/meshes/torso_racing_suit_main.obj",
-					"white": "res://characters/meshes/torso_racing_suit_white.obj",
-					"dark": "res://characters/meshes/torso_racing_suit_dark.obj",
-					"silver": "res://characters/meshes/torso_racing_suit_silver.obj"
-				},
-				"box": [
-					-0.1991,
-					0.08,
-					-0.1,
-					0.1991,
-					0.426,
-					0.1
-				]
-			},
-			"jacket": {
-				"bone": "upper",
-				"regions": {
-					"main": "res://characters/meshes/torso_jacket_main.obj",
-					"white": "res://characters/meshes/torso_jacket_white.obj",
-					"dark": "res://characters/meshes/torso_jacket_dark.obj"
-				},
-				"box": [
-					-0.1991,
-					0.08,
-					-0.1,
-					0.1991,
-					0.426,
-					0.1
-				]
-			},
-			"overalls": {
-				"bone": "upper",
-				"regions": {
-					"main": "res://characters/meshes/torso_overalls_main.obj",
-					"denim": "res://characters/meshes/torso_overalls_denim.obj",
-					"gold": "res://characters/meshes/torso_overalls_gold.obj",
-					"denim_dark": "res://characters/meshes/torso_overalls_denim_dark.obj"
-				},
-				"box": [
-					-0.1991,
-					0.08,
-					-0.1,
-					0.1991,
-					0.426,
-					0.1
-				]
-			},
-			"hoodie": {
-				"bone": "upper",
-				"regions": {
-					"main": "res://characters/meshes/torso_hoodie_main.obj",
-					"dark": "res://characters/meshes/torso_hoodie_dark.obj",
-					"white": "res://characters/meshes/torso_hoodie_white.obj"
-				},
-				"box": [
-					-0.1991,
-					0.08,
-					-0.1,
-					0.1991,
-					0.426,
-					0.1
-				]
-			},
-			"armour": {
-				"bone": "upper",
-				"regions": {
-					"main": "res://characters/meshes/torso_armour_main.obj",
-					"dark": "res://characters/meshes/torso_armour_dark.obj",
-					"silver": "res://characters/meshes/torso_armour_silver.obj"
-				},
-				"box": [
-					-0.1991,
-					0.08,
-					-0.1,
-					0.1991,
-					0.426,
-					0.1
-				],
-				"metallic": 0.45
-			},
-			"tee": {
-				"bone": "upper",
-				"regions": {
-					"main": "res://characters/meshes/torso_tee_main.obj"
-				},
-				"box": [
-					-0.1991,
-					0.08,
-					-0.1,
-					0.1991,
-					0.426,
-					0.1
-				]
-			},
-			"tuxedo": {
-				"bone": "upper",
-				"regions": {
-					"main": "res://characters/meshes/torso_tuxedo_main.obj",
-					"white": "res://characters/meshes/torso_tuxedo_white.obj",
-					"dark": "res://characters/meshes/torso_tuxedo_dark.obj",
-					"ink": "res://characters/meshes/torso_tuxedo_ink.obj"
-				},
-				"box": [
-					-0.1991,
-					0.08,
-					-0.1,
-					0.1991,
-					0.426,
-					0.1
-				]
-			},
-			"gown": {
-				"bone": "upper",
-				"regions": {
-					"main": "res://characters/meshes/torso_gown_main.obj",
-					"light": "res://characters/meshes/torso_gown_light.obj",
-					"gold": "res://characters/meshes/torso_gown_gold.obj"
-				},
-				"box": [
-					-0.1991,
-					0.08,
-					-0.1,
-					0.1991,
-					0.426,
-					0.1
-				]
-			},
-			"vest": {
-				"bone": "upper",
-				"regions": {
-					"main": "res://characters/meshes/torso_vest_main.obj",
-					"white": "res://characters/meshes/torso_vest_white.obj",
-					"dark": "res://characters/meshes/torso_vest_dark.obj",
-					"gold": "res://characters/meshes/torso_vest_gold.obj"
-				},
-				"box": [
-					-0.1991,
-					0.08,
-					-0.1,
-					0.1991,
-					0.426,
-					0.1
-				]
-			},
-			"tank_top": {
-				"bone": "upper",
-				"regions": {
-					"main": "res://characters/meshes/torso_tank_top_main.obj",
-					"skin": "res://characters/meshes/torso_tank_top_skin.obj"
-				},
-				"box": [
-					-0.1991,
-					0.08,
-					-0.1,
-					0.1991,
-					0.426,
-					0.1
-				]
-			},
-			"flowery": {
-				"bone": "upper",
-				"regions": {
-					"main": "res://characters/meshes/torso_flowery_main.obj",
-					"white": "res://characters/meshes/torso_flowery_white.obj",
-					"orange": "res://characters/meshes/torso_flowery_orange.obj",
-					"yellow": "res://characters/meshes/torso_flowery_yellow.obj",
-					"pink": "res://characters/meshes/torso_flowery_pink.obj"
-				},
-				"box": [
-					-0.1991,
-					0.08,
-					-0.1,
-					0.1991,
-					0.426,
-					0.1
-				]
-			},
-			"stripes": {
-				"bone": "upper",
-				"regions": {
-					"main": "res://characters/meshes/torso_stripes_main.obj",
-					"white": "res://characters/meshes/torso_stripes_white.obj"
-				},
-				"box": [
-					-0.1991,
-					0.08,
-					-0.1,
-					0.1991,
-					0.426,
-					0.1
-				]
-			},
-			"plaid": {
-				"bone": "upper",
-				"regions": {
-					"main": "res://characters/meshes/torso_plaid_main.obj",
-					"dark": "res://characters/meshes/torso_plaid_dark.obj",
-					"light": "res://characters/meshes/torso_plaid_light.obj"
-				},
-				"box": [
-					-0.1991,
-					0.08,
-					-0.1,
-					0.1991,
-					0.426,
-					0.1
-				]
-			},
-			"lab_coat": {
-				"bone": "upper",
-				"regions": {
-					"main": "res://characters/meshes/torso_lab_coat_main.obj",
-					"dark": "res://characters/meshes/torso_lab_coat_dark.obj",
-					"ink": "res://characters/meshes/torso_lab_coat_ink.obj",
-					"blue": "res://characters/meshes/torso_lab_coat_blue.obj",
-					"red": "res://characters/meshes/torso_lab_coat_red.obj"
-				},
-				"box": [
-					-0.1991,
-					0.08,
-					-0.1,
-					0.1991,
-					0.426,
-					0.1
-				]
-			},
-			"tunic": {
-				"bone": "upper",
-				"regions": {
-					"main": "res://characters/meshes/torso_tunic_main.obj",
-					"white": "res://characters/meshes/torso_tunic_white.obj",
-					"brown": "res://characters/meshes/torso_tunic_brown.obj",
-					"gold": "res://characters/meshes/torso_tunic_gold.obj"
-				},
-				"box": [
-					-0.1991,
-					0.08,
-					-0.106,
-					0.1991,
-					0.426,
-					0.1
-				]
-			},
-			"pirate_coat": {
-				"bone": "upper",
-				"regions": {
-					"main": "res://characters/meshes/torso_pirate_coat_main.obj",
-					"white": "res://characters/meshes/torso_pirate_coat_white.obj",
-					"dark": "res://characters/meshes/torso_pirate_coat_dark.obj",
-					"gold": "res://characters/meshes/torso_pirate_coat_gold.obj",
-					"brown": "res://characters/meshes/torso_pirate_coat_brown.obj"
-				},
-				"box": [
-					-0.1991,
-					0.08,
-					-0.106,
-					0.1991,
-					0.426,
-					0.1
-				]
-			},
-			"leather": {
-				"bone": "upper",
-				"regions": {
-					"main": "res://characters/meshes/torso_leather_main.obj",
-					"silver": "res://characters/meshes/torso_leather_silver.obj",
-					"dark": "res://characters/meshes/torso_leather_dark.obj"
-				},
-				"box": [
-					-0.1991,
-					0.08,
-					-0.1,
-					0.1991,
-					0.426,
-					0.1
-				]
-			},
-			"space_suit": {
-				"bone": "upper",
-				"regions": {
-					"main": "res://characters/meshes/torso_space_suit_main.obj",
-					"grey": "res://characters/meshes/torso_space_suit_grey.obj",
-					"red": "res://characters/meshes/torso_space_suit_red.obj",
-					"green": "res://characters/meshes/torso_space_suit_green.obj",
-					"yellow": "res://characters/meshes/torso_space_suit_yellow.obj",
-					"blue": "res://characters/meshes/torso_space_suit_blue.obj",
-					"ink": "res://characters/meshes/torso_space_suit_ink.obj",
-					"white": "res://characters/meshes/torso_space_suit_white.obj"
-				},
-				"box": [
-					-0.1991,
-					0.08,
-					-0.1,
-					0.1991,
-					0.426,
-					0.1
-				]
-			},
-			"gi": {
-				"bone": "upper",
-				"regions": {
-					"main": "res://characters/meshes/torso_gi_main.obj",
-					"dark": "res://characters/meshes/torso_gi_dark.obj",
-					"ink": "res://characters/meshes/torso_gi_ink.obj"
-				},
-				"box": [
-					-0.1991,
-					0.08,
-					-0.1,
-					0.1991,
-					0.426,
-					0.1
-				]
-			},
-			"robot": {
-				"bone": "upper",
-				"regions": {
-					"main": "res://characters/meshes/torso_robot_main.obj",
-					"dark": "res://characters/meshes/torso_robot_dark.obj",
-					"red": "res://characters/meshes/torso_robot_red.obj",
-					"green": "res://characters/meshes/torso_robot_green.obj",
-					"blue": "res://characters/meshes/torso_robot_blue.obj",
-					"ink": "res://characters/meshes/torso_robot_ink.obj"
-				},
-				"box": [
-					-0.1991,
-					0.08,
-					-0.1,
-					0.1991,
-					0.426,
-					0.1
-				],
-				"metallic": 0.35
-			},
-			"jersey": {
-				"bone": "upper",
-				"regions": {
-					"main": "res://characters/meshes/torso_jersey_main.obj",
-					"white": "res://characters/meshes/torso_jersey_white.obj"
-				},
-				"box": [
-					-0.1991,
-					0.08,
-					-0.1,
-					0.1991,
-					0.426,
-					0.1
-				]
-			},
-			"dino_belly": {
-				"bone": "upper",
-				"regions": {
-					"main": "res://characters/meshes/torso_dino_belly_main.obj",
-					"light": "res://characters/meshes/torso_dino_belly_light.obj",
-					"dark": "res://characters/meshes/torso_dino_belly_dark.obj"
-				},
-				"box": [
-					-0.1991,
-					0.08,
-					-0.1,
-					0.1991,
-					0.426,
-					0.1
-				]
-			}
-		},
-		"arms": {
-			"long_sleeves": {
-				"bone": "arm_l",
-				"regions": {
-					"main": "res://characters/meshes/arms_long_sleeves_l_main.obj"
-				},
-				"box": [
-					-0.072,
-					-0.2498,
-					-0.0901,
-					0.0544,
-					0.043,
-					0.047
-				],
-				"hand_l": {
-					"bone": "hand_l",
-					"regions": {
-						"skin": "res://characters/meshes/arms_long_sleeves_hand_l_skin.obj"
-					},
-					"box": [
-						-0.042,
-						-0.0322,
-						-0.0215,
-						0.042,
-						0.075,
-						0.0215
-					]
-				},
-				"arm_r": {
-					"bone": "arm_r",
-					"regions": {
-						"main": "res://characters/meshes/arms_long_sleeves_r_main.obj"
-					},
-					"box": [
-						-0.0544,
-						-0.2498,
-						-0.0901,
-						0.072,
-						0.043,
-						0.047
-					]
-				},
-				"hand_r": {
-					"bone": "hand_r",
-					"regions": {
-						"skin": "res://characters/meshes/arms_long_sleeves_hand_l_skin.obj"
-					},
-					"box": [
-						-0.042,
-						-0.0322,
-						-0.0215,
-						0.042,
-						0.075,
-						0.0215
-					]
-				}
-			},
-			"short_sleeves": {
-				"bone": "arm_l",
-				"regions": {
-					"main": "res://characters/meshes/arms_short_sleeves_l_main.obj",
-					"skin": "res://characters/meshes/arms_short_sleeves_l_skin.obj"
-				},
-				"box": [
-					-0.072,
-					-0.2498,
-					-0.0901,
-					0.0544,
-					0.043,
-					0.047
-				],
-				"hand_l": {
-					"bone": "hand_l",
-					"regions": {
-						"skin": "res://characters/meshes/arms_long_sleeves_hand_l_skin.obj"
-					},
-					"box": [
-						-0.042,
-						-0.0322,
-						-0.0215,
-						0.042,
-						0.075,
-						0.0215
-					]
-				},
-				"arm_r": {
-					"bone": "arm_r",
-					"regions": {
-						"main": "res://characters/meshes/arms_short_sleeves_r_main.obj",
-						"skin": "res://characters/meshes/arms_short_sleeves_r_skin.obj"
-					},
-					"box": [
-						-0.0544,
-						-0.2498,
-						-0.0901,
-						0.072,
-						0.043,
-						0.047
-					]
-				},
-				"hand_r": {
-					"bone": "hand_r",
-					"regions": {
-						"skin": "res://characters/meshes/arms_long_sleeves_hand_l_skin.obj"
-					},
-					"box": [
-						-0.042,
-						-0.0322,
-						-0.0215,
-						0.042,
-						0.075,
-						0.0215
-					]
-				}
-			},
-			"gloves": {
-				"bone": "arm_l",
-				"regions": {
-					"main": "res://characters/meshes/arms_long_sleeves_l_main.obj"
-				},
-				"box": [
-					-0.072,
-					-0.2498,
-					-0.0901,
-					0.0544,
-					0.043,
-					0.047
-				],
-				"hand_l": {
-					"bone": "hand_l",
-					"regions": {
-						"ink": "res://characters/meshes/arms_long_sleeves_hand_l_skin.obj"
-					},
-					"box": [
-						-0.042,
-						-0.0322,
-						-0.0215,
-						0.042,
-						0.075,
-						0.0215
-					]
-				},
-				"arm_r": {
-					"bone": "arm_r",
-					"regions": {
-						"main": "res://characters/meshes/arms_long_sleeves_r_main.obj"
-					},
-					"box": [
-						-0.0544,
-						-0.2498,
-						-0.0901,
-						0.072,
-						0.043,
-						0.047
-					]
-				},
-				"hand_r": {
-					"bone": "hand_r",
-					"regions": {
-						"ink": "res://characters/meshes/arms_long_sleeves_hand_l_skin.obj"
-					},
-					"box": [
-						-0.042,
-						-0.0322,
-						-0.0215,
-						0.042,
-						0.075,
-						0.0215
-					]
-				}
-			},
-			"mechanical": {
-				"bone": "arm_l",
-				"regions": {
-					"main": "res://characters/meshes/arms_mechanical_l_main.obj",
-					"dark": "res://characters/meshes/arms_mechanical_l_dark.obj"
-				},
-				"box": [
-					-0.072,
-					-0.2498,
-					-0.0901,
-					0.0544,
-					0.043,
-					0.047
-				],
-				"hand_l": {
-					"bone": "hand_l",
-					"regions": {
-						"main": "res://characters/meshes/arms_long_sleeves_hand_l_skin.obj"
-					},
-					"box": [
-						-0.042,
-						-0.0322,
-						-0.0215,
-						0.042,
-						0.075,
-						0.0215
-					]
-				},
-				"arm_r": {
-					"bone": "arm_r",
-					"regions": {
-						"main": "res://characters/meshes/arms_mechanical_r_main.obj",
-						"dark": "res://characters/meshes/arms_mechanical_r_dark.obj"
-					},
-					"box": [
-						-0.0544,
-						-0.2498,
-						-0.0901,
-						0.072,
-						0.043,
-						0.047
-					]
-				},
-				"hand_r": {
-					"bone": "hand_r",
-					"regions": {
-						"main": "res://characters/meshes/arms_long_sleeves_hand_l_skin.obj"
-					},
-					"box": [
-						-0.042,
-						-0.0322,
-						-0.0215,
-						0.042,
-						0.075,
-						0.0215
-					]
-				},
-				"metallic": 0.5
-			},
-			"bare": {
-				"bone": "arm_l",
-				"regions": {
-					"skin": "res://characters/meshes/arms_bare_l_skin.obj"
-				},
-				"box": [
-					-0.072,
-					-0.2498,
-					-0.0901,
-					0.0544,
-					0.043,
-					0.047
-				],
-				"hand_l": {
-					"bone": "hand_l",
-					"regions": {
-						"skin": "res://characters/meshes/arms_long_sleeves_hand_l_skin.obj"
-					},
-					"box": [
-						-0.042,
-						-0.0322,
-						-0.0215,
-						0.042,
-						0.075,
-						0.0215
-					]
-				},
-				"arm_r": {
-					"bone": "arm_r",
-					"regions": {
-						"skin": "res://characters/meshes/arms_bare_r_skin.obj"
-					},
-					"box": [
-						-0.0544,
-						-0.2498,
-						-0.0901,
-						0.072,
-						0.043,
-						0.047
-					]
-				},
-				"hand_r": {
-					"bone": "hand_r",
-					"regions": {
-						"skin": "res://characters/meshes/arms_long_sleeves_hand_l_skin.obj"
-					},
-					"box": [
-						-0.042,
-						-0.0322,
-						-0.0215,
-						0.042,
-						0.075,
-						0.0215
-					]
-				}
-			},
-			"rolled": {
-				"bone": "arm_l",
-				"regions": {
-					"main": "res://characters/meshes/arms_rolled_l_main.obj",
-					"skin": "res://characters/meshes/arms_rolled_l_skin.obj"
-				},
-				"box": [
-					-0.077,
-					-0.2498,
-					-0.0901,
-					0.0544,
-					0.043,
-					0.047
-				],
-				"hand_l": {
-					"bone": "hand_l",
-					"regions": {
-						"skin": "res://characters/meshes/arms_long_sleeves_hand_l_skin.obj"
-					},
-					"box": [
-						-0.042,
-						-0.0322,
-						-0.0215,
-						0.042,
-						0.075,
-						0.0215
-					]
-				},
-				"arm_r": {
-					"bone": "arm_r",
-					"regions": {
-						"main": "res://characters/meshes/arms_rolled_r_main.obj",
-						"skin": "res://characters/meshes/arms_rolled_r_skin.obj"
-					},
-					"box": [
-						-0.0544,
-						-0.2498,
-						-0.0901,
-						0.077,
-						0.043,
-						0.047
-					]
-				},
-				"hand_r": {
-					"bone": "hand_r",
-					"regions": {
-						"skin": "res://characters/meshes/arms_long_sleeves_hand_l_skin.obj"
-					},
-					"box": [
-						-0.042,
-						-0.0322,
-						-0.0215,
-						0.042,
-						0.075,
-						0.0215
-					]
-				}
-			},
-			"white_gloves": {
-				"bone": "arm_l",
-				"regions": {
-					"main": "res://characters/meshes/arms_long_sleeves_l_main.obj"
-				},
-				"box": [
-					-0.072,
-					-0.2498,
-					-0.0901,
-					0.0544,
-					0.043,
-					0.047
-				],
-				"hand_l": {
-					"bone": "hand_l",
-					"regions": {
-						"white": "res://characters/meshes/arms_long_sleeves_hand_l_skin.obj"
-					},
-					"box": [
-						-0.042,
-						-0.0322,
-						-0.0215,
-						0.042,
-						0.075,
-						0.0215
-					]
-				},
-				"arm_r": {
-					"bone": "arm_r",
-					"regions": {
-						"main": "res://characters/meshes/arms_long_sleeves_r_main.obj"
-					},
-					"box": [
-						-0.0544,
-						-0.2498,
-						-0.0901,
-						0.072,
-						0.043,
-						0.047
-					]
-				},
-				"hand_r": {
-					"bone": "hand_r",
-					"regions": {
-						"white": "res://characters/meshes/arms_long_sleeves_hand_l_skin.obj"
-					},
-					"box": [
-						-0.042,
-						-0.0322,
-						-0.0215,
-						0.042,
-						0.075,
-						0.0215
-					]
-				}
-			},
-			"long_gloves": {
-				"bone": "arm_l",
-				"regions": {
-					"skin": "res://characters/meshes/arms_long_gloves_l_skin.obj",
-					"white": "res://characters/meshes/arms_long_gloves_l_white.obj"
-				},
-				"box": [
-					-0.075,
-					-0.2498,
-					-0.0901,
-					0.0544,
-					0.043,
-					0.047
-				],
-				"hand_l": {
-					"bone": "hand_l",
-					"regions": {
-						"white": "res://characters/meshes/arms_long_sleeves_hand_l_skin.obj"
-					},
-					"box": [
-						-0.042,
-						-0.0322,
-						-0.0215,
-						0.042,
-						0.075,
-						0.0215
-					]
-				},
-				"arm_r": {
-					"bone": "arm_r",
-					"regions": {
-						"skin": "res://characters/meshes/arms_long_gloves_r_skin.obj",
-						"white": "res://characters/meshes/arms_long_gloves_r_white.obj"
-					},
-					"box": [
-						-0.0544,
-						-0.2498,
-						-0.0901,
-						0.075,
-						0.043,
-						0.047
-					]
-				},
-				"hand_r": {
-					"bone": "hand_r",
-					"regions": {
-						"white": "res://characters/meshes/arms_long_sleeves_hand_l_skin.obj"
-					},
-					"box": [
-						-0.042,
-						-0.0322,
-						-0.0215,
-						0.042,
-						0.075,
-						0.0215
-					]
-				}
-			},
-			"wristbands": {
-				"bone": "arm_l",
-				"regions": {
-					"main": "res://characters/meshes/arms_wristbands_l_main.obj",
-					"skin": "res://characters/meshes/arms_wristbands_l_skin.obj"
-				},
-				"box": [
-					-0.072,
-					-0.2554,
-					-0.0919,
-					0.0544,
-					0.043,
-					0.047
-				],
-				"hand_l": {
-					"bone": "hand_l",
-					"regions": {
-						"skin": "res://characters/meshes/arms_long_sleeves_hand_l_skin.obj"
-					},
-					"box": [
-						-0.042,
-						-0.0322,
-						-0.0215,
-						0.042,
-						0.075,
-						0.0215
-					]
-				},
-				"arm_r": {
-					"bone": "arm_r",
-					"regions": {
-						"main": "res://characters/meshes/arms_wristbands_r_main.obj",
-						"skin": "res://characters/meshes/arms_wristbands_r_skin.obj"
-					},
-					"box": [
-						-0.0544,
-						-0.2554,
-						-0.0919,
-						0.072,
-						0.043,
-						0.047
-					]
-				},
-				"hand_r": {
-					"bone": "hand_r",
-					"regions": {
-						"skin": "res://characters/meshes/arms_long_sleeves_hand_l_skin.obj"
-					},
-					"box": [
-						-0.042,
-						-0.0322,
-						-0.0215,
-						0.042,
-						0.075,
-						0.0215
-					]
-				}
-			},
-			"spiked_bracers": {
-				"bone": "arm_l",
-				"regions": {
-					"skin": "res://characters/meshes/arms_spiked_bracers_l_skin.obj",
-					"ink": "res://characters/meshes/arms_spiked_bracers_l_ink.obj",
-					"silver": "res://characters/meshes/arms_spiked_bracers_l_silver.obj"
-				},
-				"box": [
-					-0.088,
-					-0.2498,
-					-0.0901,
-					0.0544,
-					0.043,
-					0.047
-				],
-				"hand_l": {
-					"bone": "hand_l",
-					"regions": {
-						"skin": "res://characters/meshes/arms_long_sleeves_hand_l_skin.obj"
-					},
-					"box": [
-						-0.042,
-						-0.0322,
-						-0.0215,
-						0.042,
-						0.075,
-						0.0215
-					]
-				},
-				"arm_r": {
-					"bone": "arm_r",
-					"regions": {
-						"skin": "res://characters/meshes/arms_spiked_bracers_r_skin.obj",
-						"ink": "res://characters/meshes/arms_spiked_bracers_r_ink.obj",
-						"silver": "res://characters/meshes/arms_spiked_bracers_r_silver.obj"
-					},
-					"box": [
-						-0.0544,
-						-0.2498,
-						-0.0901,
-						0.088,
-						0.043,
-						0.047
-					]
-				},
-				"hand_r": {
-					"bone": "hand_r",
-					"regions": {
-						"skin": "res://characters/meshes/arms_long_sleeves_hand_l_skin.obj"
-					},
-					"box": [
-						-0.042,
-						-0.0322,
-						-0.0215,
-						0.042,
-						0.075,
-						0.0215
-					]
-				}
-			},
-			"armoured": {
-				"bone": "arm_l",
-				"regions": {
-					"main": "res://characters/meshes/arms_armoured_l_main.obj",
-					"dark": "res://characters/meshes/arms_armoured_l_dark.obj"
-				},
-				"box": [
-					-0.072,
-					-0.2498,
-					-0.0901,
-					0.0544,
-					0.05,
-					0.054
-				],
-				"hand_l": {
-					"bone": "hand_l",
-					"regions": {
-						"main": "res://characters/meshes/arms_long_sleeves_hand_l_skin.obj"
-					},
-					"box": [
-						-0.042,
-						-0.0322,
-						-0.0215,
-						0.042,
-						0.075,
-						0.0215
-					]
-				},
-				"arm_r": {
-					"bone": "arm_r",
-					"regions": {
-						"main": "res://characters/meshes/arms_armoured_r_main.obj",
-						"dark": "res://characters/meshes/arms_armoured_r_dark.obj"
-					},
-					"box": [
-						-0.0544,
-						-0.2498,
-						-0.0901,
-						0.072,
-						0.05,
-						0.054
-					]
-				},
-				"hand_r": {
-					"bone": "hand_r",
-					"regions": {
-						"main": "res://characters/meshes/arms_long_sleeves_hand_l_skin.obj"
-					},
-					"box": [
-						-0.042,
-						-0.0322,
-						-0.0215,
-						0.042,
-						0.075,
-						0.0215
-					]
-				},
-				"metallic": 0.5
-			},
-			"striped": {
-				"bone": "arm_l",
-				"regions": {
-					"main": "res://characters/meshes/arms_striped_l_main.obj",
-					"white": "res://characters/meshes/arms_striped_l_white.obj"
-				},
-				"box": [
-					-0.072,
-					-0.2498,
-					-0.0901,
-					0.0544,
-					0.043,
-					0.047
-				],
-				"hand_l": {
-					"bone": "hand_l",
-					"regions": {
-						"skin": "res://characters/meshes/arms_long_sleeves_hand_l_skin.obj"
-					},
-					"box": [
-						-0.042,
-						-0.0322,
-						-0.0215,
-						0.042,
-						0.075,
-						0.0215
-					]
-				},
-				"arm_r": {
-					"bone": "arm_r",
-					"regions": {
-						"main": "res://characters/meshes/arms_striped_r_main.obj",
-						"white": "res://characters/meshes/arms_striped_r_white.obj"
-					},
-					"box": [
-						-0.0544,
-						-0.2498,
-						-0.0901,
-						0.072,
-						0.043,
-						0.047
-					]
-				},
-				"hand_r": {
-					"bone": "hand_r",
-					"regions": {
-						"skin": "res://characters/meshes/arms_long_sleeves_hand_l_skin.obj"
-					},
-					"box": [
-						-0.042,
-						-0.0322,
-						-0.0215,
-						0.042,
-						0.075,
-						0.0215
-					]
-				}
-			},
-			"puffed": {
-				"bone": "arm_l",
-				"regions": {
-					"main": "res://characters/meshes/arms_puffed_l_main.obj",
-					"skin": "res://characters/meshes/arms_short_sleeves_l_skin.obj"
-				},
-				"box": [
-					-0.073,
-					-0.2498,
-					-0.0901,
-					0.0544,
-					0.043,
-					0.053
-				],
-				"hand_l": {
-					"bone": "hand_l",
-					"regions": {
-						"skin": "res://characters/meshes/arms_long_sleeves_hand_l_skin.obj"
-					},
-					"box": [
-						-0.042,
-						-0.0322,
-						-0.0215,
-						0.042,
-						0.075,
-						0.0215
-					]
-				},
-				"arm_r": {
-					"bone": "arm_r",
-					"regions": {
-						"main": "res://characters/meshes/arms_puffed_r_main.obj",
-						"skin": "res://characters/meshes/arms_short_sleeves_r_skin.obj"
-					},
-					"box": [
-						-0.0544,
-						-0.2498,
-						-0.0901,
-						0.073,
-						0.043,
-						0.053
-					]
-				},
-				"hand_r": {
-					"bone": "hand_r",
-					"regions": {
-						"skin": "res://characters/meshes/arms_long_sleeves_hand_l_skin.obj"
-					},
-					"box": [
-						-0.042,
-						-0.0322,
-						-0.0215,
-						0.042,
-						0.075,
-						0.0215
-					]
-				}
-			},
-			"furry": {
-				"bone": "arm_l",
-				"regions": {
-					"main": "res://characters/meshes/arms_furry_l_main.obj",
-					"light": "res://characters/meshes/arms_furry_l_light.obj"
-				},
-				"box": [
-					-0.072,
-					-0.2565,
-					-0.0929,
-					0.0544,
-					0.043,
-					0.047
-				],
-				"hand_l": {
-					"bone": "hand_l",
-					"regions": {
-						"skin": "res://characters/meshes/arms_long_sleeves_hand_l_skin.obj"
-					},
-					"box": [
-						-0.042,
-						-0.0322,
-						-0.0215,
-						0.042,
-						0.075,
-						0.0215
-					]
-				},
-				"arm_r": {
-					"bone": "arm_r",
-					"regions": {
-						"main": "res://characters/meshes/arms_furry_r_main.obj",
-						"light": "res://characters/meshes/arms_furry_r_light.obj"
-					},
-					"box": [
-						-0.0544,
-						-0.2565,
-						-0.0929,
-						0.072,
-						0.043,
-						0.047
-					]
-				},
-				"hand_r": {
-					"bone": "hand_r",
-					"regions": {
-						"skin": "res://characters/meshes/arms_long_sleeves_hand_l_skin.obj"
-					},
-					"box": [
-						-0.042,
-						-0.0322,
-						-0.0215,
-						0.042,
-						0.075,
-						0.0215
-					]
-				}
-			},
-			"scaly": {
-				"bone": "arm_l",
-				"regions": {
-					"main": "res://characters/meshes/arms_scaly_l_main.obj",
-					"light": "res://characters/meshes/arms_scaly_l_light.obj"
-				},
-				"box": [
-					-0.072,
-					-0.2498,
-					-0.0901,
-					0.0544,
-					0.043,
-					0.047
-				],
-				"hand_l": {
-					"bone": "hand_l",
-					"regions": {
-						"main": "res://characters/meshes/arms_long_sleeves_hand_l_skin.obj"
-					},
-					"box": [
-						-0.042,
-						-0.0322,
-						-0.0215,
-						0.042,
-						0.075,
-						0.0215
-					]
-				},
-				"arm_r": {
-					"bone": "arm_r",
-					"regions": {
-						"main": "res://characters/meshes/arms_scaly_r_main.obj",
-						"light": "res://characters/meshes/arms_scaly_r_light.obj"
-					},
-					"box": [
-						-0.0544,
-						-0.2498,
-						-0.0901,
-						0.072,
-						0.043,
-						0.047
-					]
-				},
-				"hand_r": {
-					"bone": "hand_r",
-					"regions": {
-						"main": "res://characters/meshes/arms_long_sleeves_hand_l_skin.obj"
-					},
-					"box": [
-						-0.042,
-						-0.0322,
-						-0.0215,
-						0.042,
-						0.075,
-						0.0215
-					]
-				}
-			},
-			"bandaged": {
-				"bone": "arm_l",
-				"regions": {
-					"skin": "res://characters/meshes/arms_bandaged_l_skin.obj",
-					"white": "res://characters/meshes/arms_bandaged_l_white.obj"
-				},
-				"box": [
-					-0.072,
-					-0.2498,
-					-0.0901,
-					0.0544,
-					0.043,
-					0.047
-				],
-				"hand_l": {
-					"bone": "hand_l",
-					"regions": {
-						"skin": "res://characters/meshes/arms_long_sleeves_hand_l_skin.obj"
-					},
-					"box": [
-						-0.042,
-						-0.0322,
-						-0.0215,
-						0.042,
-						0.075,
-						0.0215
-					]
-				},
-				"arm_r": {
-					"bone": "arm_r",
-					"regions": {
-						"skin": "res://characters/meshes/arms_bandaged_r_skin.obj",
-						"white": "res://characters/meshes/arms_bandaged_r_white.obj"
-					},
-					"box": [
-						-0.0544,
-						-0.2498,
-						-0.0901,
-						0.072,
-						0.043,
-						0.047
-					]
-				},
-				"hand_r": {
-					"bone": "hand_r",
-					"regions": {
-						"skin": "res://characters/meshes/arms_long_sleeves_hand_l_skin.obj"
-					},
-					"box": [
-						-0.042,
-						-0.0322,
-						-0.0215,
-						0.042,
-						0.075,
-						0.0215
-					]
-				}
-			},
-			"watch": {
-				"bone": "arm_l",
-				"regions": {
-					"main": "res://characters/meshes/arms_watch_l_main.obj",
-					"ink": "res://characters/meshes/arms_watch_l_ink.obj",
-					"silver": "res://characters/meshes/arms_watch_l_silver.obj"
-				},
-				"box": [
-					-0.072,
-					-0.2556,
-					-0.0901,
-					0.0544,
-					0.043,
-					0.047
-				],
-				"hand_l": {
-					"bone": "hand_l",
-					"regions": {
-						"skin": "res://characters/meshes/arms_long_sleeves_hand_l_skin.obj"
-					},
-					"box": [
-						-0.042,
-						-0.0322,
-						-0.0215,
-						0.042,
-						0.075,
-						0.0215
-					]
-				},
-				"arm_r": {
-					"bone": "arm_r",
-					"regions": {
-						"main": "res://characters/meshes/arms_watch_r_main.obj",
-						"ink": "res://characters/meshes/arms_watch_r_ink.obj",
-						"silver": "res://characters/meshes/arms_watch_r_silver.obj"
-					},
-					"box": [
-						-0.0544,
-						-0.2556,
-						-0.0901,
-						0.072,
-						0.043,
-						0.047
-					]
-				},
-				"hand_r": {
-					"bone": "hand_r",
-					"regions": {
-						"skin": "res://characters/meshes/arms_long_sleeves_hand_l_skin.obj"
-					},
-					"box": [
-						-0.042,
-						-0.0322,
-						-0.0215,
-						0.042,
-						0.075,
-						0.0215
-					]
-				}
-			},
-			"racing_gloves": {
-				"bone": "arm_l",
-				"regions": {
-					"main": "res://characters/meshes/arms_racing_gloves_l_main.obj",
-					"ink": "res://characters/meshes/arms_racing_gloves_l_ink.obj",
-					"light": "res://characters/meshes/arms_racing_gloves_l_light.obj"
-				},
-				"box": [
-					-0.072,
-					-0.2498,
-					-0.0901,
-					0.0544,
-					0.043,
-					0.047
-				],
-				"hand_l": {
-					"bone": "hand_l",
-					"regions": {
-						"ink": "res://characters/meshes/arms_long_sleeves_hand_l_skin.obj"
-					},
-					"box": [
-						-0.042,
-						-0.0322,
-						-0.0215,
-						0.042,
-						0.075,
-						0.0215
-					]
-				},
-				"arm_r": {
-					"bone": "arm_r",
-					"regions": {
-						"main": "res://characters/meshes/arms_racing_gloves_r_main.obj",
-						"ink": "res://characters/meshes/arms_racing_gloves_r_ink.obj",
-						"light": "res://characters/meshes/arms_racing_gloves_r_light.obj"
-					},
-					"box": [
-						-0.0544,
-						-0.2498,
-						-0.0901,
-						0.072,
-						0.043,
-						0.047
-					]
-				},
-				"hand_r": {
-					"bone": "hand_r",
-					"regions": {
-						"ink": "res://characters/meshes/arms_long_sleeves_hand_l_skin.obj"
-					},
-					"box": [
-						-0.042,
-						-0.0322,
-						-0.0215,
-						0.042,
-						0.075,
-						0.0215
-					]
-				}
-			},
-			"tattoo": {
-				"bone": "arm_l",
-				"regions": {
-					"skin": "res://characters/meshes/arms_tattoo_l_skin.obj",
-					"blue": "res://characters/meshes/arms_tattoo_l_blue.obj"
-				},
-				"box": [
-					-0.072,
-					-0.2498,
-					-0.0901,
-					0.0544,
-					0.043,
-					0.047
-				],
-				"hand_l": {
-					"bone": "hand_l",
-					"regions": {
-						"skin": "res://characters/meshes/arms_long_sleeves_hand_l_skin.obj"
-					},
-					"box": [
-						-0.042,
-						-0.0322,
-						-0.0215,
-						0.042,
-						0.075,
-						0.0215
-					]
-				},
-				"arm_r": {
-					"bone": "arm_r",
-					"regions": {
-						"skin": "res://characters/meshes/arms_tattoo_r_skin.obj",
-						"blue": "res://characters/meshes/arms_tattoo_r_blue.obj"
-					},
-					"box": [
-						-0.0544,
-						-0.2498,
-						-0.0901,
-						0.072,
-						0.043,
-						0.047
-					]
-				},
-				"hand_r": {
-					"bone": "hand_r",
-					"regions": {
-						"skin": "res://characters/meshes/arms_long_sleeves_hand_l_skin.obj"
-					},
-					"box": [
-						-0.042,
-						-0.0322,
-						-0.0215,
-						0.042,
-						0.075,
-						0.0215
-					]
-				}
-			},
-			"two_tone": {
-				"bone": "arm_l",
-				"regions": {
-					"main": "res://characters/meshes/arms_two_tone_l_main.obj",
-					"dark": "res://characters/meshes/arms_rolled_l_skin.obj"
-				},
-				"box": [
-					-0.072,
-					-0.2498,
-					-0.0901,
-					0.0544,
-					0.043,
-					0.047
-				],
-				"hand_l": {
-					"bone": "hand_l",
-					"regions": {
-						"skin": "res://characters/meshes/arms_long_sleeves_hand_l_skin.obj"
-					},
-					"box": [
-						-0.042,
-						-0.0322,
-						-0.0215,
-						0.042,
-						0.075,
-						0.0215
-					]
-				},
-				"arm_r": {
-					"bone": "arm_r",
-					"regions": {
-						"main": "res://characters/meshes/arms_two_tone_r_main.obj",
-						"dark": "res://characters/meshes/arms_rolled_r_skin.obj"
-					},
-					"box": [
-						-0.0544,
-						-0.2498,
-						-0.0901,
-						0.072,
-						0.043,
-						0.047
-					]
-				},
-				"hand_r": {
-					"bone": "hand_r",
-					"regions": {
-						"skin": "res://characters/meshes/arms_long_sleeves_hand_l_skin.obj"
-					},
-					"box": [
-						-0.042,
-						-0.0322,
-						-0.0215,
-						0.042,
-						0.075,
-						0.0215
-					]
-				}
-			},
-			"rolled_long_gloves": {
-				"bone": "arm_l",
-				"regions": {
-					"main": "res://characters/meshes/arms_rolled_l_main.obj",
-					"skin": "res://characters/meshes/arms_rolled_long_gloves_l_skin.obj",
-					"white": "res://characters/meshes/arms_rolled_long_gloves_l_white.obj"
-				},
-				"box": [
-					-0.077,
-					-0.2498,
-					-0.0901,
-					0.0544,
-					0.043,
-					0.047
-				],
-				"hand_l": {
-					"bone": "hand_l",
-					"regions": {
-						"white": "res://characters/meshes/arms_long_sleeves_hand_l_skin.obj"
-					},
-					"box": [
-						-0.042,
-						-0.0322,
-						-0.0215,
-						0.042,
-						0.075,
-						0.0215
-					]
-				},
-				"arm_r": {
-					"bone": "arm_r",
-					"regions": {
-						"main": "res://characters/meshes/arms_rolled_r_main.obj",
-						"skin": "res://characters/meshes/arms_rolled_long_gloves_r_skin.obj",
-						"white": "res://characters/meshes/arms_rolled_long_gloves_r_white.obj"
-					},
-					"box": [
-						-0.0544,
-						-0.2498,
-						-0.0901,
-						0.077,
-						0.043,
-						0.047
-					]
-				},
-				"hand_r": {
-					"bone": "hand_r",
-					"regions": {
-						"white": "res://characters/meshes/arms_long_sleeves_hand_l_skin.obj"
-					},
-					"box": [
-						-0.042,
-						-0.0322,
-						-0.0215,
-						0.042,
-						0.075,
-						0.0215
-					]
-				}
-			},
-			"short_long_gloves": {
-				"bone": "arm_l",
-				"regions": {
-					"main": "res://characters/meshes/arms_short_sleeves_l_main.obj",
-					"skin": "res://characters/meshes/arms_short_long_gloves_l_skin.obj",
-					"white": "res://characters/meshes/arms_short_long_gloves_l_white.obj"
-				},
-				"box": [
-					-0.075,
-					-0.2498,
-					-0.0901,
-					0.0544,
-					0.043,
-					0.047
-				],
-				"hand_l": {
-					"bone": "hand_l",
-					"regions": {
-						"white": "res://characters/meshes/arms_long_sleeves_hand_l_skin.obj"
-					},
-					"box": [
-						-0.042,
-						-0.0322,
-						-0.0215,
-						0.042,
-						0.075,
-						0.0215
-					]
-				},
-				"arm_r": {
-					"bone": "arm_r",
-					"regions": {
-						"main": "res://characters/meshes/arms_short_sleeves_r_main.obj",
-						"skin": "res://characters/meshes/arms_short_long_gloves_r_skin.obj",
-						"white": "res://characters/meshes/arms_short_long_gloves_r_white.obj"
-					},
-					"box": [
-						-0.0544,
-						-0.2498,
-						-0.0901,
-						0.075,
-						0.043,
-						0.047
-					]
-				},
-				"hand_r": {
-					"bone": "hand_r",
-					"regions": {
-						"white": "res://characters/meshes/arms_long_sleeves_hand_l_skin.obj"
-					},
-					"box": [
-						-0.042,
-						-0.0322,
-						-0.0215,
-						0.042,
-						0.075,
-						0.0215
 					]
 				}
 			}

@@ -77,6 +77,10 @@ const MOST_SPREAD := deg_to_rad(60.0)
 const BONES := ["hips", "legs", "upper", "head", "arm_l", "arm_r", "hand_l", "hand_r"]
 ## Leaning back further than this (in radians) wears the reclined back piece.
 const RECLINED := 0.7
+## How far the head turns either way at most, glancing at a kart alongside.
+const MOST_TURN := 1.3
+## How far the eyes slide across the face glancing all the way, in metres.
+const GLANCE_SLIDE := 0.011
 ## Holding something up: the left arm goes up and out to the side in a cheer,
 ## clear of the head, pumping up and down.
 const HOLD_SWING := deg_to_rad(155.0)
@@ -153,6 +157,14 @@ static var _lively_count := 0
 ## drivers leave it off. Set it before the rig goes into the scene.
 var lively := false
 var _face: MeshInstance3D
+## The face's own material, so its eyes can glance without moving anyone
+## else's, with the textures of the face it shows now.
+var _face_shown: StandardMaterial3D
+var _face_from: StandardMaterial3D
+## How far the head can turn either way, less with long hair hanging down
+## the back, and how far the eyes glance the rest of the way, -1 to 1.
+var _turn_limit := MOST_TURN
+var _eyes_turn := 0.0
 var _mood := ""
 var _mood_left := 0.0
 var _blink_in := 0.0
@@ -288,7 +300,7 @@ func _apply_head_layer() -> void:
 func look(amount: float) -> void:
 	_steer_look = -clampf(amount, -1.0, 1.0) * 0.35
 	if _head != null and not lively:
-		_head.rotation.y = _steer_look
+		_head.rotation.y = clampf(_steer_look, -_turn_limit, _turn_limit)
 
 
 ## Looks toward something in the rig's own space, like a kart pulling up
@@ -296,7 +308,7 @@ func look(amount: float) -> void:
 func glance(toward: Vector3) -> void:
 	_glancing = toward.length() > 0.01
 	if _glancing:
-		_glance = clampf(atan2(-toward.x, -toward.z), -1.3, 1.3)
+		_glance = clampf(atan2(-toward.x, -toward.z), -MOST_TURN, MOST_TURN)
 
 
 func _exit_tree() -> void:
@@ -485,7 +497,7 @@ func _process(delta: float) -> void:
 		mood = _mood
 	elif _blink_left > 0.0 and FacePrint.changes(design.face(), "blink"):
 		mood = "blink"
-	_face.material_override = _face_material(mood)
+	_show_face(_face_material(mood))
 
 	# Standing about, they look around, wave now and then and give a little
 	# hop.
@@ -515,7 +527,11 @@ func _process(delta: float) -> void:
 	elif _held != null:
 		# Looking over at what they're holding up.
 		turn = -0.3
-	_head.rotation.y = lerpf(_head.rotation.y, turn, 1.0 - exp(-delta * 8.0))
+	# Past how far the head can turn, the eyes glance the rest of the way.
+	var head_turn := clampf(turn, -_turn_limit, _turn_limit)
+	var eyes := clampf((turn - head_turn) / maxf(MOST_TURN - _turn_limit, 0.01), -1.0, 1.0)
+	_head.rotation.y = lerpf(_head.rotation.y, head_turn, 1.0 - exp(-delta * 8.0))
+	glance_eyes(lerpf(_eyes_turn, eyes, 1.0 - exp(-delta * 10.0)))
 
 	# Sulking, the shoulders slump forward from the hips.
 	_sulk_left -= delta
@@ -774,6 +790,7 @@ func _build() -> void:
 	# The back piece has its own shape lying back, so the recline is in the key too.
 	var key := "%s %s %s %s %s" % [JSON.stringify(design.to_dict()), seated, astride, feet_forward, back_variant()]
 	var baked := CharacterMesh.kept(key) if bake else {}
+	_turn_limit = _hair_turn_limit()
 	if baked.is_empty():
 		var pose := leg_pose()
 		_wear("legs")
@@ -872,10 +889,74 @@ func _build_head() -> void:
 	_upper.add_child(_head)
 	# The head itself stays out of the bake, since its face is painted.
 	_face = MeshInstance3D.new()
-	_face.mesh = MeshKit.rounded_cylinder(HEAD_RADIUS, HEAD_HEIGHT, 0.035, 40)
-	_face.material_override = _face_material()
+	_face.mesh = head_mesh()
+	_show_face(_face_material())
 	_face.set_meta("unbaked", true)
 	_head.add_child(_face)
+
+
+static var _head_mesh: ArrayMesh
+
+## The head, with a second set of texture coordinates for the strip of
+## moving eyes (see FacePrint.paint_layers()): across the strip in the
+## middle of the face, held at its clear edges either side of it, and up the
+## whole head.
+static func head_mesh() -> ArrayMesh:
+	if _head_mesh != null:
+		return _head_mesh
+	var arrays := MeshKit.rounded_cylinder(HEAD_RADIUS, HEAD_HEIGHT, 0.035, 40).surface_get_arrays(0)
+	var uvs: PackedVector2Array = arrays[Mesh.ARRAY_TEX_UV]
+	var strip := PackedVector2Array()
+	var half := FacePrint.EYES_WIDE * 0.5 / FacePrint.WIDE
+	for uv in uvs:
+		# 0 in the middle of the face, half way round at the back.
+		var across := wrapf(uv.x - 0.5, -0.5, 0.5)
+		strip.append(Vector2(clampf((across + half) / (half * 2.0), 0.0, 1.0), uv.y))
+	arrays[Mesh.ARRAY_TEX_UV2] = strip
+	_head_mesh = ArrayMesh.new()
+	_head_mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
+	return _head_mesh
+
+
+## Shows a face material's textures on the rig's own face material.
+func _show_face(face: StandardMaterial3D) -> void:
+	if face == _face_from:
+		return
+	_face_from = face
+	if _face_shown == null:
+		_face_shown = face.duplicate() as StandardMaterial3D
+		_face.material_override = _face_shown
+		glance_eyes(_eyes_turn)
+	_face_shown.albedo_texture = face.albedo_texture
+	_face_shown.detail_albedo = face.detail_albedo
+
+
+## Slides the eyes across the face to glance, 1 all the way to their left
+## and -1 to their right, the way the head turns.
+func glance_eyes(amount: float) -> void:
+	_eyes_turn = amount
+	if _face_shown == null:
+		return
+	var across := GLANCE_SLIDE * WIDE_PER_METRE / FacePrint.EYES_WIDE
+	_face_shown.uv2_offset = Vector3(amount * across, 0.0, 0.0)
+
+
+## How far the head turns with this hair: less with long hair down the
+## back, which only clears the shoulders that far.
+func _hair_turn_limit() -> float:
+	var entry := CharacterMesh.style("hair", design.style_of("hair"))
+	if entry.has("turn") and hair_variant() not in ["none", "short", "short_cut"]:
+		return float(entry.turn)
+	return MOST_TURN
+
+
+## How far the head turns either way with what's worn.
+func turn_limit() -> float:
+	return _turn_limit
+
+
+## Pixels of the face texture per metre round the head.
+const WIDE_PER_METRE := FacePrint.WIDE / (TAU * HEAD_RADIUS)
 
 
 ## What's on the head: the stud, hair, facial hair and headgear.
@@ -889,13 +970,9 @@ func _dress_head() -> void:
 	# The stud on top shows when there's nothing over it.
 	if hair == "none" and under == "full":
 		_add_figure("stud", _head, {"skin": design.skin()})
-	if under != "hidden":
-		_wear("hair", "cut" if under == "cut" else "")
-	# Long hair's length down the back shows under any headgear, unless
-	# something it doesn't fit with is worn.
-	var length := length_variant()
-	if length != "" and not length_left_off(design):
-		_wear("hair", length)
+	var shape := hair_variant()
+	if shape != "none":
+		_wear("hair", shape)
 	if not CharacterMesh.style("facial_hair", design.style_of("facial_hair")).is_empty():
 		_wear("facial_hair")
 	if headgear == "none":
@@ -915,24 +992,34 @@ static func hair_under(headgear: String) -> String:
 	return str(CharacterMesh.style("headgear", headgear).get("hair", "full"))
 
 
-## Which shape of long hair's length down the back the rig wears, made for
-## each pose like the back piece, or "" when the hair has none.
-func length_variant() -> String:
-	var v := back_variant()
-	var key := "length" if v == "" else "length_" + v
-	return key if CharacterMesh.style("hair", design.style_of("hair")).has(key) else ""
+## Which shape of the hair the rig wears: "" its own, "cut" under a hat, or
+## "none" under a helmet. Long hair has its own shape for each pose like the
+## back piece ("seated", "cut_seated" and so on, where it hangs down the
+## back), shows "below" a helmet, and has a short version ("short",
+## "short_cut") worn with what the long one doesn't fit.
+func hair_variant() -> String:
+	var entry := CharacterMesh.style("hair", design.style_of("hair"))
+	var under := hair_under(design.style_of("headgear"))
+	if not entry.has("short"):
+		return {"cut": "cut", "hidden": "none"}.get(under, "")
+	if long_hair_shortened(design):
+		return {"cut": "short_cut", "hidden": "none"}.get(under, "short")
+	var shape: String = {"cut": "cut", "hidden": "below"}.get(under, "")
+	var pose := back_variant()
+	var posed := pose if shape == "" else "%s_%s" % [shape, pose]
+	return posed if pose != "" and entry.has(posed) else shape
 
 
-## The pieces this hairdo's length doesn't fit with, as "slot style".
-static func length_apart(hair: String) -> Array:
+## The pieces this long hairdo doesn't fit with, as "slot style".
+static func long_hair_apart(hair: String) -> Array:
 	return CharacterMesh.style("hair", hair).get("apart", [])
 
 
-## Whether a driver's long hair has its length left off, for a neck piece,
-## back piece or headgear it doesn't fit with.
-static func length_left_off(who: CharacterDesign) -> bool:
-	var apart := length_apart(who.style_of("hair"))
-	for slot in ["neck", "back", "headgear"]:
+## Whether a driver's long hair is worn short, for a neck piece, back piece
+## or headgear the long one doesn't fit with.
+static func long_hair_shortened(who: CharacterDesign) -> bool:
+	var apart := long_hair_apart(who.style_of("hair"))
+	for slot in ["neck", "back", "headgear", "torso", "arms"]:
 		if apart.has("%s %s" % [slot, who.style_of(slot)]):
 			return true
 	return false
@@ -990,17 +1077,40 @@ func _face_key(mood: String) -> String:
 	return "%s %s %s %s %s" % [str(design.face()), design.skin().to_html(), design.style_of("facial_hair"), design.color_of("facial_hair").to_html(), mood]
 
 
-func _paint(mood: String) -> Image:
-	return FacePrint.paint_image(design.face(), design.skin(), HEAD_RADIUS, HEAD_HEIGHT, design.style_of("facial_hair"), design.color_of("facial_hair"), mood)
+func _paint(mood: String) -> Array[Image]:
+	return FacePrint.paint_layers(design.face(), design.skin(), HEAD_RADIUS, HEAD_HEIGHT, design.style_of("facial_hair"), design.color_of("facial_hair"), mood)
 
 
-static func _new_face_material(image: Image) -> StandardMaterial3D:
+## `image` is the whole face, or [the face, the strip of moving eyes] (see
+## FacePrint.paint_layers()).
+static func _new_face_material(image: Variant) -> StandardMaterial3D:
 	var material := StandardMaterial3D.new()
-	material.albedo_texture = ImageTexture.create_from_image(image)
+	var layers: Array = image if image is Array else [image]
+	material.albedo_texture = ImageTexture.create_from_image(layers[0])
+	# The moving eyes laid over the face along the head's second texture
+	# coordinates, slid across by their offset.
+	material.detail_enabled = true
+	material.detail_blend_mode = BaseMaterial3D.BLEND_MODE_MIX
+	material.detail_uv_layer = BaseMaterial3D.DETAIL_UV_2
+	if layers.size() > 1:
+		material.detail_albedo = ImageTexture.create_from_image(layers[1])
+	else:
+		material.detail_albedo = _no_eyes()
 	material.roughness = 0.45
 	material.metallic_specular = 0.4
 	make_toy(material)
 	return material
+
+
+static var _clear: ImageTexture
+
+## A clear strip, for a face painted whole.
+static func _no_eyes() -> ImageTexture:
+	if _clear == null:
+		var image := Image.create_empty(4, 4, false, Image.FORMAT_RGBA8)
+		image.fill(Color(0, 0, 0, 0))
+		_clear = ImageTexture.create_from_image(image)
+	return _clear
 
 
 ## Starts painting this face in each mood it looks different in, on other
@@ -1031,7 +1141,7 @@ func _paint_moods() -> void:
 static func _painter(key: String, style: Array, skin: Color, beard: String, beard_colour: Color, mood: String) -> Callable:
 	var store := _painted
 	return func() -> void:
-		var image := FacePrint.paint_image(style, skin, HEAD_RADIUS, HEAD_HEIGHT, beard, beard_colour, mood)
+		var image := FacePrint.paint_layers(style, skin, HEAD_RADIUS, HEAD_HEIGHT, beard, beard_colour, mood)
 		(func() -> void: store[key] = image).call_deferred()
 
 

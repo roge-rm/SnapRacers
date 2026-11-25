@@ -1,0 +1,25 @@
+[remap]
+
+importer="wavefront_obj"
+importer_version=1
+type="Mesh"
+uid="uid://drb15gbplfvtc"
+path="res://.godot/imported/hair_low_ponytail_cut_reclined_dark.obj-6d046566ed3ec94b24832c37917601db.mesh"
+
+[deps]
+
+files=["res://.godot/imported/hair_low_ponytail_cut_reclined_dark.obj-6d046566ed3ec94b24832c37917601db.mesh"]
+
+source_file="res://characters/meshes/hair_low_ponytail_cut_reclined_dark.obj"
+dest_files=["res://.godot/imported/hair_low_ponytail_cut_reclined_dark.obj-6d046566ed3ec94b24832c37917601db.mesh", "res://.godot/imported/hair_low_ponytail_cut_reclined_dark.obj-6d046566ed3ec94b24832c37917601db.mesh"]
+
+[params]
+
+generate_tangents=true
+generate_lods=true
+generate_shadow_mesh=true
+generate_lightmap_uv2=false
+generate_lightmap_uv2_texel_size=0.2
+scale_mesh=Vector3(1, 1, 1)
+offset_mesh=Vector3(0, 0, 0)
+force_disable_mesh_compression=false

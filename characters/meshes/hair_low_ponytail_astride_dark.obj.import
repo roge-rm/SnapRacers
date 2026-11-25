@@ -1,0 +1,25 @@
+[remap]
+
+importer="wavefront_obj"
+importer_version=1
+type="Mesh"
+uid="uid://cehmgnh1jrxj0"
+path="res://.godot/imported/hair_low_ponytail_astride_dark.obj-5024a1676c12555e1f9c7dc91abb6df2.mesh"
+
+[deps]
+
+files=["res://.godot/imported/hair_low_ponytail_astride_dark.obj-5024a1676c12555e1f9c7dc91abb6df2.mesh"]
+
+source_file="res://characters/meshes/hair_low_ponytail_astride_dark.obj"
+dest_files=["res://.godot/imported/hair_low_ponytail_astride_dark.obj-5024a1676c12555e1f9c7dc91abb6df2.mesh", "res://.godot/imported/hair_low_ponytail_astride_dark.obj-5024a1676c12555e1f9c7dc91abb6df2.mesh"]
+
+[params]
+
+generate_tangents=true
+generate_lods=true
+generate_shadow_mesh=true
+generate_lightmap_uv2=false
+generate_lightmap_uv2_texel_size=0.2
+scale_mesh=Vector3(1, 1, 1)
+offset_mesh=Vector3(0, 0, 0)
+force_disable_mesh_compression=false

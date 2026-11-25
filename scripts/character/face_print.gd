@@ -105,6 +105,32 @@ static func paint_image(style: Variant, skin: Color, radius: float, height: floa
 	return image
 
 
+## The face in two layers, for eyes that glance to the side: [the face
+## without the eyes, or the pupils of eyes with whites, then just those on a
+## clear strip EYES_WIDE pixels across the middle of the face, as tall as
+## the face]. The rig slides the second over the first (see
+## CharacterRig.glance_eyes()). Shades stay put on the face.
+static func paint_layers(style: Variant, skin: Color, radius: float, height: float, beard := "none", beard_colour := INK, mood := "") -> Array[Image]:
+	var image := Image.create_empty(WIDE, TALL, true, Image.FORMAT_RGBA8)
+	image.fill(skin)
+	var across := WIDE / (TAU * radius)
+	var up := TALL / height
+	for shape in _beard(beard, beard_colour) + _shapes(style, mood, "face"):
+		_draw(image, shape, across, up)
+	image.generate_mipmaps()
+	var eyes := Image.create_empty(EYES_WIDE, TALL, true, Image.FORMAT_RGBA8)
+	eyes.fill(Color(skin, 0.0))
+	for shape in _shapes(style, mood, "eyes"):
+		_draw(eyes, shape, across, up, (WIDE - EYES_WIDE) / 2)
+	eyes.generate_mipmaps()
+	return [image, eyes]
+
+
+## How wide the strip of moving eyes is, in pixels of the face texture. It
+## leaves a clear edge wider than the eyes ever slide.
+const EYES_WIDE := 128
+
+
 ## Whether this face looks any different in this mood. Shades hide the eyes,
 ## so they never blink, and closed eyes are already closed.
 static func changes(style: Variant, mood: String) -> bool:
@@ -129,21 +155,32 @@ static func picture(face: Variant, skin: Color, size := Vector2i(120, 90), beard
 
 
 ## Paints one shape, [distance function, colour, patch], blending its soft
-## edge into what's already there.
-static func _draw(image: Image, shape: Array, across: float, up: float) -> void:
+## edge into what's already there. `left` is which pixel of the face
+## texture the image starts at, for the strip of moving eyes, which starts
+## clear and is laid over what's there.
+static func _draw(image: Image, shape: Array, across: float, up: float, left := 0) -> void:
 	var patch: Rect2 = shape[2].grow(0.004)
 	var colour: Color = shape[1]
-	var x0 := clampi(int(WIDE * 0.5 + patch.position.x * across), 0, WIDE - 1)
-	var x1 := clampi(int(WIDE * 0.5 + patch.end.x * across) + 1, 0, WIDE - 1)
+	var wide := image.get_width()
+	var x0 := clampi(int(WIDE * 0.5 + patch.position.x * across) - left, 0, wide - 1)
+	var x1 := clampi(int(WIDE * 0.5 + patch.end.x * across) + 1 - left, 0, wide - 1)
 	var y0 := clampi(int(TALL * 0.5 - patch.end.y * up), 0, TALL - 1)
 	var y1 := clampi(int(TALL * 0.5 - patch.position.y * up) + 1, 0, TALL - 1)
 	for py in range(y0, y1 + 1):
 		for px in range(x0, x1 + 1):
-			var p := Vector2((px + 0.5 - WIDE * 0.5) / across, (TALL * 0.5 - py - 0.5) / up)
+			var p := Vector2((px + left + 0.5 - WIDE * 0.5) / across, (TALL * 0.5 - py - 0.5) / up)
 			var d: float = shape[0].call(p)
 			var cover := clampf(0.5 - d * across, 0.0, 1.0) * colour.a
-			if cover > 0.0:
-				image.set_pixel(px, py, image.get_pixel(px, py).lerp(Color(colour, 1.0), cover))
+			if cover <= 0.0:
+				continue
+			var was := image.get_pixel(px, py)
+			if left == 0:
+				image.set_pixel(px, py, was.lerp(Color(colour, 1.0), cover))
+			else:
+				# Over a clear layer: its colour where it's covered.
+				var a := cover + was.a * (1.0 - cover)
+				var rgb := (Vector3(colour.r, colour.g, colour.b) * cover + Vector3(was.r, was.g, was.b) * was.a * (1.0 - cover)) / a
+				image.set_pixel(px, py, Color(rgb.x, rgb.y, rgb.z, a))
 
 
 ## Paints one shape on a picture where `middle` is the middle of the face
@@ -202,8 +239,9 @@ static func _in_mood(parts: Array, mood: String) -> Array:
 	return [eyes, brows, mouth, parts[3]]
 
 
-## The face's features in drawing order.
-static func _shapes(style: Variant, mood := "") -> Array:
+## The face's features in drawing order. `part` is "all", or "face" for all
+## but the eyes that move when glancing, or "eyes" for just those.
+static func _shapes(style: Variant, mood := "", part := "all") -> Array:
 	var parts := parts_of(style).duplicate()
 	var extras: Array = parts[3].duplicate()
 	# Glasses are frames over ordinary eyes, so they stay on whatever the
@@ -218,8 +256,13 @@ static func _shapes(style: Variant, mood := "") -> Array:
 	var brows: String = parts[1]
 	var mouth: String = parts[2]
 	var out := []
+	var split := _eyes_split(eyes)
+	if part == "eyes":
+		return split[1]
 	out.append_array(_extras(extras, true))
-	out.append_array(_eyes(eyes))
+	out.append_array(split[0])
+	if part == "all":
+		out.append_array(split[1])
 	out.append_array(_brows(brows))
 	# A small mouth, a little closer to the eyes.
 	for shape in _mouth(mouth):
@@ -238,6 +281,22 @@ static func _scaled(shape: Array, centre: Vector2, scale: float, move: Vector2) 
 		shape[1],
 		Rect2(at + (patch.position - centre) * scale, patch.size * scale),
 	]
+
+
+## Eyes as [what stays put, what moves when glancing]: the pupils of eyes
+## with whites, the whole eye otherwise, and nothing of shades.
+static func _eyes_split(kind: String) -> Array:
+	var all := _eyes(kind)
+	if kind == "shades":
+		return [all, []]
+	if kind == "big":
+		# White, outline, pupil, shine for each eye.
+		var still := []
+		var moving := []
+		for i in all.size():
+			(still if i % 4 < 2 else moving).append(all[i])
+		return [still, moving]
+	return [[], all]
 
 
 static func _eyes(kind: String) -> Array:

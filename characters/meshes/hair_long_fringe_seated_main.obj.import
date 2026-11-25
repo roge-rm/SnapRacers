@@ -1,0 +1,25 @@
+[remap]
+
+importer="wavefront_obj"
+importer_version=1
+type="Mesh"
+uid="uid://ca8xrfm0hpclr"
+path="res://.godot/imported/hair_long_fringe_seated_main.obj-36cacd95896a24b537748bef359131df.mesh"
+
+[deps]
+
+files=["res://.godot/imported/hair_long_fringe_seated_main.obj-36cacd95896a24b537748bef359131df.mesh"]
+
+source_file="res://characters/meshes/hair_long_fringe_seated_main.obj"
+dest_files=["res://.godot/imported/hair_long_fringe_seated_main.obj-36cacd95896a24b537748bef359131df.mesh", "res://.godot/imported/hair_long_fringe_seated_main.obj-36cacd95896a24b537748bef359131df.mesh"]
+
+[params]
+
+generate_tangents=true
+generate_lods=true
+generate_shadow_mesh=true
+generate_lightmap_uv2=false
+generate_lightmap_uv2_texel_size=0.2
+scale_mesh=Vector3(1, 1, 1)
+offset_mesh=Vector3(0, 0, 0)
+force_disable_mesh_compression=false
