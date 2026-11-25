@@ -1,7 +1,7 @@
 extends Node
 
 ## Retakes the main menu and the README's builder and kart-picker screens at
-## 1280 x 720.
+## 1280 x 720, or at SHOT_SIZE=2340x1080 when set.
 ## Run with a separate XDG_DATA_HOME so editor autosaves stay in that profile:
 ##   xvfb-run -a -s '-screen 0 1280x720x24' tools/godot/Godot_v4.7.2-stable_linux.x86_64 --path . --fixed-fps 60 --disable-render-loop res://tools/shots/menu_shots.tscn
 ## With `-- screens FOLDER WIDTH HEIGHT` it shoots every menu and popup
@@ -22,7 +22,10 @@ func _ready() -> void:
 		await _screens(args.slice(4))
 		return
 	DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_WINDOWED)
-	DisplayServer.window_set_size(Vector2i(1280, 720))
+	if OS.has_environment("SHOT_SIZE"):
+		var n := OS.get_environment("SHOT_SIZE").split("x")
+		_size = Vector2i(int(n[0]), int(n[1]))
+	DisplayServer.window_set_size(_size)
 	DirAccess.make_dir_recursive_absolute(OUT)
 	host = Node.new()
 	add_child(host)
@@ -49,13 +52,15 @@ func _ready() -> void:
 	var card: Control = picker._cards["night_shift"]
 	for node in picker.find_children("*", "ScrollContainer", true, false):
 		if node.is_ancestor_of(card):
-			node.scroll_vertical = roundi(card.position.y)
+			# Brings the card's row to the top of the list, whole.
+			node.scroll_vertical += roundi(card.global_position.y - node.global_position.y) - 8
 	await get_tree().process_frame
 	await shot("karts")
 
-	Game.character = Game.roster_driver("brickley").duplicate_design()
+	Game.character = Game.roster_driver("fizz").duplicate_design()
 	Game.show_driver()
 	var driver: DriverBuilder = await screen_of(DriverBuilder)
+	driver.ui.show_slot("hair")
 	await ready_pictures()
 	driver._last_touch = 0.0
 	driver._turntable.rotation.y = PI + 0.25
@@ -113,12 +118,12 @@ func shot(which: String) -> void:
 	var picture := get_viewport().get_texture().get_image()
 	# On a big screen the window can come out bigger than asked; the UI
 	# scales with it, so a smaller copy looks the same as 1280 x 720.
-	if picture.get_size() != Vector2i(1280, 720):
-		if picture.get_width() * 9 != picture.get_height() * 16:
+	if picture.get_size() != _size:
+		if picture.get_width() * _size.y != picture.get_height() * _size.x:
 			push_error("Unexpected screenshot dimensions: %s" % picture.get_size())
 			get_tree().quit(1)
 			return
-		picture.resize(1280, 720, Image.INTERPOLATE_LANCZOS)
+		picture.resize(_size.x, _size.y, Image.INTERPOLATE_LANCZOS)
 	picture.save_png("%s/%s.png" % [OUT, which])
 	print("saved ", which)
 
@@ -340,9 +345,10 @@ func _garage_shots() -> void:
 
 ## The driver screen, and with its card open.
 func _driver_shots() -> void:
-	Game.character = Game.roster_driver("brickley").duplicate_design()
+	Game.character = Game.roster_driver("fizz").duplicate_design()
 	Game.show_driver()
 	var driver: DriverBuilder = await screen_of(DriverBuilder)
+	driver.ui.show_slot("hair")
 	await ready_pictures()
 	driver._last_touch = 0.0
 	driver._turntable.rotation.y = PI + 0.25

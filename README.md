@@ -10,20 +10,20 @@ You can race the AI, play with a friend on a split screen or race online. There 
 
 <table>
   <tr>
-    <td align="center"><img src="screenshots/race.png" width="400" height="225" alt="Racing at Coral Cove in the Island Cup"></td>
-    <td align="center"><img src="screenshots/garage.png" width="400" height="225" alt="The garage"></td>
+    <td align="center"><img src="screenshots/race.png" width="400" height="185" alt="Racing at Cactus Canyon in the Canyon Cup"></td>
+    <td align="center"><img src="screenshots/sky.png" width="400" height="185" alt="Weathervane Way in the Sky Cup"></td>
   </tr>
   <tr>
-    <td align="center"><img src="screenshots/rain-night.png" width="400" height="225" alt="Rain and course lighting at night at Peach Pit"></td>
-    <td align="center"><img src="screenshots/snow.png" width="400" height="225" alt="Snow racing at Frostbite Forest"></td>
+    <td align="center"><img src="screenshots/garage.png" width="400" height="185" alt="Building a kart in the garage"></td>
+    <td align="center"><img src="screenshots/driver.png" width="400" height="185" alt="Picking hair in the driver editor"></td>
   </tr>
   <tr>
-    <td align="center"><img src="screenshots/cups.png" width="400" height="225" alt="All fourteen Grand Prix cups"></td>
-    <td align="center"><img src="screenshots/karts.png" width="400" height="225" alt="The kart picker"></td>
+    <td align="center"><img src="screenshots/night.png" width="400" height="185" alt="Lantern Lane after dark"></td>
+    <td align="center"><img src="screenshots/snow.png" width="400" height="185" alt="Snow at Frostbite Forest"></td>
   </tr>
   <tr>
-    <td align="center"><img src="screenshots/driver.png" width="400" height="225" alt="The driver screen"></td>
-    <td align="center"><img src="screenshots/editor.png" width="400" height="225" alt="The track editor"></td>
+    <td align="center"><img src="screenshots/cups.png" width="400" height="185" alt="All fourteen Grand Prix cups"></td>
+    <td align="center"><img src="screenshots/editor.png" width="400" height="185" alt="The track editor"></td>
   </tr>
 </table>
 
