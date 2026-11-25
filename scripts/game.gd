@@ -30,6 +30,8 @@ const CURRENT_KART := "user://current_kart.json"
 const CURRENT_DRIVER := "user://current_driver.json"
 const ROSTER := "res://data/characters/roster"
 const SETTINGS := "user://settings.cfg"
+## Seconds the mouse sits still in a race before the pointer hides.
+const MOUSE_HIDE_AFTER := 2.0
 const TRACKS := "res://data/tracks"
 
 var design: KartDesign
@@ -63,6 +65,8 @@ const OWN_KART := "own"
 
 var _host: Node
 var _screen: Node
+## Seconds since the mouse last moved or clicked, for hiding the pointer.
+var _mouse_still := 0.0
 ## Whether the race going on was started from the track editor, which is
 ## where leaving it goes back to.
 var came_from_editor := false
@@ -1230,6 +1234,32 @@ func close_popup() -> bool:
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_WM_GO_BACK_REQUEST:
 		_go_back()
+
+
+## Hides the mouse pointer on computers while it isn't being used: straight
+## away when a controller or the keys are used, and after a moment of not
+## moving during a race that isn't paused. Moving or clicking brings it back.
+func _input(event: InputEvent) -> void:
+	if event is InputEventMouseMotion or event is InputEventMouseButton:
+		_mouse_still = 0.0
+		_show_mouse(true)
+	elif event is InputEventKey or event is InputEventJoypadButton or (event is InputEventJoypadMotion and absf(event.axis_value) > 0.3):
+		_mouse_still = MOUSE_HIDE_AFTER
+		_show_mouse(false)
+
+
+func _process(delta: float) -> void:
+	_mouse_still += delta
+	if _mouse_still > MOUSE_HIDE_AFTER and _screen is Race and not get_tree().paused:
+		_show_mouse(false)
+
+
+func _show_mouse(on: bool) -> void:
+	if OS.has_feature("mobile"):
+		return
+	var mode := Input.MOUSE_MODE_VISIBLE if on else Input.MOUSE_MODE_HIDDEN
+	if Input.mouse_mode != mode:
+		Input.mouse_mode = mode
 
 
 func _unhandled_input(event: InputEvent) -> void:
