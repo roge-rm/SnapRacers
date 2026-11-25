@@ -34,12 +34,23 @@ static func audible() -> bool:
 ## Every sound the game has, so they can all be loaded up front.
 const ALL := [
 	"fx/bump", "fx/crash", "fx/bricks", "fx/powerup", "fx/beep", "fx/go", "fx/lap", "fx/final_lap",
-	"fx/finish", "fx/win", "fx/reset", "fx/splash", "fx/sizzle", "fx/turbo", "fx/rope", "fx/wall", "fx/shockwave", "fx/marbles", "fx/spikes", "fx/drop", "fx/cannon", "fx/hit", "fx/homing_warning",
+	"fx/finish", "fx/win", "fx/reset", "fx/splash", "fx/sizzle", "fx/rope", "fx/wall", "fx/shockwave", "fx/marbles", "fx/spikes", "fx/drop", "fx/cannon", "fx/hit", "fx/homing_warning",
 	"fx/repair", "fx/shield", "fx/ghost", "fx/lightning", "fx/thunder", "fx/ram", "fx/crossing_bell", "fx/train_horn", "fx/click", "fx/back", "fx/snap", "fx/unsnap",
 	"fx/pick", "fx/nope", "fx/podium", "fx/cheer",
-	"engine/engine_small", "engine/engine_micro", "engine/engine_big", "engine/engine_twin",
-	"engine/engine_diesel", "engine/engine_v8", "engine/electric_motor", "engine/jet",
-	"loop/skid", "loop/drift_tarmac_soft", "loop/drift_tarmac_hard", "loop/drift_dirt_soft", "loop/drift_dirt_hard", "loop/drift_snow_soft", "loop/drift_snow_hard", "loop/drift_water_soft", "loop/drift_water_hard", "fx/drift_whoosh_1", "fx/drift_whoosh_2", "fx/drift_whoosh_3", "loop/rumble", "loop/wind", "loop/rain", "loop/storm", "loop/gale",
+	"engine/engine_small_low", "engine/engine_small_high", "engine/engine_small_off",
+	"engine/engine_micro_low", "engine/engine_micro_high", "engine/engine_micro_off",
+	"engine/engine_big_low", "engine/engine_big_high", "engine/engine_big_off",
+	"engine/engine_twin_low", "engine/engine_twin_high", "engine/engine_twin_off",
+	"engine/engine_diesel_low", "engine/engine_diesel_high", "engine/engine_diesel_off",
+	"engine/engine_v8_low", "engine/engine_v8_high", "engine/engine_v8_off",
+	"engine/engine_rotary_low", "engine/engine_rotary_high", "engine/engine_rotary_off",
+	"engine/engine_flat4_low", "engine/engine_flat4_high", "engine/engine_flat4_off",
+	"engine/electric_motor_low", "engine/electric_motor_high", "engine/electric_motor_off",
+	"engine/electric_big_low", "engine/electric_big_high", "engine/electric_big_off",
+	"engine/engine_hybrid_low", "engine/engine_hybrid_high", "engine/engine_hybrid_off",
+	"engine/pedals_low", "engine/pedals_high", "engine/pedals_off",
+	"engine/jet",
+	"loop/skid", "loop/drift_tarmac_soft", "loop/drift_tarmac_hard", "loop/drift_dirt_soft", "loop/drift_dirt_hard", "loop/drift_snow_soft", "loop/drift_snow_hard", "loop/drift_water_soft", "loop/drift_water_hard", "fx/boost_air_1_1", "fx/boost_air_1_2", "fx/boost_air_1_3", "fx/boost_air_2_1", "fx/boost_air_2_2", "fx/boost_air_2_3", "fx/boost_air_3_1", "fx/boost_air_3_2", "fx/boost_air_3_3", "fx/boost_roar_1", "fx/boost_roar_2", "fx/boost_roar_3", "fx/boost_thump_1", "fx/boost_thump_2", "loop/rumble", "loop/wind", "loop/wind_low", "loop/rain", "loop/storm", "loop/gale",
 ]
 const TUNES := ["menu", "race_one", "race_two", "race_three", "race_four", "race_indoor", "race_rally", "race_coaster", "race_legends", "race_beach", "race_alpine", "race_canyon", "race_jungle", "race_city", "race_sky"]
 

@@ -1,18 +1,14 @@
 """SnapRacers' sound effects, made from scratch with synth.py.
 
 There are three kinds:
-  - engine loops, one for each kind of engine, which the game speeds up and
-    slows down with the kart
+  - engine loops, three for each kind of engine (see engines.py)
   - other loops, like tire squeal and wind
   - one shots, like crashes, gadgets, studs and menu clicks
-
-An engine is a train of firing pulses, one for each time a cylinder fires,
-each one ringing the exhaust and the body like a bell. How many cylinders
-there are, how evenly they fire and how the exhaust rings is what makes a
-diesel sound different from a V8.
 """
 
 import numpy as np
+
+import engines
 
 from synth import (
     RATE, adsr, bandpass, circular_convolve, circular_filter, decay, drive, fade,
@@ -21,122 +17,7 @@ from synth import (
 )
 
 
-# Engines.
-
-def engine(seed, cycle_hz, firings, body, rasp=0.3, grit=2.0, bright=4000.0, knock=0.0, length=1.0):
-    """A loop of an engine running steadily.
-
-    cycle_hz: how many times a second the firing pattern repeats.
-    firings: (when in the cycle, 0 to 1, and how hard) for each firing.
-    body: (Hz, seconds to ring, loudness) for each resonance of the exhaust.
-    rasp: how much noise comes out with each firing.
-    knock: sharp clatter on each firing, for a diesel.
-    """
-    r = rng(seed)
-    period = int(round(RATE / cycle_hz))
-    cycles = max(1, int(round(length * cycle_hz)))
-    total = period * cycles
-    pulses = np.zeros(total)
-    for c in range(cycles):
-        for when, strength in firings:
-            i = c * period + int(when * period)
-            pulses[i % total] += strength * r.uniform(0.85, 1.0)
-
-    kernel_length = seconds(0.12)
-    kernel = np.zeros(kernel_length)
-    for freq, ring, loud in body:
-        kernel += resonator(freq * r.uniform(0.98, 1.02), ring, kernel_length) * loud
-    burst = bandpass(noise(kernel_length, seed + 1), 300, 3000) * decay(kernel_length, 0.008)
-    kernel += burst * 0.5
-    out = circular_convolve(pulses, kernel)
-
-    # Noise that puffs out with each firing.
-    puff = circular_convolve(pulses, decay(seconds(0.03), 0.03))
-    hiss = circular_filter(noise(total, seed + 2), low=200.0, high=bright * 1.5)
-    out += hiss * puff * rasp
-
-    if knock:
-        clatter = circular_filter(noise(total, seed + 3), low=2500.0, high=6000.0)
-        tick = circular_convolve(pulses, decay(seconds(0.006), 0.006))
-        out += clatter * tick * knock * 3.0
-
-    out = normalise(out)
-    out = drive(out, grit)
-    out = circular_filter(out, low=40.0, high=bright)
-    return normalise(out, 0.8)
-
-
-def electric_motor(pitch=400, seed=71):
-    """A whine with a gear mesh over it and a little whir."""
-    total = RATE
-    t = times(total)
-    wobble = 1.0 + 0.08 * np.sin(2 * np.pi * 7 * t)
-    out = (np.sin(2 * np.pi * pitch * t) * 1.0
-           + np.sin(2 * np.pi * pitch * 2 * t) * 0.45
-           + np.sin(2 * np.pi * pitch * 3 * t) * 0.2
-           + np.sin(2 * np.pi * pitch * 4 * t) * 0.12) * wobble
-    whir = circular_filter(noise(total, seed), low=pitch * 1.25, high=pitch * 7.5)
-    out += whir * 0.35
-    out += np.sin(2 * np.pi * pitch / 4 * t) * 0.25
-    return normalise(circular_filter(out, low=60.0, high=6000.0), 0.7)
-
-
-def hybrid():
-    """A little engine with an electric whine over it."""
-    body = engine(17, 50, [(0.0, 1.0), (0.5, 0.9)], [(150, 0.03, 1.0), (330, 0.015, 0.5), (800, 0.006, 0.2)], rasp=0.3, grit=2.0, bright=4000)
-    return normalise(body * 0.75 + electric_motor(520, 73) * 0.45, 0.72)
-
-
-def pedals():
-    """No engine at all: a chain whirring round and a tick from the cranks."""
-    total = RATE
-    t = times(total)
-    whir = circular_filter(noise(total, 91), low=900.0, high=4000.0)
-    chain = (0.5 + 0.5 * np.sin(2 * np.pi * 36 * t)) * whir
-    ticks = np.zeros(total)
-    for k in range(2):
-        start = int(total * k / 2)
-        ticks[start:start + 200] += np.exp(-np.arange(200) / 30.0) * np.sin(np.arange(200) * 0.9)
-    return normalise(chain * 0.6 + ticks * 0.8, 0.5)
-
-
-def jet():
-    """A roar with a turbine whining over it."""
-    total = RATE * 2
-    t = times(total)
-    roar = circular_filter(noise(total, 81), low=60.0, high=2500.0, tilt=-3.0)
-    body = circular_filter(noise(total, 82), low=250.0, high=900.0)
-    flicker = 1.0 + 0.15 * np.sin(2 * np.pi * 3 * t) + 0.1 * np.sin(2 * np.pi * 5 * t + 1.0)
-    whine = np.sin(2 * np.pi * 2400 * t) * 0.12 + np.sin(2 * np.pi * 4800 * t) * 0.04
-    out = (normalise(roar) * 0.8 + normalise(body) * 0.5) * flicker + whine
-    return normalise(out, 0.75)
-
-
-ENGINES = {
-    # A kart's little single, buzzy and raspy.
-    "engine_small": lambda: engine(11, 55, [(0.0, 1.0)], [(160, 0.03, 1.0), (380, 0.015, 0.6), (900, 0.006, 0.3)], rasp=0.5, grit=3.0, bright=5000),
-    # Like a lawnmower.
-    "engine_micro": lambda: engine(12, 42, [(0.0, 1.0)], [(240, 0.02, 1.0), (700, 0.01, 0.7), (1500, 0.004, 0.4)], rasp=0.7, grit=4.0, bright=6000),
-    # A smooth four, firing twice a turn.
-    "engine_big": lambda: engine(13, 45, [(0.0, 1.0), (0.5, 0.95)], [(130, 0.035, 1.0), (260, 0.02, 0.5), (520, 0.01, 0.25)], rasp=0.25, grit=2.0, bright=3500),
-    # A V twin, lumpy with its uneven firing.
-    "engine_twin": lambda: engine(14, 28, [(0.0, 1.0), (0.34, 0.85)], [(110, 0.05, 1.0), (240, 0.025, 0.5), (600, 0.008, 0.2)], rasp=0.35, grit=2.5, bright=3500),
-    # Low, with a clatter on every firing.
-    "engine_diesel": lambda: engine(15, 30, [(0.0, 1.0), (0.5, 0.9)], [(85, 0.05, 1.0), (190, 0.03, 0.6), (420, 0.01, 0.2)], rasp=0.2, grit=2.0, bright=6000, knock=0.8),
-    # A cross plane V8 burble: four uneven firings each time around.
-    "engine_v8": lambda: engine(16, 24, [(0.0, 1.0), (0.22, 0.7), (0.5, 0.95), (0.75, 0.8)], [(75, 0.06, 1.0), (160, 0.035, 0.7), (330, 0.015, 0.4), (700, 0.006, 0.2)], rasp=0.3, grit=2.5, bright=3000),
-    "electric_motor": electric_motor,
-    "jet": jet,
-    # A rotary: three smooth, even firings every turn, and it revs high.
-    "engine_rotary": lambda: engine(18, 60, [(0.0, 1.0), (0.333, 1.0), (0.667, 1.0)], [(200, 0.02, 1.0), (450, 0.012, 0.6), (1100, 0.005, 0.3)], rasp=0.2, grit=1.5, bright=6000),
-    # A flat four, with the boxer's offbeat rumble.
-    "engine_flat4": lambda: engine(19, 26, [(0.0, 1.0), (0.2, 0.75), (0.5, 0.95), (0.72, 0.8)], [(90, 0.05, 1.0), (200, 0.03, 0.6), (450, 0.01, 0.25)], rasp=0.3, grit=2.2, bright=3200),
-    # A bigger electric motor whines lower.
-    "electric_big": lambda: electric_motor(290, 72),
-    "engine_hybrid": hybrid,
-    "pedals": pedals,
-}
-
+# Engines are in engines.py.
 
 # Other loops.
 
@@ -164,12 +45,26 @@ def rumble():
 
 
 def wind():
-    """Air rushing past at speed."""
-    total = RATE * 2
-    t = times(total)
-    air = circular_filter(noise(total, 41), low=200.0, high=1500.0)
-    swell = 1.0 + 0.3 * np.sin(2 * np.pi * 0.5 * t) + 0.15 * np.sin(2 * np.pi * 1.5 * t + 2.0)
-    return normalise(air * swell, 0.6)
+    """Air rushing past at speed: a broad hiss that drifts about at random,
+    with no swell that comes round again. It's long, so the repeat can't be
+    heard, and the game adds gusts and the low buffet (wind_low) on top."""
+    total = seconds(7.0)
+    air = circular_filter(noise(total, 41), low=150.0, high=7000.0, tilt=-3.5)
+    air /= np.max(np.abs(air))
+    # A soft band that wanders, like air round a helmet.
+    band = circular_filter(noise(total, 42), low=700.0, high=1600.0)
+    band = band / np.max(np.abs(band)) * _wobble(total, 43, 0.35, 0.8)
+    out = air * _wobble(total, 44, 0.4, 0.12) + band * 0.35
+    return normalise(out, 0.6)
+
+
+def wind_low():
+    """The low buffet of the wind on you, fluttering at random."""
+    total = seconds(5.3)
+    low = circular_filter(noise(total, 45), low=30.0, high=260.0)
+    low /= np.max(np.abs(low))
+    flutter = _wobble(total, 46, 9.0, 0.5) * _wobble(total, 47, 0.5, 0.3)
+    return normalise(low * flutter, 0.6)
 
 
 def rain(heavy=1.0, seed=51):
@@ -189,18 +84,18 @@ def storm():
     """Heavy rain with the low roll of the wind under it."""
     total = RATE * 4
     t = times(total)
-    roll = circular_filter(noise(total, 61), low=40.0, high=220.0) * (1.0 + 0.4 * np.sin(2 * np.pi * 0.25 * t))
+    roll = circular_filter(noise(total, 61), low=40.0, high=220.0) * _wobble(total, 63, 0.6, 0.4)
     return normalise(rain(1.8, 62) + roll * 0.8, 0.65)
 
 
 def gale():
-    """A cold wind gusting slowly, for snow and dust storms."""
-    total = RATE * 4
-    t = times(total)
-    air = circular_filter(noise(total, 71), low=120.0, high=900.0)
-    whistle = circular_filter(noise(total, 72), low=700.0, high=1100.0) * 0.4
-    gusts = 1.0 + 0.5 * np.sin(2 * np.pi * 0.25 * t) + 0.25 * np.sin(2 * np.pi * 0.75 * t + 1.0)
-    return normalise((air + whistle) * gusts, 0.55)
+    """A cold wind gusting at random, for snow and dust storms."""
+    total = seconds(8.0)
+    air = circular_filter(noise(total, 71), low=120.0, high=1800.0, tilt=-2.0)
+    whistle = circular_filter(noise(total, 72), low=700.0, high=1100.0)
+    whistle = whistle / np.max(np.abs(whistle)) * 0.4 * _wobble(total, 73, 0.3, 0.9)
+    gusts = _wobble(total, 74, 0.35, 0.5) * _wobble(total, 75, 1.2, 0.15)
+    return normalise((air / np.max(np.abs(air)) + whistle) * gusts, 0.55)
 
 
 # Drifting. Each surface has a soft loop for a gentle drift and a hard one
@@ -315,23 +210,64 @@ def splash():
 DRIFTS = {"tarmac": drift_tarmac, "dirt": drift_dirt, "snow": drift_snow, "water": drift_water}
 
 
-def drift_whoosh(level):
-    """Letting a boost go: a rush of air, longer, fuller and brighter for a
-    higher level, with a low thump under the top one."""
-    time = [0.35, 0.55, 0.8][level - 1]
+# Boosts. The game plays a boost as a rush of air for its size (small,
+# middling or big), with a turbo's roar on top of the middling and big ones
+# and a thump under the big ones, each picked at random from a few made
+# differently and pitched at random, so no two boosts sound the same.
+
+def _flutter(n, seed, rate, depth):
+    """Random flutter below `rate` Hz, for a one shot."""
+    w = lowpass(noise(n, seed), rate, 1)
+    return 1.0 + depth * w / max(np.max(np.abs(w)), 1e-9)
+
+
+def boost_air(size, k):
+    """A rush of air: longer, fuller and brighter for a bigger boost."""
+    r = rng(300 + size * 10 + k)
+    time = [0.45, 0.8, 1.4][size - 1] * [0.85, 1.0, 1.2][k - 1]
     n = seconds(time)
-    top = [2500, 4000, 6000][level - 1]
-    air = bandpass(noise(n, 110 + level), 150, 7000)
-    air = sweep_lowpass(air, ramp(n, [(0.0, 400), (0.25, top), (1.0, 600)])) * ramp(n, [(0.0, 0.0), (0.12, 1.0), (1.0, 0.0)])
-    rise = sine(np.geomspace(200 + 60 * level, 500 + 200 * level, n), n) * ramp(n, [(0.0, 0.0), (0.15, 0.15), (1.0, 0.0)])
-    out = normalise(air) + rise
-    if level == 3:
-        m = seconds(0.25)
-        out[:m] += sine(np.geomspace(90, 45, m), m) * decay(m, 0.25) * 0.6
-    return normalise(out, 0.45 + 0.12 * level)
+    air = bandpass(noise(n, 310 + size * 10 + k), r.uniform(100, 260), r.uniform(5000, 8500))
+    top = [2500, 4000, 6500][size - 1] * r.uniform(0.8, 1.25)
+    peak = r.uniform(0.18, 0.35)
+    air = sweep_lowpass(air, ramp(n, [(0.0, r.uniform(300, 600)), (peak, top), (1.0, r.uniform(400, 900))]))
+    air *= ramp(n, [(0.0, 0.0), (r.uniform(0.05, 0.14), 1.0), (1.0, 0.0)]) * _flutter(n, 320 + k, 10.0, 0.15 * size)
+    rise = sine(np.geomspace(r.uniform(180, 260) + 60 * size, r.uniform(450, 600) + 200 * size, n), n)
+    out = normalise(air) + rise * ramp(n, [(0.0, 0.0), (0.15, 0.1 + 0.03 * size), (1.0, 0.0)])
+    return normalise(out, 0.45 + 0.12 * size)
 
 
-LOOPS = {"skid": skid, "rumble": rumble, "splash": splash, "wind": wind, "rain": rain, "storm": storm, "gale": gale}
+def boost_roar(k):
+    """A turbo kicking in: a roar with a whine climbing over it."""
+    r = rng(340 + k)
+    n = seconds(1.5 * [0.9, 1.0, 1.15][k - 1])
+    roar = lowpass(noise(n, 341 + k), r.uniform(1600, 3000)) * _flutter(n, 345 + k, 14.0, 0.3)
+    roar *= ramp(n, [(0.0, 0.0), (r.uniform(0.03, 0.07), 1.0), (0.5, 0.6), (1.0, 0.0)])
+    start, end = r.uniform(650, 950), r.uniform(1800, 2700)
+    whine = sine(np.geomspace(start, end, n), n) + sine(np.geomspace(start * 1.5, end * 1.5, n), n) * r.uniform(0.1, 0.35)
+    whine *= ramp(n, [(0.0, 0.0), (0.1, 0.25), (0.6, 0.18), (1.0, 0.0)])
+    return normalise(roar + whine, 0.75)
+
+
+def boost_thump(k):
+    """A low kick under a big boost."""
+    r = rng(350 + k)
+    m = seconds(0.4)
+    out = sine(np.geomspace(r.uniform(85, 110), r.uniform(38, 50), m), m) * decay(m, 0.35)
+    out += bandpass(noise(m, 352 + k), 200, 1500) * decay(m, 0.03) * 0.4
+    return normalise(out, 0.7)
+
+
+BOOSTS = {}
+for _size in (1, 2, 3):
+    for _k in (1, 2, 3):
+        BOOSTS["boost_air_%d_%d" % (_size, _k)] = (lambda s=_size, k=_k: boost_air(s, k))
+for _k in (1, 2, 3):
+    BOOSTS["boost_roar_%d" % _k] = (lambda k=_k: boost_roar(k))
+for _k in (1, 2):
+    BOOSTS["boost_thump_%d" % _k] = (lambda k=_k: boost_thump(k))
+
+
+LOOPS = {"skid": skid, "rumble": rumble, "splash": splash, "wind": wind, "wind_low": wind_low, "rain": rain, "storm": storm, "gale": gale}
 for _surface, _make in DRIFTS.items():
     LOOPS["drift_%s_soft" % _surface] = lambda m=_make: m(False)
     LOOPS["drift_%s_hard" % _surface] = lambda m=_make: m(True)
@@ -475,13 +411,6 @@ def sizzle():
     pops = _bubbles(seconds(0.9), 155, 14, 180.0, 500.0, (0.02, 0.05)) * ramp(seconds(0.9), [(0.0, 0.2), (0.3, 1.0), (1.0, 0.0)])
     out = mix((thump * 0.7, 0.0), (normalise(hiss) * 0.8, 0.0), (normalise(steam) * 0.4, 0.0), (normalise(crackle) * 0.35, 0.05), (normalise(pops) * 0.35, 0.2))
     return normalise(out, 0.8)
-
-
-def turbo():
-    n = seconds(1.0)
-    roar = lowpass(noise(n, 10), 2500) * ramp(n, [(0.0, 0.0), (0.05, 1.0), (1.0, 0.0)])
-    whine = sine(np.geomspace(800, 2200, n), n) * ramp(n, [(0.0, 0.0), (0.1, 0.3), (1.0, 0.0)])
-    return normalise(roar + whine, 0.8)
 
 
 def rope():
@@ -740,19 +669,20 @@ ONE_SHOTS = {
     "bump": bump, "crash": crash, "bricks": bricks, "powerup": powerup,
     "beep": lambda: beep("A5", 0.16), "go": lambda: beep("A6", 0.5),
     "lap": lap, "final_lap": final_lap, "finish": finish, "win": win,
-    "reset": reset, "splash": plunge, "sizzle": sizzle, "turbo": turbo, "rope": rope, "wall": wall, "shockwave": shockwave, "marbles": marbles, "spikes": spikes, "drop": drop, "cannon": cannon,
+    "reset": reset, "splash": plunge, "sizzle": sizzle, "rope": rope, "wall": wall, "shockwave": shockwave, "marbles": marbles, "spikes": spikes, "drop": drop, "cannon": cannon,
     "hit": hit, "homing_warning": homing_warning, "repair": repair, "shield": shield, "ghost": ghost, "lightning": lightning, "thunder": thunder, "ram": ram,
-    "crossing_bell": crossing_bell, "drift_whoosh_1": lambda: drift_whoosh(1), "drift_whoosh_2": lambda: drift_whoosh(2), "drift_whoosh_3": lambda: drift_whoosh(3), "train_horn": train_horn,
+    "crossing_bell": crossing_bell, "train_horn": train_horn,
     "click": click, "back": back, "snap": snap, "unsnap": unsnap, "pick": pick, "nope": nope,
     "podium": podium, "cheer": cheer,
+    **BOOSTS,
 }
 
 
 def make_all():
     """Every effect: name to (samples, whether it loops)."""
     out = {}
-    for name, make in ENGINES.items():
-        out["engine/" + name] = (make(), True)
+    for name, samples in engines.make_all().items():
+        out[name] = (samples, True)
     for name, make in LOOPS.items():
         out["loop/" + name] = (make(), True)
     for name, make in ONE_SHOTS.items():

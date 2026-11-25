@@ -192,10 +192,10 @@ const SHIELD_LOOK := 4.6
 ## and lands instead of sliding along under the kart.
 const SHIELD_SHOVE := 7.0
 const SHIELD_HOP := 1.2
-## How long a ghost goes through karts, bricks and traps. A reset is shorter,
-## just long enough to get out of the pack's way.
+## How long a ghost goes through karts, bricks and traps, after a ghost
+## power-up or a reset.
 const GHOST_TIME := 3.0
-const RESET_GHOST_TIME := 1.0
+const RESET_GHOST_TIME := 3.0
 ## A ghost and its driver fade to half see-through over this many seconds at
 ## the start, and back at the end.
 const GHOST_FADE := 0.35
@@ -341,9 +341,9 @@ const QUAD_RIDER_LEAN := 0.33
 const KERB_RIDGE := 0.6
 const KERB_KICK := 0.024
 const KERB_WHEEL := 0.3
-## The sound each power-up makes when it's used (see sound/fx).
+## The sound each power-up makes when it's used (see sound/fx). The turbos
+## sound as boosts (see KartSound).
 const GADGET_SOUNDS := {
-	"turbo": "fx/turbo", "big_turbo": "fx/turbo", "triple_turbo": "fx/turbo",
 	"tow": "fx/rope", "wall": "fx/wall", "shockwave": "fx/shockwave", "spikes": "fx/spikes",
 	"dropper": "fx/drop", "marbles": "fx/marbles",
 	"cannon": "fx/cannon", "homing": "fx/cannon", "repair": "fx/repair", "shield": "fx/shield",
@@ -1881,7 +1881,6 @@ func _update_slide(dt: float) -> void:
 			var level := slide_level_for(_slide_steps)
 			if level > 0:
 				start_boost(maxf(boost_left, slide_boost_for(_slide_steps)), level)
-				Sounds.play_at.call_deferred("fx/turbo", sound, -8.0)
 	if not sliding:
 		_slide_steps = 0
 	slide_level = slide_level_for(_slide_steps)

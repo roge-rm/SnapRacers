@@ -45,7 +45,7 @@ class Runner:
 			var design := KartDesign.load_file("res://data/karts/stock/" + file)
 			var stats := KartStats.compute(design, {}, null, KartStats.DRIVER_MASS)
 			var engine := KartSound.engine_for(stats)
-			var heard := (engine != "" and Sounds.stream("engine/" + engine) != null) or stats.thrust > 0.0
+			var heard := (engine != "" and Sounds.stream("engine/%s_low" % engine) != null) or stats.thrust > 0.0
 			if not heard:
 				silent.append(file)
 		check(silent.is_empty(), "every stock kart has an engine to hear %s" % [silent])
@@ -67,6 +67,8 @@ class Runner:
 		check(AudioServer.is_bus_mute(music), "and nothing at all is muted")
 		await check_menu_music()
 
+		check_engine_revs()
+
 		# A kart keeps its sound when a part comes off.
 		add_child(TestTrack.new())
 		var kart := Kart.new()
@@ -75,7 +77,7 @@ class Runner:
 		kart.global_position = Vector3(0.0, 1.0, 0.0)
 		await get_tree().process_frame
 		var sound := kart.sound
-		check(sound != null and sound._engine.stream == Sounds.stream("engine/engine_small"), "the starter kart sounds like a small engine")
+		check(sound != null and sound._engine.stream == Sounds.stream("engine/engine_small_low") and sound._engine_off.stream == Sounds.stream("engine/engine_small_off"), "the starter kart sounds like a small engine")
 		var one: Array[int] = [kart.design.parts.size() - 1]
 		kart.lose_parts(one)
 		check(kart.sound == sound and sound.is_inside_tree(), "and keeps its sound when a part comes off")
@@ -90,6 +92,41 @@ class Runner:
 
 		print("All sound checks passed." if failures == 0 else "%d sound checks failed." % failures)
 		get_tree().quit(1 if failures > 0 else 0)
+
+
+	## The engine runs through its gears, eases off the throttle onto its off
+	## loop, and two karts with the same engine sound a little different.
+	func check_engine_revs() -> void:
+		var revs := EngineSound.new("engine_v8", 7)
+		var dt := 1.0 / 60.0
+		var speed := 0.0
+		var most_gear := 0
+		var dropped := false
+		var before := 0.0
+		for i in 600:
+			speed = minf(speed + dt * 0.12, 1.0)
+			var gear := revs.gear
+			revs.step(dt, speed, 1.0, true, false, false)
+			if revs.gear > gear:
+				before = revs.rev
+			if before > 0.0 and revs.rev < before - 0.1:
+				dropped = true
+			most_gear = maxi(most_gear, revs.gear)
+		check(most_gear == revs.gears - 1, "the V8 goes up through all its gears (%d)" % (most_gear + 1))
+		check(dropped, "and the revs drop at a shift")
+		var on := revs.levels()
+		check(on.y > on.x and on.y > on.z * 4.0, "and near the top it's on the high loop %s" % on)
+		for i in 60:
+			revs.step(dt, speed, 0.0, true, false, false)
+		var off := revs.levels()
+		check(off.z > off.y and off.z > off.x, "lifting off moves it onto the off loop %s" % off)
+		var idle := EngineSound.new("engine_v8", 8)
+		for i in 120:
+			idle.step(dt, 0.0, 0.0, true, true, false)
+		check(idle.rev < 0.05 and idle.levels().x > 0.0, "standing still it idles on the low loop")
+		var other := EngineSound.new("engine_v8", 9)
+		check(not is_equal_approx(other.detune, revs.detune), "and two V8s are pitched a little apart")
+		check(KartSound.AI_ENGINE_LEVEL < KartSound.ENGINE_LEVEL, "the AI's engines are quieter than yours")
 
 
 	func check_menu_music() -> void:

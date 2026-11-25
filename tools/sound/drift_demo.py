@@ -77,7 +77,7 @@ def full_drift(surface, held, seed):
     tires = one_drift(surface, [(0.0, 0.7), (0.3, 1.0), (held, 0.9)], held + 0.3, seed)
     parts = [(eng, 0.0), (tires, 0.2)]
     if level:
-        parts.append((effects.drift_whoosh(level) * db(WHOOSH_DB), 0.2 + held))
+        parts.append((effects.boost_air(level, 2) * db(WHOOSH_DB), 0.2 + held))
     out = mix(*parts)
     return out[:n] * np.clip((n - np.arange(n)) / seconds(0.3), 0.0, 1.0)
 
@@ -90,7 +90,7 @@ def main():
         clips[surface + "-gentle"] = tire_clip(surface, False, 10 * i)
         clips[surface + "-hard"] = tire_clip(surface, True, 10 * i + 5)
     for level in (1, 2, 3):
-        clips["whoosh-%d" % level] = effects.drift_whoosh(level) * db(WHOOSH_DB)
+        clips["whoosh-%d" % level] = effects.boost_air(level, 2) * db(WHOOSH_DB)
     clips["full-tarmac-purple"] = full_drift("tarmac", 2.4, 41)
     clips["full-dirt-orange"] = full_drift("dirt", 1.5, 42)
     clips["full-snow-blue"] = full_drift("snow", 0.8, 43)
