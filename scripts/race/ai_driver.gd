@@ -143,6 +143,11 @@ const STUCK_AFTER := 2.5
 ## tries again. Only if that doesn't work does it reset.
 const BACK_AFTER := 0.8
 const BACK_FOR := 1.0
+## Backing up for room to pull out round a stopped kart, it goes no faster
+## than this, in m/s.
+const BACK_UP_SPEED := 1.5
+## Backing up that long without getting room, it counts as stuck again.
+const BACK_UP_FOR := 2.0
 ## With a wheel knocked off it can't steer or drive properly, so after this
 ## long it resets to get it back on, the way a person would, unless it has
 ## a repair to use.
@@ -255,6 +260,8 @@ var _mark_time := 0.0
 var _away := 0.0
 var _recover_from: Kart
 var _leaving := 0.0
+## How long it's been backing up for room to pull out.
+var _backed_up := 0.0
 ## How long it's been going with a wheel knocked off.
 var _wheel_gone := 0.0
 ## Why it last asked for a reset: "wheel gone", "upside down", "getting
@@ -757,6 +764,12 @@ func _drive(delta: float, speed: float) -> void:
 	controls.steer = clampf(-angle / maxf(lock, 0.001) * 1.2 + bend_steer * BEND_STEER, -1.0, 1.0)
 	if straight:
 		controls.steer = move_toward(_steer, controls.steer, STRAIGHT_STEER_RATE * delta)
+	# Creeping out from close behind a stopped kart, it turns out as hard as
+	# it can, or its nose doesn't clear that kart's tail.
+	if traffic.pulling_out and not traffic.back_up and speed < AITrafficPlanner.PULL_OUT_SPEED + 1.0 and absf(dodge) > 0.25:
+		var off := (kart.global_position - track.point_at(offset)).dot(track.right_at(offset)) - line_at(offset)
+		if absf(dodge - off) > 0.25:
+			controls.steer = signf(dodge - off)
 
 	# For speed, find the slowest it needs to be for anything coming up, with
 	# room to brake. A driver who can't steer quickly (see KartStats.control)
@@ -878,6 +891,15 @@ func _drive(delta: float, speed: float) -> void:
 		elif traffic.speed_limit < 0.6:
 			controls.throttle = 0.0
 			controls.brake = 1.0 if forward_speed > 0.6 else 0.0
+	# Stopped right behind a kart it's going round, it backs up to get room
+	# to steer out, steering the other way so its nose swings out (see
+	# AITrafficPlanner.back_up).
+	_backed_up = _backed_up + delta if traffic.back_up else 0.0
+	if traffic.back_up and _backed_up < BACK_UP_FOR and _backing <= 0.0 and _leaving <= 0.0 and not _looping():
+		var off := (kart.global_position - track.point_at(offset)).dot(track.right_at(offset)) - line_at(offset)
+		controls.throttle = 0.0
+		controls.brake = 1.0 if kart.linear_velocity.dot(-kart.global_basis.z) > -BACK_UP_SPEED else 0.0
+		controls.steer = -signf(dodge - off)
 	_steer = controls.steer
 
 
@@ -1041,6 +1063,8 @@ func _dodge() -> float:
 		_eased = 0.0
 		traffic.speed_limit = INF
 		traffic.queueing = false
+		traffic.pulling_out = false
+		traffic.back_up = false
 		_since_plan = 0.0
 		_planned_for = -1
 		return 0.0
@@ -1407,7 +1431,7 @@ func _stuck_check(delta: float, speed: float, up: Vector3) -> void:
 	# which on ice takes a while, so that isn't being stuck.
 	var pulling_away := kart.slowdown_left > 0.0 and not upside_down
 	# Nor is waiting for a train.
-	var waiting := (_waiting or traffic.queueing) and not upside_down
+	var waiting := (_waiting or traffic.queueing or (traffic.back_up and _backed_up < BACK_UP_FOR)) and not upside_down
 	var excused := kart.locked or pulling_away or waiting or kart.sinking_left > 0.0
 	if waiting:
 		_stuck = 0.0

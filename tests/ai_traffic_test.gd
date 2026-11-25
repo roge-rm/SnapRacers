@@ -26,6 +26,10 @@ func _ready() -> void:
 	await _pass("hard", true, true)
 	await _pass("expert", true, true, true)
 	await _queue()
+	await _stopped(20.0, 52.0)
+	await _stopped(10.0, 8.0)
+	await _stopped(0.0, 2.0)
+	await _stopped(0.0, 2.0, true)
 	print("All %d AI traffic checks passed." % checks if failures == 0 else "%d of %d AI traffic checks failed." % [failures, checks])
 	get_tree().quit(1 if failures else 0)
 
@@ -346,6 +350,71 @@ func _queue() -> void:
 	check(contacts == 0, "a boxed stationary queue stops without contact (%d frames)" % contacts)
 	check(waited > 120 and own.linear_velocity.length() < 0.7, "the driver waits stationary for the queue (%d frames)" % waited)
 	check(backwards == 0 and resets == 0, "waiting never reverses or triggers stuck resets (%d reverse frames, %d resets)" % [backwards, resets])
+	_clear()
+	road.queue_free()
+	await get_tree().physics_frame
+
+
+## A kart stopped on its line on a wide road, `gap` metres ahead, is driven
+## round promptly, from `speed` m/s or from a standstill right behind it.
+## With `pair` a second AI follows the first.
+func _stopped(speed: float, gap: float, pair := false) -> void:
+	track.width = 13.0
+	var road := TrackBuilder.new(track)
+	add_child(road)
+	var start := 60.0
+	var stop_at := start + gap + 3.0
+	var own := _place(start, 0.0, 0.0, false)
+	var second: Kart
+	if pair:
+		second = _place(start - 6.0, 0.0, 0.0, false)
+	var parked := _place(stop_at, 0.0, 0.0, false)
+	parked.locked = true
+	var ai := _ai(own, start, "normal")
+	ai.pace = 1.0
+	var ai2: AIDriver
+	if pair:
+		ai2 = _ai(second, start - 6.0, "normal")
+		ai2.pace = 1.0
+	for ai_each in drivers:
+		ai_each.others = karts
+	for n in 30:
+		await get_tree().physics_frame
+	own.linear_velocity = track.forward_at(start) * speed
+	ai.set_physics_process(true)
+	if pair:
+		ai2.set_physics_process(true)
+	var at := start
+	var at2 := start - 6.0
+	var contacts := 0
+	var passed := -1.0
+	var passed2 := -1.0
+	var wall := false
+	var t := 0.0
+	var half := track.width * 0.5
+	while t < 10.0 and (passed < 0.0 or (pair and passed2 < 0.0)):
+		await get_tree().physics_frame
+		t += 1.0 / 60.0
+		at = track.offset_of(own.global_position, at, 10.0)
+		ai.offset = at
+		if pair:
+			at2 = track.offset_of(second.global_position, at2, 10.0)
+			ai2.offset = at2
+		for kart: Kart in ([own, second] if pair else [own]):
+			if kart.get_colliding_bodies().has(parked) or (pair and kart.get_colliding_bodies().has(own if kart == second else second)):
+				contacts += 1
+			var across := absf((kart.global_position - track.point_at(track.offset_of(kart.global_position))).dot(track.right_at(stop_at)))
+			if across + kart.width() * 0.5 > half + 0.3:
+				wall = true
+		if passed < 0.0 and at > stop_at + own.tail_length() + AITrafficPlanner._front(parked) + 0.5:
+			passed = t
+		if pair and passed2 < 0.0 and at2 > stop_at + second.tail_length() + AITrafficPlanner._front(parked) + 0.5:
+			passed2 = t
+	var what := "from %.0f m/s %.0f m back%s" % [speed, gap, ", with another AI behind" if pair else ""]
+	check(passed >= 0.0 and passed < (6.0 if speed > 0.0 else 4.0), "an AI goes round a kart stopped on its line %s (%.1f s)" % [what, passed])
+	if pair:
+		check(passed2 >= 0.0 and passed2 < 6.0, "and so does the one behind it (%.1f s)" % passed2)
+	check(contacts == 0 and not wall, "%s it touches nobody and keeps off the edge (%d contact frames)" % [what, contacts])
 	_clear()
 	road.queue_free()
 	await get_tree().physics_frame

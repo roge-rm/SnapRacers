@@ -46,6 +46,16 @@ const SIDE_SEE := 0.8
 const OBSTACLE_SPEED := 5.0
 const OBSTACLE_SHARE := 0.45
 const OBSTACLE_HEADING := 0.5
+## Pulling out round one, it creeps forward at up to PULL_OUT_SPEED m/s
+## while there's room to steer out (see _pull_room()), and never closer than
+## PULL_OUT_GAP metres from its nose to that kart's tail.
+const PULL_OUT_SPEED := 3.0
+const PULL_OUT_GAP := 0.6
+## It reckons on turning out at PULL_OUT_RADIUS metres at that speed (see
+## _pull_room()). Stopped too close to turn out, it backs up first, swinging
+## its nose out, if there's BACK_UP_ROOM metres clear behind.
+const PULL_OUT_RADIUS := 2.5
+const BACK_UP_ROOM := 2.5
 ## Alongside on the inside into a bend, a driver with this much racecraft
 ## or more counts on up to LATE_INSIDE more braking for it, more for
 ## aggressive ones.
@@ -79,6 +89,12 @@ const KEEP_BEHIND := 20.0
 var target := NAN
 var speed_limit := INF
 var queueing := false
+## Whether the line it's taking pulls out from close behind a stopped or very
+## slow kart, so it steers hard out at a crawl (see AIDriver._drive()).
+var pulling_out := false
+## Whether it's stopped too close behind that kart to steer out round it, and
+## backs up first, with nobody close behind.
+var back_up := false
 var contact: Kart
 var contact_left := 0.0
 var _hold := 0.0
@@ -246,6 +262,7 @@ func plan(ai: AIDriver, preferred: float, delta: float, wall_line := NAN) -> flo
 	var chosen := here
 	var chosen_limit := 0.0
 	var chosen_contact: Kart
+	var chosen_pull := false
 	for across in lines:
 		var result := _evaluate(ai, across, here, speed, horizon, decel, traffic, wall_line, false, sweep)
 		if not result.safe:
@@ -266,6 +283,7 @@ func plan(ai: AIDriver, preferred: float, delta: float, wall_line := NAN) -> flo
 			chosen = across
 			chosen_limit = result.limit
 			chosen_contact = result.contact
+			chosen_pull = result.pulling_out
 	# Off past the edge of where it may aim, among karts, every way back in
 	# can cross one. It heads back in anyway at following speed, rather than
 	# stopping dead in their way.
@@ -284,6 +302,8 @@ func plan(ai: AIDriver, preferred: float, delta: float, wall_line := NAN) -> flo
 	elif contact != null and chosen_contact != contact:
 		_end_contact(ai)
 	speed_limit = chosen_limit
+	pulling_out = chosen_pull
+	back_up = speed < 1.0 and absf(target - here) > 0.25 and _boxed_in(ai, traffic, here)
 	# Once it's started a pass on one side, close enough to make it, it
 	# sticks to it. Going round a slow or spun kart isn't counted as a pass.
 	if not rival.is_empty() and pass_side == 0 and rival.ahead < _front(kart) + rival.back + COMMIT_GAP and _worth_going(ai, rival, chosen, speed):
@@ -300,9 +320,12 @@ func plan(ai: AIDriver, preferred: float, delta: float, wall_line := NAN) -> flo
 				slip_pulls += 1
 	_was_slipping = not rival.is_empty() and pass_side == 0 and _slipstreaming(ai, rival, speed)
 	brake_bonus = _late_inside(ai, rival, speed)
-	# A stopped, aligned queue is waiting. A head-on driver still needs recovery.
+	# A stopped, aligned queue it has no way round is waiting. A head-on
+	# driver still needs recovery, and one whose line goes round the kart
+	# isn't waiting for it.
 	queueing = speed_limit < 1.0 and traffic.any(func(body: Dictionary) -> bool:
-		return (ai._tries == 0 or body.kart != ai._recover_from) and body.ahead > 0.0 and body.ahead < _front(kart) + body.back + ai.traffic_clearance + 1.5 and absf(body.across - here) < (kart.width() + body.width) * 0.5 + ai.traffic_clearance and body.speed >= -0.5 and body.speed < 0.6 and body.heading > 0.9)
+		var half: float = (kart.width() + body.width) * 0.5 + ai.traffic_clearance
+		return (ai._tries == 0 or body.kart != ai._recover_from) and body.ahead > 0.0 and body.ahead < _front(kart) + body.back + ai.traffic_clearance + 1.5 and absf(body.across - here) < half and absf(body.across - target) < half and body.speed >= -0.5 and body.speed < 0.6 and body.heading > 0.9)
 	return target
 
 
@@ -329,6 +352,38 @@ func held(ai: AIDriver) -> float:
 	if not (absf(low - _lane.x) < 0.25 and absf(high - _lane.y) < 0.25):
 		return NAN
 	return clampf(target, low, high)
+
+
+## Whether it's too close behind a stopped or very slow kart in line with
+## it to steer out round it, and has room to back up.
+func _boxed_in(ai: AIDriver, traffic: Array[Dictionary], here: float) -> bool:
+	var kart := ai.kart
+	var boxed := false
+	for body: Dictionary in traffic:
+		var half: float = (kart.width() + body.width) * 0.5 + ai.traffic_clearance
+		if absf(body.across - here) >= half:
+			continue
+		if body.ahead <= 0.0:
+			# Something close behind: it can't back up.
+			if body.ahead > -(kart.tail_length() + body.front + BACK_UP_ROOM):
+				return false
+			continue
+		if body.slow and body.ahead - _front(kart) - body.back <= _pull_room(ai, half - absf(body.across - here), signf(target - body.across)):
+			boxed = true
+	return boxed
+
+
+## The gap from its nose to a kart's tail it needs to steer out round that
+## kart to side `side` (1 right) when it's still `left` metres in line with
+## it: what it covers pointing the way it is, turning out at
+## PULL_OUT_RADIUS, solved for the gap.
+static func _pull_room(ai: AIDriver, left: float, side: float) -> float:
+	if left <= 0.0:
+		return PULL_OUT_GAP
+	var facing := (-ai.kart.global_basis.z).dot(ai.track.right_at(ai.offset)) * side
+	var slope := tan(asin(clampf(facing, -0.9, 0.9)))
+	var gap := PULL_OUT_RADIUS * (sqrt(slope * slope + 2.0 * left / PULL_OUT_RADIUS) - slope)
+	return maxf(gap, PULL_OUT_GAP)
 
 
 ## How many lanes there are where it is and where it's aiming.
@@ -519,6 +574,7 @@ func _evaluate(ai: AIDriver, across: float, here: float, speed: float, horizon: 
 	var limit := INF
 	var future := INF
 	var touching: Kart
+	var creeping := false
 	var reaction: float = sweep.reaction
 	var side_speed: float = sweep.side_speed
 	var rate: float = sweep.rate
@@ -604,10 +660,20 @@ func _evaluate(ai: AIDriver, across: float, here: float, speed: float, horizon: 
 			var following := sqrt(maxf(body.speed, 0.0) ** 2 + 2.0 * decel * room)
 			if not stays:
 				following = maxf(following, maxf(body.speed, 0.0) + room / maxf(in_line, STAYS_SLACK))
+			# Pulling out from behind a stopped or very slow kart to a line
+			# clear of it, it has to roll forward to steer at all, so it
+			# creeps out while there's room to.
+			var pulling_out: bool = body.slow and not toward and absf(across - here) > 0.25 and absf(across - body.across) >= room_across
+			var nose_gap: float = body.ahead - own_front - body.back
+			if pulling_out and absf(here - body.across) < room_across and nose_gap < PULL_OUT_RADIUS * 3.0:
+				creeping = true
+			pulling_out = pulling_out and nose_gap > _pull_room(ai, room_across - absf(here - body.across), signf(across - body.across))
+			if pulling_out:
+				following = maxf(following, PULL_OUT_SPEED)
 			limit = minf(limit, following)
 			# At walking speed stop at a following gap instead of creeping into
 			# an immobile queue, then accidentally using brake to reverse.
-			if body.speed >= -0.5 and body.heading > 0.0 and body.speed < 0.6 and room < 0.8:
+			if not pulling_out and body.speed >= -0.5 and body.heading > 0.0 and body.speed < 0.6 and room < 0.8:
 				limit = 0.0
 		if body.ahead >= -own_back - body.front and absf(across - entry.end_side) < room_across:
 			future = minf(future, maxf(body.speed, 0.0))
@@ -622,7 +688,7 @@ func _evaluate(ai: AIDriver, across: float, here: float, speed: float, horizon: 
 			var ahead := gap.dot(ai.track.forward_at(ai.offset))
 			if ahead > 0.0 and ahead < AIDriver.SEE_WALL:
 				limit = minf(limit, sqrt(2.0 * decel * maxf(ahead - own_front - 2.0 - speed * reaction, 0.0)))
-	return {"safe": true, "limit": limit, "future": future, "contact": touching}
+	return {"safe": true, "limit": limit, "future": future, "contact": touching, "pulling_out": creeping}
 
 
 func _contact_safe(ai: AIDriver, body: Dictionary, traffic: Array[Dictionary]) -> bool:
@@ -794,7 +860,7 @@ func _follow(ai: AIDriver, rival: Dictionary, delta: float, here: float) -> void
 		if rival.ahead < _best_gap - 0.3:
 			_best_gap = rival.ahead
 			_stall = 0.0
-		elif not alongside and (_bend.x > ai.kart.linear_velocity.length() * BEND_TIME + BEND_SEE or ai.track.bend_at(ai.offset) > 0.02):
+		elif not alongside and not rival.slow and (_bend.x > ai.kart.linear_velocity.length() * BEND_TIME + BEND_SEE or ai.track.bend_at(ai.offset) > 0.02):
 			# Short of the braking zone it's going for it keeps at it, as
 			# that's where the pass is made.
 			_stall += delta
