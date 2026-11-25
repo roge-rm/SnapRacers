@@ -653,12 +653,12 @@ class Runner:
 		check(field.collect(picker) == "", "and that box is gone until it comes back")
 		var follower := kart_with([], field.spots[0].origin - Vector3(0.0, 0.7, 0.0))
 		check(field.collect(follower) == "" and not field.there(0), "a kart right behind can't take the same box")
-		for n in 174:
+		for n in int(PowerupField.BACK_AFTER * 60.0) - 6:
 			field._physics_process(1.0 / 60.0)
-		check(field.collect(follower) == "", "it's still gone after 2.9 seconds")
+		check(field.collect(follower) == "", "it's still gone just before %.1f seconds" % PowerupField.BACK_AFTER)
 		for n in 9:
 			field._physics_process(1.0 / 60.0)
-		check(field.there(0) and field.collect(follower) != "", "and back after 3 seconds")
+		check(field.there(0) and field.collect(follower) != "", "and back after %.1f seconds" % PowerupField.BACK_AFTER)
 		field.take(2)
 		check(not field.there(2) and field.there(1), "a box another device's kart took is gone here too")
 		follower.queue_free()

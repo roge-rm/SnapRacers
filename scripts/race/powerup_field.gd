@@ -18,7 +18,7 @@ const FIRST := 150.0 # metres from the start line to the first row
 const ACROSS := [-4.0, 0.0, 4.0] # where the three boxes in a row sit
 const HEIGHT := 0.9
 const REACH := 1.9
-const BACK_AFTER := 3.0 # seconds a taken box is gone for
+const BACK_AFTER := 1.5 # seconds a taken box is gone for
 const SIZE := 1.1
 ## The render layer of the first viewer's boxes. The next viewer's is the one
 ## after it.
