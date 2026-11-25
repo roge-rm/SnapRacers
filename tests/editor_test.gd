@@ -162,7 +162,7 @@ func _splits() -> void:
 	editor.ui._show_category(tab)
 	await frames(1)
 	var tiles := editor.ui._tiles.get_children()
-	check(tab >= 0 and tiles.size() == 11 and tiles[0].get_meta("spec") == {"type": "split", "length": 2}, "the Splits tab has the split straight first of its 11 splits (%d)" % tiles.size())
+	check(tab >= 0 and tiles.size() == 12 and tiles[0].get_meta("spec") == {"type": "split", "length": 2}, "the Splits tab has the split straight first of its 12 splits (%d)" % tiles.size())
 	editor.insert_after = 0
 	tiles[0].pressed.emit()
 	check(int(editor.course.pieces[1].get("length", 0)) == 2 and editor.course.pieces[1].type == "split" and editor.course.pieces[2].type == "split", "tapping it puts a split in after the picked piece")

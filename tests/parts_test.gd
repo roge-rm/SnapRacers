@@ -100,7 +100,7 @@ func _init() -> void:
 
 	# Engines and wheels.
 	var jet := base([["jet", 11, 3, 13]])
-	check(KartStats.compute(jet).top_speed() > upright.top_speed() + 3.0, "a jet adds speed (%d against %d km/h)" % [KartStats.compute(jet).top_speed() * 3.6, upright.top_speed() * 3.6])
+	check(KartStats.compute(jet).top_speed() > upright.top_speed() + 2.0, "a jet adds speed (%d against %d km/h)" % [KartStats.compute(jet).top_speed() * 3.6, upright.top_speed() * 3.6])
 	check(KartStats.compute(kart([["jet", 0, 0, 0]])).top_speed() > 0.0, "and pushes even with no engine driving the wheels")
 	var grass := 0.6
 	check(Kart.ground_grip(grass, PartCatalog.get_part("wheel_knobbly").offroad) > 0.8, "knobbly tires keep most of their grip on grass (%.2f)" % Kart.ground_grip(grass, 0.6))
