@@ -9,8 +9,10 @@ extends Node
 ##   again by the next one's next pass. Once everyone's finished it all goes;
 ## - once karts have worn it away: each kart through a patch of marbles or
 ##   spikes scatters part of it, and the bricks of a pile a kart hits go;
-## - when there are more than MOST on the course, oldest first;
-## - after BACKSTOP seconds whatever happens.
+## - when there are more than MOST on the course, oldest first, but not one
+##   the leader's about to meet while there are others;
+## - after BACKSTOP seconds, or once the leader's had time to get round to it
+##   at SLOWEST m/s, whichever's later.
 ## Each drop is known by its kart's grid slot and how many things that kart
 ## has dropped (see key_of()), which is the same on every device. Online only
 ## the host decides, and sends each change to the clients as a [key, state]
@@ -21,6 +23,12 @@ const MOST := 10
 ## Piles of bricks are loose bodies, which phones can't take many of.
 const MOST_PILES := BrickPile.MOST_AT_ONCE / BrickPile.COUNT
 const BACKSTOP := 90.0
+## The slowest the leader could go on average, in m/s, for how long it may
+## take to come round to a drop.
+const SLOWEST := 8.0
+## The cap leaves what's less than this far in front of the leader, in
+## metres, while there's something else it can take.
+const NEAR := 120.0
 ## Seconds between checks. Karts are checked along the line they drove since
 ## the last one, so a fast kart isn't missed.
 const CHECK_EVERY := 0.2
@@ -60,6 +68,8 @@ class Item:
 	var spot := -1.0
 	## The leader's race distance once it's driven past this, or -1.
 	var pass_at := -1.0
+	## When it goes whatever happens, in the keeper's clock.
+	var due := 0.0
 	var state := 0
 	var hit_by: Array[Kart] = []
 
@@ -116,7 +126,7 @@ func add(node: Node3D, key: int) -> void:
 		item.kind = PILE if node is BrickPile else (WALL if node is BrickWall else TRAP)
 		item.born = _clock
 		item.spot = _spot_of(node.global_position, key)
-		item.pass_at = _pass_from(_leading(), item.spot)
+		_judge(item, _leading())
 		_items.append(item)
 		_by_key[key] = item
 		if deciding:
@@ -186,6 +196,15 @@ func _pass_from(leader, spot: float) -> float:
 	return leader.progress.distance() + fposmod(spot - leader.progress.offset, track.length)
 
 
+## Sets when `item` goes by `leader`, and the backstop after that.
+func _judge(item: Item, leader) -> void:
+	item.pass_at = _pass_from(leader, item.spot)
+	item.due = item.born + BACKSTOP
+	if item.pass_at >= 0.0:
+		var way: float = item.pass_at + PAST - leader.progress.distance()
+		item.due = maxf(item.due, _clock + way / SLOWEST)
+
+
 func _physics_process(delta: float) -> void:
 	_clock += delta
 	_check_in -= delta
@@ -217,7 +236,7 @@ func check() -> void:
 		# The one in front finished, so the next one's next pass decides.
 		if _leader != null and _leader.progress.finished:
 			for item in _items:
-				item.pass_at = _pass_from(leader, item.spot)
+				_judge(item, leader)
 		_leader = leader
 	var lead: float = leader.progress.distance() if leader != null else -INF
 	# Everyone's finished.
@@ -227,7 +246,7 @@ func check() -> void:
 			all_home = all_home or racer.progress != null
 	for i in range(_items.size() - 1, -1, -1):
 		var item := _items[i]
-		if all_home or _clock - item.born > BACKSTOP or (item.pass_at >= 0.0 and lead >= item.pass_at + PAST):
+		if all_home or _clock > item.due or (item.pass_at >= 0.0 and lead >= item.pass_at + PAST):
 			_decide(item, GONE)
 		elif item.kind != WALL:
 			_wear(item)
@@ -287,20 +306,35 @@ static func _near(at: Vector3, from: Vector3, to: Vector3, wide: float) -> bool:
 	return at.distance_squared_to(from + d * t) < wide * wide
 
 
-## Past MOST_PILES piles the oldest pile goes, and past MOST items the
-## oldest item. It's called as each one comes, so one of each is enough.
+## Past MOST_PILES piles a pile goes, and past MOST items an item (see
+## _pick()). It's called as each one comes, so one of each is enough.
 func _cap() -> void:
 	var piles := 0
 	for item in _items:
 		if item.kind == PILE:
 			piles += 1
 	if piles > MOST_PILES:
-		for item in _items:
-			if item.kind == PILE:
-				_decide(item, GONE)
-				break
+		_decide(_pick(true), GONE)
 	if _items.size() > MOST:
-		_decide(_items[0], GONE)
+		_decide(_pick(false), GONE)
+
+
+## What the cap takes, out of the piles or out of everything: the oldest one
+## that's not just in front of the leader, and with none, whichever the leader
+## gets to last. The one that's just come is only taken when it's all there is.
+func _pick(piles: bool) -> Item:
+	var leader = _leading()
+	var lead: float = leader.progress.distance() if leader != null else 0.0
+	var newest := _items[-1]
+	var last: Item = null
+	for item in _items:
+		if piles and item.kind != PILE or item == newest:
+			continue
+		if item.pass_at < 0.0 or leader == null or item.pass_at + PAST - lead > NEAR:
+			return item
+		if last == null or item.pass_at > last.pass_at:
+			last = item
+	return last if last != null else newest
 
 
 func _decide(item: Item, state: int) -> void:

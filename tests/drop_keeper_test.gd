@@ -178,6 +178,51 @@ class Runner:
 		check(loose._left == DropKeeper.BACKSTOP, "outside a race a trap goes after %.0f s by itself" % DropKeeper.BACKSTOP)
 		loose.free()
 
+	## On a long lap the leader takes more than BACKSTOP seconds to come
+	## round to what's dropped just behind it, and it's still there when it
+	## gets to it. It goes once the leader's driven past, the one in front
+	## then if the lead's changed.
+	func _long_lap() -> void:
+		var track := TrackPath.load_file("res://data/tracks/hairpin_hall.json")
+		var lead := racer(0, track, 100.0)
+		var second := racer(1, track, 90.0)
+		var it := keeper(track, [lead, second])
+		# Dropped by the kart in second, just behind it, so the leader meets it
+		# nearly a lap later.
+		var behind := trap_at(track.point_at(85.0), 1 * 65536)
+		await a_check()
+		lead.progress.laps = 1
+		lead.progress.offset = 60.0
+		it._clock += DropKeeper.BACKSTOP + 10.0
+		await a_check()
+		check(not gone(behind), "after %.0f s it's still there when the leader's 25 m short of it" % DropKeeper.BACKSTOP)
+		# The kart in second takes the lead and drives past it.
+		second.progress.laps = 1
+		second.progress.offset = 85.0 + DropKeeper.PAST + 2.0
+		await a_check()
+		check(gone(behind), "and goes once the kart in front now has driven past")
+		var late := trap_at(track.point_at(200.0), 1 * 65536 + 1)
+		await a_check()
+		it._clock += (track.length + DropKeeper.PAST) / DropKeeper.SLOWEST + 1.0
+		await a_check()
+		check(gone(late), "a leader that never comes round still lets it go in the end")
+		await clear([it, behind, late, lead.kart, second.kart])
+
+	## The cap takes the oldest that the leader isn't about to meet.
+	func _cap_spares_the_leader() -> void:
+		var track := TrackPath.load_file("res://data/tracks/hairpin_hall.json")
+		var lead := racer(0, track, 100.0)
+		var second := racer(1, track, 50.0)
+		var it := keeper(track, [lead, second])
+		# The oldest is 30 m in front of the leader, the rest behind it.
+		var traps: Array = [trap_at(track.point_at(130.0), 1 * 65536)]
+		for i in DropKeeper.MOST:
+			traps.append(trap_at(track.point_at(80.0 - i * 2.0), 1 * 65536 + 1 + i))
+		await frames(1)
+		check(it.count() == DropKeeper.MOST, "still at most %d (%d)" % [DropKeeper.MOST, it.count()])
+		check(not gone(traps[0]) and gone(traps[1]) and not gone(traps[2]), "the cap leaves the one just in front of the leader and takes the next oldest")
+		await clear(traps + [it, lead.kart, second.kart])
+
 	## The host's keeper decides, and the client's only does what it's told.
 	func _online() -> void:
 		var client := DropKeeper.new()
@@ -313,6 +358,8 @@ class Runner:
 		await _leader()
 		await _wear()
 		await _cap()
+		await _long_lap()
+		await _cap_spares_the_leader()
 		await _online()
 		await _ai_sees_wear()
 		await _leader_finishes()
