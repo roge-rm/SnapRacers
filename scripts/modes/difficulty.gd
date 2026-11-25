@@ -17,7 +17,8 @@ extends RefCounted
 ## - loop_nerves: the chance of losing their nerve on the way up a loop,
 ##   backing off and falling off it.
 ## - gadgets: how often they notice a useful gadget opportunity.
-## - gadget_reaction: seconds before using a newly acquired item.
+## - gadget_reaction: seconds before using a newly acquired item, on top of
+##   AIDriver.THINK_FIRST.
 ## - gadget_planning: seconds ahead they judge moving targets and threats.
 ## - gadget_confidence: how certain they need a fixed shot to be.
 ## - catch_up: how much extra push they get when they're a long way behind

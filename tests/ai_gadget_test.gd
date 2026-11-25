@@ -397,15 +397,27 @@ func _difficulty() -> void:
 		confidence.append(ai.gadget_confidence)
 		# Keep noticing deterministic here to measure reaction separately.
 		ai.gadget_sense = 1.0
+		ai.think_spread = 0.0
 		kart.give("shield")
 		kart.zapped_left = 2.0
 		var elapsed := 0.0
-		while elapsed < 2.0 and not ai.controls.gadget[0]:
+		while elapsed < 4.0 and not ai.controls.gadget[0]:
 			ai._use_gadgets(0.05, 15.0)
 			elapsed += 0.05
 		reactions.append(elapsed)
-		check(ai.controls.gadget[0] and elapsed >= ai.gadget_reaction, "%s waits for its configured reaction (%.2f s)" % [level, elapsed])
+		check(ai.controls.gadget[0] and elapsed >= 1.0 and elapsed >= AIDriver.THINK_FIRST + ai.gadget_reaction - 0.001, "%s thinks about a new item at least a second, then its reaction (%.2f s)" % [level, elapsed])
+		ai.think_spread = AIDriver.THINK_SPREAD
 	check(reactions[0] > reactions[1] and reactions[1] > reactions[2] and reactions[2] > reactions[3], "each difficulty reacts sooner, including Hard and Expert")
+	# A pack that all pick one up together wait different times.
+	var waits: Array[float] = []
+	for seed in 8:
+		empty()
+		Difficulty.apply(ai, "expert", 0, 7)
+		ai.seed_line(seed)
+		kart.give("turbo")
+		ai._use_gadgets(0.01, 15.0)
+		waits.append(ai._wait_for[0])
+	check(waits.min() >= 1.0 and waits.max() - waits.min() > 0.3, "each driver thinks a different time about a new item (%.2f to %.2f s)" % [waits.min(), waits.max()])
 	check(planning[0] < planning[1] and planning[1] < planning[2] and planning[2] < planning[3], "each difficulty judges farther ahead")
 	check(confidence[0] > confidence[1] and confidence[1] > confidence[2] and confidence[2] > confidence[3], "each difficulty accepts more demanding fixed shots")
 	empty()

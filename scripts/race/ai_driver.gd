@@ -224,7 +224,13 @@ var _held_for: Array[float] = [0.0, 0.0]
 var _held_kind: Array[String] = ["", ""]
 var _held_uses: Array[int] = [0, 0]
 var _held_revision: Array[int] = [-1, -1]
+## How long each button's power-up has to be held before it's used.
+var _wait_for: Array[float] = [0.0, 0.0]
+## Up to how much longer than THINK_FIRST it may think about a new one.
+var think_spread := THINK_SPREAD
 var _rng := RandomNumberGenerator.new()
+## Its own, so the thinking time doesn't change the rest of its chances.
+var _think_rng := RandomNumberGenerator.new()
 ## Whether there's a bend coming up, and how it's misjudging it: 1 is right,
 ## more is too fast and less is too slow.
 var _bend_coming := false
@@ -353,6 +359,11 @@ var _scan_offset := NAN
 var _scan_from := 0.0
 ## After this long it favours using a safe opportunity over saving the item.
 const HOLD_AT_MOST := 12.0
+## A new power-up is held at least this long, on top of gadget_reaction,
+## plus up to THINK_SPREAD more picked at random each time, so a pack that
+## all pick theirs up together don't all use them at once. In seconds.
+const THINK_FIRST := 1.0
+const THINK_SPREAD := 0.8
 ## How often it looks at the bends down the road for braking, in metres, and
 ## what it saw, kept from step to step.
 const BEND_EVERY := 4.0
@@ -400,6 +411,7 @@ var _since_drive := 0.0
 func _ready() -> void:
 	if not _seeded:
 		_rng.randomize()
+		_think_rng.randomize()
 
 
 ## Sets where its wander starts and its chances, so the same seed drives the
@@ -409,6 +421,7 @@ func seed_line(seed: int) -> void:
 	rng.seed = seed
 	_wander_phase = Vector2(rng.randf() * TAU, rng.randf() * TAU)
 	_rng.seed = rng.randi()
+	_think_rng.seed = seed * 7919 + 13
 	_branch_seed = seed
 	_picks.clear()
 	_seeded = true
@@ -1348,6 +1361,10 @@ func _use_gadgets(delta: float, speed: float) -> void:
 	for slot in Powerups.HOLD:
 		if kart.held[slot] != _held_kind[slot] or kart.held_uses[slot] != _held_uses[slot] or kart.held_revision[slot] != _held_revision[slot]:
 			_held_for[slot] = 0.0
+			# A new one is thought about first. The next burst of one it's
+			# already using only waits for its reaction.
+			var new := kart.held[slot] != _held_kind[slot] or kart.held_revision[slot] != _held_revision[slot]
+			_wait_for[slot] = THINK_FIRST + gadget_reaction + _think_rng.randf() * think_spread if new else gadget_reaction
 			_held_kind[slot] = kart.held[slot]
 			_held_uses[slot] = kart.held_uses[slot]
 			_held_revision[slot] = kart.held_revision[slot]
@@ -1360,7 +1377,7 @@ func _use_gadgets(delta: float, speed: float) -> void:
 	var best := -1
 	var best_score := 0.0
 	for slot in Powerups.HOLD:
-		if not kart.can_use(slot) or _held_for[slot] < gadget_reaction:
+		if not kart.can_use(slot) or _held_for[slot] < _wait_for[slot]:
 			continue
 		var score := AIGadgetTactics.score(self, kart.held[slot], speed)
 		if score <= 0.0:
