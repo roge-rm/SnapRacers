@@ -2,7 +2,8 @@
 # Runs every headless test, and exits with an error if any of them fail or
 # crash. --fixed-fps lets them run as fast as they can instead of in real
 # time, with physics still stepping 1/60 s at a time. Each one gets ten
-# minutes, so a test that hangs fails instead of holding everything up.
+# minutes, so a test that hangs fails instead of holding everything up, and
+# ai_split_test, which races eight karts thirteen times, gets twenty.
 set -uo pipefail
 
 cd "$(dirname "$0")/.."
@@ -19,8 +20,12 @@ for test in "res://tests/layout_settings_test.tscn" "-s tests/cut_bend_layout_te
 	mkdir -p build/creations
 	profile=$(mktemp -d "$PWD/build/creations/profile.XXXXXX")
 	profile_env=(env "XDG_DATA_HOME=$profile")
+	limit=600
+	if [[ "$test" == *ai_split_test* ]]; then
+		limit=1200
+	fi
 	# shellcheck disable=SC2086
-	"${profile_env[@]}" timeout 600 "$GODOT" --headless --fixed-fps 60 --path . $test 2>&1 | grep -E "^  (ok|FAIL)|passed|failed|ERROR"
+	"${profile_env[@]}" timeout "$limit" "$GODOT" --headless --fixed-fps 60 --path . $test 2>&1 | grep -E "^  (ok|FAIL)|passed|failed|ERROR"
 	codes=("${PIPESTATUS[@]}")
 	if [ -n "${profile:-}" ]; then
 		rm -rf -- "$profile"
