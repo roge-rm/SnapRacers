@@ -26,7 +26,7 @@ var pickup_access := PickupAccess.new()
 var built_path := ""
 
 
-## Count available box entries even when slots are full, once per visit and
+## Count box entries, taken or not, even when slots are full, once per visit and
 ## no faster than the box comes back. Taking it during that visit adds no credit.
 class PickupAccess:
 	var full_passes := {}
@@ -45,13 +45,14 @@ class PickupAccess:
 			var old: Dictionary = _inside.get(racer.name, {})
 			var next: Dictionary = _next_pass.get(racer.name, {})
 			var inside := {}
-			var back: PackedFloat32Array = boxes.back_at
 			var middle := kart.global_position + kart.global_basis.y * 0.5
 			for i in boxes.spots.size():
 				if middle.distance_squared_to(boxes.spots[i].origin) >= PowerupField.REACH * PowerupField.REACH:
 					continue
 				inside[i] = true
-				if old.has(i) or (back.size() > i and back[i] > boxes._time):
+				# A box someone just took still counts as reached, since it's
+				# gone for everyone.
+				if old.has(i):
 					continue
 				if boxes._time >= float(next.get(i, 0.0)):
 					entries[racer.name] = int(entries.get(racer.name, 0)) + 1
