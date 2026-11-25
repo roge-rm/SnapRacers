@@ -58,6 +58,9 @@ var _engine_off: AudioStreamPlayer3D
 var _engine_name := ""
 var _revs: EngineSound
 var _spool := 0.0
+## Another device's kart's speed last frame and its guessed throttle.
+var _remote_speed := 0.0
+var _remote_gas := 0.0
 var _wind_low: AudioStreamPlayer3D
 ## The wind's gusts: now, aiming for, and seconds before a new aim. Its own
 ## random numbers, so the race's are left alone.
@@ -155,6 +158,11 @@ func _process(delta: float) -> void:
 		if w.grounded:
 			grounded += 1
 	var on_ground := grounded >= 2
+	if kart.remote:
+		# Another device's kart doesn't send its throttle or wheels, so it's
+		# guessed from its speed picking up or holding near the top.
+		on_ground = true
+		throttle = _remote_throttle(delta)
 	_play_engine(delta, throttle, on_ground, hushed)
 	var sideways := absf(velocity.dot(kart.global_basis.x))
 	var skid := clampf((sideways - 1.5) / 5.0, 0.0, 1.0) if on_ground else 0.0
@@ -175,6 +183,25 @@ func _process(delta: float) -> void:
 		var loud := clampf(_knock / CRASH, 0.3, 1.0)
 		Sounds.play_at("fx/crash" if _knock > CRASH else "fx/bump", self, linear_to_db(loud), randf_range(0.9, 1.1))
 	_knock = 0.0
+
+
+## How hard another device's kart seems to be on the throttle, from how
+## its speed changes, smoothed.
+func _remote_throttle(delta: float) -> float:
+	var forward := kart.forward_speed
+	var gain := (forward - _remote_speed) / maxf(delta, 0.001)
+	_remote_speed = forward
+	var want := 0.0
+	if forward > 1.0 and (gain > 0.5 or (forward / _top_speed > 0.6 and gain > -2.0)):
+		want = 1.0
+	_remote_gas = lerpf(_remote_gas, want, 1.0 - exp(-delta * 5.0))
+	return _remote_gas
+
+
+## Another device's kart used a turbo (see NetRace), lasting `seconds`.
+func boosted(seconds: float) -> void:
+	if not Sounds.hushed:
+		_boost(boost_size(seconds))
 
 
 ## The engine's three loops, from how it's running, and the jet's roar

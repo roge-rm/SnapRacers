@@ -33,12 +33,12 @@ var _stock: GridContainer
 ## `taken_by_p1` is the one player 1 has, which gets a P1 tag. Without
 ## `can_make` there's no New driver card.
 func _init(current: String, taken_by_p1 := "", for_player := 0, can_make := true) -> void:
-	# Your own driver's card is left out while a saved one is the same, so
-	# that one stands in for it.
+	# A saved driver the same as your own has no card, so your own's stands
+	# in for it.
 	var twin := CharacterDesign.own_twin()
 	if twin != "":
-		current = twin if current == CharacterDesign.OWN_KEY else current
-		taken_by_p1 = twin if taken_by_p1 == CharacterDesign.OWN_KEY else taken_by_p1
+		current = CharacterDesign.OWN_KEY if current == twin else current
+		taken_by_p1 = CharacterDesign.OWN_KEY if taken_by_p1 == twin else taken_by_p1
 	_current = current
 	_taken_by_p1 = taken_by_p1
 	_player = for_player

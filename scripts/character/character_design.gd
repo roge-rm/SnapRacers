@@ -316,11 +316,13 @@ static func saved_drivers() -> Array[Dictionary]:
 ## driver screen), then the saved ones, then the stock ones. Your own is left
 ## out while it's the same as a saved one, so it isn't shown twice.
 static func pick_keys() -> Array[String]:
-	var keys: Array[String] = []
-	if own_twin() == "":
-		keys.append(OWN_KEY)
+	var keys: Array[String] = [OWN_KEY]
+	# A saved driver the same as your own is left out, so it isn't shown
+	# twice and picking it keeps following your own.
+	var twin := own_twin()
 	for entry in saved_drivers():
-		keys.append(entry.key)
+		if entry.key != twin:
+			keys.append(entry.key)
 	for key in _game().stock_driver_keys():
 		keys.append(STOCK_KEY + key)
 	return keys

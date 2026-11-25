@@ -259,6 +259,12 @@ func got_event(sender: int, slot: int, kind: String, data: Variant) -> void:
 			if noise != "":
 				Sounds.play_at(noise, kart.sound)
 			match str(data):
+				"turbo":
+					if kart.sound != null: kart.sound.boosted(Kart.TURBO_TIME)
+				"big_turbo":
+					if kart.sound != null: kart.sound.boosted(Kart.BIG_TURBO_TIME)
+				"triple_turbo":
+					if kart.sound != null: kart.sound.boosted(Kart.TRIPLE_TURBO_TIME)
 				"shield":
 					kart.show_net_state(kart.global_transform, kart.remote_velocity, kart.steer_angle, Kart.SHIELD_TIME)
 				"cannon":
