@@ -298,6 +298,6 @@ func go_back() -> void:
 	Game.grand_prix = null
 	if Game.net.is_online():
 		Game.net.leave()
-		Game.show_menu()
+		Game.show_multiplayer()
 		return
 	Game.show_cups(two)

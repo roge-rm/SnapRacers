@@ -8,7 +8,6 @@ func _ready() -> void:
 	var column := MenuStyle.menu_screen(self)
 	column.add_child(MenuStyle.big_button("Single player", "race", Game.show_single_player))
 	column.add_child(MenuStyle.big_button("Multiplayer", "two", Game.show_multiplayer))
-	column.add_child(MenuStyle.big_button("Online", "two", Game.show_online, "Host or join a game"))
 	column.add_child(MenuStyle.big_button("Editors", "wrench", Game.show_editors))
 	column.add_child(MenuStyle.big_button("Creations", "cards", Game.show_creations))
 	column.add_child(MenuStyle.big_button("Settings", "gear", Game.show_settings))

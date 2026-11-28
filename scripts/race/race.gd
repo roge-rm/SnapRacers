@@ -1090,7 +1090,7 @@ func show_standings(gp: GrandPrix) -> GrandPrixStandings:
 func leave() -> void:
 	if Game.net.is_online():
 		Game.net.leave()
-		Game.show_menu()
+		Game.show_multiplayer()
 		return
 	if Game.course_back.is_valid():
 		var back := Game.course_back

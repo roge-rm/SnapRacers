@@ -47,7 +47,7 @@ func _ready() -> void:
 
 	var buttons := screen().find_children("*", "Button", true, false)
 	var labels := buttons.map(func(b): return b.text.get_slice("\n", 0))
-	check(labels == ["Single player", "Multiplayer", "Online", "Editors", "Creations", "Settings", "About", "Quit"], "the menu has its buttons %s" % [labels])
+	check(labels == ["Single player", "Multiplayer", "Editors", "Creations", "Settings", "About", "Quit"], "the menu has its buttons %s" % [labels])
 	# The garage, the driver screen and the track editor are all under Editors.
 	buttons.filter(func(b): return b.text.begins_with("Editors"))[0].pressed.emit()
 	await frames(2)
@@ -61,6 +61,18 @@ func _ready() -> void:
 	Game.show_settings()
 	await frames(2)
 	check(screen() is SettingsScreen, "settings opens")
+	# One slider each for Music, Effects and the groups under Effects.
+	var volume_sliders := screen().find_children("*", "HSlider", true, false).filter(func(x): return x.max_value == 1.0 and x.step == 0.1)
+	check(volume_sliders.size() == 2 + Sounds.SUB_BUSES.size(), "the sound page has a slider for each group (%d)" % volume_sliders.size())
+	var group := 2
+	for bus in Sounds.SUB_BUSES:
+		var saved_volume := Game.volume(bus)
+		var slider: HSlider = volume_sliders[group]
+		slider.value = 0.4
+		var index := AudioServer.get_bus_index(bus)
+		check(is_equal_approx(Game.volume(bus), 0.4) and index != -1 and AudioServer.get_bus_send(index) == Sounds.EFFECTS_BUS, "the %s slider sets and saves its bus under Effects" % bus)
+		slider.value = saved_volume
+		group += 1
 	var back := screen().find_children("*", "Button", true, false).filter(func(b): return b.text == "Back" and not b is ScrollButton)
 	check(back.size() == 2, "settings has a Back button at the top and the bottom")
 	# Steering with buttons instead of the stick, picked in Settings.
@@ -293,7 +305,7 @@ func _ready() -> void:
 	Game.set_setting("player", "name_two", names_were[1])
 	var backs := screen().find_children("*", "Button", true, false).filter(func(b): return b.text == "Back")
 	check(backs.size() == 1, "with one Back")
-	check(screen().find_children("*", "Button", true, false).filter(func(b): return b.text.begins_with("Online")).is_empty(), "Online isn't on the multiplayer menu")
+	check(screen().find_children("*", "Button", true, false).any(func(b): return b.text.begins_with("Online")), "Online is on the multiplayer menu")
 	check(screen().find_children("*", "Button", true, false).filter(func(b): return b.text.begins_with("Grand Prix")).size() == 1, "which has the Grand Prix")
 	screen().find_children("*", "Button", true, false).filter(func(b): return b.text.begins_with("Single race"))[0].pressed.emit()
 	await frames(2)
@@ -378,7 +390,7 @@ func _ready() -> void:
 	Game._go_back()
 	await frames(2)
 	check(screen() is MainMenu, "and back again to the menu")
-	check(screen().find_children("*", "Button", true, false).any(func(b): return b.text.begins_with("Online")), "which has Online")
+	check(not screen().find_children("*", "Button", true, false).any(func(b): return b.text.begins_with("Online")), "which has no Online")
 	var was_two := Game.online_two
 	Game.online_two = false
 	Game.show_online()
@@ -401,7 +413,7 @@ func _ready() -> void:
 	Game.online_two = was_two
 	Game._go_back()
 	await frames(2)
-	check(screen() is MainMenu, "back from online goes to the main menu")
+	check(screen() is MultiplayerMenu, "back from online goes to the multiplayer menu")
 
 	await _driver_extras()
 

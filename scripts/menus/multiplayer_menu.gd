@@ -3,7 +3,8 @@ extends Control
 
 ## Two people on one phone, sharing the screen side by side (landscape, half
 ## each) or face to face (portrait, with the phone flat between them),
-## against six AI karts in one race or a Grand Prix, or in Versus with no AI.
+## against six AI karts in one race or a Grand Prix, or in Versus with no AI,
+## and Online, for racing people on other devices.
 ## Each one goes to each player's driver and kart (see Game.show_two_setup), then
 ## to the cups or courses, where tapping one starts the race. Each player has
 ## a row with their tag and controller chip, then their name box. Tap the chip
@@ -61,6 +62,7 @@ func _ready() -> void:
 	steps.add_child(MenuStyle.big_button("Grand Prix", "trophy", _pick_cups, "Cups of four races, for two"))
 	steps.add_child(MenuStyle.big_button("Single race", "race", _pick_courses, "Any course, for two"))
 	steps.add_child(MenuStyle.big_button("Versus", "two", _pick_versus, "Just the two of you, no AI"))
+	steps.add_child(MenuStyle.big_button("Online", "two", Game.show_online, "Host or join a game"))
 	parts.top.add_child(MenuStyle.link("Back", go_back, "back"))
 	if Game.controllers != null:
 		Game.controllers.changed.connect(_show_chips)
