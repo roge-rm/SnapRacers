@@ -2,10 +2,11 @@ class_name RaceMenu
 extends Control
 
 ## The menu you open in a race, from the button at the top, Start on a
-## controller, Esc or Back. It covers that player's view, so in split screen
-## each player has their own. Off the network it pauses everything until
-## you go back to it, and in split screen both players get one. Online the
-## race carries on. Start and B close it (see Race._menu_keys).
+## controller, Esc or Back. Off the network it pauses everything until you
+## go back to it, and in split screen it's one menu over the whole screen
+## for both players, with the settings of whoever opened it. Online each
+## player has their own over their view and the race carries on. Start and B
+## close it (see Race._menu_keys).
 ##
 ## It has the settings that make sense halfway round: the sound, your
 ## touch steering, your camera and map, and the frame rate.
@@ -20,7 +21,7 @@ var racer: Race.Racer
 var person := 0
 ## Whether the race is paused while this is open.
 var pauses := true
-## Whether this player opened it, and so has the controller's pick.
+## Whether it picks out Resume when it opens with a controller.
 var focus_on_open := true
 ## Whether there's a Restart, which there isn't in a Grand Prix or online.
 var can_restart := true

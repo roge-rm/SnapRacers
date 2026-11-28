@@ -825,6 +825,20 @@ func _fill_results() -> void:
 ## Shoulder buttons page through the table while the action buttons stay put.
 class ResultsPanel extends PanelContainer:
 	var table: ScrollContainer
+	## The button last picked out here. Both halves of a split screen share
+	## one focus, so this is where a player's controller picks up again after
+	## the other player has used theirs (see PadFocus).
+	var last_focus: Control
+
+	func _ready() -> void:
+		get_viewport().gui_focus_changed.connect(_focus_changed)
+
+	func _focus_changed(control: Control) -> void:
+		if is_ancestor_of(control):
+			last_focus = control
+
+	func refocus() -> Control:
+		return last_focus if is_instance_valid(last_focus) and last_focus.is_visible_in_tree() else null
 
 	func next_tab(by: int) -> void:
 		table.scroll_vertical += by * maxi(int(table.size.y * 0.8), 32)

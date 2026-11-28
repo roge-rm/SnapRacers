@@ -55,7 +55,7 @@ func _input(event: InputEvent) -> void:
 	using_pad = true
 	var current: Node = screen.call() if screen.is_valid() else null
 	if current is Race:
-		current = _race_part(current)
+		current = _race_part(current, event)
 	elif current != null and current.has_method("own_controls") and current.own_controls():
 		return
 	if current == null:
@@ -73,8 +73,15 @@ func _input(event: InputEvent) -> void:
 			viewport.set_input_as_handled()
 			current.next_tab(-1 if event.button_index == JOY_BUTTON_LEFT_SHOULDER else 1)
 			return
-	if viewport.gui_get_focus_owner() == null or not viewport.gui_get_focus_owner().is_visible_in_tree():
-		var first := pick(current)
+	# In split screen the results are in a half with its own viewport, so its
+	# focus is looked for there. Looking only here, every press would pick the
+	# first button again and never get through to the half. The halves share
+	# one focus, so a player's first press after the other's takes it back.
+	var focused := (current as Node).get_viewport().gui_get_focus_owner()
+	if focused == null or not focused.is_visible_in_tree():
+		var first: Control = current.refocus() if current.has_method("refocus") else null
+		if first == null:
+			first = pick(current)
 		if first != null:
 			first.grab_focus()
 			viewport.set_input_as_handled()
@@ -91,13 +98,23 @@ func _drop_focus() -> void:
 
 ## The part of a race that's a menu now: someone's open menu, or the results
 ## once they're up, or the standings over the podium, or nothing while
-## everyone's driving.
-static func _race_part(race: Race) -> Node:
+## everyone's driving. A controller only works the results of the player
+## it belongs to.
+static func _race_part(race: Race, event: InputEvent = null) -> Node:
 	if race.cup_standings != null:
 		return race.cup_standings
+	var pad := event is InputEventJoypadButton or event is InputEventJoypadMotion
 	if not race._menus.is_empty():
-		return race._menus.values()[0]
+		if race._can_pause() or not pad:
+			return race._menus.values()[0]
+		# Online each player has their own menu.
+		for racer in race._menus:
+			if racer.input == null or racer.input.owns_joypad(event.device):
+				return race._menus[racer]
+		return null
 	for racer in race.humans:
+		if pad and racer.input != null and not racer.input.owns_joypad(event.device):
+			continue
 		if racer.hud != null and racer.hud._results.visible:
 			return racer.hud._results
 	return null

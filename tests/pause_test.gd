@@ -2,8 +2,10 @@ extends Node
 
 ## The menu in a race. In a single player race it pauses everything, its
 ## settings work straight away, Resume carries on and Quit leaves. Esc opens
-## and closes it. In split screen either player pauses it for both and
-## either can carry on.
+## and closes it. In split screen either player pauses it with one menu over
+## both halves that either controller works, and each half's touch controls
+## follow their own player. Both players' results work with their own
+## controllers.
 ##
 ##   tools/godot/Godot_v4.7.2-stable_linux.x86_64 --headless --fixed-fps 60 --path . res://tests/pause_test.tscn
 
@@ -145,13 +147,21 @@ func _ready() -> void:
 		await frames(5)
 		race.open_menu(second)
 		await frames(2)
-		check(race.menu_open(second) and race.menu_open(first) and get_tree().paused, "player 2 opening the menu pauses the race, with a menu for each")
+		var menus := race.find_children("*", "RaceMenu", true, false)
+		check(menus.size() == 1 and race.menu_open(second) and race.menu_open(first) and get_tree().paused, "player 2 opening the menu pauses the race, with one menu for both (%d)" % menus.size())
 		var own: RaceMenu = race._menus[second]
-		check(own.get_viewport() == second.hud.get_viewport() and own.focus_on_open and not race._menus[first].focus_on_open, "player 2's is in their own half")
+		check(own.get_viewport() == race.get_viewport() and own.racer == second and own.person == 1, "it's over the whole screen, with player 2's settings")
 		check(own.pauses and own.can_restart, "it says Paused and has Restart in a single race")
-		if split == Game.FACE_TO_FACE:
-			var holder := own.get_viewport().get_parent() as Control
-			check(is_equal_approx(holder.rotation, PI), "face to face it's turned round to player 2")
+		var screen := race.get_viewport().get_visible_rect()
+		var panel_rect := own._resume.get_global_rect()
+		check(absf(panel_rect.get_center().x - screen.get_center().x) < 2.0, "centred across both halves")
+		var view_was: String = second.camera.view
+		var other_view: String = first.camera.view
+		own._camera_button.pressed.emit()
+		check(second.camera.view != view_was and first.camera.view == other_view, "its camera button changes player 2's camera")
+		second.camera.next_view()
+		while second.camera.view != view_was:
+			second.camera.next_view()
 		time = race.time
 		var places := race.racers.map(func(r): return r.kart.global_position)
 		await frames(60)
@@ -163,9 +173,28 @@ func _ready() -> void:
 		var ai: Array = race.racers.filter(func(r): return r.ai != null)
 		check(not ai.is_empty() and ai.all(func(r): return not r.ai.can_process()) and not first.kart.sound.can_process(), "nor the AI, and kart sounds pause")
 		check(not second.camera.can_process() and not first.camera.can_process(), "the cameras pause too")
-		# Tapping Resume in player 2's half, turned round or not.
-		await tap(own._resume)
-		check(not race.menu_open(first) and not race.menu_open(second) and not get_tree().paused and race._shared_map.visible, "tapping Resume in player 2's half carries on for both")
+		# Either controller moves round it.
+		for device in [22, 23]:
+			var was := get_viewport().gui_get_focus_owner()
+			await pad(device, JOY_BUTTON_DPAD_DOWN)
+			var now := get_viewport().gui_get_focus_owner()
+			check(now != null and now != was and own.is_ancestor_of(now), "down on controller %d moves round the menu" % device)
+			await pad(device, JOY_BUTTON_DPAD_UP)
+		own._resume.grab_focus()
+		await pad(22, JOY_BUTTON_A)
+		check(not race.menu_open(first) and not get_tree().paused, "A on player 1's controller presses Resume")
+		await frames(10)
+		race.open_menu(first)
+		await frames(2)
+		race._menus[first]._resume.grab_focus()
+		await pad(23, JOY_BUTTON_A)
+		check(not race.menu_open(second) and not get_tree().paused, "and on player 2's")
+		await frames(10)
+		race.open_menu(second)
+		await frames(2)
+		# Tapping Resume, wherever it is.
+		await tap(race._menus[second]._resume)
+		check(not race.menu_open(first) and not race.menu_open(second) and not get_tree().paused and race._shared_map.visible, "tapping Resume carries on for both")
 		await frames(30)
 		check(race.time > time, "and the clock goes again")
 
@@ -181,11 +210,85 @@ func _ready() -> void:
 		check(race.menu_open(first) and get_tree().paused, "Esc pauses it")
 		await pad(22, JOY_BUTTON_B)
 		check(not get_tree().paused, "and B on player 1's controller carries on")
+
+		# Each half's touch controls follow their own player.
+		var halves: Array = race.find_children("*", "SubViewport", true, false)
+		for human in race.humans:
+			human.hud.touch.visible = false
+		var finger := InputEventScreenTouch.new()
+		finger.index = 3
+		finger.position = Vector2(5.0, 5.0)
+		for down in [true, false]:
+			finger.pressed = down
+			halves[1].push_input(finger, true)
+		await frames(2)
+		check(second.hud.touch.visible and not first.hud.touch.visible, "a touch in player 2's half shows only their touch controls")
+		first.hud.touch.visible = true
+		await pad(22, JOY_BUTTON_X)
+		check(second.hud.touch.visible and not first.hud.touch.visible, "player 1's controller hides only player 1's")
+		var push := InputEventJoypadMotion.new()
+		push.device = 23
+		push.axis = JOY_AXIS_TRIGGER_RIGHT
+		push.axis_value = 1.0
+		Input.parse_input_event(push)
+		Input.flush_buffered_events()
+		await frames(2)
+		push = push.duplicate()
+		push.axis_value = 0.0
+		Input.parse_input_event(push)
+		Input.flush_buffered_events()
+		await frames(2)
+		check(not second.hud.touch.visible, "and player 2's trigger hides player 2's")
+
 		for device in [22, 23]:
 			Game.controllers._on_connection(device, false)
 		await frames(2)
 		check(race.menu_open(first) and get_tree().paused, "a controller coming unplugged pauses with that player's menu open")
 		race.go_back()
+		await frames(2)
+		Game.controllers._on_connection(22, true)
+		Game.controllers.give(22, 0)
+		Game.controllers._on_connection(23, true)
+		Game.controllers.give(23, 1)
+		await frames(2)
+
+		# Once both are home, each player's controller works their own results.
+		race._player_finished(first)
+		race._player_finished(second)
+		await frames(130)
+		check(first.hud._results.visible and second.hud._results.visible, "both halves show the results")
+		var pressed := [0, 0]
+		for i in 2:
+			var half: RaceHud = race.humans[i].hud
+			for connection in half.menu_pressed.get_connections():
+				half.menu_pressed.disconnect(connection.callable)
+			half.menu_pressed.connect(func() -> void: pressed[i] += 1)
+		var huds: Array = race.humans.map(func(h): return h.hud)
+		var focus_in := func(i: int) -> Button: return huds[i].get_viewport().gui_get_focus_owner() as Button
+		# Player 2's came up last and has the focus, so player 1's first press
+		# takes it to their own.
+		await pad(22, JOY_BUTTON_DPAD_DOWN)
+		check(focus_in.call(0) != null and huds[0]._results.is_ancestor_of(focus_in.call(0)), "player 1's controller takes the focus to their results")
+		await pad(22, JOY_BUTTON_DPAD_DOWN)
+		var one: Button = focus_in.call(0)
+		check(one != null and huds[0]._results.is_ancestor_of(one) and one.text != "Race again", "down on player 1's controller moves round their results (%s)" % (one.text if one else "none"))
+		await pad(23, JOY_BUTTON_DPAD_DOWN)
+		var two: Button = focus_in.call(1)
+		check(two != null and huds[1]._results.is_ancestor_of(two), "player 2's controller takes it to their own results (%s)" % (two.text if two else "none"))
+		await pad(23, JOY_BUTTON_DPAD_DOWN)
+		check(focus_in.call(1) != null and focus_in.call(1) != two, "and moves round them")
+		await pad(22, JOY_BUTTON_DPAD_DOWN)
+		check(focus_in.call(0) == one, "player 1's next press picks up where they were")
+		for i in 2:
+			var steps := 0
+			while (focus_in.call(i) == null or focus_in.call(i).text != "Menu") and steps < 8:
+				await pad(22 + i, JOY_BUTTON_DPAD_DOWN)
+				steps += 1
+			await pad(22 + i, JOY_BUTTON_A)
+			check(pressed[i] == 1 and pressed[1 - i] == 0, "A on player %d's controller presses their Menu (%s)" % [i + 1, pressed])
+			pressed.fill(0)
+		for device in [22, 23]:
+			Game.controllers._on_connection(device, false)
 		race.leave()
 		await frames(5)
 

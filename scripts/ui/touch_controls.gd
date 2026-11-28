@@ -389,13 +389,13 @@ static func shown_at_start() -> bool:
 func _input(event: InputEvent) -> void:
 	# On something with a touch screen and a keyboard or controller too (a
 	# laptop, or a phone with a controller), they step aside while you use
-	# the keys or the controller, and come back when you touch the screen.
-	# On a computer a stick or trigger pushed counts too, and a click, which
-	# comes as a touch as well (emulate_touch_from_mouse), doesn't bring them
-	# back.
+	# the keys or the controller, a stick or trigger pushed too, and come back
+	# when you touch the screen. On a computer a click, which comes as a touch
+	# as well (emulate_touch_from_mouse), doesn't bring them back. In split
+	# screen only this player's controller reaches here (see Race.SplitHalf).
 	if stand_aside:
 		var pc := OS.has_feature("pc")
-		var pushed := pc and event is InputEventJoypadMotion and absf(event.axis_value) > 0.5
+		var pushed := event is InputEventJoypadMotion and absf(event.axis_value) > 0.5 and not Controllers.ignored.has(event.device)
 		if ((event is InputEventKey or event is InputEventJoypadButton) and event.pressed or pushed) and visible:
 			visible = false
 			_fingers.clear()
