@@ -177,6 +177,7 @@ func _screens(only: Array) -> void:
 		["cups", Game.show_cups],
 		["cups_two", Game.show_cups.bind(true)],
 		["single_race", Game.show_tracks.bind(Game.MODE_RACE, true)],
+		["race_two", Game.show_tracks.bind(Game.MODE_RACE, false)],
 		["your_cups", Game.show_your_cups],
 		["courses", Game.show_course_grid.bind(Game.MODE_TIME_TRIAL, true, "gearbox")],
 		["your_courses", Game.show_course_grid.bind(Game.MODE_RACE, true, CourseGrid.YOURS)],

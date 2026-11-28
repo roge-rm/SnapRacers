@@ -56,6 +56,7 @@ func _ready() -> void:
 	_cup_header()
 	await _cup_header_two()
 	await _cup_header_steady()
+	await _cup_header_fits()
 	print("%d layout settings checks passed." % checks if failures == 0 else "%d of %d layout settings checks failed." % [failures, checks])
 	get_tree().quit(1 if failures > 0 else 0)
 
@@ -198,3 +199,33 @@ func _cup_header_steady() -> void:
 	cups.free()
 	Game.set_weather(was_weather)
 	Game.set_time_of_day(was_time)
+
+
+## Everything on the cup screen stays on screen, with the difficulty too for
+## two players, on a 16:9 screen like a computer's and a phone's.
+func _cup_header_fits() -> void:
+	print("-- Cup header fits")
+	var was_versus := Game.versus
+	Game.versus = false
+	for screen_size in [Vector2i(1280, 720), Vector2i(1600, 720)]:
+		get_tree().root.size = screen_size
+		for two in [false, true]:
+			var cups := CupGrid.new(Game.MODE_RACE, not two)
+			add_child(cups)
+			for i in 4:
+				await get_tree().process_frame
+			var screen := Rect2(Vector2.ZERO, cups.size)
+			var outside := []
+			var back: Control = cups._header.get_child(cups._header.get_child_count() - 1)
+			for c in [back, cups._weather, cups._time, cups._reversed, cups._mirrored, cups._difficulty]:
+				if c != null and not screen.encloses(c.get_global_rect().grow(-1.0)):
+					outside.append(c.text)
+			if cups._grid.get_global_rect().end.x > cups.size.x + 1.0:
+				outside.append("the cups")
+			var label := "%s at %s" % ["two players" if two else "one player", screen_size]
+			check(outside.is_empty(), "%s: everything's on screen (%s)" % [label, ", ".join(outside)])
+			check((cups._difficulty != null) == two, "%s: the difficulty is there only for two" % label)
+			if not two and screen_size.x >= 1600:
+				check(cups._conditions_row.get_parent() == cups._header, "%s: the picks stay in the title row" % label)
+			cups.free()
+	Game.versus = was_versus

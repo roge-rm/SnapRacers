@@ -36,6 +36,12 @@ var yours := false
 var _grid: GridContainer
 var _column: VBoxContainer
 var _conditions_row: HBoxContainer
+## The title row, and the line under it the conditions go to when the title
+## row hasn't room.
+var _header: HBoxContainer
+var _under_header: HBoxContainer
+## Keeps Back on the right while the conditions are under the title.
+var _spacer: Control
 var _weather: Button
 var _time: Button
 var _reversed: Button
@@ -330,6 +336,7 @@ func _hold_widths() -> void:
 			widest = maxf(widest, button.get_combined_minimum_size().x)
 		button.text = shown
 		button.custom_minimum_size.x = widest
+	_fit_header()
 
 
 ## Puts the conditions in the title row, in the space the red bars used.
@@ -347,6 +354,48 @@ func _put_in_header(row: HBoxContainer) -> void:
 	back.size_flags_horizontal = SIZE_SHRINK_END
 	top.add_child(row)
 	top.move_child(row, 1)
+	_header = top
+	_under_header = HBoxContainer.new()
+	_under_header.alignment = BoxContainer.ALIGNMENT_END
+	_under_header.visible = false
+	_spacer = Control.new()
+	_spacer.size_flags_horizontal = SIZE_EXPAND_FILL
+	_spacer.visible = false
+	top.add_child(_spacer)
+	top.move_child(_spacer, 2)
+	outer.add_child(_under_header)
+	outer.move_child(_under_header, 1)
+	resized.connect(_fit_header)
+
+
+## Moves the conditions to their own line under the title when the title
+## row hasn't room for them, as with the difficulty too on a narrow screen,
+## and back when it has.
+func _fit_header() -> void:
+	var row := _conditions_row
+	# From the screen's width, as the page itself grows to fit a row too wide.
+	var outer: Control = _header.get_parent()
+	var margin: float = outer.global_position.x - global_position.x
+	var room: float = size.x - margin * 2.0
+	var others := 0.0
+	var count := 0
+	for child in _header.get_children():
+		if child != row and child != _spacer and child is Control and child.visible:
+			others += child.get_combined_minimum_size().x
+			count += 1
+	var gap := float(_header.get_theme_constant("separation"))
+	var fits := others + row.get_combined_minimum_size().x + gap * count <= room
+	if fits and row.get_parent() != _header:
+		_under_header.remove_child(row)
+		_header.add_child(row)
+		_header.move_child(row, 1)
+		_under_header.visible = false
+		_spacer.visible = false
+	elif not fits and row.get_parent() != _under_header:
+		_header.remove_child(row)
+		_under_header.add_child(row)
+		_under_header.visible = true
+		_spacer.visible = true
 
 
 func _show_conditions() -> void:
