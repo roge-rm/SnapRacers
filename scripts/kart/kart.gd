@@ -199,6 +199,10 @@ const RESET_GHOST_TIME := 3.0
 ## A ghost and its driver fade to half see-through over this many seconds at
 ## the start, and back at the end.
 const GHOST_FADE := 0.35
+## A ghost that ran out of time inside another kart keeps this much ghost time
+## and checks again each step. Only karts this close (metres) are checked.
+const GHOST_WAIT := 0.05
+const OVERLAP_RANGE := 8.0
 const GHOST_SEE_THROUGH := 0.5
 ## How long lightning slows the karts it hits, and how much of their push
 ## they keep meanwhile.
@@ -2526,13 +2530,54 @@ func _show_zap() -> void:
 func _ghost_tick(delta: float) -> void:
 	if ghost_left <= 0.0:
 		return
+	# In the last moment it only fades to solid while clear of other karts.
+	# Otherwise it waits, fully see-through.
+	if ghost_left <= GHOST_FADE and is_inside_tree() and _inside_other_kart():
+		ghost_left = GHOST_FADE
+		_ghost_fade = move_toward(_ghost_fade, 1.0, delta / GHOST_FADE)
+		_see_through(GHOST_SEE_THROUGH * _ghost_fade)
+		return
 	ghost_left = maxf(ghost_left - delta, 0.0)
 	if ghost_left <= 0.0:
 		_set_ghostly(false)
 		return
-	# It turns solid again over the last moment, so it's whole when it ends.
 	_ghost_fade = move_toward(_ghost_fade, 1.0 if ghost_left > GHOST_FADE else 0.0, delta / GHOST_FADE)
 	_see_through(GHOST_SEE_THROUGH * _ghost_fade)
+
+
+## True while any of this kart's shapes overlaps a shape of a kart close by,
+## solid or ghost. A ghost has no layer, so for the query nearby ghosts get
+## the karts layer for a moment.
+func _inside_other_kart() -> bool:
+	var near: Array[Kart] = []
+	for other: Kart in _all_karts():
+		if other != self and is_instance_valid(other) and other.is_inside_tree() and other.global_position.distance_to(global_position) < OVERLAP_RANGE:
+			near.append(other)
+	if near.is_empty():
+		return false
+	var space := get_world_3d().direct_space_state
+	var query := PhysicsShapeQueryParameters3D.new()
+	query.collision_mask = LAYER_KARTS
+	query.exclude = [get_rid()]
+	var saved: Array[int] = []
+	for other in near:
+		saved.append(other.collision_layer)
+		other.collision_layer |= LAYER_KARTS
+	var found := false
+	for child in get_children():
+		if not child is CollisionShape3D or child.disabled or child.shape == null:
+			continue
+		query.shape = child.shape
+		query.transform = child.global_transform
+		for hit in space.intersect_shape(query, 8):
+			if hit.collider in near:
+				found = true
+				break
+		if found:
+			break
+	for i in near.size():
+		near[i].collision_layer = saved[i]
+	return found
 
 
 func _set_ghostly(on: bool) -> void:

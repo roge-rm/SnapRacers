@@ -56,6 +56,7 @@ class Runner:
 			check(bounded, "%s uses one convex racing shape in all 24 turns" % id)
 			check(bounds_match, "%s racing bounds match the turned part in metres" % id)
 		_stock_boxes()
+		await _ghost_waits()
 		await get_tree().physics_frame
 		await get_tree().physics_frame
 		for id in PARTS:
@@ -114,6 +115,46 @@ class Runner:
 			var shapes := kart.get_children()
 			check(shapes.size() == entry[1] and shapes.all(func(shape): return shape.shape is BoxShape3D), "%s keeps its %d box colliders" % entry)
 			kart.free()
+
+	func _pair() -> Array[Kart]:
+		var design := KartDesign.load_file("res://tests/data/legacy/starter.json")
+		var karts: Array[Kart] = []
+		for i in 2:
+			var kart := Kart.new()
+			kart.build(design)
+			kart.freeze = true
+			kart.position = Vector3(i * 0.3, 50, 0)
+			add_child(kart)
+			karts.append(kart)
+		return karts
+
+	func _ghost_waits() -> void:
+		var karts := _pair()
+		await get_tree().physics_frame
+		await get_tree().physics_frame
+		check(karts[0]._inside_other_kart() and karts[1]._inside_other_kart(), "two karts on top of each other count as overlapping")
+		karts[0].start_ghost(0.2)
+		for i in 40:
+			await get_tree().physics_frame
+		check(karts[0].ghost_left > 0.0 and karts[0].collision_layer == 0, "a ghost stays a ghost past its time while inside another kart")
+		check(is_equal_approx(karts[0]._ghost_fade, 1.0), "a waiting ghost stays fully see-through while overlapping")
+		karts[1].position = Vector3(30, 50, 0)
+		for i in 30:
+			await get_tree().physics_frame
+		check(karts[0].ghost_left <= 0.0 and karts[0].collision_layer == Kart.LAYER_KARTS, "it turns solid once the other kart has moved away")
+		karts[1].position = Vector3(0.3, 50, 0)
+		karts[0].start_ghost(0.2)
+		karts[1].start_ghost(0.2)
+		await get_tree().physics_frame
+		for i in 40:
+			await get_tree().physics_frame
+		check(karts[0].ghost_left > 0.0 and karts[1].ghost_left > 0.0, "two ghosts ending together both stay ghosts while overlapping")
+		karts[1].position = Vector3(30, 50, 0)
+		for i in 30:
+			await get_tree().physics_frame
+		check(karts[0].ghost_left <= 0.0 and karts[1].ghost_left <= 0.0, "both turn solid once apart")
+		for kart in karts:
+			kart.queue_free()
 
 	func _drive() -> void:
 		var track := TestTrack.new()
