@@ -97,6 +97,8 @@ func _ready() -> void:
 	await tour("multiplayer", Game.show_multiplayer)
 	await tour("cups", Game.show_cups)
 	await tour("cups for two", Game.show_cups.bind(true))
+	await tour("two players setup", Game.show_two_setup.bind(func(): pass))
+	await tour("courses for two", Game.show_course_grid.bind(Game.MODE_RACE, false, "baseplate"))
 	await tour("your cups", Game.show_your_cups)
 	await tour("cup builder", Game.show_cup_builder)
 	await tour("course grid", Game.show_course_grid.bind(Game.MODE_RACE, true, "baseplate"))

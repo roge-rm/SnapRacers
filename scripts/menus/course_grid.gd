@@ -3,7 +3,8 @@ extends Control
 
 ## A cup's courses as big layout cards, to pick one for a single race, a time
 ## trial, practice or a race for two. Each says how long a lap is and what's
-## waiting on it, and in a time trial your record too. It shows your own
+## waiting on it, and in a time trial your record too. For two the players
+## have picked their karts already, so tapping a course starts the race. It shows your own
 ## courses the same way, each with Share, and a card to add one you've been
 ## sent.
 
@@ -114,13 +115,17 @@ func _course_card(path: String, colour: Color) -> MenuCard:
 		# The card's words ignore the mouse, but this has to be tapped.
 		share.mouse_filter = MOUSE_FILTER_STOP
 		card.content.add_child(share)
-	# A race from the Multiplayer menu is for two on this phone, and each
-	# picks a driver and a kart.
+	# A race from the Multiplayer menu is for two on this phone, who have
+	# picked their drivers and karts already, so it starts at once.
 	var two := mode == Game.MODE_RACE and not alone
 	# The picker shows what random weather means for this mode.
 	card.tapped.connect(func() -> void:
 		Game.mode = mode
-		Game.show_race_setup(_starter(mode, path, alone), Game.show_course_grid.bind(mode, alone, cup), mode == Game.MODE_RACE, two))
+		var start := _starter(mode, path, alone)
+		if two:
+			start.call()
+		else:
+			Game.show_race_setup(start, Game.show_course_grid.bind(mode, alone, cup), mode == Game.MODE_RACE, false))
 	return card
 
 

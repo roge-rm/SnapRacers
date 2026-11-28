@@ -10,9 +10,10 @@ extends Control
 ## picked last time. A card at the top shows who's driving, and tapping it
 ## opens the driver cards to change them.
 ##
-## Two on one phone each pick in turn on this screen, player 1 first, with
-## a big tag in their own colour saying whose turn it is, and their name,
-## which they can change.
+## Two on one phone each pick in turn on this screen, player 1 first, before
+## the cups or courses are picked (see Game.show_two_setup), with
+## a big tag in their own colour saying whose turn it is. Their names are on
+## the Multiplayer menu.
 
 ## Cards are the size of the driver picker's, as many to a row.
 const COLUMNS := DriverGrid.COLUMNS
@@ -69,7 +70,6 @@ var _levels := {}
 var _difficulty_row: HBoxContainer
 ## Which of two players on this phone is picking, 1 or 2, or 0 when it's one.
 var player := 0
-var _name: LineEdit
 ## The scroll the cards are in, once they're laid out.
 var _scroll: ScrollContainer
 
@@ -108,22 +108,12 @@ func _ready() -> void:
 		_show_level(Game.difficulty())
 	if player > 0:
 		_top.add_child(_player_tag())
-		# Player 1's name is the one in Settings, and player 2 has their own.
-		var key := "name" if player == 1 else "name_two"
-		_name = LineEdit.new()
-		PadKeyboard.attach(_name)
-		_name.placeholder_text = "Player %d's name" % player
-		_name.max_length = 16
-		_name.text = Game.player_one_name() if player == 1 else Game.player_two_name()
-		_name.custom_minimum_size = Vector2(180.0, 48.0)
-		_name.text_changed.connect(func(text: String) -> void: Game.set_setting("player", key, text.strip_edges()))
-		_top.add_child(_name)
 	driver_card = DriverCard.new()
 	driver_card.tapped.connect(open_drivers)
 	_top.add_child(driver_card)
 	driver_card.show_driver(_driver)
 	_top.add_child(_stats_panel())
-	_race = MenuStyle.button("Next" if player == 1 else "Race", func() -> void: _go.call())
+	_race = MenuStyle.button("Race" if player == 0 else "Next", func() -> void: _go.call())
 	_race.custom_minimum_size.x = 220.0
 	_race.theme_type_variation = "MainButton"
 	_top.add_child(_race)

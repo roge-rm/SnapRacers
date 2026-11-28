@@ -54,6 +54,8 @@ func _ready() -> void:
 	_pips()
 	await _picker_row()
 	_cup_header()
+	await _cup_header_two()
+	await _cup_header_steady()
 	print("%d layout settings checks passed." % checks if failures == 0 else "%d of %d layout settings checks failed." % [failures, checks])
 	get_tree().quit(1 if failures > 0 else 0)
 
@@ -122,7 +124,7 @@ func _cup_header() -> void:
 	check(cups._conditions_row.get_parent() == top, "weather, time, reverse and mirrored sit in the header")
 	var back := top.get_child(top.get_child_count() - 1) as Button
 	check(cups._conditions_row.get_index() == 1 and back != null and back.text == "Back", "between the title and Back")
-	check(cups._conditions_row.get_child_count() == 4, "the four picks share that row")
+	check(cups._conditions_row.get_child_count() == 4 and cups._difficulty == null, "the four picks share that row, with no difficulty for one")
 	check(cups._conditions_row.get_child(0) == cups._weather and cups._conditions_row.get_child(1) == cups._time and cups._conditions_row.get_child(2) == cups._reversed and cups._conditions_row.get_child(3) == cups._mirrored, "weather and time sit before reverse and mirrored")
 	Game.set_weather("rain")
 	Game.set_time_of_day("day")
@@ -138,3 +140,61 @@ func _cup_header() -> void:
 	Game.set_reversed(false)
 	cups._show_conditions()
 	check(cups._reversed.get_theme_color("font_color") == Color.WHITE, "and goes dark when it's off again")
+
+
+## For two on one phone the cup header has a difficulty button that cycles
+## the levels at a fixed width.
+func _cup_header_two() -> void:
+	print("-- Cup header for two")
+	var was_two := Game.cups_for_two
+	var was_level := Game.difficulty()
+	Game.cups_for_two = true
+	var cups := CupGrid.new()
+	add_child(cups)
+	for i in 3:
+		await get_tree().process_frame
+	check(cups._difficulty != null and cups._difficulty.get_parent() == cups._conditions_row, "two players' cups have a difficulty button in the header")
+	var widest := 0.0
+	for level in Difficulty.LEVELS:
+		Game.set_difficulty(level)
+		cups._show_conditions()
+		await get_tree().process_frame
+		check(cups._difficulty.text == Difficulty.name_of(level), "it says %s" % level)
+		widest = maxf(widest, cups._difficulty.get_combined_minimum_size().x)
+	check(cups._difficulty.custom_minimum_size.x >= widest - 0.5, "and is as wide as its longest name")
+	Game.set_difficulty("expert")
+	cups._difficulty.pressed.emit()
+	check(Game.difficulty() == "easy", "tapping it goes round to the next level")
+	cups.free()
+	Game.cups_for_two = was_two
+	Game.set_difficulty(was_level)
+
+
+## Picking another weather or time moves nothing else on the cup screen, on a
+## tablet shaped screen.
+func _cup_header_steady() -> void:
+	print("-- Cup header stays put")
+	get_tree().root.size = Vector2i(1280, 800)
+	var was_weather := Game.weather()
+	var was_time := Game.time_of_day()
+	var cups := CupGrid.new()
+	add_child(cups)
+	for i in 3:
+		await get_tree().process_frame
+	var watch: Array[Control] = [cups._reversed, cups._mirrored, cups._grid]
+	var first := watch.map(func(c): return c.get_global_rect())
+	var widths := [cups._weather.size.x, cups._time.size.x]
+	var moved := []
+	for weather in Conditions.WEATHER_NAMES:
+		for time in ["random", "evening", "day"]:
+			Game.set_weather(weather)
+			Game.set_time_of_day(time)
+			cups._show_conditions()
+			await get_tree().process_frame
+			await get_tree().process_frame
+			if watch.map(func(c): return c.get_global_rect()) != first or [cups._weather.size.x, cups._time.size.x] != widths:
+				moved.append("%s %s" % [weather, time])
+	check(moved.is_empty(), "nothing moves as weather and time change (%s)" % ", ".join(moved))
+	cups.free()
+	Game.set_weather(was_weather)
+	Game.set_time_of_day(was_time)

@@ -1,23 +1,28 @@
 class_name MultiplayerMenu
 extends Control
 
-## Racing with other people: two people on one phone, sharing the screen
-## side by side (landscape, half each) or face to face (portrait, with the
-## phone flat between them), against six AI karts in one race or a Grand
-## Prix, or online against people on other devices. Each player picks their
-## kart once the course or cup is picked (see KartPicker). A chip per player
-## shows their controller; tap it and press a button on the controller to
-## give it to them.
+## Two people on one phone, sharing the screen side by side (landscape, half
+## each) or face to face (portrait, with the phone flat between them),
+## against six AI karts in one race or a Grand Prix, or in Versus with no AI.
+## Each one goes to each player's driver and kart (see Game.show_two_setup), then
+## to the cups or courses, where tapping one starts the race. Each player has
+## a row with their tag and controller chip, then their name box. Tap the chip
+## and press a button on the controller to give it to them. Player 1's name is
+## the one in Settings.
 
 const LAYOUTS := [
 	[Game.SIDE_BY_SIDE, "Side by side"],
 	[Game.FACE_TO_FACE, "Face to face"],
 ]
 
+## Settings keys the two names are saved under.
+const NAME_KEYS := ["name", "name_two"]
+
 var _layout_buttons: Array[Button] = []
 var _window: RaceWindow
 var _chips: Array[Button] = []
 var _chip_words: Array[Label] = []
+var _names: Array[LineEdit] = []
 ## The player waiting for a button on their controller, or -1.
 var _waiting := -1
 
@@ -41,17 +46,21 @@ func _ready() -> void:
 		button.set_meta("mode", layout[0])
 		layouts.add_child(button)
 		_layout_buttons.append(button)
-	var chips := HBoxContainer.new()
-	chips.add_theme_constant_override("separation", UiKit.GAP_M)
-	right.add_child(chips)
+	var rows := VBoxContainer.new()
+	rows.add_theme_constant_override("separation", UiKit.GAP_M)
+	right.add_child(rows)
 	for person in Controllers.PLAYERS:
-		chips.add_child(_chip(person))
+		var row := HBoxContainer.new()
+		row.add_theme_constant_override("separation", UiKit.GAP_M)
+		row.add_child(_chip(person))
+		row.add_child(_name_box(person))
+		rows.add_child(row)
 
 	var parts := MenuStyle.menu_parts(self, "Two players", right)
 	var steps: Container = parts.steps
-	steps.add_child(MenuStyle.big_button("Grand Prix", "trophy", Game.show_cups.bind(true), "Cups of four races, for two"))
-	steps.add_child(MenuStyle.big_button("Single race", "race", Game.show_tracks.bind(Game.MODE_RACE), "Any course, for two"))
-	steps.add_child(MenuStyle.big_button("Online", "two", Game.show_online, "Host or join a game"))
+	steps.add_child(MenuStyle.big_button("Grand Prix", "trophy", _pick_cups, "Cups of four races, for two"))
+	steps.add_child(MenuStyle.big_button("Single race", "race", _pick_courses, "Any course, for two"))
+	steps.add_child(MenuStyle.big_button("Versus", "two", _pick_versus, "Just the two of you, no AI"))
 	parts.top.add_child(MenuStyle.link("Back", go_back, "back"))
 	if Game.controllers != null:
 		Game.controllers.changed.connect(_show_chips)
@@ -87,6 +96,22 @@ func _chip(person: int) -> Button:
 	_chips.append(b)
 	_chip_words.append(label)
 	return b
+
+
+## A player's name box. Empty means the game calls them Player 1 or 2.
+func _name_box(person: int) -> LineEdit:
+	var box := LineEdit.new()
+	PadKeyboard.attach(box)
+	box.placeholder_text = "Player %d's name" % (person + 1)
+	box.max_length = 16
+	box.text = Game.settings.get_value("player", NAME_KEYS[person], "")
+	box.custom_minimum_size = Vector2(200.0, 52.0)
+	box.size_flags_horizontal = SIZE_EXPAND_FILL
+	box.size_flags_stretch_ratio = 0.8
+	box.set_meta("player", person)
+	box.text_changed.connect(func(text: String) -> void: Game.set_setting("player", NAME_KEYS[person], text.strip_edges()))
+	_names.append(box)
+	return box
 
 
 func _set_layout(layout: String) -> void:
@@ -136,6 +161,25 @@ func _input(event: InputEvent) -> void:
 		_waiting = -1
 		Game.controllers.give(event.device, person)
 		_show_chips()
+
+
+func _pick_cups() -> void:
+	Game.versus = false
+	Game.cups_for_two = true
+	Game.show_two_setup(Game.show_cups.bind(true))
+
+
+func _pick_courses() -> void:
+	Game.versus = false
+	Game.cups_for_two = false
+	Game.show_two_setup(Game.show_tracks.bind(Game.MODE_RACE))
+
+
+## A single race for just the two of you.
+func _pick_versus() -> void:
+	Game.versus = true
+	Game.cups_for_two = false
+	Game.show_two_setup(Game.show_tracks.bind(Game.MODE_RACE))
 
 
 func go_back() -> void:

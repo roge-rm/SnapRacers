@@ -77,6 +77,13 @@ var course_back := Callable()
 var racing_alone := false
 ## The Grand Prix cups showing are for two on this phone (see show_cups).
 var cups_for_two := false
+## A single race for two on this phone is Versus, just the two of them with
+## no AI. Race again, Restart and Other course keep it; the Multiplayer menu's
+## other buttons, the single player menu and the main menu clear it.
+var versus := false
+## Player 2's kart page in the two-player setup (see show_two_setup), which
+## Back from the cups or courses for two returns to.
+var two_setup_end := Callable()
 ## Whether the perflog switch has started its race (see show_menu()).
 var _perf_started := false
 ## Racing with people on other devices (see NetSession).
@@ -216,6 +223,7 @@ func trophy_pictures() -> TrophyThumbnails:
 
 
 func show_menu() -> void:
+	versus = false
 	course_back = Callable()
 	_creation_back = Callable()
 	creation_path = ""
@@ -282,6 +290,7 @@ func show_drive() -> void:
 
 
 func show_single_player() -> void:
+	versus = false
 	_swap(SinglePlayerMenu.new())
 
 
@@ -346,8 +355,20 @@ func show_course_grid(for_mode: String, alone: bool, cup: String) -> void:
 	_swap(CourseGrid.new(for_mode, alone, cup))
 
 
+## Two on this phone set themselves up first: player 1's driver and kart,
+## then player 2's. After that `go` shows the cups (or the courses, for a
+## single race) and Back from them returns to player 2's kart page. Back from
+## player 1's first page goes to the Multiplayer menu.
+func show_two_setup(go: Callable) -> void:
+	var skip := not driver_picker_step()
+	var back := show_multiplayer
+	two_setup_end = func() -> void: _setup_step(3, go, back, false, true, skip)
+	_setup_step(1 if skip else 0, go, back, false, true, skip)
+
+
 ## Pick a driver, then a kart, then `go` starts the race. Back goes to
-## `back`. With `ai` and `two` it's as show_kart_picker(). With `two`, it's
+## `back`. With `ai` it's a race against the AI and the kart picker has the
+## difficulty row. With `two` it's as show_kart_picker(). With `two`, it's
 ## player 1's driver and kart, then player 2's, and back goes back one step
 ## each time. With `skip_driver` it goes straight to the karts with the
 ## drivers picked last time, which the kart picker's driver card changes.
@@ -411,6 +432,7 @@ func show_kart_picker(go: Callable, back: Callable, ai := false, two := false) -
 ## phone in split screen, and no AI driver gets either player's kart.
 func start_grand_prix(which: Variant, two := false) -> void:
 	mode = MODE_GRAND_PRIX
+	versus = false
 	came_from_editor = false
 	course_back = Callable()
 	racing_alone = false
@@ -824,14 +846,13 @@ func players() -> int:
 	return 1 if split() == SOLO else 2
 
 
-## How the screen is shared in the race about to start. Only races against the
-## AI and Grand Prix cups started for two can be for two. Everything else is
+## How the screen is shared in the race about to start. Only single races and
+## Grand Prix cups started for two can be for two. Everything else is
 ## for one player.
 func race_split() -> String:
 	if mode == MODE_GRAND_PRIX:
 		return split() if grand_prix != null and grand_prix.two else SOLO
 	return split() if mode == MODE_RACE and not racing_alone else SOLO
-
 
 ## Which kart player 2 drives: a stock kart by its file name, or the one in
 ## the garage (OWN_KART).

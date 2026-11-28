@@ -247,13 +247,34 @@ func _grand_prix_for_two() -> void:
 	check(cup_button.size() == 1, "the Multiplayer menu has a Grand Prix")
 	cup_button[0].pressed.emit()
 	await frames(2)
-	check(screen() is CupGrid and screen().mode == Game.MODE_GRAND_PRIX and Game.cups_for_two, "which opens the cups for two")
-	screen().find_children("*", "Button", true, false).filter(func(b): return b.get_meta("cup", "") == "gearbox")[0].pressed.emit()
-	await frames(2)
-	check(screen() is DriverPicker and screen().player == 1, "and picking a cup asks player 1 who drives first")
+	check(Game.cups_for_two and (screen() is DriverPicker or screen() is KartPicker) and screen().player == 1, "which starts with player 1's setup")
+	for i in 4:
+		if screen() is DriverPicker:
+			screen().grid.marked_card().pressed.emit()
+		else:
+			screen()._go.call()
+		await frames(2)
+	check(screen() is CupGrid and screen().mode == Game.MODE_GRAND_PRIX and Game.cups_for_two, "then the cups for two")
+	check(screen()._difficulty != null, "with the difficulty in the header")
 	Game._go_back()
 	await frames(2)
-	check(screen() is CupGrid and Game.cups_for_two, "back from the picker goes to the cups for two")
+	check(screen() is KartPicker and screen().player == 2, "back from the cups goes to player 2's kart")
+	screen()._go.call()
+	await frames(2)
+	screen().find_children("*", "Button", true, false).filter(func(b): return b.get_meta("cup", "") == "gearbox")[0].pressed.emit()
+	await frames(2)
+	check(screen() is Race and Game.grand_prix != null and Game.grand_prix.two, "picking a cup starts the race at once")
+	Game.grand_prix = null
+	Game.show_cups()
+	await frames(2)
+	check(screen() is CupGrid and screen()._difficulty == null, "Single player's cups have no difficulty button")
+	Game.show_course_grid(Game.MODE_RACE, false, "baseplate")
+	await frames(2)
+	screen().find_children("*", "Button", true, false).filter(func(b): return b.has_meta("track"))[0].pressed.emit()
+	await frames(2)
+	check(screen() is Race and not Game.racing_alone, "tapping a course for two starts the race at once")
+	Game.show_multiplayer()
+	await frames(2)
 
 	# The two people never share a name, or their points would be kept as one.
 	var names_were := [Game.settings.get_value("player", "name", ""), Game.settings.get_value("player", "name_two", "")]
@@ -341,7 +362,7 @@ func _grand_prix_for_two() -> void:
 	check(screen() is CupGrid and Game.cups_for_two, "leaving goes back to the cups for two")
 	Game._go_back()
 	await frames(2)
-	check(screen() is MultiplayerMenu, "and back from there to the Multiplayer menu")
+	check(screen() is KartPicker and screen().player == 2, "and back from there to player 2's kart")
 
 	# Quitting mid-cup goes back the same way.
 	Game.start_grand_prix("gearbox", true)

@@ -402,4 +402,4 @@ func _show_problem(text: String) -> void:
 
 
 func go_back() -> void:
-	Game.show_multiplayer()
+	Game.show_menu()

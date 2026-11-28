@@ -5,13 +5,15 @@ extends Control
 ## trophy's light grey until you finish the cup in the top three, then it's
 ## gold, silver or bronze for your best place in the layout Reverse and
 ## Mirrored currently pick. Weather, Time, Reverse and Mirrored sit between
-## the title and Back.
+## the title and Back, and for two on one phone the AI's difficulty too
+## (not in Versus, which has no AI).
 ##
 ## In a Grand Prix you pick a cup to race. For a single race, a time trial,
 ## practice or a race for two you pick a cup and then one of its courses (see
 ## CourseGrid). Your own cups and courses are behind their own cards at the end.
-## A Grand Prix from the Multiplayer menu is for two on this phone (see
-## Game.cups_for_two), and both players pick a kart.
+## For two on this phone (from the Multiplayer menu) both players have picked
+## their karts first (see Game.show_two_setup), so tapping a cup starts the
+## Grand Prix at once, and Back goes to player 2's kart page.
 
 const TROPHIES := { 1: "Gold trophy", 2: "Silver trophy", 3: "Bronze trophy" }
 const MEDALS := UiKit.MEDALS
@@ -38,6 +40,8 @@ var _weather: Button
 var _time: Button
 var _reversed: Button
 var _mirrored: Button
+## Cycles the AI difficulty, for two on one phone only.
+var _difficulty: Button
 var _trophies := {}
 ## Each card's trophy picture.
 var _pictures: Array[TextureRect] = []
@@ -190,7 +194,10 @@ func _pick(id: String) -> void:
 	if mode == Game.MODE_GRAND_PRIX:
 		var two := Game.cups_for_two
 		Game.mode = Game.MODE_GRAND_PRIX
-		Game.show_race_setup(Game.start_grand_prix.bind(id, two), Game.show_cups.bind(two), true, two)
+		if two:
+			Game.start_grand_prix(id, true)
+		else:
+			Game.show_race_setup(Game.start_grand_prix.bind(id, false), Game.show_cups.bind(false), true, false)
 	else:
 		Game.show_course_grid(mode, alone, id)
 
@@ -229,7 +236,10 @@ func _your_cup(mine: CupDesign, path: String) -> void:
 	var card := _cup_card(id, mine.name, mine.trophy_spec(), mine.trophy_colour(), paths)
 	card.tapped.connect(func() -> void:
 		Game.mode = Game.MODE_GRAND_PRIX
-		Game.show_race_setup(_starter(mine, id, Game.cups_for_two), Game.show_your_cups, true, Game.cups_for_two))
+		if Game.cups_for_two:
+			_starter(mine, id, true).call()
+		else:
+			Game.show_race_setup(_starter(mine, id, false), Game.show_your_cups, true, false))
 	var inset := MarginContainer.new()
 	inset.add_theme_constant_override("margin_right", MenuCard.EDGE)
 	inset.mouse_filter = MOUSE_FILTER_IGNORE
@@ -281,12 +291,45 @@ func _make_conditions_row() -> HBoxContainer:
 	_mirrored = MenuStyle.button("", func() -> void:
 		Game.set_mirrored(not Game.mirrored())
 		_show_conditions())
-	for button in [_weather, _time, _reversed, _mirrored]:
+	var buttons := [_weather, _time, _reversed, _mirrored]
+	if _for_two_players() and not (mode == Game.MODE_RACE and Game.versus):
+		_difficulty = MenuStyle.button("", func() -> void:
+			var at := Difficulty.LEVELS.find(Game.difficulty())
+			Game.set_difficulty(Difficulty.LEVELS[(at + 1) % Difficulty.LEVELS.size()])
+			_show_conditions())
+		buttons.append(_difficulty)
+	for button in buttons:
 		button.size_flags_horizontal = SIZE_EXPAND_FILL
 		button.size_flags_vertical = SIZE_SHRINK_CENTER
 		row.add_child(button)
 	_show_conditions()
+	_hold_widths.call_deferred()
 	return row
+
+
+## Whether this is the list for two on one phone, a Grand Prix or a single race.
+func _for_two_players() -> bool:
+	return (mode == Game.MODE_GRAND_PRIX and Game.cups_for_two) or (mode == Game.MODE_RACE and not alone)
+
+
+## Makes Weather, Time and Difficulty as wide as their longest name, so
+## picking another doesn't move everything else.
+func _hold_widths() -> void:
+	var pairs := [[_weather, Conditions.WEATHER_NAMES], [_time, Conditions.TIME_NAMES]]
+	if _difficulty != null:
+		var names := {}
+		for level in Difficulty.LEVELS:
+			names[level] = Difficulty.name_of(level)
+		pairs.append([_difficulty, names])
+	for pair in pairs:
+		var button: Button = pair[0]
+		var shown := button.text
+		var widest := 0.0
+		for name in pair[1].values():
+			button.text = name
+			widest = maxf(widest, button.get_combined_minimum_size().x)
+		button.text = shown
+		button.custom_minimum_size.x = widest
 
 
 ## Puts the conditions in the title row, in the space the red bars used.
@@ -313,6 +356,8 @@ func _show_conditions() -> void:
 	_mirrored.text = "Mirrored"
 	MenuStyle.mark(_reversed, Game.reversed())
 	MenuStyle.mark(_mirrored, Game.mirrored())
+	if _difficulty != null:
+		_difficulty.text = Difficulty.name_of(Game.difficulty())
 	if _grid != null:
 		_paint_all()
 
@@ -356,9 +401,10 @@ func _on_picture(key: String, picture: Texture2D) -> void:
 func go_back() -> void:
 	if yours:
 		Game.show_cups(Game.cups_for_two)
-	elif mode == Game.MODE_GRAND_PRIX and Game.cups_for_two:
-		Game.show_multiplayer()
-	elif mode == Game.MODE_RACE and not alone:
-		Game.show_multiplayer()
+	elif _for_two_players():
+		if Game.two_setup_end.is_valid():
+			Game.two_setup_end.call()
+		else:
+			Game.show_multiplayer()
 	else:
 		Game.show_single_player()

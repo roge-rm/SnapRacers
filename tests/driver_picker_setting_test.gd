@@ -44,9 +44,43 @@ func _ready() -> void:
 	await _flow(false, false)
 	await _flow(true, false)
 
+	for on in [true, false]:
+		Game.set_setting("race", "driver_picker", on)
+		await _two_setup(on)
+
 	Game.set_setting("race", "driver_picker", saved)
 	print("driver picker setting test: ", "PASS" if failures == 0 else "FAIL (%d)" % failures)
 	get_tree().quit(1 if failures > 0 else 0)
+
+
+## Two players set up first, then `go` shows the cups, and Back from the cups
+## returns to player 2's kart page.
+func _two_setup(on: bool) -> void:
+	var tag := "setup for two, %s" % ("on" if on else "off")
+	var went := [0]
+	Game.show_menu()
+	await frames(2)
+	Game.show_two_setup(func(): went[0] += 1)
+	await frames(3)
+	var s: Node = Game._screen
+	check(s is DriverPicker if on else s is KartPicker, "%s: starts with player 1" % tag)
+	for i in 4:
+		s = Game._screen
+		if went[0] > 0:
+			break
+		if s is DriverPicker:
+			s.grid.marked_card().pressed.emit()
+		else:
+			s._go.call()
+		await frames(3)
+	check(went[0] == 1, "%s: after player 2's kart it goes on" % tag)
+	check(Game.two_setup_end.is_valid(), "%s: player 2's kart page can be come back to" % tag)
+	Game.two_setup_end.call()
+	await frames(3)
+	check(Game._screen is KartPicker and Game._screen.player == 2 and Game._screen._difficulty_row == null, "%s: it's player 2's kart, with no difficulty" % tag)
+	Game._go_back()
+	await frames(3)
+	check(Game._screen is DriverPicker if on else Game._screen is KartPicker and Game._screen.player == 1, "%s: Back goes a page" % tag)
 
 
 func _flow(two: bool, on: bool) -> void:

@@ -50,6 +50,7 @@ func _ready() -> void:
 			race = race_on_screen()
 		await frames(2)
 		await check_race(race, mode)
+	await check_versus()
 	# Races save the settings, so these go back and are saved too.
 	Game.set_setting("player", "name_two", was_name)
 	Game.set_setting("race", "player_two", was_two)
@@ -161,7 +162,7 @@ func check_race(race: Race, mode: String) -> void:
 	await _pad(pad, JOY_BUTTON_A, false)
 	await _pad(pad, JOY_BUTTON_START, true)
 	await frames(2)
-	check(race.menu_open(second) and race._menus[second].focus_on_open and not race._menus[race.player].focus_on_open and get_tree().paused, "and its Start opens player 2's menu, pausing for both")
+	check(race._menus.size() == 1 and race._menus.has(second) and race.menu_open(race.player) and get_tree().paused, "and its Start opens the one menu with player 2's settings, pausing for both")
 	await _pad(pad, JOY_BUTTON_START, false)
 	race.close_menu(second)
 	Game.controllers._on_connection(pad, false)
@@ -228,6 +229,61 @@ func check_race(race: Race, mode: String) -> void:
 	second.hud._results.next_tab(-1)
 	await frames(2)
 	check(second.hud._results.table.scroll_vertical == 0, "and back up to the winner")
+
+
+## Waits for a race other than `before` to be on screen.
+func next_race(before: Race) -> Race:
+	var race: Race = null
+	while race == null or race == before:
+		await get_tree().process_frame
+		race = race_on_screen()
+	await frames(2)
+	return race
+
+
+## Versus from the Multiplayer menu is just the two players, no AI, and Race
+## again keeps it that way. Single race for two afterwards has the AI again.
+func check_versus() -> void:
+	print("-- versus")
+	Game.settings.set_value("race", "split", Game.SIDE_BY_SIDE)
+	Game.settings.set_value("race", "player_two", "quarter_mile")
+	var menu := MultiplayerMenu.new()
+	menu._pick_versus()
+	menu.free()
+	Game.racing_alone = false
+	Game.start_race(Game.TRACKS + "/peach_pit.json")
+	var race := await next_race(race_on_screen())
+	check(race.racers.size() == 2 and race.humans.size() == 2, "Versus has just the two players (%d racers)" % race.racers.size())
+	check(race.racers.all(func(r): return r.player and not r.cpu and r.ai == null), "and no AI")
+	check(race.racers.map(func(r): return r.kart.grid_slot) == [0, 1], "side by side on the front row")
+	var maps := race.find_children("*", "CourseMap", true, false)
+	check(maps.size() == 1 and maps[0].cpu_karts.is_empty(), "with no CPU karts on the map")
+	for human in race.humans:
+		var driver := AIDriver.new()
+		driver.kart = human.kart
+		driver.track = race.track
+		driver.others.assign(race.racers.map(func(r): return r.kart))
+		race.add_child(driver)
+		human.ai = driver
+		human.kart.controls = driver.controls
+	var from: Array = race.humans.map(func(h): return h.progress.distance())
+	await frames(60 * 10)
+	for i in 2:
+		check(race.humans[i].progress.distance() - from[i] > 40.0, "player %d gets going" % (i + 1))
+	check(race.humans.all(func(h): return h.hud._place.text.ends_with("/ 2")), "places are out of two (%s)" % race.player.hud._place.text)
+	race._player_finished(race.humans[1])
+	await frames(2)
+	check(race.standings().size() == 2, "the standings have both")
+	race.player.hud.again_pressed.emit()
+	race = await next_race(race)
+	check(race.racers.size() == 2 and race.racers.all(func(r): return r.ai == null), "Race again is still Versus (%d racers)" % race.racers.size())
+	menu = MultiplayerMenu.new()
+	menu._pick_courses()
+	menu.free()
+	Game.racing_alone = false
+	Game.start_race(Game.TRACKS + "/peach_pit.json")
+	race = await next_race(race)
+	check(race.racers.size() == Race.KARTS and race.racers.filter(func(r): return r.cpu).size() == Race.KARTS - 2, "Single race for two afterwards has the AI again")
 
 
 func _key(code: Key, down: bool) -> void:
