@@ -18,8 +18,8 @@ extends Node3D
 
 ## The engine's level at full for a kart a person drives and for the rest,
 ## in dB, and how near the rest have to be to be heard at full.
-const ENGINE_LEVEL := -6.0
-const AI_ENGINE_LEVEL := -12.0
+const ENGINE_LEVEL := -10.4
+const AI_ENGINE_LEVEL := -16.4
 const UNIT_SIZE := 6.0
 const AI_UNIT_SIZE := 4.0
 ## The wind's levels at full: the hiss and the low buffet.
