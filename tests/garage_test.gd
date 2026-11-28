@@ -657,13 +657,14 @@ func _suspension() -> void:
 	source = garage.find_part(entry)
 	garage.select(source)
 	garage.copy_selected()
-	var snapped := false
-	for spot in garage._spots:
-		if garage.snap_to(spot) and garage._ghost_ok:
-			snapped = true
-			break
-	check(snapped, "a copied wheel snaps onto the empty opposite mount")
-	if snapped:
+	# The old starter's wheels clip onto the chassis sides, and wheels only
+	# snap onto axles and pins now.
+	check(garage._spots.all(func(s): return s.type in ["axle", "pin"]), "a copied wheel only gets axle and pin dots, not the old starter's side mount")
+	# Put down by hand where the opposite one was, it still joins.
+	garage._ghost_place = KartDesign.place_of(Garage.mirrored(entry, garage.design.middle()))
+	garage._show_ghost()
+	check(garage._ghost_ok, "but put where the opposite wheel was it still fits")
+	if garage._ghost_ok:
 		garage.place()
 		check(KartDesign.suspension_of(garage.design.parts.back()) == "hard" and garage._holding_suspension == "hard", "a placed copy retains tuning and keeps it for the next copy")
 	garage.cancel()

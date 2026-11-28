@@ -964,13 +964,15 @@ func snap_to(spot: Dictionary) -> bool:
 		keep = Snap.facing_out(keep, spot.at.x, design.middle())
 	var aim := [_holding, spot, keep]
 	if _last_snap.is_empty() or _last_snap[0] != aim:
-		_last_snap = [aim, Snap.best(design, _holding, Snap.ways(_holding, spot, keep, spot.at))]
+		_last_snap = [aim, Snap.way_on(design, _holding, spot, keep)]
 	var way: Dictionary = _last_snap[1]
 	if way.is_empty():
 		return false
-	if spot == _spot and way == _way and way.place == _ghost_place:
+	# A wheel can end up on another spot along the same axle (see Snap.way_on).
+	var on: Dictionary = way.get("spot", spot)
+	if on == _spot and way == _way and way.place == _ghost_place:
 		return true
-	_spot = spot
+	_spot = on
 	_take_way(way)
 	return true
 
@@ -1013,7 +1015,7 @@ func _spot_under(screen_pos: Vector2, hit: BuildMath.Hit) -> Dictionary:
 func _goes_on(spot: Dictionary) -> bool:
 	var key := [spot.at, spot.axis, spot.type, _ghost_place.basis]
 	if not _tried_spots.has(key):
-		var way := Snap.best(design, _holding, Snap.ways(_holding, spot, _ghost_place.basis, spot.at))
+		var way := Snap.way_on(design, _holding, spot, _ghost_place.basis)
 		_tried_spots[key] = not way.is_empty() and way.fits and design.attaches_place(_holding, way.place)
 	return _tried_spots[key]
 

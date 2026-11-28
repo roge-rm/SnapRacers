@@ -22,6 +22,12 @@ const SLIDE := 5.0
 ## middle is from where it's wanted, in the fine unit. Turning it is a lot
 ## worse.
 const TURN_COST := 1000.0
+## The spots a wheel goes on by its hub: axles and pins, nothing else.
+const WHEEL_HOLDS := { "axle": true, "pin": true }
+## A wheel goes on as near the middle of an axle as it fits when the axle is
+## no longer than this, in the fine unit, like a fork's between its arms or
+## the pin on a kart's axle plate. On a longer one it goes where it's put.
+const SHORT_AXLE := 60.0
 
 
 ## Every spot on the kart that something could join.
@@ -54,10 +60,12 @@ static func open_spots(design: KartDesign) -> Array:
 ## `open` is open_spots() for the kart, if it's already been worked out.
 static func spots_for(design: KartDesign, id: String, open: Variant = null) -> Array:
 	var types := {}
+	var all: Array = open if open != null else open_spots(design)
+	if KartDesign.is_wheel(id):
+		return all.filter(func(s: Dictionary) -> bool: return WHEEL_HOLDS.has(s.type))
 	for c in Connectors.of(id):
 		for t in Connectors.PAIRS.get(c.type, {}):
 			types[t] = true
-	var all: Array = open if open != null else open_spots(design)
 	return all.filter(func(s: Dictionary) -> bool: return types.has(s.type))
 
 
@@ -75,11 +83,16 @@ static func ways(id: String, spot: Dictionary, keep: Basis, near: Vector3) -> Ar
 	var out := []
 	var middle := PartCatalog.fine_size(id) * 0.5
 	var turns := Grid.turns()
-	if KartDesign.is_wheel(id):
-		# Wheels keep their axles across the kart.
+	var wheel := KartDesign.is_wheel(id)
+	if wheel:
+		# Wheels keep their axles across the kart, and only go on by their hub.
 		turns = turns.filter(func(turn: Basis) -> bool: return absf(turn.x.x) >= 0.99)
+		if not WHEEL_HOLDS.has(spot.type):
+			return out
 	for own in Connectors.placed(id, Transform3D.IDENTITY):
 		if own.step % SPOT_EVERY != 0:
+			continue
+		if wheel and own.type != "hub":
 			continue
 		var join := how(own, spot)
 		if join == "":
@@ -96,6 +109,63 @@ static func ways(id: String, spot: Dictionary, keep: Basis, near: Vector3) -> Ar
 			out.append({ "place": place, "own": own, "cost": off.length() + TURN_COST * apart(turn, keep) })
 	out.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return a.cost < b.cost)
 	return out
+
+
+## The best way the part goes onto the spot, turned as near as it can be to
+## `keep` (see ways() and best()). A wheel on a short axle goes as near the
+## middle of it as it fits, wherever along it the spot is, if the whole
+## wheel is on the axle there, and the way it
+## gives back says the spot it ended up on as "spot".
+static func way_on(design: KartDesign, id: String, spot: Dictionary, keep: Basis) -> Dictionary:
+	var choices := ways(id, spot, keep, spot.at)
+	if choices.is_empty() or not KartDesign.is_wheel(id) or spot.get("part", -1) < 0:
+		return best(design, id, choices)
+	var other: Dictionary = design.parts[spot.part]
+	var line: Dictionary = Connectors.of(other.id)[spot.index]
+	var length: float = line.get("length", 0.0)
+	if length > SHORT_AXLE:
+		return best(design, id, choices)
+	# Moved along the axle by whole steps, so the hub stays on its spots,
+	# nearest the middle first. Step 0 is where you pointed.
+	var first: Dictionary = choices[0]
+	var mid: Vector3 = spot.at + spot.axis * (length * 0.5 - spot.along)
+	var wheel_mid: Vector3 = first.place * (PartCatalog.fine_size(id) * 0.5)
+	var off: float = (mid - wheel_mid).dot(spot.axis)
+	var shifts := []
+	var reach := ceili(length + PartCatalog.fine_size(id).x)
+	for k in range(-reach, reach + 1):
+		shifts.append(k)
+	# Two as near the middle go to the one nearer where you pointed.
+	shifts.sort_custom(func(a: int, b: int) -> bool:
+		var da := absf(a - off)
+		var db := absf(b - off)
+		return da < db if not is_equal_approx(da, db) else absi(a) < absi(b))
+	# Only where the whole wheel is on the axle, so one wider than a pin
+	# goes on as before.
+	var start: float = (spot.at - spot.axis * spot.along).dot(spot.axis)
+	var half: float = PartCatalog.fine_size(id).x * 0.5
+	var centred := []
+	for k in shifts:
+		var place := Transform3D(first.place.basis, first.place.origin + spot.axis * float(k))
+		var at: float = (place * (PartCatalog.fine_size(id) * 0.5)).dot(spot.axis) - start
+		if at - half < -Connectors.NEAR or at + half > length + Connectors.NEAR:
+			continue
+		if not KartDesign.joined({ "id": id, "place": place }, other):
+			continue
+		if not KartDesign.in_area(id, place, KartDesign.lift_for(id, place)):
+			continue
+		var on := spot.duplicate()
+		on.at = spot.at + spot.axis * float(k)
+		on.along = spot.along + float(k)
+		centred.append({ "place": place, "own": first.own, "cost": 0.0, "spot": on })
+	if centred.is_empty():
+		return best(design, id, choices)
+	var way := best(design, id, centred)
+	if not way.fits:
+		var plain := best(design, id, choices)
+		if plain.fits:
+			return plain
+	return way
 
 
 ## How far apart two turns are, 0 for the same up to 4 for opposite.
