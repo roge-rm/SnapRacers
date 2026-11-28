@@ -18,8 +18,8 @@ extends Node3D
 
 ## The engine's level at full for a kart a person drives and for the rest,
 ## in dB, and how near the rest have to be to be heard at full.
-const ENGINE_LEVEL := -10.4
-const AI_ENGINE_LEVEL := -16.4
+const ENGINE_LEVEL := -8.8
+const AI_ENGINE_LEVEL := -14.8
 const UNIT_SIZE := 6.0
 const AI_UNIT_SIZE := 4.0
 ## The wind's levels at full: the hiss and the low buffet.
@@ -91,18 +91,18 @@ func _init(owner_kart: Kart) -> void:
 
 func _ready() -> void:
 	_rng.randomize()
-	_engine = _loop(null, 0.0)
-	_engine_high = _loop(null, 0.0)
-	_engine_off = _loop(null, 0.0)
-	_jet = _loop(null, -2.0)
-	_skid = _loop(Sounds.stream("loop/skid"), -6.0)
-	_drift_soft = _loop(null, DRIFT_LEVEL)
-	_drift_hard = _loop(null, DRIFT_LEVEL)
+	_engine = _loop(null, 0.0, Sounds.ENGINES_BUS)
+	_engine_high = _loop(null, 0.0, Sounds.ENGINES_BUS)
+	_engine_off = _loop(null, 0.0, Sounds.ENGINES_BUS)
+	_jet = _loop(null, -2.0, Sounds.ENGINES_BUS)
+	_skid = _loop(Sounds.stream("loop/skid"), -6.0, Sounds.SLIDING_BUS)
+	_drift_soft = _loop(null, DRIFT_LEVEL, Sounds.SLIDING_BUS)
+	_drift_hard = _loop(null, DRIFT_LEVEL, Sounds.SLIDING_BUS)
 	_boosts_seen = kart.boost_count
-	_rumble = _loop(Sounds.stream("loop/rumble"), -4.0)
-	_splash = _loop(Sounds.stream("loop/splash"), SPLASH_LEVEL)
-	_wind = _loop(Sounds.stream("loop/wind"), WIND_LEVEL)
-	_wind_low = _loop(Sounds.stream("loop/wind_low"), WIND_LOW_LEVEL)
+	_rumble = _loop(Sounds.stream("loop/rumble"), -4.0, Sounds.ROAD_BUS)
+	_splash = _loop(Sounds.stream("loop/splash"), SPLASH_LEVEL, Sounds.ROAD_BUS)
+	_wind = _loop(Sounds.stream("loop/wind"), WIND_LEVEL, Sounds.WIND_BUS)
+	_wind_low = _loop(Sounds.stream("loop/wind_low"), WIND_LOW_LEVEL, Sounds.WIND_BUS)
 	_fit_level()
 	if kart.stats != null:
 		refit(kart.stats)
@@ -337,10 +337,10 @@ func _drift_surface_now() -> String:
 	return _drift_surface if _drift_surface != "" else "tarmac"
 
 
-func _loop(stream: AudioStream, level: float) -> AudioStreamPlayer3D:
+func _loop(stream: AudioStream, level: float, bus: String) -> AudioStreamPlayer3D:
 	var player := AudioStreamPlayer3D.new()
 	player.stream = stream
-	player.bus = Sounds.EFFECTS_BUS
+	player.bus = bus
 	player.volume_db = level
 	player.unit_size = 6.0
 	player.max_distance = 80.0

@@ -207,7 +207,10 @@ func _controls_page() -> Control:
 func _sound_page() -> Control:
 	var page := VBoxContainer.new()
 	page.add_theme_constant_override("separation", 10)
-	for bus in [[Sounds.MUSIC_BUS, "Music", ""], [Sounds.EFFECTS_BUS, "Effects", ""]]:
+	var buses := [[Sounds.MUSIC_BUS, "Music", ""], [Sounds.EFFECTS_BUS, "Effects", ""]]
+	for bus in Sounds.SUB_BUSES:
+		buses.append([bus, bus, ""])
+	for bus in buses:
 		var row := HBoxContainer.new()
 		row.add_theme_constant_override("separation", 20)
 		page.add_child(row)
@@ -217,10 +220,23 @@ func _sound_page() -> Control:
 		var name: String = bus[0]
 		row.add_child(MenuStyle.slider(Game.volume(name), func(value: float) -> void:
 			Game.set_volume(name, value)
-			# A click at the new level, so you can hear how loud it is.
+			# A short sample at the new level, one at a time while dragging.
 			if name == Sounds.EFFECTS_BUS:
-				Sounds.play("fx/click")))
+				Sounds.play("fx/click")
+			elif Sounds.SUB_BUSES.has(name):
+				_sample(name)))
 	return page
+
+
+var _sample_at := 0
+
+## Plays the sample sound for a group's slider, at most four times a second.
+func _sample(bus: String) -> void:
+	var now := Time.get_ticks_msec()
+	if now - _sample_at < 250:
+		return
+	_sample_at = now
+	Sounds.sample(bus)
 
 
 func _display_page() -> Control:

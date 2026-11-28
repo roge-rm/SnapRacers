@@ -14,6 +14,26 @@ extends RefCounted
 
 const MUSIC_BUS := "Music"
 const EFFECTS_BUS := "Effects"
+const ENGINES_BUS := "Engines"
+const BOOSTS_BUS := "Boosts"
+const SLIDING_BUS := "Sliding"
+const WIND_BUS := "Wind"
+const ROAD_BUS := "Road"
+const CRASHES_BUS := "Crashes"
+const POWERUPS_BUS := "Power-ups"
+const MENUS_BUS := "Menus"
+## The buses under Effects, in the order the Sound page lists them, each with
+## a sound of its own kind for the slider to play.
+const SUB_BUSES := {
+	"Engines": "engine/engine_small_high",
+	"Boosts": "fx/boost_air_2_1",
+	"Sliding": "loop/drift_tarmac_hard",
+	"Wind": "loop/wind",
+	"Road": "loop/rumble",
+	"Crashes": "fx/crash",
+	"Power-ups": "fx/powerup",
+	"Menus": "fx/click",
+}
 ## How long one tune takes to fade into the next.
 const CROSSFADE := 1.2
 ## How loud the music plays at full volume. The tunes are mixed loud, and
@@ -92,15 +112,19 @@ static func load_all() -> void:
 
 ## Makes the Music and Effects buses if they aren't there, at these volumes
 ## (0 to 1), and starts listening for button presses to click.
-static func setup(music_volume: float, effects_volume: float) -> void:
-	for bus in [MUSIC_BUS, EFFECTS_BUS]:
+static func setup(music_volume: float, effects_volume: float, sub_volumes := {}) -> void:
+	var buses := [MUSIC_BUS, EFFECTS_BUS]
+	buses.append_array(SUB_BUSES.keys())
+	for bus in buses:
 		if AudioServer.get_bus_index(bus) == -1:
 			AudioServer.add_bus()
 			var index := AudioServer.bus_count - 1
 			AudioServer.set_bus_name(index, bus)
-			AudioServer.set_bus_send(index, "Master")
+			AudioServer.set_bus_send(index, EFFECTS_BUS if SUB_BUSES.has(bus) else "Master")
 	set_volume(MUSIC_BUS, music_volume)
 	set_volume(EFFECTS_BUS, effects_volume)
+	for bus in SUB_BUSES:
+		set_volume(bus, sub_volumes.get(bus, 1.0))
 	_host_node()
 
 
@@ -114,16 +138,33 @@ static func set_volume(bus: String, volume: float) -> void:
 	AudioServer.set_bus_volume_db(index, linear_to_db(maxf(volume * volume, 0.0001)))
 
 
+## The bus a sound plays on when none is given: the sound's own group, else
+## Menus for sounds the same everywhere and Power-ups for ones out in the world.
+static func bus_for(name: String, in_world: bool) -> String:
+	if name.begins_with("fx/boost_"):
+		return BOOSTS_BUS
+	match name:
+		"fx/homing_warning":
+			return POWERUPS_BUS
+		"fx/crash", "fx/bump", "fx/reset", "fx/bricks":
+			return CRASHES_BUS
+		"fx/splash", "fx/sizzle", "fx/crossing_bell", "fx/train_horn":
+			return ROAD_BUS
+		"fx/thunder":
+			return WIND_BUS
+	return POWERUPS_BUS if in_world else MENUS_BUS
+
+
 ## Plays a sound once, the same wherever you are, for the menus and for
 ## things that happen to you in a race.
-static func play(name: String, volume_db := 0.0, pitch := 1.0) -> void:
+static func play(name: String, volume_db := 0.0, pitch := 1.0, bus := "") -> void:
 	var sound := stream(name)
 	var host := _host_node()
 	if sound == null or host == null or hushed:
 		return
 	var player := AudioStreamPlayer.new()
 	player.stream = sound
-	player.bus = EFFECTS_BUS
+	player.bus = bus if bus != "" else bus_for(name, false)
 	player.volume_db = volume_db
 	player.pitch_scale = pitch
 	player.finished.connect(player.queue_free)
@@ -134,15 +175,30 @@ static func play(name: String, volume_db := 0.0, pitch := 1.0) -> void:
 		player.queue_free()
 
 
+## Plays a bus's sample sound on that bus for under a second, for its slider.
+static func sample(bus: String) -> void:
+	var sound := stream(SUB_BUSES.get(bus, "fx/click"))
+	var host := _host_node()
+	if sound == null or host == null or hushed or not audible():
+		return
+	var player := AudioStreamPlayer.new()
+	player.stream = sound
+	player.bus = bus
+	player.finished.connect(player.queue_free)
+	player.autoplay = true
+	host.add_child(player)
+	host.get_tree().create_timer(0.8).timeout.connect(player.queue_free)
+
+
 ## Plays a sound once out in the world, following `where` around, so it's
 ## quieter the further away it is.
-static func play_at(name: String, where: Node3D, volume_db := 0.0, pitch := 1.0) -> void:
+static func play_at(name: String, where: Node3D, volume_db := 0.0, pitch := 1.0, bus := "") -> void:
 	var sound := stream(name)
 	if sound == null or where == null or not where.is_inside_tree() or hushed:
 		return
 	var player := AudioStreamPlayer3D.new()
 	player.stream = sound
-	player.bus = EFFECTS_BUS
+	player.bus = bus if bus != "" else bus_for(name, true)
 	player.volume_db = volume_db
 	player.pitch_scale = pitch
 	player.unit_size = 8.0

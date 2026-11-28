@@ -37,7 +37,7 @@ func _init(conditions: Conditions, lights: SkyAndSun.Lights) -> void:
 		var sound := AudioStreamPlayer.new()
 		sound.stream = Sounds.stream(SOUNDS[conditions.weather])
 		sound.volume_db = VOLUME[conditions.weather]
-		sound.bus = Sounds.EFFECTS_BUS
+		sound.bus = Sounds.WIND_BUS
 		sound.autoplay = true
 		sound.finished.connect(sound.play)
 		add_child(sound)

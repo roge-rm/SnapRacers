@@ -742,7 +742,7 @@ func _play(sound: String, level := 0.0) -> AudioStreamPlayer:
 		return null
 	var player := AudioStreamPlayer.new()
 	player.stream = stream
-	player.bus = Sounds.EFFECTS_BUS
+	player.bus = Sounds.MENUS_BUS
 	player.volume_db = level
 	player.finished.connect(player.queue_free)
 	player.autoplay = true

@@ -123,7 +123,10 @@ func _ready() -> void:
 	theme = UiKit.theme()
 	# Popups and anything else without a theme of its own get it too.
 	get_tree().root.theme = theme
-	Sounds.setup(volume(Sounds.MUSIC_BUS), volume(Sounds.EFFECTS_BUS))
+	var subs := {}
+	for bus in Sounds.SUB_BUSES:
+		subs[bus] = volume(bus)
+	Sounds.setup(volume(Sounds.MUSIC_BUS), volume(Sounds.EFFECTS_BUS), subs)
 	plugin = NetPlugin.new()
 	add_child(plugin)
 	# A on a controller presses buttons, like Enter, and B closes a popup or
@@ -1144,7 +1147,7 @@ func show_fps() -> bool:
 	return settings.get_value("display", "show_fps", false)
 
 
-## The volume of the Music or Effects bus, 0 to 1.
+## The volume of the Music, Effects or one of the buses under Effects, 0 to 1.
 func volume(bus: String) -> float:
 	return settings.get_value("sound", bus.to_lower(), 0.8 if bus == Sounds.MUSIC_BUS else 1.0)
 

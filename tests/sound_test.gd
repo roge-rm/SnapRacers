@@ -69,6 +69,15 @@ class Runner:
 
 		check_engine_revs()
 
+		for bus in Sounds.SUB_BUSES:
+			var index := AudioServer.get_bus_index(bus)
+			check(index != -1 and AudioServer.get_bus_send(index) == Sounds.EFFECTS_BUS, "the %s bus is under Effects" % bus)
+		check(Sounds.bus_for("fx/hit", true) == Sounds.POWERUPS_BUS and Sounds.bus_for("fx/crash", true) == Sounds.CRASHES_BUS and Sounds.bus_for("fx/bump", true) == Sounds.CRASHES_BUS, "gadget sounds play on Power-ups and crashes on Crashes")
+		check(Sounds.bus_for("fx/homing_warning", false) == Sounds.POWERUPS_BUS and Sounds.bus_for("fx/bricks", true) == Sounds.CRASHES_BUS and Sounds.bus_for("fx/bricks", false) == Sounds.CRASHES_BUS, "the homing warning plays on Power-ups and bricks on Crashes")
+		check(Sounds.bus_for("fx/boost_roar_1", true) == Sounds.BOOSTS_BUS and Sounds.bus_for("fx/click", false) == Sounds.MENUS_BUS, "boosts play on Boosts and clicks on Menus")
+		var menu_source := FileAccess.get_file_as_string("res://scripts/race/race_menu.gd")
+		check(not menu_source.contains("SUB_BUSES"), "the race menu has no group sliders")
+
 		# A kart keeps its sound when a part comes off.
 		add_child(TestTrack.new())
 		var kart := Kart.new()
@@ -78,6 +87,8 @@ class Runner:
 		await get_tree().process_frame
 		var sound := kart.sound
 		check(sound != null and sound._engine.stream == Sounds.stream("engine/engine_small_low") and sound._engine_off.stream == Sounds.stream("engine/engine_small_off"), "the starter kart sounds like a small engine")
+		check(sound._engine.bus == Sounds.ENGINES_BUS and sound._jet.bus == Sounds.ENGINES_BUS and sound._drift_soft.bus == Sounds.SLIDING_BUS and sound._skid.bus == Sounds.SLIDING_BUS, "a kart's engine and sliding players are on their buses")
+		check(sound._wind.bus == Sounds.WIND_BUS and sound._rumble.bus == Sounds.ROAD_BUS and sound._splash.bus == Sounds.ROAD_BUS, "and its wind and road players too")
 		var one: Array[int] = [kart.design.parts.size() - 1]
 		kart.lose_parts(one)
 		check(kart.sound == sound and sound.is_inside_tree(), "and keeps its sound when a part comes off")
